@@ -1,13 +1,22 @@
 {
-  "name": "javalin",
-  "version": "1.0.0",
-  "type": "module",
-  "scripts": {
-    "test": "bun test",
-    "test:watch": "bun test --watch"
-  },
-  "devDependencies": {
-    "@types/bun": "latest",
-    "bun-types": "latest"
-  }
+	"name": "beynac-monorepo",
+	"version": "1.0.0",
+	"type": "module",
+	"private": true,
+	"workspaces": [
+		"packages/*"
+	],
+	"scripts": {
+		"check": "bun run check:test && bun run check:lint && bun run check:projects",
+		"check:test": "bun test packages/*/src",
+		"check:projects": "bun run --filter='*' check",
+		"check:lint": "biome check .",
+		"format": "biome check --write ."
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.1.2",
+		"@types/bun": "latest",
+		"bun-types": "latest",
+		"typescript": "^5.8.3"
+	}
 }

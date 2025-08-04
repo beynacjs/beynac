@@ -1,0 +1,31 @@
+{
+	"name": "beynac",
+	"version": "0.0.1",
+	"description": "A batteries-included full-stack framework for TypeScript",
+	"type": "module",
+	"main": "index.js",
+	"scripts": {
+		"check": "tsc --noEmit",
+		"build": "tsc -p tsconfig.build.json",
+		"clean": "rm -rf dist"
+	},
+	"files": [
+		"README.md",
+		"index.js"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/BernieSumption/beynac.git"
+	},
+	"bugs": {
+		"url": "https://github.com/BernieSumption/beynac/issues"
+	},
+	"homepage": "https://github.com/BernieSumption/beynac#readme",
+	"author": "Bernie Sumption",
+	"license": "MIT",
+	"devDependencies": {
+		"@types/bun": "latest",
+		"bun-types": "latest",
+		"typescript": "^5.8.3"
+	}
+}
