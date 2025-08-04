@@ -3,7 +3,14 @@
 	"version": "0.0.1",
 	"description": "A batteries-included full-stack framework for TypeScript",
 	"type": "module",
-	"main": "index.js",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		}
+	},
 	"scripts": {
 		"check": "tsc --noEmit",
 		"build": "tsc -p tsconfig.build.json",
@@ -11,7 +18,7 @@
 	},
 	"files": [
 		"README.md",
-		"index.js"
+		"dist"
 	],
 	"repository": {
 		"type": "git",

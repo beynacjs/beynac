@@ -1,8 +1,6 @@
 # Beynac
 
-Beynac is an early-stage project attempting to port Laravel to TypeScript.
-
-This is the NPM package for beynac, see [the GitHub repo](https://github.com/BernieSumption/beynac#readme) for more information.
+Beynac is an early-stage project attempting to port Laravel to TypeScript. See [the GitHub repo](https://github.com/beynacjs/beynac#readme) for more information.
 
 ## License
 
