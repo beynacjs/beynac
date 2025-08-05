@@ -1,3 +1,4 @@
+import type { Plugin } from "vite";
 import { defineConfig } from "vitepress";
 
 // https://vitepress.dev/reference/site-config
@@ -26,6 +27,8 @@ const config = defineConfig({
 		build: {
 			chunkSizeWarningLimit: 1000, // Increase from 500KB to 1MB
 		},
+
+		plugins: [serveApiIndex()],
 	},
 
 	themeConfig: {
@@ -200,8 +203,26 @@ const config = defineConfig({
 			],
 		},
 
-		socialLinks: [{ icon: "github", link: "https://github.com/beynacjs/beynac" }],
+		socialLinks: [
+			{ icon: "github", link: "https://github.com/beynacjs/beynac" },
+		],
 	},
 });
+
+// Custom plugin to serve index.html for /api directory
+function serveApiIndex(): Plugin {
+	return {
+		name: "serve-api-index",
+		configureServer(server) {
+			server.middlewares.use((req, _res, next) => {
+				// Specifically handle /api and /api/ URLs
+				if (req.url === "/api" || req.url === "/api/") {
+					req.url = "/api/index.html";
+				}
+				next();
+			});
+		},
+	};
+}
 
 export default config;

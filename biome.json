@@ -19,9 +19,10 @@
 	"files": {
 		"includes": [
 			"./*.json",
-			"./*.{ts,tsx,js,jsx}",
-			"./packages/*/*.{ts,tsx,js,jsx}",
-			"./packages/*/src/**/*.{ts,tsx,js,jsx}"
+			"./*.{ts,tsx,mts,js,jsx,mjs}",
+			"./packages/*/*.{ts,tsx,mts,js,jsx,mjs}",
+			"./packages/*/src/**/*.{ts,tsx,mts,js,jsx,mjs}",
+			"./packages/website/.vitepress/*.{ts,tsx,mts,js,jsx,mjs}"
 		]
 	}
 }
