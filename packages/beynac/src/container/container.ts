@@ -106,9 +106,9 @@ export type TypeCallback<T> = (
  *
  * Key features include:
  *
- * - make(MyClass): create an instance of MyClass
+ * - get(MyClass): create an instance of MyClass
  * - bind(MyClass, () => ...): register a method to control how MyClass is constructed
- * - singleton(MyClass): all future calls to make(MyClass) will return the same object
+ * - singleton(MyClass): all future calls to get(MyClass) will return the same object
  * - scoped(MyClass): each request gets a separate instance of MyClass
  *
  * See: {@link TODO link to IoC docs}
@@ -221,7 +221,7 @@ export class Container {
 		return this.#getActualBinding(key).type !== "implicit";
 	}
 
-	public make<T>(abstract: KeyOrClass<T>): T {
+	public get<T>(abstract: KeyOrClass<T>): T {
 		const binding = this.#getConcreteBinding(abstract);
 		const key = binding.key as KeyOrClass<T>;
 
@@ -237,7 +237,7 @@ export class Container {
 			const needsContextualBuild = this.#hasContextualOverrides(binding);
 			_setInjectHandler(
 				<TArg>(dependency: KeyOrClass<TArg>, optional: boolean) => {
-					return this.#makeInjected(key, dependency, optional);
+					return this.#getInjected(key, dependency, optional);
 				},
 			);
 
@@ -377,7 +377,7 @@ export class Container {
 		return null;
 	}
 
-	#makeInjected<T>(
+	#getInjected<T>(
 		context: KeyOrClass | undefined,
 		dependency: KeyOrClass<T>,
 		optional: boolean,
@@ -396,7 +396,7 @@ export class Container {
 		if (optional && !this.bound(dependency)) {
 			return NO_VALUE;
 		}
-		return this.make(dependency);
+		return this.get(dependency);
 	}
 
 	#getConcreteBinding<T>(
@@ -577,7 +577,7 @@ export class Container {
 	#rebound<T>(key: KeyOrClass<T>): void {
 		const callbacks = Array.from(this.#reboundCallbacks.get(key));
 		if (callbacks.length) {
-			const instance = this.make(key);
+			const instance = this.get(key);
 			for (const callback of callbacks) {
 				callback(instance, this);
 			}
@@ -632,9 +632,9 @@ export class Container {
 	 *
 	 * The callback will be called when either:
 	 *
-	 * 1. the type is used as a key `container.make(MyType)`
+	 * 1. the type is used as a key `container.get(MyType)`
 	 * 2. an instance of the type or a subclass is returned from
-	 *    container.make()
+	 *    container.get()
 	 *
 	 * Since all values extend `Object` in javascript, you can register a
 	 * callback that fires when _any_ value is resolved using
@@ -700,7 +700,7 @@ export class Container {
 		try {
 			_setInjectHandler(
 				<TArg>(dependency: KeyOrClass<TArg>, optional: boolean) => {
-					return this.#makeInjected(dependent, dependency, optional) as TArg;
+					return this.#getInjected(dependent, dependency, optional) as TArg;
 				},
 			);
 			const o = object as Record<string, () => unknown>;
@@ -731,7 +731,7 @@ export class Container {
 	 * Resolve all of the bindings for a given tag or tags.
 	 *
 	 * This method returns a generator so that you can iterate lazily over the
-	 * results and each service will not be made until required.
+	 * results and each service will not be created until required.
 	 *
 	 * @example
 	 * for (const report of container.tagged(reportTag)) {
@@ -743,7 +743,7 @@ export class Container {
 	public *tagged<T>(tags: Key<T> | Key<T>[]): Generator<T, void, void> {
 		for (const tag of arrayWrap(tags)) {
 			for (const key of this.#tags.get(tag)) {
-				yield this.make(key) as T;
+				yield this.get(key) as T;
 			}
 		}
 	}

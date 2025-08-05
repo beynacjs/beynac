@@ -29,12 +29,12 @@ describe("Container", () => {
 	test("resolution of bound type token", () => {
 		const name = key<string>();
 		container.bind(name, { factory: () => "Bernie" });
-		expect(container.make(name)).toBe("Bernie");
+		expect(container.get(name)).toBe("Bernie");
 	});
 
 	test("failed resolution of unbound token", () => {
 		const string = key("Test");
-		expect(() => container.make(string)).toThrowErrorMatchingInlineSnapshot(
+		expect(() => container.get(string)).toThrowErrorMatchingInlineSnapshot(
 			`"Can't create an instance of [Test] because no value or factory function was supplied"`,
 		);
 	});
@@ -46,7 +46,7 @@ describe("Container", () => {
 		}
 		container.bind(nameToken, { factory: () => "Bernie" });
 		container.bind(HasNameDependency);
-		expect(container.make(HasNameDependency).name).toBe("Bernie");
+		expect(container.get(HasNameDependency).name).toBe("Bernie");
 	});
 
 	test("resolution of bound class with factory function and injected dependencies", () => {
@@ -58,13 +58,13 @@ describe("Container", () => {
 		container.bind(HasNameDependency, {
 			factory: () => new HasNameDependency(),
 		});
-		expect(container.make(HasNameDependency).name).toBe("Bernie");
+		expect(container.get(HasNameDependency).name).toBe("Bernie");
 	});
 
 	test("resolution of an unbound class value", () => {
 		class Foo {}
-		const foo1 = container.make(Foo);
-		const foo2 = container.make(Foo);
+		const foo1 = container.get(Foo);
+		const foo2 = container.get(Foo);
 		expect(foo1).toBeInstanceOf(Foo);
 		expect(foo2).toBeInstanceOf(Foo);
 		expect(foo1).not.toBe(foo2);
@@ -87,7 +87,7 @@ describe("Container", () => {
 		class B {
 			value = "hi";
 		}
-		expect(container.make(A)).toMatchObject({ b: { value: "hi" } });
+		expect(container.get(A)).toMatchObject({ b: { value: "hi" } });
 	});
 
 	test("error when resolving a value with missing injected dependencies", () => {
@@ -97,7 +97,7 @@ describe("Container", () => {
 		}
 		container.bind(HasNameDependency);
 		expect(() =>
-			container.make(HasNameDependency),
+			container.get(HasNameDependency),
 		).toThrowErrorMatchingInlineSnapshot(
 			`"Can't create an instance of [name] because no value or factory function was supplied (while building [HasNameDependency])"`,
 		);
@@ -106,14 +106,14 @@ describe("Container", () => {
 	test("abstract can be bound from concrete type", () => {
 		class Foo {}
 		container.bind(Foo);
-		expect(container.make(Foo)).toBeInstanceOf(Foo);
+		expect(container.get(Foo)).toBeInstanceOf(Foo);
 	});
 
 	test("can create a null-returning factory function", () => {
 		const token = key<string | null>();
 		container.bind(token, { factory: () => null });
 		expect(container.bound(token)).toBe(true);
-		expect(container.make(token)).toBe(null);
+		expect(container.get(token)).toBe(null);
 	});
 
 	test("can create a null-returning factory function for a singleton", () => {
@@ -121,7 +121,7 @@ describe("Container", () => {
 		const factory = mock(() => null);
 		container.bind(token, { factory, lifecycle: "singleton" });
 		expect(container.bound(token)).toBe(true);
-		expect(container.make(token)).toBe(null);
+		expect(container.get(token)).toBe(null);
 		expect(factory).toHaveBeenCalledTimes(1);
 	});
 
@@ -154,7 +154,7 @@ describe("Container", () => {
 		container.bind(name, { factory: () => "Bernie" });
 		container.bind(name, { factory: () => "Miguel", ifNotBound: true });
 
-		expect(container.make(name)).toBe("Bernie");
+		expect(container.get(name)).toBe("Bernie");
 	});
 
 	test("bindIf does register if service not registered yet", () => {
@@ -163,7 +163,7 @@ describe("Container", () => {
 		container.bind(surname, { factory: () => "Sumption" });
 		container.bind(name, { factory: () => "Bernie", ifNotBound: true });
 
-		expect(container.make(name)).toBe("Bernie");
+		expect(container.get(name)).toBe("Bernie");
 	});
 
 	test("instance registers an instance of a class", () => {
@@ -172,7 +172,7 @@ describe("Container", () => {
 			lifecycle: "singleton",
 		});
 		expect(container.getLifecycle(Dep)).toBe("singleton");
-		expect(container.make(Dep).name).toBe("instance");
+		expect(container.get(Dep).name).toBe("instance");
 	});
 
 	test("instance registers an instance for a token", () => {
@@ -182,7 +182,7 @@ describe("Container", () => {
 			lifecycle: "singleton",
 		});
 		expect(container.getLifecycle(token)).toBe("singleton");
-		expect(container.make(token).name).toBe("instance");
+		expect(container.get(token).name).toBe("instance");
 	});
 
 	test("resolved resolves alias to binding name before checking", () => {
@@ -194,7 +194,7 @@ describe("Container", () => {
 		expect(container.resolved(Foo)).toBe(false);
 		expect(container.resolved(fooAlias)).toBe(false);
 
-		container.make(Foo);
+		container.get(Foo);
 
 		expect(container.resolved(Foo)).toBe(true);
 		expect(container.resolved(fooAlias)).toBe(true);
@@ -215,7 +215,7 @@ describe("Container", () => {
 		const to = key();
 		container.bind(to, { factory: () => "to value" });
 		container.alias({ from, to });
-		expect(container.make(from)).toBe("to value");
+		expect(container.get(from)).toBe("to value");
 	});
 
 	test("alias to bound class reference", () => {
@@ -224,14 +224,14 @@ describe("Container", () => {
 		const from = key<Foo>();
 		container.bind(Foo, { factory: () => foo });
 		container.alias({ from, to: Foo });
-		expect(container.make(from)).toBe(foo);
+		expect(container.get(from)).toBe(foo);
 	});
 
 	test("alias to unbound type token", () => {
 		const from = key("from");
 		const to = key("to");
 		container.alias({ from, to });
-		expect(() => container.make(from)).toThrowErrorMatchingInlineSnapshot(
+		expect(() => container.get(from)).toThrowErrorMatchingInlineSnapshot(
 			`"Can't create an instance of [to] because no value or factory function was supplied"`,
 		);
 	});
@@ -240,10 +240,10 @@ describe("Container", () => {
 		class Foo {}
 		const from = key<Foo>();
 		container.alias({ from, to: Foo });
-		const instance = container.make(from);
+		const instance = container.get(from);
 		expect(instance).toBeInstanceOf(Foo);
 		// not a singleton
-		expect(container.make(from)).not.toBe(instance);
+		expect(container.get(from)).not.toBe(instance);
 		expect(container.bound(Foo)).toBe(false);
 	});
 
@@ -256,7 +256,7 @@ describe("Container", () => {
 		container.alias({ from: foo, to: bar });
 		container.alias({ from: bar, to: baz });
 		container.alias({ from: baz, to: foo });
-		expect(() => container.make(quux)).toThrowErrorMatchingInlineSnapshot(
+		expect(() => container.get(quux)).toThrowErrorMatchingInlineSnapshot(
 			`"Circular alias detected: [foo] -> [bar] -> [baz] -> [foo]"`,
 		);
 	});
@@ -269,8 +269,8 @@ describe("Container", () => {
 			},
 			lifecycle: "singleton",
 		});
-		const first = container.make(token);
-		const second = container.make(token);
+		const first = container.get(token);
+		const second = container.get(token);
 		expect(first).toBe(second);
 	});
 
@@ -278,8 +278,8 @@ describe("Container", () => {
 		class ContainerConcreteStub {}
 		container.bind(ContainerConcreteStub, { lifecycle: "singleton" });
 
-		const var1 = container.make(ContainerConcreteStub);
-		const var2 = container.make(ContainerConcreteStub);
+		const var1 = container.get(ContainerConcreteStub);
+		const var2 = container.get(ContainerConcreteStub);
 		expect(var1).toBe(var2);
 	});
 
@@ -289,13 +289,13 @@ describe("Container", () => {
 			factory: () => ({ type: "a" }),
 			lifecycle: "singleton",
 		});
-		const firstInstantiation = container.make(token);
+		const firstInstantiation = container.get(token);
 		container.bind(token, {
 			factory: () => ({ type: "b" }),
 			lifecycle: "singleton",
 			ifNotBound: true,
 		});
-		const secondInstantiation = container.make(token);
+		const secondInstantiation = container.get(token);
 		expect(firstInstantiation).toBe(secondInstantiation);
 		expect(firstInstantiation).toEqual({ type: "a" });
 	});
@@ -309,8 +309,8 @@ describe("Container", () => {
 			lifecycle: "singleton",
 			ifNotBound: true,
 		});
-		const firstInstantiation = container.make(otherToken);
-		const secondInstantiation = container.make(otherToken);
+		const firstInstantiation = container.get(otherToken);
+		const secondInstantiation = container.get(otherToken);
 		expect(firstInstantiation).toBe(secondInstantiation);
 		expect(firstInstantiation).toEqual({ type: "a" });
 	});
@@ -324,20 +324,20 @@ describe("Container", () => {
 		});
 
 		await container.withScope(async () => {
-			expect(container.make(token)).toBe("foo");
+			expect(container.get(token)).toBe("foo");
 			container.bind(token, {
 				factory: () => "bar",
 				lifecycle: "scoped",
 				ifNotBound: true,
 			});
-			expect(container.make(token)).toBe("foo");
-			expect(container.make(token)).not.toBe("bar");
+			expect(container.get(token)).toBe("foo");
+			expect(container.get(token)).not.toBe("bar");
 		});
 	});
 
 	test("auto concrete resolution", () => {
 		class Foo {}
-		expect(container.make(Foo)).toBeInstanceOf(Foo);
+		expect(container.get(Foo)).toBeInstanceOf(Foo);
 		expect(container.bound(Foo)).toBe(false);
 	});
 
@@ -367,7 +367,7 @@ describe("Container", () => {
 		}
 
 		container.bind(Parent, { factory: () => new Child() });
-		const instance = container.make(Dependent);
+		const instance = container.get(Dependent);
 		expect(instance.impl).toBeInstanceOf(Child);
 	});
 
@@ -385,7 +385,7 @@ describe("Container", () => {
 		}
 
 		container.bind(Contract, { factory: () => new Impl() });
-		const instance = container.make(NestedDependent);
+		const instance = container.get(NestedDependent);
 		expect(instance.inner).toBeInstanceOf(Dependent);
 		expect(instance.inner.impl).toBeInstanceOf(Impl);
 	});
@@ -397,7 +397,7 @@ describe("Container", () => {
 				return c;
 			},
 		});
-		const c = container.make(token);
+		const c = container.get(token);
 		expect(c).toBe(container);
 	});
 
@@ -405,7 +405,7 @@ describe("Container", () => {
 		class Foo {}
 		const bound = new Foo();
 		container.bind(Foo, { instance: bound, lifecycle: "singleton" });
-		expect(container.make(Foo)).toBe(bound);
+		expect(container.get(Foo)).toBe(bound);
 		expect(container.getLifecycle(Foo)).toBe("singleton");
 	});
 
@@ -413,7 +413,7 @@ describe("Container", () => {
 		class Foo {}
 		const bound = new Foo();
 		container.bind(Foo, { instance: bound });
-		expect(container.make(Foo)).toBe(bound);
+		expect(container.get(Foo)).toBe(bound);
 		expect(container.getLifecycle(Foo)).toBe("singleton");
 	});
 
@@ -426,7 +426,7 @@ describe("Container", () => {
 			) {}
 		}
 
-		const instance = container.make(Dependent);
+		const instance = container.get(Dependent);
 		expect(instance.stub).toBeInstanceOf(Dependency);
 		expect(instance.defaultVal).toBe("Bernie");
 	});
@@ -438,7 +438,7 @@ describe("Container", () => {
 		// @ts-expect-error
 		container.bind(MandatoryArgs);
 		// @ts-expect-error
-		container.make(MandatoryArgs);
+		container.get(MandatoryArgs);
 	});
 
 	test("error on attempting to auto-resolve an abstract class", () => {
@@ -446,7 +446,7 @@ describe("Container", () => {
 			foo: string;
 		}
 		const Parent = key<I>("I");
-		expect(() => container.make(Parent)).toThrowErrorMatchingInlineSnapshot(
+		expect(() => container.get(Parent)).toThrowErrorMatchingInlineSnapshot(
 			`"Can't create an instance of [I] because no value or factory function was supplied"`,
 		);
 	});
@@ -459,12 +459,12 @@ describe("Container", () => {
 			) {}
 		}
 
-		const instance = container.make(OptionalInject);
+		const instance = container.get(OptionalInject);
 		expect(instance.noDefault).toBeInstanceOf(Dep);
 		expect(instance.defaultVal).toBe(null);
 
 		container.bind(Dep, { factory: () => new Dep() });
-		const instance2 = container.make(OptionalInject);
+		const instance2 = container.get(OptionalInject);
 		expect(instance2.defaultVal).toBeInstanceOf(Dep);
 	});
 
@@ -481,7 +481,7 @@ describe("Container", () => {
 			.when(OptionalInject)
 			.needs(Dep)
 			.create(() => new AltDep());
-		const instance = container.make(OptionalInject);
+		const instance = container.get(OptionalInject);
 		expect(instance.defaultVal).toBeInstanceOf(AltDep);
 	});
 
@@ -505,11 +505,11 @@ describe("Container", () => {
 		const token = key<Foo>();
 		container.bind(token, { factory: () => new Foo("bound by token") });
 		container.bind(Foo, { factory: () => new Foo("bound by class") });
-		expect(container.make(token).string).toBe("bound by token");
-		expect(container.make(Foo).string).toBe("bound by class");
+		expect(container.get(token).string).toBe("bound by token");
+		expect(container.get(Foo).string).toBe("bound by class");
 
 		container.alias({ from: token, to: Foo });
-		expect(container.make(token).string).toBe("bound by class");
+		expect(container.get(token).string).toBe("bound by class");
 	});
 
 	test("rebound listeners", () => {
@@ -576,7 +576,7 @@ describe("Container", () => {
 		const C = key("C");
 
 		expect(() => {
-			container.make(A);
+			container.get(A);
 		}).toThrowErrorMatchingInlineSnapshot(
 			`"Can't create an instance of [C] because no value or factory function was supplied (while building [A] -> [B])"`,
 		);
@@ -591,12 +591,12 @@ describe("Container", () => {
 		}
 
 		expect(new Foo().key).toBe(null);
-		expect(container.make(Foo).key).toBe(Foo);
+		expect(container.get(Foo).key).toBe(Foo);
 		const token = key<Foo>();
 		container.bind(token, { factory: () => new Foo() });
-		expect(container.make(token).key).toBe(token);
+		expect(container.get(token).key).toBe(token);
 		container.bind(Foo);
-		expect(container.make(Foo).key).toBe(Foo);
+		expect(container.get(Foo).key).toBe(Foo);
 	});
 
 	test("it throws exception when abstract is same as alias", () => {
@@ -642,7 +642,7 @@ describe("Container", () => {
 			constructor(public a: unknown = inject(A)) {}
 		}
 
-		expect(() => container.make(Root)).toThrowErrorMatchingInlineSnapshot(
+		expect(() => container.get(Root)).toThrowErrorMatchingInlineSnapshot(
 			`"Circular dependency detected: [A] -> [B] -> [C] -> [A] (while building [Root] -> [A] -> [B] -> [C])"`,
 		);
 	});
@@ -683,10 +683,10 @@ describe("Container contextual bindings", () => {
 				return new Dep("created");
 			});
 
-		expect(container.make(A).dep.name).toBe("token");
-		expect(container.make(B).dep.name).toBe("class");
-		expect(container.make(C).dep.name).toBe("created");
-		expect(container.make(D).dep.name).toBe("default");
+		expect(container.get(A).dep.name).toBe("token");
+		expect(container.get(B).dep.name).toBe("class");
+		expect(container.get(C).dep.name).toBe("created");
+		expect(container.get(D).dep.name).toBe("default");
 		expect(createArg).toBe(container);
 	});
 
@@ -705,7 +705,7 @@ describe("Container contextual bindings", () => {
 			.needs(Dep)
 			.create(() => new Dep("contextual"));
 
-		expect(container.make(A).dep.name).toBe("contextual");
+		expect(container.get(A).dep.name).toBe("contextual");
 	});
 
 	test("contextual binding works for key", () => {
@@ -720,7 +720,7 @@ describe("Container contextual bindings", () => {
 			.needs(Dep)
 			.create(() => new Dep("contextual"));
 
-		expect(container.make(token).dep.name).toBe("contextual");
+		expect(container.get(token).dep.name).toBe("contextual");
 	});
 
 	test("contextual binding works for aliased key already created", () => {
@@ -737,7 +737,7 @@ describe("Container contextual bindings", () => {
 			.needs(Dep)
 			.create(() => new Dep("contextual"));
 
-		expect(container.make(token).dep.name).toBe("contextual");
+		expect(container.get(token).dep.name).toBe("contextual");
 	});
 
 	test("contextual binding works for aliased key created later", () => {
@@ -755,7 +755,7 @@ describe("Container contextual bindings", () => {
 		container.bind(token, { factory: () => new A() });
 		container.alias({ from: alias, to: token });
 
-		expect(container.make(token).dep.name).toBe("contextual");
+		expect(container.get(token).dep.name).toBe("contextual");
 	});
 
 	test("can contextually override with null", () => {
@@ -773,8 +773,8 @@ describe("Container contextual bindings", () => {
 			.needs(token)
 			.create(() => null);
 
-		expect(container.make(A).dep).toBe(null);
-		expect(container.make(B).dep).toBeInstanceOf(Dep);
+		expect(container.get(A).dep).toBe(null);
+		expect(container.get(B).dep).toBeInstanceOf(Dep);
 	});
 
 	test("contextual binding works for newly instanced bindings", () => {
@@ -792,7 +792,7 @@ describe("Container contextual bindings", () => {
 			lifecycle: "singleton",
 		});
 
-		expect(container.make(A).dep.name).toBe("override");
+		expect(container.get(A).dep.name).toBe("override");
 	});
 
 	test("contextual binding works on existing aliased instances", () => {
@@ -812,7 +812,7 @@ describe("Container contextual bindings", () => {
 			.needs(alias)
 			.create(() => new Dep("override"));
 
-		expect(container.make(A).dep.name).toBe("override");
+		expect(container.get(A).dep.name).toBe("override");
 	});
 
 	test("contextual binding can replace an instance with null", () => {
@@ -833,7 +833,7 @@ describe("Container contextual bindings", () => {
 			.needs(alias)
 			.create(() => null);
 
-		expect(container.make(A).dep).toBe(null);
+		expect(container.get(A).dep).toBe(null);
 	});
 
 	test("contextual binding works on new aliased instances", () => {
@@ -855,7 +855,7 @@ describe("Container contextual bindings", () => {
 		});
 		container.alias({ from: alias, to: instance });
 
-		expect(container.make(A).dep.name).toBe("override");
+		expect(container.get(A).dep.name).toBe("override");
 	});
 
 	test("contextual binding does not pick up stale re-aliased references", () => {
@@ -886,7 +886,7 @@ describe("Container contextual bindings", () => {
 		container.alias({ from: alias, to: instance });
 		container.alias({ from: dummy, to: unrelated });
 
-		expect(container.make(A).dep.name).toBe("good override");
+		expect(container.get(A).dep.name).toBe("good override");
 	});
 
 	test("contextual binding works on new aliased bindings", () => {
@@ -904,7 +904,7 @@ describe("Container contextual bindings", () => {
 		container.bind(stub, { factory: () => new Dep("incorrect") });
 		container.alias({ from: Dep, to: stub });
 
-		expect(container.make(A).dep.name).toBe("correct");
+		expect(container.get(A).dep.name).toBe("correct");
 	});
 
 	test("contextual binding works on existing aliased bindings", () => {
@@ -922,7 +922,7 @@ describe("Container contextual bindings", () => {
 			.needs(Dep)
 			.create(() => new Dep("correct"));
 
-		expect(container.make(A).dep.name).toBe("correct");
+		expect(container.get(A).dep.name).toBe("correct");
 	});
 
 	test("contextual binding works for multiple classes", () => {
@@ -941,9 +941,9 @@ describe("Container contextual bindings", () => {
 			.needs(Dep)
 			.create(() => new Dep("correct"));
 
-		expect(container.make(A).dep.name).toBe("correct");
-		expect(container.make(B).dep.name).toBe("correct");
-		expect(container.make(C).dep.name).toBe("default");
+		expect(container.get(A).dep.name).toBe("correct");
+		expect(container.get(B).dep.name).toBe("correct");
+		expect(container.get(C).dep.name).toBe("default");
 	});
 
 	test("contextual binding doesn't override non-contextual resolution", () => {
@@ -959,9 +959,9 @@ describe("Container contextual bindings", () => {
 			.needs(Dep)
 			.create(() => new Dep("contextual"));
 
-		expect(container.make(A).dep.name).toBe("contextual");
+		expect(container.get(A).dep.name).toBe("contextual");
 
-		expect(container.make(B).dep.name).toBe("default");
+		expect(container.get(B).dep.name).toBe("default");
 	});
 
 	test("contextual binding doesn't override non-contextual resolution of aliases", () => {
@@ -981,9 +981,9 @@ describe("Container contextual bindings", () => {
 			.needs(Dep)
 			.create(() => new Dep("contextual"));
 
-		expect(container.make(A).dep.name).toBe("contextual");
+		expect(container.get(A).dep.name).toBe("contextual");
 
-		expect(container.make(B).dep.name).toBe("stub");
+		expect(container.get(B).dep.name).toBe("stub");
 	});
 
 	test("contextually bound instances are not unnecessarily recreated", () => {
@@ -1000,8 +1000,8 @@ describe("Container contextual bindings", () => {
 
 		container.when(A).needs(otherDep).give(Dep);
 
-		container.make(A);
-		container.make(A);
+		container.get(A);
+		container.get(A);
 
 		expect(Dep.instantiations).toBe(1);
 	});
@@ -1017,7 +1017,7 @@ describe("Container contextual bindings", () => {
 			.needs(numberToken)
 			.create(() => 100);
 
-		const instance = container.make(A);
+		const instance = container.get(A);
 		expect(instance.number).toBe(100);
 	});
 
@@ -1039,8 +1039,8 @@ describe("Container contextual bindings", () => {
 			.create(() => new Dep("via alias"));
 		container.when(B).needs(alias).give(Dep);
 
-		expect(container.make(A).dep.name).toBe("via alias");
-		expect(container.make(B).dep.name).toBe("bound");
+		expect(container.get(A).dep.name).toBe("via alias");
+		expect(container.get(B).dep.name).toBe("bound");
 	});
 
 	test("contextual binding works for method invocation", () => {
@@ -1156,7 +1156,7 @@ describe("Container extend", () => {
 			return `${old} extended`;
 		});
 
-		expect(container.make(fooKey)).toBe("foo extended");
+		expect(container.get(fooKey)).toBe("foo extended");
 
 		const container2 = new Container();
 		const objKey = key<{ name: string; age?: number }>("obj");
@@ -1172,11 +1172,11 @@ describe("Container extend", () => {
 			return old;
 		});
 
-		const result = container2.make(objKey);
+		const result = container2.get(objKey);
 
 		expect(result.name).toBe("Bernie");
 		expect(result.age).toBe(44);
-		expect(container2.make(objKey)).toBe(result);
+		expect(container2.get(objKey)).toBe(result);
 	});
 
 	test("extended bindings work with contextual overrides", () => {
@@ -1199,7 +1199,7 @@ describe("Container extend", () => {
 			.needs(fooKey)
 			.create(() => "bar");
 
-		expect(container.make(A).foo).toBe("bar extended");
+		expect(container.get(A).foo).toBe("bar extended");
 		expect(container.call(new A(""), "m")).toBe("bar extended");
 	});
 
@@ -1227,9 +1227,9 @@ describe("Container extend", () => {
 			return obj;
 		});
 
-		expect(container.make(fooKey).foo).toBe("foo");
-		expect(container.make(fooKey).bar).toBe("baz");
-		expect(container.make(fooKey).baz).toBe("foo");
+		expect(container.get(fooKey).foo).toBe("foo");
+		expect(container.get(fooKey).bar).toBe("baz");
+		expect(container.get(fooKey).baz).toBe("foo");
 	});
 
 	test("extend is lazy initialized", () => {
@@ -1248,7 +1248,7 @@ describe("Container extend", () => {
 			return obj;
 		});
 		expect(Lazy.initialized).toBe(false);
-		container.make(Lazy);
+		container.get(Lazy);
 		expect(Lazy.initialized).toBe(true);
 	});
 
@@ -1259,7 +1259,7 @@ describe("Container extend", () => {
 		});
 		container.bind(fooKey, { instance: "foo", lifecycle: "singleton" });
 
-		expect(container.make(fooKey)).toBe("foo bar");
+		expect(container.get(fooKey)).toBe("foo bar");
 	});
 
 	test("extend instance rebinding callback", () => {
@@ -1283,22 +1283,22 @@ describe("Container extend", () => {
 	test("can extend transient with null", () => {
 		const token = key<string | null>();
 		container.bind(token, { instance: "hello" });
-		expect(container.make(token)).toBe("hello");
+		expect(container.get(token)).toBe("hello");
 		container.extend(token, () => null);
-		expect(container.make(token)).toBe(null);
+		expect(container.get(token)).toBe(null);
 	});
 
 	test("can extend singleton with null", () => {
 		const token = key<string | null>();
 		const factory = mock(() => "hello");
 		container.bind(token, { factory, lifecycle: "singleton" });
-		expect(container.make(token)).toBe("hello");
-		expect(container.make(token)).toBe("hello");
+		expect(container.get(token)).toBe("hello");
+		expect(container.get(token)).toBe("hello");
 		expect(factory).toHaveBeenCalledTimes(1);
 		const extender = mock(() => null);
 		container.extend(token, extender);
-		expect(container.make(token)).toBe(null);
-		expect(container.make(token)).toBe(null);
+		expect(container.get(token)).toBe(null);
+		expect(container.get(token)).toBe(null);
 		expect(factory).toHaveBeenCalledTimes(1);
 		expect(extender).toHaveBeenCalledTimes(1);
 	});
@@ -1318,7 +1318,7 @@ describe("Container extend", () => {
 
 		expect(testRebind).toBe(false);
 
-		container.make(fooKey);
+		container.get(fooKey);
 
 		container.extend(fooKey, (obj) => {
 			return obj;
@@ -1341,7 +1341,7 @@ describe("Container extend", () => {
 			return `${value} extended`;
 		});
 
-		expect(container.make(somethingKey)).toBe("some value extended");
+		expect(container.get(somethingKey)).toBe("some value extended");
 	});
 
 	test("extension works on binding that will be aliased later", () => {
@@ -1358,7 +1358,7 @@ describe("Container extend", () => {
 		});
 		container.alias({ from: aliasKey, to: somethingKey });
 
-		expect(container.make(somethingKey)).toBe("some value extended");
+		expect(container.get(somethingKey)).toBe("some value extended");
 	});
 
 	test("extension works on binding that will be deeply aliased later", () => {
@@ -1377,7 +1377,7 @@ describe("Container extend", () => {
 		container.alias({ from: aliasKey, to: somethingKey });
 		container.alias({ from: deepAliasKey, to: aliasKey });
 
-		expect(container.make(somethingKey)).toBe("some value extended");
+		expect(container.get(somethingKey)).toBe("some value extended");
 	});
 
 	test("multiple extends", () => {
@@ -1390,7 +1390,7 @@ describe("Container extend", () => {
 			return `${old} baz`;
 		});
 
-		expect(container.make(fooKey)).toBe("foo bar baz");
+		expect(container.get(fooKey)).toBe("foo bar baz");
 	});
 
 	test("extend contextual binding", () => {
@@ -1407,7 +1407,7 @@ describe("Container extend", () => {
 			return new AltDep(`extended ${instance.name}`);
 		});
 
-		expect(container.make(A).dep.name).toBe("extended alt-default");
+		expect(container.get(A).dep.name).toBe("extended alt-default");
 	});
 
 	test("extend contextual binding after resolution", () => {
@@ -1427,7 +1427,7 @@ describe("Container extend", () => {
 			.needs(I)
 			.create(() => new Impl("foo"));
 
-		container.make(Consumer);
+		container.get(Consumer);
 
 		container.extend(I, (instance) => {
 			expect(instance).toBeInstanceOf(Impl);
@@ -1436,7 +1436,7 @@ describe("Container extend", () => {
 			return new Impl("bar");
 		});
 
-		expect(container.make(Consumer).stub.value).toBe("bar");
+		expect(container.get(Consumer).stub.value).toBe("bar");
 	});
 });
 
@@ -1447,10 +1447,10 @@ describe("Container resolving callbacks", () => {
 		const dep = new Dep("hello");
 		container.bind(Dep, { factory: () => dep });
 
-		container.make(Dep);
+		container.get(Dep);
 		expect(callback).toHaveBeenCalledTimes(1);
 		expect(callback).toHaveBeenLastCalledWith(dep, container);
-		container.make(Dep);
+		container.get(Dep);
 		expect(callback).toHaveBeenCalledTimes(2);
 	});
 
@@ -1459,7 +1459,7 @@ describe("Container resolving callbacks", () => {
 		const callback = mock();
 		container.onResolving(token, callback);
 		container.bind(token, { factory: () => "hello" });
-		container.make(token);
+		container.get(token);
 
 		expect(callback).toHaveBeenCalledTimes(1);
 		expect(callback).toHaveBeenLastCalledWith("hello", container);
@@ -1473,7 +1473,7 @@ describe("Container resolving callbacks", () => {
 		const callback = mock();
 		container.onResolving(Other, callback);
 		container.bind(token, { factory: () => new Dep("hello") });
-		container.make(token);
+		container.get(token);
 
 		expect(callback).not.toHaveBeenCalled();
 	});
@@ -1485,9 +1485,9 @@ describe("Container resolving callbacks", () => {
 		container.onResolving(A, callback);
 		container.bind(token, { factory: () => new A() });
 
-		container.make(token);
+		container.get(token);
 		expect(callback).toHaveBeenCalledTimes(1);
-		container.make(token);
+		container.get(token);
 		expect(callback).toHaveBeenCalledTimes(2);
 	});
 
@@ -1499,7 +1499,7 @@ describe("Container resolving callbacks", () => {
 		container.onResolving(Parent, callback);
 		container.bind(token, { factory: () => new Child() });
 
-		container.make(token);
+		container.get(token);
 
 		expect(callback).toHaveBeenCalledTimes(1);
 	});
@@ -1511,7 +1511,7 @@ describe("Container resolving callbacks", () => {
 		container.onResolving(Object, callback);
 		container.bind(token, { factory: () => new A() });
 
-		container.make(token);
+		container.get(token);
 
 		expect(callback).toHaveBeenCalledTimes(1);
 
@@ -1528,7 +1528,7 @@ describe("Container resolving callbacks", () => {
 		container.onResolving(Child, callback);
 		container.bind(token, { factory: () => new Parent() });
 
-		container.make(token);
+		container.get(token);
 
 		expect(callback).toHaveBeenCalledTimes(0);
 	});
@@ -1543,27 +1543,27 @@ describe("Container resolving callbacks", () => {
 		container.bind(depKey, { factory: () => new Dep() });
 		container.bind(Dep);
 
-		container.make(depKey);
+		container.get(depKey);
 		expect(depCallback).toHaveBeenCalledTimes(1);
 		expect(keyCallback).toHaveBeenCalledTimes(1);
 
-		container.make(Dep);
+		container.get(Dep);
 		expect(depCallback).toHaveBeenCalledTimes(2);
 		expect(keyCallback).toHaveBeenCalledTimes(1);
 
-		container.make(Dep);
+		container.get(Dep);
 		expect(depCallback).toHaveBeenCalledTimes(3);
 		expect(keyCallback).toHaveBeenCalledTimes(1);
 	});
 
 	test("resolving callbacks can still be added after the first resolution", () => {
 		container.bind(Dep);
-		container.make(Dep);
+		container.get(Dep);
 
 		const callback = mock();
 		container.onResolving(Dep, callback);
 
-		container.make(Dep);
+		container.get(Dep);
 		expect(callback).toHaveBeenCalledTimes(1);
 	});
 
@@ -1577,7 +1577,7 @@ describe("Container resolving callbacks", () => {
 
 		container.bind(token, { factory: () => new Dep("A") });
 
-		container.make(token);
+		container.get(token);
 
 		expect(resolvingCallback).toHaveBeenCalledTimes(1);
 		expect(rebindingCallback).toHaveBeenCalledTimes(0);
@@ -1586,7 +1586,7 @@ describe("Container resolving callbacks", () => {
 		expect(resolvingCallback).toHaveBeenCalledTimes(2);
 		expect(rebindingCallback).toHaveBeenCalledTimes(1);
 
-		container.make(token);
+		container.get(token);
 		expect(resolvingCallback).toHaveBeenCalledTimes(3);
 		expect(rebindingCallback).toHaveBeenCalledTimes(1);
 
@@ -1603,20 +1603,20 @@ describe("Container resolving callbacks", () => {
 
 		container.bind(token, { factory: () => new Dep("A") });
 
-		container.make(token);
+		container.get(token);
 
 		expect(resolvingCallback).toHaveBeenCalledTimes(1);
 
 		container.bind(token, { factory: () => new Dep("B") });
 		expect(resolvingCallback).toHaveBeenCalledTimes(1);
 
-		container.make(token);
+		container.get(token);
 		expect(resolvingCallback).toHaveBeenCalledTimes(2);
 
 		container.bind(token, { factory: () => new Dep("C") });
 		expect(resolvingCallback).toHaveBeenCalledTimes(2);
 
-		container.make(token);
+		container.get(token);
 		expect(resolvingCallback).toHaveBeenCalledTimes(3);
 	});
 
@@ -1632,18 +1632,18 @@ describe("Container resolving callbacks", () => {
 		container.bind(A);
 
 		// it should call the callback for interface
-		container.make(A);
+		container.get(A);
 		expect(callback).toHaveBeenCalledTimes(1);
 
 		container.bind(A, { factory: () => new C() });
 
 		// it should call the callback for interface
-		container.make(A);
+		container.get(A);
 		expect(callback).toHaveBeenCalledTimes(2);
 
 		// should call the callback for the interface it implements
 		// plus the callback for ResolvingImplementationStubTwo.
-		container.make(B);
+		container.get(B);
 		expect(callback).toHaveBeenCalledTimes(4);
 	});
 
@@ -1658,7 +1658,7 @@ describe("Container resolving callbacks", () => {
 
 		container.bind(Child, { factory: () => new Child() });
 
-		container.make(Child);
+		container.get(Child);
 
 		expect(childCallback).toHaveBeenCalledTimes(1);
 		expect(parentCallback).toHaveBeenCalledTimes(1);
@@ -1675,7 +1675,7 @@ describe("Container resolving callbacks", () => {
 
 		container.bind(Parent, { factory: () => new Child() });
 
-		container.make(Parent);
+		container.get(Parent);
 
 		expect(childCallback).toHaveBeenCalledTimes(1);
 		expect(parentCallback).toHaveBeenCalledTimes(1);
@@ -1692,7 +1692,7 @@ describe("Container resolving callbacks", () => {
 
 		container.bind(Parent, { factory: () => new Parent() });
 
-		container.make(Parent);
+		container.get(Parent);
 
 		expect(childCallback).toHaveBeenCalledTimes(0);
 		expect(parentCallback).toHaveBeenCalledTimes(1);
@@ -1709,7 +1709,7 @@ describe("Container resolving callbacks", () => {
 
 		container.bind(A, { factory: () => new B() });
 
-		container.make(A);
+		container.get(A);
 
 		expect(aCallback).toHaveBeenCalledTimes(1);
 		expect(bCallback).toHaveBeenCalledTimes(1);
@@ -1721,7 +1721,7 @@ describe("Container resolving callbacks", () => {
 		const callback = mock();
 		container.onResolving(A, callback);
 
-		container.make(A);
+		container.get(A);
 
 		expect(callback).toHaveBeenCalledTimes(1);
 	});
@@ -1741,7 +1741,7 @@ describe("Container resolving callbacks", () => {
 		const callback = mock();
 		container.onResolving(token, callback);
 
-		container.make(A);
+		container.get(A);
 
 		expect(callback).toHaveBeenCalledTimes(1);
 	});
@@ -1766,7 +1766,7 @@ describe("Container resolving callbacks", () => {
 		const cCallback = mock();
 		container.onResolving(C, cCallback);
 
-		container.make(A);
+		container.get(A);
 
 		expect(aCallback).toHaveBeenCalledTimes(1);
 		expect(bCallback).toHaveBeenCalledTimes(1);
@@ -1783,7 +1783,7 @@ describe("Container withScope", () => {
 			},
 			lifecycle: "scoped",
 		});
-		expect(() => container.make(token)).toThrowErrorMatchingInlineSnapshot(
+		expect(() => container.get(token)).toThrowErrorMatchingInlineSnapshot(
 			`"Cannot create [token] because it is scoped so can only be accessed within a request or job. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`,
 		);
 	});
@@ -1791,7 +1791,7 @@ describe("Container withScope", () => {
 	test("scoped class reference resolution throws outside scope", () => {
 		class Foo {}
 		container.bind(Foo, { lifecycle: "scoped" });
-		expect(() => container.make(Foo)).toThrowErrorMatchingInlineSnapshot(
+		expect(() => container.get(Foo)).toThrowErrorMatchingInlineSnapshot(
 			`"Cannot create [Foo] because it is scoped so can only be accessed within a request or job. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`,
 		);
 	});
@@ -1803,8 +1803,8 @@ describe("Container withScope", () => {
 		expect(container.getLifecycle(Database)).toBe("scoped");
 
 		const result = await container.withScope(async () => {
-			const db1 = container.make(Database);
-			const db2 = container.make(Database);
+			const db1 = container.get(Database);
+			const db2 = container.get(Database);
 			expect(db1).toBe(db2); // Same instance within scope
 			return db1;
 		});
@@ -1824,8 +1824,8 @@ describe("Container withScope", () => {
 			.create(() => new Dep("contextual"));
 
 		const result = await container.withScope(async () => {
-			const db1 = container.make(Database);
-			const db2 = container.make(Database);
+			const db1 = container.get(Database);
+			const db2 = container.get(Database);
 			expect(db1).toBe(db2); // Same instance within scope
 			expect(db1.dep.name).toBe("contextual");
 			return db1;
@@ -1839,8 +1839,8 @@ describe("Container withScope", () => {
 		container.bind(Database, { lifecycle: "scoped" });
 
 		const [db1, db2] = await Promise.all([
-			container.withScope(async () => container.make(Database)),
-			container.withScope(async () => container.make(Database)),
+			container.withScope(async () => container.get(Database)),
+			container.withScope(async () => container.get(Database)),
 		]);
 
 		expect(db1).not.toBe(db2);
@@ -1851,14 +1851,14 @@ describe("Container withScope", () => {
 		container.bind(Database, { lifecycle: "scoped" });
 
 		await container.withScope(async () => {
-			const outerDb = container.make(Database);
+			const outerDb = container.get(Database);
 
 			await container.withScope(async () => {
-				const innerDb = container.make(Database);
+				const innerDb = container.get(Database);
 				expect(innerDb).not.toBe(outerDb); // Different scope
 			});
 
-			const outerDb2 = container.make(Database);
+			const outerDb2 = container.get(Database);
 			expect(outerDb2).toBe(outerDb); // Same scope
 		});
 	});
@@ -1887,7 +1887,7 @@ describe("Container withScope", () => {
 		const task1 = container.withScope(async () => {
 			await scope1("scope1-start");
 			await scope1("scope1-make");
-			const db = container.make(Database);
+			const db = container.get(Database);
 			results[0] = db;
 			return db;
 		});
@@ -1895,7 +1895,7 @@ describe("Container withScope", () => {
 		const task2 = container.withScope(async () => {
 			await scope2("scope2-start");
 			await scope2("scope2-make");
-			const db = container.make(Database);
+			const db = container.get(Database);
 			results[1] = db;
 			return db;
 		});
@@ -1927,7 +1927,7 @@ describe("Container withScope", () => {
 		container.bind(Logger, { lifecycle: "scoped" });
 
 		async function doWork(message: string) {
-			const logger = container.make(Logger);
+			const logger = container.get(Logger);
 			logger.logs.push(message);
 			await new Promise((resolve) => setTimeout(resolve, 1));
 			return logger;
@@ -1953,12 +1953,12 @@ describe("Container withScope", () => {
 
 		const results = await container.withScope(async () => {
 			return {
-				singleton1: container.make(Singleton),
-				singleton2: container.make(Singleton),
-				scoped1: container.make(Scoped),
-				scoped2: container.make(Scoped),
-				transient1: container.make(Transient),
-				transient2: container.make(Transient),
+				singleton1: container.get(Singleton),
+				singleton2: container.get(Singleton),
+				scoped1: container.get(Scoped),
+				scoped2: container.get(Scoped),
+				transient1: container.get(Transient),
+				transient2: container.get(Transient),
 			};
 		});
 
@@ -1978,17 +1978,17 @@ describe("Container withScope", () => {
 		container.bind(Database, { lifecycle: "scoped" });
 
 		await container.withScope(async () => {
-			const db1 = container.make(Database);
+			const db1 = container.get(Database);
 
 			// Do some async work
 			await new Promise((resolve) => setTimeout(resolve, 10));
 
-			const db2 = container.make(Database);
+			const db2 = container.get(Database);
 
 			// Do more async work
 			await Promise.resolve();
 
-			const db3 = container.make(Database);
+			const db3 = container.get(Database);
 
 			// All should be the same instance
 			expect(db1).toBe(db2);
@@ -2011,7 +2011,7 @@ describe("Container withScope", () => {
 		// Start the scope task
 		const scopeTask = container.withScope(async () => {
 			await checkpoint("first-access");
-			const logger1 = container.make(Logger);
+			const logger1 = container.get(Logger);
 			logger1.logs.push("first");
 
 			await checkpoint("second-access");
@@ -2019,7 +2019,7 @@ describe("Container withScope", () => {
 			// Critical test: AsyncLocalStorage context should survive setTimeout
 			await new Promise<void>((resolve) => {
 				setTimeout(() => {
-					const logger2 = container.make(Logger);
+					const logger2 = container.get(Logger);
 					logger2.logs.push("second");
 
 					// Verify it's the same instance even inside setTimeout callback
@@ -2029,7 +2029,7 @@ describe("Container withScope", () => {
 			});
 
 			await checkpoint("third-access");
-			const logger3 = container.make(Logger);
+			const logger3 = container.get(Logger);
 			logger3.logs.push("third");
 
 			// All should be the same instance
@@ -2064,7 +2064,7 @@ describe("Container withScope", () => {
 
 		// Start scope 1
 		const task1 = container.withScope(async () => {
-			db1 = container.make(Database);
+			db1 = container.get(Database);
 			await scope1("scope1-created");
 			// Hold this scope open until released
 			await scope1("scope1-exit");
@@ -2074,7 +2074,7 @@ describe("Container withScope", () => {
 		// Start scope 2
 		const task2 = container.withScope(async () => {
 			await scope2("scope2-created");
-			db2 = container.make(Database);
+			db2 = container.get(Database);
 			return db2;
 		});
 

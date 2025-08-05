@@ -35,6 +35,10 @@ const config = defineConfig({
 		// https://vitepress.dev/reference/default-theme-config
 		siteTitle: "Beynac", // This replaces "VitePress" in the top left
 
+		outline: {
+			level: [2, 3], // This will show h2 and h3 headings
+		},
+
 		nav: [
 			{ text: "Home", link: "/" },
 			{ text: "Documentation", link: "/docs/" },
