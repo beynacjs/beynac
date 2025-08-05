@@ -115,8 +115,7 @@ export type TypeCallback<T> = (
  */
 export class Container {
 	#bindings = new Map<KeyOrClass, Binding>();
-	#buildStack: KeyOrClass[] = [];
-	#buildStackSet: Set<KeyOrClass> = new Set();
+	#buildStack: Set<KeyOrClass> = new Set();
 	#tags = new SetMultiMap<KeyOrClass, KeyOrClass>();
 	#scopeStorage = new AsyncLocalStorage<Map<KeyOrClass, unknown>>();
 
@@ -226,14 +225,13 @@ export class Container {
 		const binding = this.#getConcreteBinding(abstract);
 		const key = binding.key as KeyOrClass<T>;
 
-		if (this.#buildStackSet.has(key)) {
+		if (this.#buildStack.has(key)) {
 			throw this.#containerError(
 				`Circular dependency detected: ${formatKeyCycle(this.#buildStack, key)}`,
 			);
 		}
 
-		this.#buildStack.push(key);
-		this.#buildStackSet.add(key);
+		this.#buildStack.add(key);
 		const previousInjectHandler = _getInjectHandler();
 		try {
 			const needsContextualBuild = this.#hasContextualOverrides(binding);
@@ -307,8 +305,7 @@ export class Container {
 
 			return instance;
 		} finally {
-			this.#buildStack.pop();
-			this.#buildStackSet.delete(key);
+			this.#buildStack.delete(key);
 			_setInjectHandler(previousInjectHandler);
 		}
 	}
@@ -410,7 +407,7 @@ export class Container {
 		while (binding?.type === "alias") {
 			if (stack.has(key)) {
 				throw this.#containerError(
-					`Circular alias detected: ${formatKeyCycle(Array.from(stack), key)}`,
+					`Circular alias detected: ${formatKeyCycle(stack, key)}`,
 				);
 			}
 			stack.add(key);
@@ -614,10 +611,11 @@ export class Container {
 		message: string,
 		args: { omitTopOfBuildStack?: boolean } = {},
 	): ContainerError {
+		const stackArray = Array.from(this.#buildStack);
 		return new ContainerError(message, {
 			buildStack: args.omitTopOfBuildStack
-				? this.#buildStack.slice(0, -1)
-				: this.#buildStack,
+				? stackArray.slice(0, -1)
+				: stackArray,
 		});
 	}
 
@@ -626,7 +624,7 @@ export class Container {
 	 * no key being
 	 */
 	public currentlyResolving(): KeyOrClass | null {
-		return this.#buildStack.at(-1) ?? null;
+		return Array.from(this.#buildStack).at(-1) ?? null;
 	}
 
 	/**
@@ -764,9 +762,14 @@ export class Container {
 	}
 }
 
-const formatKeyCycle = (stack: KeyOrClass[], cycleKey: KeyOrClass) => {
-	const cycleStart = stack.indexOf(cycleKey);
-	return stack.slice(cycleStart).concat(cycleKey).map(getKeyName).join(" -> ");
+const formatKeyCycle = (stack: Set<KeyOrClass>, cycleKey: KeyOrClass) => {
+	const stackArray = Array.from(stack);
+	const cycleStart = stackArray.indexOf(cycleKey);
+	return stackArray
+		.slice(cycleStart)
+		.concat(cycleKey)
+		.map(getKeyName)
+		.join(" -> ");
 };
 
 const looksLikeClassConstructor = (value: unknown) => {
