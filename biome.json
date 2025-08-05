@@ -22,7 +22,8 @@
 			"./*.{ts,tsx,mts,js,jsx,mjs}",
 			"./packages/*/*.{ts,tsx,mts,js,jsx,mjs}",
 			"./packages/*/src/**/*.{ts,tsx,mts,js,jsx,mjs}",
-			"./packages/website/.vitepress/*.{ts,tsx,mts,js,jsx,mjs}"
+			"./packages/website/.vitepress/*.{ts,tsx,mts,js,jsx,mjs}",
+			"./packages/website/{blog,docs}/**/*.{ts,tsx,mts,js,jsx,mjs}"
 		]
 	}
 }

@@ -32,6 +32,7 @@
 	"license": "MIT",
 	"devDependencies": {
 		"@types/bun": "latest",
+		"beynac": "workspace:",
 		"bun-types": "latest",
 		"typescript": "^5.8.3"
 	}
