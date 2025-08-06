@@ -39,6 +39,10 @@ const config = defineConfig({
 			level: [2, 3], // This will show h2 and h3 headings
 		},
 
+		search: {
+			provider: "local",
+		},
+
 		nav: [
 			{ text: "Home", link: "/" },
 			{ text: "Documentation", link: "/docs/" },
