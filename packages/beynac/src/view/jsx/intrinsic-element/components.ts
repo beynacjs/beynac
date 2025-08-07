@@ -3,7 +3,6 @@ import type { HtmlEscapedCallback, HtmlEscapedString } from "../../utils/html";
 import type { Child, Props } from "../base";
 import { getNameSpaceContext, JSXNode } from "../base";
 import { toArray } from "../children";
-import { PERMALINK } from "../constants";
 import { useContext } from "../context";
 import type { IntrinsicElements } from "../intrinsic-elements";
 import type { FC, PropsWithChildren } from "../types";
@@ -194,38 +193,11 @@ export const form: FC<
 		method?: "get" | "post";
 	}>
 > = (props) => {
-	// biome-ignore lint/complexity/noBannedTypes: vendored code
-	type StringOrFunction = string | Function;
-	if (typeof props.action === "function") {
-		props.action = (
-			PERMALINK in props.action
-				? (props.action[PERMALINK] as string)
-				: undefined
-		) as StringOrFunction;
-	}
 	return newJSXNode("form", props);
 };
 
-const formActionableElement = (
-	tag: string,
-	props: PropsWithChildren<{
-		// biome-ignore lint/complexity/noBannedTypes: vendored code
-		formAction?: Function | string;
-	}>,
-) => {
-	if (typeof props.formAction === "function") {
-		// biome-ignore lint/complexity/noBannedTypes: vendored code
-		type StringOrFunction = string | Function;
-		props.formAction = (
-			PERMALINK in props.formAction
-				? (props.formAction[PERMALINK] as string)
-				: undefined
-		) as StringOrFunction;
-	}
-	return newJSXNode(tag, props);
-};
-
 export const input: (props: PropsWithChildren) => unknown = (props) =>
-	formActionableElement("input", props);
+	newJSXNode("input", props);
+
 export const button: (props: PropsWithChildren) => unknown = (props) =>
-	formActionableElement("button", props);
+	newJSXNode("button", props);

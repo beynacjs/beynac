@@ -298,22 +298,6 @@ describe("intrinsic element", () => {
 	});
 
 	describe("form element", () => {
-		it('should be omitted "action" prop if it is a function', () => {
-			const template = (
-				<html lang="en">
-					<head></head>
-					<body>
-						<form action={() => {}} method="get">
-							<input type="text" />
-						</form>
-					</body>
-				</html>
-			);
-			expect(template.toString()).toBe(
-				'<html lang="en"><head></head><body><form method="get"><input type="text"/></form></body></html>',
-			);
-		});
-
 		it("should not do special behavior if action is a string", () => {
 			const template = (
 				<html lang="en">
@@ -350,20 +334,6 @@ describe("intrinsic element", () => {
 			it("should be rendered as is", () => {
 				const template = <input type="text" />;
 				expect(template.toString()).toBe('<input type="text"/>');
-			});
-
-			it('should be omitted "formAction" prop if it is a function', () => {
-				const template = (
-					<html lang="en">
-						<head></head>
-						<body>
-							<input type="text" formAction={() => {}} />
-						</body>
-					</html>
-				);
-				expect(template.toString()).toBe(
-					'<html lang="en"><head></head><body><input type="text"/></body></html>',
-				);
 			});
 		});
 	});

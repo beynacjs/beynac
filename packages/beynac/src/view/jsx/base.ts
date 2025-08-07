@@ -334,19 +334,12 @@ export const jsx = (
 	return node;
 };
 
-let initDomRenderer = false;
 export const jsxFn = (
 	// biome-ignore lint/complexity/noBannedTypes: vendored code
 	tag: string | Function,
 	props: Props,
 	children: (string | number | HtmlEscapedString)[],
 ): JSXNode => {
-	// DOM renderer initialization removed for SSR-only version
-	if (!initDomRenderer) {
-		// Removed DOM_RENDERER assignment
-		initDomRenderer = true;
-	}
-
 	if (typeof tag === "function") {
 		return new JSXFunctionNode(tag, props, children);
 	} else if (intrinsicElementTags[tag as keyof typeof intrinsicElementTags]) {
