@@ -47,7 +47,9 @@ export const raw = (
 ): HtmlEscapedString => {
 	const escapedString = new String(value) as HtmlEscapedString;
 	escapedString.isEscaped = true;
-	escapedString.callbacks = callbacks;
+	if (callbacks !== undefined) {
+		escapedString.callbacks = callbacks;
+	}
 
 	return escapedString;
 };

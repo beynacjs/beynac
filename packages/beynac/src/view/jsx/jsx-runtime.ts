@@ -57,4 +57,4 @@ export const jsxAttr = (
 		: stringBufferToString(buffer, undefined);
 };
 
-export const jsxEscape = (value: string) => value;
+export const jsxEscape = (value: string): string => value;

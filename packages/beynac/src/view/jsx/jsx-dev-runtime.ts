@@ -25,6 +25,8 @@ export function jsxDEV(
 			? jsxFn(tag, props, children)
 			: jsxFn(tag, props, [children]);
 	}
-	node.key = key;
+	if (key !== undefined) {
+		node.key = key;
+	}
 	return node;
 }

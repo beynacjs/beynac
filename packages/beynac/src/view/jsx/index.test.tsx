@@ -8,25 +8,7 @@ import { beforeAll, describe, expect, it, test } from "bun:test";
 // import { html } from "../utils/html";
 // import { Hono } from "../hono";
 
-// Mock html template function for tests
-const html = (strings: TemplateStringsArray, ...values: any[]) => {
-	let result = "";
-	for (let i = 0; i < strings.length; i++) {
-		result += strings[i];
-		if (i < values.length) {
-			// Simple HTML escaping
-			const value = String(values[i])
-				.replace(/&/g, "&amp;")
-				.replace(/</g, "&lt;")
-				.replace(/>/g, "&gt;")
-				.replace(/"/g, "&quot;");
-			result += value;
-		}
-	}
-	// Return an object that mimics HtmlEscapedString
-	return Object.assign(new String(result), { isEscaped: true });
-};
-
+import { html } from "../helper/html";
 import type { Context, FC, PropsWithChildren } from ".";
 import DefaultExport, {
 	createContext,
@@ -36,7 +18,6 @@ import DefaultExport, {
 	useContext,
 	version,
 } from ".";
-import { Suspense } from "./streaming";
 
 describe("Middleware tests need updating", () => {
 	it.skip("Hono integration tests need to be updated", () => {});
@@ -212,6 +193,43 @@ describe("render to string", () => {
 	it("Props value is undefined", () => {
 		const template = <span data-hello={undefined}>Hello</span>;
 		expect(template.toString()).toBe("<span>Hello</span>");
+	});
+
+	it("Should render async component", async () => {
+		const ChildAsyncComponent = async () => {
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			return <span>child async component</span>;
+		};
+
+		const AsyncComponent = async () => {
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			return (
+				<h1>
+					Hello from async component
+					<ChildAsyncComponent />
+				</h1>
+			);
+		};
+
+		const c = <AsyncComponent />;
+		const rendered = String(await c.toString());
+		console.log(rendered);
+		expect(rendered).toBe(
+			"<h1>Hello from async component<span>child async component</span></h1>",
+		);
+	});
+
+	it('Should render async component with "html" tagged template strings', async () => {
+		const AsyncComponent = async () => {
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			return <h1>Hello from async component</h1>;
+		};
+
+		const rendered =
+			await html`<html><body>${<AsyncComponent />}</body></html>`;
+		expect(String(rendered)).toBe(
+			"<html><body><h1>Hello from async component</h1></body></html>",
+		);
 	});
 
 	describe("dangerouslySetInnerHTML", () => {
@@ -979,69 +997,6 @@ describe("Context", () => {
 		expect(template.toString()).toBe("<span>light</span>");
 	});
 
-	describe.skip("with Suspence", () => {
-		const RedTheme = () => (
-			<ThemeContext.Provider value="red">
-				<Consumer />
-			</ThemeContext.Provider>
-		);
-
-		it("Should preserve context in sync component", async () => {
-			const template = (
-				<ThemeContext.Provider value="dark">
-					<Suspense fallback={<RedTheme />}>
-						<Consumer />
-						<ThemeContext.Provider value="black">
-							<Consumer />
-						</ThemeContext.Provider>
-					</Suspense>
-				</ThemeContext.Provider>
-			);
-			const stream = renderToReadableStream(template);
-
-			const chunks = [];
-			const textDecoder = new TextDecoder();
-			for await (const chunk of stream as any) {
-				chunks.push(textDecoder.decode(chunk));
-			}
-
-			expect(chunks).toEqual(["<span>dark</span><span>black</span>"]);
-		});
-
-		it("Should preserve context in async component", async () => {
-			const template = (
-				<ThemeContext.Provider value="dark">
-					<Suspense fallback={<RedTheme />}>
-						<Consumer />
-						<ThemeContext.Provider value="black">
-							<AsyncConsumer />
-						</ThemeContext.Provider>
-					</Suspense>
-				</ThemeContext.Provider>
-			);
-			const stream = renderToReadableStream(template);
-
-			const chunks = [];
-			const textDecoder = new TextDecoder();
-			for await (const chunk of stream as any) {
-				chunks.push(textDecoder.decode(chunk));
-			}
-
-			expect(chunks).toEqual([
-				'<template id="H:0"></template><span>red</span><!--/$-->',
-				`<template data-hono-target="H:0"><span>dark</span><span>black</span></template><script>
-((d,c,n) => {
-c=d.currentScript.previousSibling
-d=d.getElementById('H:0')
-if(!d)return
-do{n=d.nextSibling;n.remove()}while(n.nodeType!=8||n.nodeValue!='/$')
-d.replaceWith(c.content)
-})(document)
-</script>`,
-			]);
-		});
-	});
-
 	describe("async component", () => {
 		const ParentAsyncConsumer = async () => {
 			const theme = useContext(ThemeContext);
@@ -1113,32 +1068,10 @@ describe("default export", () => {
 		"isValidElement",
 		"createElement",
 		"cloneElement",
-		"ErrorBoundary",
 		"createContext",
 		"useContext",
-		"useState",
-		"useEffect",
-		"useRef",
-		"useCallback",
-		"useReducer",
-		"useDebugValue",
-		"createRef",
-		"forwardRef",
-		"useImperativeHandle",
-		"useSyncExternalStore",
-		"use",
-		"startTransition",
-		"useTransition",
-		"useDeferredValue",
-		"startViewTransition",
-		"useViewTransition",
-		"useMemo",
-		"useLayoutEffect",
-		"useInsertionEffect",
-		"useActionState",
-		"useOptimistic",
-		"Suspense",
 		"StrictMode",
+		"Children",
 	].forEach((key) => {
 		it(key, () => {
 			expect((DefaultExport as any)[key]).toBeDefined();

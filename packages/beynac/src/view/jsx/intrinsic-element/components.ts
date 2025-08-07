@@ -13,6 +13,7 @@ const metaTagMap: WeakMap<
 	object,
 	Record<string, [string, Props, string | undefined][]>
 > = new WeakMap();
+
 const insertIntoHead: (
 	tagName: string,
 	tag: string,

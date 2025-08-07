@@ -21,7 +21,7 @@ export const html = (
 	strings: TemplateStringsArray,
 	...values: unknown[]
 ): HtmlEscapedString | Promise<HtmlEscapedString> => {
-	const buffer: StringBufferWithCallbacks = [""] as StringBufferWithCallbacks;
+	const buffer = [""] as StringBufferWithCallbacks;
 
 	for (let i = 0, len = strings.length - 1; i < len; i++) {
 		buffer[0] += strings[i];

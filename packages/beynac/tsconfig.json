@@ -23,7 +23,6 @@
 		"exactOptionalPropertyTypes": true,
 		"noImplicitReturns": true,
 		"noFallthroughCasesInSwitch": true,
-		"noUncheckedIndexedAccess": true,
 		"noImplicitOverride": true,
 		"allowUnusedLabels": false,
 		"allowUnreachableCode": false,

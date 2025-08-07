@@ -1,7 +1,10 @@
-import { raw } from "../helper/html";
 import type { HtmlEscapedString } from "../utils/html";
-import type { Child, FC, PropsWithChildren } from "./";
+import type { Child } from "./";
 
+/**
+ * Helper function to convert children to string array for SSR.
+ * Handles async components by awaiting promises.
+ */
 export const childrenToString = async (
 	children: Child[],
 ): Promise<HtmlEscapedString[]> => {
@@ -18,38 +21,5 @@ export const childrenToString = async (
 		} else {
 			throw e;
 		}
-	}
-};
-
-export type ErrorHandler = (error: Error) => void;
-export type FallbackRender = (error: Error) => Child;
-
-/**
- * @experimental
- * `ErrorBoundary` is an experimental feature.
- * The API might be changed.
- */
-export const ErrorBoundary: FC<
-	PropsWithChildren<{
-		fallback?: Child;
-		fallbackRender?: FallbackRender;
-		onError?: ErrorHandler;
-	}>
-> = async ({ children, fallback, fallbackRender, onError }) => {
-	if (!children) {
-		return raw("");
-	}
-
-	if (!Array.isArray(children)) {
-		children = [children];
-	}
-
-	try {
-		const resArray = await childrenToString(children);
-		return raw(resArray.join(""));
-	} catch (error) {
-		onError?.(error as Error);
-		const fallbackContent = fallbackRender?.(error as Error) || fallback || "";
-		return raw(fallbackContent.toString());
 	}
 };

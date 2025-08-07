@@ -2,6 +2,7 @@ import type { Child } from "./base";
 
 export const toArray = (children: Child): Child[] =>
 	Array.isArray(children) ? children : [children];
+
 export const Children = {
 	map: (
 		children: Child[],
@@ -21,5 +22,5 @@ export const Children = {
 		}
 		return children[0];
 	},
-	toArray,
+	toArray: toArray as typeof toArray,
 };
