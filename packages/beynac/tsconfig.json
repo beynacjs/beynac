@@ -6,6 +6,7 @@
 		"moduleResolution": "bundler",
 		"rootDir": "./src",
 		"outDir": "./dist",
+		"jsx": "react-jsx",
 		"esModuleInterop": false,
 		"forceConsistentCasingInFileNames": true,
 		"strict": true,
