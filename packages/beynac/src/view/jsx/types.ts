@@ -25,7 +25,7 @@ type ReactElement<P = any, T = string | Function> = JSXNode & {
 };
 type ReactNode = ReactElement | string | number | boolean | null | undefined;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-type ComponentClass<P = {}, S = {}> = unknown;
+type ComponentClass<_P = {}, _S = {}> = unknown;
 
 export type { ReactElement, ReactNode, ComponentClass };
 

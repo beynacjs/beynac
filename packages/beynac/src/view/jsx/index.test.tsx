@@ -199,6 +199,7 @@ describe("render to string", () => {
 	});
 
 	it("Empty elements with children are rended with children and closing tag", () => {
+		// biome-ignore lint/correctness/noVoidElementsWithChildren: we're testing this behavior
 		const template = <link>https://example.com</link>;
 		expect(template.toString()).toBe("<link>https://example.com</link>");
 	});
@@ -627,7 +628,7 @@ describe("memo", () => {
 				<span>{counter}</span>
 			),
 			(_, nextProps) =>
-				typeof nextProps.refresh == "undefined" ? true : !nextProps.refresh,
+				typeof nextProps.refresh === "undefined" ? true : !nextProps.refresh,
 		);
 
 		let template = <Body counter={0} />;

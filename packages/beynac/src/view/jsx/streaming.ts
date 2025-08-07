@@ -4,8 +4,7 @@
  */
 
 import { raw } from "../helper/html";
-import type { HtmlEscapedString } from "../utils/html";
-import type { Child, FC, Context as JSXContext, PropsWithChildren } from "./";
+import type { FC, Context as JSXContext, PropsWithChildren } from "./";
 import { childrenToString } from "./components";
 import { createContext } from "./context";
 

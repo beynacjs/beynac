@@ -320,7 +320,7 @@ export const jsx = (
 	}
 
 	const key = props.key;
-	delete props["key"];
+	delete props.key;
 
 	const node = jsxFn(tag, props, children);
 	node.key = key;
