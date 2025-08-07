@@ -15,12 +15,12 @@ type StringLiteralUnion<T> = T | (string & Record<never, never>);
  * Copyright (c) Meta Platforms, Inc. and affiliates.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace JSX {
 	export type CrossOrigin = "anonymous" | "use-credentials" | "" | undefined;
 	export interface CSSProperties {
 		[propertyKey: string]: unknown;
 	}
+	// biome-ignore lint/suspicious/noExplicitAny: vendored code
 	type AnyAttributes = { [attributeName: string]: any };
 
 	interface JSXAttributes {
@@ -153,6 +153,7 @@ export namespace JSX {
 		popovertargetaction?: HTMLAttributePopoverTargetAction | undefined;
 
 		// React 19 compatibility
+		// biome-ignore lint/complexity/noBannedTypes: vendored code
 		formAction?: string | Function | undefined;
 	}
 
@@ -220,6 +221,7 @@ export namespace JSX {
 		target?: HTMLAttributeAnchorTarget | undefined;
 
 		// React 19 compatibility
+		// biome-ignore lint/complexity/noBannedTypes: vendored code
 		action?: string | Function | undefined;
 	}
 
@@ -379,6 +381,7 @@ export namespace JSX {
 		popovertargetaction?: HTMLAttributePopoverTargetAction | undefined;
 
 		// React 19 compatibility
+		// biome-ignore lint/complexity/noBannedTypes: vendored code
 		formAction?: string | Function | undefined;
 	}
 

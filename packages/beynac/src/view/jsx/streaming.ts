@@ -30,7 +30,7 @@ export const StreamingContext: JSXContext<{ scriptNonce: string } | null> =
  * `Suspense` is an experimental feature.
  * The API might be changed.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: vendored code
 export const Suspense: FC<PropsWithChildren<{ fallback: any }>> = async ({
 	children,
 	fallback,

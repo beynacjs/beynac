@@ -101,32 +101,34 @@ export const escapeToBuffer = (str: string, buffer: StringBuffer): void => {
 		return;
 	}
 
-	let escape;
-	let index;
+	// biome-ignore lint/suspicious/noExplicitAny: vendored code
+	let entity: any;
+	// biome-ignore lint/suspicious/noExplicitAny: vendored code
+	let index: any;
 	let lastIndex = 0;
 
 	for (index = match; index < str.length; index++) {
 		switch (str.charCodeAt(index)) {
 			case 34: // "
-				escape = "&quot;";
+				entity = "&quot;";
 				break;
 			case 39: // '
-				escape = "&#39;";
+				entity = "&#39;";
 				break;
 			case 38: // &
-				escape = "&amp;";
+				entity = "&amp;";
 				break;
 			case 60: // <
-				escape = "&lt;";
+				entity = "&lt;";
 				break;
 			case 62: // >
-				escape = "&gt;";
+				entity = "&gt;";
 				break;
 			default:
 				continue;
 		}
 
-		buffer[0] += str.substring(lastIndex, index) + escape;
+		buffer[0] += str.substring(lastIndex, index) + entity;
 		lastIndex = index + 1;
 	}
 
@@ -183,7 +185,7 @@ export const resolveCallback = async (
 	).then((res) =>
 		Promise.all(
 			res
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				// biome-ignore lint/suspicious/noExplicitAny: vendored code
 				.filter<string>(Boolean as any)
 				.map((str) => resolveCallback(str, phase, false, context, buffer)),
 		).then(() => (buffer as [string])[0]),

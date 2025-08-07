@@ -6,5 +6,9 @@
 		"source.organizeImports.biome": "explicit",
 		"source.fixAll.biome": "explicit"
 	},
-	"cSpell.words": ["Beynac", "laravel"]
+	"cSpell.words": [
+		"Beynac",
+		"laravel",
+		"vendored"
+	]
 }

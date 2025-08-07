@@ -17,14 +17,16 @@ export type CSSProperties = JSX.CSSProperties;
  * React types
  */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: vendored code
+// biome-ignore lint/complexity/noBannedTypes: vendored code
 type ReactElement<P = any, T = string | Function> = JSXNode & {
 	type: T;
 	props: P;
 	key: string | null;
 };
 type ReactNode = ReactElement | string | number | boolean | null | undefined;
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
+// biome-ignore lint/complexity/noBannedTypes: vendored code
 type ComponentClass<_P = {}, _S = {}> = unknown;
 
 export type { ReactElement, ReactNode, ComponentClass };

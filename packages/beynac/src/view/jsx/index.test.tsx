@@ -1,6 +1,9 @@
 /** @jsxImportSource ./ */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { beforeAll, beforeEach, describe, expect, it, test } from "bun:test";
+
+// biome-ignore-all lint/security/noDangerouslySetInnerHtmlWithChildren: we're testing the functionality
+// biome-ignore-all lint/security/noDangerouslySetInnerHtml: we're testing the functionality
+
+import { beforeAll, describe, expect, it, test } from "bun:test";
 
 // import { html } from "../utils/html";
 // import { Hono } from "../hono";
@@ -35,150 +38,147 @@ import DefaultExport, {
 } from ".";
 import { Suspense } from "./streaming";
 
-interface SiteData {
-	title: string;
-	children?: any;
-}
+describe("Middleware tests need updating", () => {
+	it.skip("Hono integration tests need to be updated", () => {});
 
-describe.skip("JSX middleware", () => {
-	let app: any; // Hono;
+	// Original test content:
 
-	beforeEach(() => {
-		// app = new Hono();
-	});
+	// interface SiteData {
+	// 	title: string;
+	// 	children?: unknown;
+	// }
+	// it("Should render HTML strings", async () => {
+	// 	app.get("/", (c) => {
+	// 		return c.html(<h1>Hello</h1>);
+	// 	});
+	// 	const res = await app.request("http://localhost/");
+	// 	expect(res.status).toBe(200);
+	// 	expect(res.headers.get("Content-Type")).toBe("text/html; charset=UTF-8");
+	// 	expect(await res.text()).toBe("<h1>Hello</h1>");
+	// });
 
-	it("Should render HTML strings", async () => {
-		app.get("/", (c) => {
-			return c.html(<h1>Hello</h1>);
-		});
-		const res = await app.request("http://localhost/");
-		expect(res.status).toBe(200);
-		expect(res.headers.get("Content-Type")).toBe("text/html; charset=UTF-8");
-		expect(await res.text()).toBe("<h1>Hello</h1>");
-	});
+	// it("Should be able to be used with html middleware", async () => {
+	// 	const Layout = (props: SiteData) => html`<!DOCTYPE html>
+	//   <html>
+	//     <head>
+	//       <title>${props.title}</title>
+	//     </head>
+	//     <body>
+	//       ${props.children}
+	//     </body>
+	//   </html>`;
 
-	it("Should be able to be used with html middleware", async () => {
-		const Layout = (props: SiteData) => html`<!DOCTYPE html>
-      <html>
-        <head>
-          <title>${props.title}</title>
-        </head>
-        <body>
-          ${props.children}
-        </body>
-      </html>`;
+	// 	const Content = (props: { siteData: SiteData; name: string }) => (
+	// 		<Layout {...props.siteData}>
+	// 			<h1>{props.name}</h1>
+	// 		</Layout>
+	// 	);
 
-		const Content = (props: { siteData: SiteData; name: string }) => (
-			<Layout {...props.siteData}>
-				<h1>{props.name}</h1>
-			</Layout>
-		);
+	// 	app.get("/", (c) => {
+	// 		const props = {
+	// 			name: "JSX",
+	// 			siteData: {
+	// 				title: "with html middleware",
+	// 			},
+	// 		};
+	// 		return c.html(<Content {...props} />);
+	// 	});
+	// 	const res = await app.request("http://localhost/");
+	// 	expect(res.status).toBe(200);
+	// 	expect(res.headers.get("Content-Type")).toBe("text/html; charset=UTF-8");
+	// 	expect(await res.text()).toBe(`<!DOCTYPE html>
+	//   <html>
+	//     <head>
+	//       <title>with html middleware</title>
+	//     </head>
+	//     <body>
+	//       <h1>JSX</h1>
+	//     </body>
+	//   </html>`);
+	// });
 
-		app.get("/", (c) => {
-			const props = {
-				name: "JSX",
-				siteData: {
-					title: "with html middleware",
-				},
-			};
-			return c.html(<Content {...props} />);
-		});
-		const res = await app.request("http://localhost/");
-		expect(res.status).toBe(200);
-		expect(res.headers.get("Content-Type")).toBe("text/html; charset=UTF-8");
-		expect(await res.text()).toBe(`<!DOCTYPE html>
-      <html>
-        <head>
-          <title>with html middleware</title>
-        </head>
-        <body>
-          <h1>JSX</h1>
-        </body>
-      </html>`);
-	});
+	// it("Should render async component", async () => {
+	// 	const ChildAsyncComponent = async () => {
+	// 		await new Promise((resolve) => setTimeout(resolve, 10));
+	// 		return <span>child async component</span>;
+	// 	};
 
-	it("Should render async component", async () => {
-		const ChildAsyncComponent = async () => {
-			await new Promise((resolve) => setTimeout(resolve, 10));
-			return <span>child async component</span>;
-		};
+	// 	const AsyncComponent = async () => {
+	// 		await new Promise((resolve) => setTimeout(resolve, 10));
+	// 		return (
+	// 			<h1>
+	// 				Hello from async component
+	// 				<ChildAsyncComponent />
+	// 			</h1>
+	// 		);
+	// 	};
 
-		const AsyncComponent = async () => {
-			await new Promise((resolve) => setTimeout(resolve, 10));
-			return (
-				<h1>
-					Hello from async component
-					<ChildAsyncComponent />
-				</h1>
-			);
-		};
+	// 	app.get("/", (c) => {
+	// 		return c.html(<AsyncComponent />);
+	// 	});
+	// 	const res = await app.request("http://localhost/");
+	// 	expect(res.status).toBe(200);
+	// 	expect(res.headers.get("Content-Type")).toBe("text/html; charset=UTF-8");
+	// 	expect(await res.text()).toBe(
+	// 		"<h1>Hello from async component<span>child async component</span></h1>",
+	// 	);
+	// });
 
-		app.get("/", (c) => {
-			return c.html(<AsyncComponent />);
-		});
-		const res = await app.request("http://localhost/");
-		expect(res.status).toBe(200);
-		expect(res.headers.get("Content-Type")).toBe("text/html; charset=UTF-8");
-		expect(await res.text()).toBe(
-			"<h1>Hello from async component<span>child async component</span></h1>",
-		);
-	});
+	// it('Should render async component with "html" tagged template strings', async () => {
+	// 	const AsyncComponent = async () => {
+	// 		await new Promise((resolve) => setTimeout(resolve, 10));
+	// 		return <h1>Hello from async component</h1>;
+	// 	};
 
-	it('Should render async component with "html" tagged template strings', async () => {
-		const AsyncComponent = async () => {
-			await new Promise((resolve) => setTimeout(resolve, 10));
-			return <h1>Hello from async component</h1>;
-		};
+	// 	app.get("/", (c) => {
+	// 		// prettier-ignore
+	// 		return c.html(html`<html><body>${<AsyncComponent />}</body></html>`);
+	// 	});
+	// 	const res = await app.request("http://localhost/");
+	// 	expect(res.status).toBe(200);
+	// 	expect(res.headers.get("Content-Type")).toBe("text/html; charset=UTF-8");
+	// 	expect(await res.text()).toBe(
+	// 		"<html><body><h1>Hello from async component</h1></body></html>",
+	// 	);
+	// });
 
-		app.get("/", (c) => {
-			// prettier-ignore
-			return c.html(html`<html><body>${<AsyncComponent />}</body></html>`);
-		});
-		const res = await app.request("http://localhost/");
-		expect(res.status).toBe(200);
-		expect(res.headers.get("Content-Type")).toBe("text/html; charset=UTF-8");
-		expect(await res.text()).toBe(
-			"<html><body><h1>Hello from async component</h1></body></html>",
-		);
-	});
+	// it("Should handle async component error", async () => {
+	// 	const componentError = new Error("Error from async error component");
 
-	it("Should handle async component error", async () => {
-		const componentError = new Error("Error from async error component");
+	// 	const AsyncComponent = async () => {
+	// 		await new Promise((resolve) => setTimeout(resolve, 10));
+	// 		return <h1>Hello from async component</h1>;
+	// 	};
+	// 	const AsyncErrorComponent = async () => {
+	// 		await new Promise((resolve) => setTimeout(resolve, 0));
+	// 		throw componentError;
+	// 	};
 
-		const AsyncComponent = async () => {
-			await new Promise((resolve) => setTimeout(resolve, 10));
-			return <h1>Hello from async component</h1>;
-		};
-		const AsyncErrorComponent = async () => {
-			await new Promise((resolve) => setTimeout(resolve, 0));
-			throw componentError;
-		};
+	// 	let raisedError: any;
+	// 	app.onError((e, c) => {
+	// 		raisedError = e;
+	// 		return c.html(
+	// 			"<html><body><h1>Error from onError</h1></body></html>",
+	// 			500,
+	// 		);
+	// 	});
+	// 	app.get("/", (c) => {
+	// 		return c.html(
+	// 			<>
+	// 				<AsyncComponent />
+	// 				<AsyncErrorComponent />
+	// 			</>,
+	// 		);
+	// 	});
 
-		let raisedError: any;
-		app.onError((e, c) => {
-			raisedError = e;
-			return c.html(
-				"<html><body><h1>Error from onError</h1></body></html>",
-				500,
-			);
-		});
-		app.get("/", (c) => {
-			return c.html(
-				<>
-					<AsyncComponent />
-					<AsyncErrorComponent />
-				</>,
-			);
-		});
-
-		const res = await app.request("http://localhost/");
-		expect(res.status).toBe(500);
-		expect(res.headers.get("Content-Type")).toBe("text/html; charset=UTF-8");
-		expect(await res.text()).toBe(
-			"<html><body><h1>Error from onError</h1></body></html>",
-		);
-		expect(raisedError).toBe(componentError);
-	});
+	// 	const res = await app.request("http://localhost/");
+	// 	expect(res.status).toBe(500);
+	// 	expect(res.headers.get("Content-Type")).toBe("text/html; charset=UTF-8");
+	// 	expect(await res.text()).toBe(
+	// 		"<html><body><h1>Error from onError</h1></body></html>",
+	// 	);
+	// 	expect(raisedError).toBe(componentError);
+	// });
 });
 
 describe("render to string", () => {
@@ -431,7 +431,7 @@ describe("render to string", () => {
 			function Repeat(props: any) {
 				const items = [];
 				for (let i = 0; i < props.numTimes; i++) {
-					items.push((props.children as Function)(i));
+					items.push((props.children as any)(i));
 				}
 				return <div>{items}</div>;
 			}

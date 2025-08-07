@@ -11,6 +11,7 @@ export type { JSX } from "./base";
 export { Fragment } from "./base";
 
 export function jsxDEV(
+	// biome-ignore lint/complexity/noBannedTypes: vendored code
 	tag: string | Function,
 	props: Record<string, unknown>,
 	key?: string,

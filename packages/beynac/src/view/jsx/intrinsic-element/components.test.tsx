@@ -6,7 +6,7 @@ describe("intrinsic element", () => {
 		describe("title element", () => {
 			it("should be hoisted title tag", async () => {
 				const template = (
-					<html>
+					<html lang="en">
 						<head></head>
 						<body>
 							<title>Hello</title>
@@ -15,7 +15,7 @@ describe("intrinsic element", () => {
 					</html>
 				);
 				expect(template.toString()).toBe(
-					"<html><head><title>Hello</title></head><body><h1>World</h1></body></html>",
+					'<html lang="en"><head><title>Hello</title></head><body><h1>World</h1></body></html>',
 				);
 			});
 		});
@@ -23,7 +23,7 @@ describe("intrinsic element", () => {
 		describe("link element", () => {
 			it("should be hoisted link tag", async () => {
 				const template = (
-					<html>
+					<html lang="en">
 						<head></head>
 						<body>
 							<link rel="stylesheet" href="style.css" precedence="default" />
@@ -32,13 +32,13 @@ describe("intrinsic element", () => {
 					</html>
 				);
 				expect(template.toString()).toBe(
-					'<html><head><link rel="stylesheet" href="style.css" data-precedence="default"/></head><body><h1>World</h1></body></html>',
+					'<html lang="en"><head><link rel="stylesheet" href="style.css" data-precedence="default"/></head><body><h1>World</h1></body></html>',
 				);
 			});
 
 			it("should be ordered by precedence attribute", () => {
 				const template = (
-					<html>
+					<html lang="en">
 						<head></head>
 						<body>
 							<link rel="stylesheet" href="style1.css" precedence="default" />
@@ -49,13 +49,13 @@ describe("intrinsic element", () => {
 					</html>
 				);
 				expect(template.toString()).toBe(
-					'<html><head><link rel="stylesheet" href="style1.css" data-precedence="default"/><link rel="stylesheet" href="style3.css" data-precedence="default"/><link rel="stylesheet" href="style2.css" data-precedence="high"/></head><body><h1>World</h1></body></html>',
+					'<html lang="en"><head><link rel="stylesheet" href="style1.css" data-precedence="default"/><link rel="stylesheet" href="style3.css" data-precedence="default"/><link rel="stylesheet" href="style2.css" data-precedence="high"/></head><body><h1>World</h1></body></html>',
 				);
 			});
 
 			it("should be de-duped by href", () => {
 				const template = (
-					<html>
+					<html lang="en">
 						<head></head>
 						<body>
 							<link rel="stylesheet" href="style1.css" precedence="default" />
@@ -66,13 +66,13 @@ describe("intrinsic element", () => {
 					</html>
 				);
 				expect(template.toString()).toBe(
-					'<html><head><link rel="stylesheet" href="style1.css" data-precedence="default"/><link rel="stylesheet" href="style2.css" data-precedence="high"/></head><body><h1>World</h1></body></html>',
+					'<html lang="en"><head><link rel="stylesheet" href="style1.css" data-precedence="default"/><link rel="stylesheet" href="style2.css" data-precedence="high"/></head><body><h1>World</h1></body></html>',
 				);
 			});
 
 			it("should be inserted as is if <head> is not present", () => {
 				const template = (
-					<html>
+					<html lang="en">
 						<body>
 							<link rel="stylesheet" href="style1.css" precedence="default" />
 							<link rel="stylesheet" href="style2.css" precedence="high" />
@@ -81,13 +81,13 @@ describe("intrinsic element", () => {
 					</html>
 				);
 				expect(template.toString()).toBe(
-					'<html><body><link rel="stylesheet" href="style1.css" data-precedence="default"/><link rel="stylesheet" href="style2.css" data-precedence="high"/><h1>World</h1></body></html>',
+					'<html lang="en"><body><link rel="stylesheet" href="style1.css" data-precedence="default"/><link rel="stylesheet" href="style2.css" data-precedence="high"/><h1>World</h1></body></html>',
 				);
 			});
 
 			it("should not do special behavior if disabled is present", () => {
 				const template = (
-					<html>
+					<html lang="en">
 						<head></head>
 						<body>
 							<link rel="stylesheet" href="style1.css" precedence="default" />
@@ -102,13 +102,13 @@ describe("intrinsic element", () => {
 					</html>
 				);
 				expect(template.toString()).toBe(
-					'<html><head><link rel="stylesheet" href="style1.css" data-precedence="default"/></head><body><link rel="stylesheet" href="style2.css" precedence="default" disabled=""/><h1>World</h1></body></html>',
+					'<html lang="en"><head><link rel="stylesheet" href="style1.css" data-precedence="default"/></head><body><link rel="stylesheet" href="style2.css" precedence="default" disabled=""/><h1>World</h1></body></html>',
 				);
 			});
 
 			it("should not be hoisted if has no precedence attribute", () => {
 				const template = (
-					<html>
+					<html lang="en">
 						<head></head>
 						<body>
 							<link rel="stylesheet" href="style1.css" />
@@ -117,7 +117,7 @@ describe("intrinsic element", () => {
 					</html>
 				);
 				expect(template.toString()).toBe(
-					'<html><head></head><body><link rel="stylesheet" href="style1.css"/><h1>World</h1></body></html>',
+					'<html lang="en"><head></head><body><link rel="stylesheet" href="style1.css"/><h1>World</h1></body></html>',
 				);
 			});
 		});
@@ -125,7 +125,7 @@ describe("intrinsic element", () => {
 		describe("meta element", () => {
 			it("should be hoisted meta tag", async () => {
 				const template = (
-					<html>
+					<html lang="en">
 						<head></head>
 						<body>
 							<meta name="description" content="Hello" />
@@ -134,13 +134,13 @@ describe("intrinsic element", () => {
 					</html>
 				);
 				expect(template.toString()).toBe(
-					'<html><head><meta name="description" content="Hello"/></head><body><h1>World</h1></body></html>',
+					'<html lang="en"><head><meta name="description" content="Hello"/></head><body><h1>World</h1></body></html>',
 				);
 			});
 
 			it("should be de-duped by name", () => {
 				const template = (
-					<html>
+					<html lang="en">
 						<head></head>
 						<body>
 							<meta name="description" content="Hello" />
@@ -150,13 +150,13 @@ describe("intrinsic element", () => {
 					</html>
 				);
 				expect(template.toString()).toBe(
-					'<html><head><meta name="description" content="Hello"/></head><body><h1>World</h1></body></html>',
+					'<html lang="en"><head><meta name="description" content="Hello"/></head><body><h1>World</h1></body></html>',
 				);
 			});
 
 			it("should not do special behavior if itemProp is present", () => {
 				const template = (
-					<html>
+					<html lang="en">
 						<head></head>
 						<body>
 							<meta name="description" content="Hello" itemProp="test" />
@@ -165,7 +165,7 @@ describe("intrinsic element", () => {
 					</html>
 				);
 				expect(template.toString()).toBe(
-					'<html><head></head><body><meta name="description" content="Hello" itemprop="test"/><h1>World</h1></body></html>',
+					'<html lang="en"><head></head><body><meta name="description" content="Hello" itemprop="test"/><h1>World</h1></body></html>',
 				);
 			});
 		});
@@ -173,7 +173,7 @@ describe("intrinsic element", () => {
 		describe("script element", () => {
 			it("should be hoisted script tag", async () => {
 				const template = (
-					<html>
+					<html lang="en">
 						<head></head>
 						<body>
 							<script src="script.js" async={true} />
@@ -182,13 +182,13 @@ describe("intrinsic element", () => {
 					</html>
 				);
 				expect(template.toString()).toBe(
-					'<html><head><script src="script.js" async=""></script></head><body><h1>World</h1></body></html>',
+					'<html lang="en"><head><script src="script.js" async=""></script></head><body><h1>World</h1></body></html>',
 				);
 			});
 
 			it("should be de-duped by href with async={true}", () => {
 				const template = (
-					<html>
+					<html lang="en">
 						<head></head>
 						<body>
 							<script src="script.js" async />
@@ -198,13 +198,13 @@ describe("intrinsic element", () => {
 					</html>
 				);
 				expect(template.toString()).toBe(
-					'<html><head><script src="script.js" async=""></script></head><body><h1>World</h1></body></html>',
+					'<html lang="en"><head><script src="script.js" async=""></script></head><body><h1>World</h1></body></html>',
 				);
 			});
 
 			it('should be omitted "blocking", "onLoad" and "onError" props', () => {
 				const template = (
-					<html>
+					<html lang="en">
 						<head></head>
 						<body>
 							<script
@@ -219,13 +219,13 @@ describe("intrinsic element", () => {
 					</html>
 				);
 				expect(template.toString()).toBe(
-					'<html><head><script src="script.js" async=""></script></head><body><h1>World</h1></body></html>',
+					'<html lang="en"><head><script src="script.js" async=""></script></head><body><h1>World</h1></body></html>',
 				);
 			});
 
 			it("should not do special behavior if async is not present", () => {
 				const template = (
-					<html>
+					<html lang="en">
 						<head></head>
 						<body>
 							<script src="script.js" />
@@ -234,7 +234,7 @@ describe("intrinsic element", () => {
 					</html>
 				);
 				expect(template.toString()).toBe(
-					'<html><head></head><body><script src="script.js"></script><h1>World</h1></body></html>',
+					'<html lang="en"><head></head><body><script src="script.js"></script><h1>World</h1></body></html>',
 				);
 			});
 		});
@@ -242,7 +242,7 @@ describe("intrinsic element", () => {
 		describe("style element", () => {
 			it("should be hoisted style tag", async () => {
 				const template = (
-					<html>
+					<html lang="en">
 						<head></head>
 						<body>
 							<style href="red" precedence="default">
@@ -253,13 +253,13 @@ describe("intrinsic element", () => {
 					</html>
 				);
 				expect(template.toString()).toBe(
-					'<html><head><style data-href="red" data-precedence="default">body { color: red; }</style></head><body><h1>World</h1></body></html>',
+					'<html lang="en"><head><style data-href="red" data-precedence="default">body { color: red; }</style></head><body><h1>World</h1></body></html>',
 				);
 			});
 
 			it("should be sorted by precedence attribute", async () => {
 				const template = (
-					<html>
+					<html lang="en">
 						<head></head>
 						<body>
 							<style href="red" precedence="default">
@@ -276,13 +276,13 @@ describe("intrinsic element", () => {
 					</html>
 				);
 				expect(template.toString()).toBe(
-					'<html><head><style data-href="red" data-precedence="default">body { color: red; }</style><style data-href="blue" data-precedence="default">body { color: blue; }</style><style data-href="green" data-precedence="high">body { color: green; }</style></head><body><h1>World</h1></body></html>',
+					'<html lang="en"><head><style data-href="red" data-precedence="default">body { color: red; }</style><style data-href="blue" data-precedence="default">body { color: blue; }</style><style data-href="green" data-precedence="high">body { color: green; }</style></head><body><h1>World</h1></body></html>',
 				);
 			});
 
 			it("should not be hoisted if href is not present", () => {
 				const template = (
-					<html>
+					<html lang="en">
 						<head></head>
 						<body>
 							<style>{"body { color: red; }"}</style>
@@ -291,7 +291,7 @@ describe("intrinsic element", () => {
 					</html>
 				);
 				expect(template.toString()).toBe(
-					"<html><head></head><body><style>body { color: red; }</style><h1>World</h1></body></html>",
+					'<html lang="en"><head></head><body><style>body { color: red; }</style><h1>World</h1></body></html>',
 				);
 			});
 		});
@@ -300,7 +300,7 @@ describe("intrinsic element", () => {
 	describe("form element", () => {
 		it('should be omitted "action" prop if it is a function', () => {
 			const template = (
-				<html>
+				<html lang="en">
 					<head></head>
 					<body>
 						<form action={() => {}} method="get">
@@ -310,30 +310,13 @@ describe("intrinsic element", () => {
 				</html>
 			);
 			expect(template.toString()).toBe(
-				'<html><head></head><body><form method="get"><input type="text"/></form></body></html>',
-			);
-		});
-
-		it.skip("should be rendered permalink - useActionState is stubbed", () => {
-			// const [, action] = useActionState(() => {}, {}, "permalink");
-			const template = (
-				<html>
-					<head></head>
-					<body>
-						<form action={action} method="get">
-							<input type="text" />
-						</form>
-					</body>
-				</html>
-			);
-			expect(template.toString()).toBe(
-				'<html><head></head><body><form action="permalink" method="get"><input type="text"/></form></body></html>',
+				'<html lang="en"><head></head><body><form method="get"><input type="text"/></form></body></html>',
 			);
 		});
 
 		it("should not do special behavior if action is a string", () => {
 			const template = (
-				<html>
+				<html lang="en">
 					<head></head>
 					<body>
 						<form action="/entries" method="get">
@@ -343,13 +326,13 @@ describe("intrinsic element", () => {
 				</html>
 			);
 			expect(template.toString()).toBe(
-				'<html><head></head><body><form action="/entries" method="get"><input type="text"/></form></body></html>',
+				'<html lang="en"><head></head><body><form action="/entries" method="get"><input type="text"/></form></body></html>',
 			);
 		});
 
 		it("should not do special behavior if no action prop", () => {
 			const template = (
-				<html>
+				<html lang="en">
 					<head></head>
 					<body>
 						<form>
@@ -359,7 +342,7 @@ describe("intrinsic element", () => {
 				</html>
 			);
 			expect(template.toString()).toBe(
-				'<html><head></head><body><form><input type="text"/></form></body></html>',
+				'<html lang="en"><head></head><body><form><input type="text"/></form></body></html>',
 			);
 		});
 
@@ -371,7 +354,7 @@ describe("intrinsic element", () => {
 
 			it('should be omitted "formAction" prop if it is a function', () => {
 				const template = (
-					<html>
+					<html lang="en">
 						<head></head>
 						<body>
 							<input type="text" formAction={() => {}} />
@@ -379,22 +362,7 @@ describe("intrinsic element", () => {
 					</html>
 				);
 				expect(template.toString()).toBe(
-					'<html><head></head><body><input type="text"/></body></html>',
-				);
-			});
-
-			it.skip("should be rendered permalink - useActionState is stubbed", () => {
-				// const [, formAction] = useActionState(() => {}, {}, "permalink");
-				const template = (
-					<html>
-						<head></head>
-						<body>
-							<input type="text" formAction={formAction} />
-						</body>
-					</html>
-				);
-				expect(template.toString()).toBe(
-					'<html><head></head><body><input type="text" formaction="permalink"/></body></html>',
+					'<html lang="en"><head></head><body><input type="text"/></body></html>',
 				);
 			});
 		});

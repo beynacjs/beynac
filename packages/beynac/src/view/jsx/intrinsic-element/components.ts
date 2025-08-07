@@ -26,7 +26,8 @@ const insertIntoHead: (
 		}
 		const map = metaTagMap.get(context) || {};
 		metaTagMap.set(context, map);
-		const tags = (map[tagName] ||= []);
+		map[tagName] ||= [];
+		const tags = map[tagName];
 
 		let duped = false;
 		const deDupeKeys = deDupeKeyMap[tagName];
@@ -50,7 +51,8 @@ const insertIntoHead: (
 		}
 
 		if (buffer[0].indexOf("</head>") !== -1) {
-			let insertTags;
+			// biome-ignore lint/suspicious/noExplicitAny: vendored code
+			let insertTags: any;
 			if (precedence === undefined) {
 				insertTags = tags.map(([tag]) => tag);
 			} else {
@@ -68,7 +70,8 @@ const insertIntoHead: (
 					.map(([tag]) => tag);
 			}
 
-			insertTags.forEach((tag) => {
+			// biome-ignore lint/suspicious/noExplicitAny: vendored code
+			insertTags.forEach((tag: any) => {
 				buffer[0] = buffer[0].replaceAll(tag, "");
 			});
 			buffer[0] = buffer[0].replace(/(?=<\/head>)/, insertTags.join(""));
@@ -91,7 +94,6 @@ const documentMetadataTag = (
 		return returnWithoutSpecialBehavior(tag, children, props);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	let { precedence, blocking, ...restProps } = props;
 	precedence = sort ? (precedence ?? "") : undefined;
 	if (sort) {
@@ -182,20 +184,23 @@ const newJSXNode = (
 	tag: string,
 	{ children, ...props }: PropsWithChildren<unknown>,
 ) =>
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	// biome-ignore lint/suspicious/noExplicitAny: vendored code
 	new JSXNode(tag, props, toArray(children ?? []) as Child[]) as any;
 export const form: FC<
 	PropsWithChildren<{
+		// biome-ignore lint/complexity/noBannedTypes: vendored code
 		action?: Function | string;
 		method?: "get" | "post";
 	}>
 > = (props) => {
+	// biome-ignore lint/complexity/noBannedTypes: vendored code
+	type StringOrFunction = string | Function;
 	if (typeof props.action === "function") {
 		props.action = (
 			PERMALINK in props.action
 				? (props.action[PERMALINK] as string)
 				: undefined
-		) as string | Function;
+		) as StringOrFunction;
 	}
 	return newJSXNode("form", props);
 };
@@ -203,15 +208,18 @@ export const form: FC<
 const formActionableElement = (
 	tag: string,
 	props: PropsWithChildren<{
+		// biome-ignore lint/complexity/noBannedTypes: vendored code
 		formAction?: Function | string;
 	}>,
 ) => {
 	if (typeof props.formAction === "function") {
+		// biome-ignore lint/complexity/noBannedTypes: vendored code
+		type StringOrFunction = string | Function;
 		props.formAction = (
 			PERMALINK in props.formAction
 				? (props.formAction[PERMALINK] as string)
 				: undefined
-		) as string | Function;
+		) as StringOrFunction;
 	}
 	return newJSXNode(tag, props);
 };

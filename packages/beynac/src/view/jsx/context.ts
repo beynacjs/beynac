@@ -16,7 +16,8 @@ export const createContext = <T>(defaultValue: T): Context<T> => {
 		props,
 	): HtmlEscapedString | Promise<HtmlEscapedString> => {
 		values.push(props.value);
-		let string;
+		// biome-ignore lint/suspicious/noExplicitAny: vendored code
+		let string: any;
 		try {
 			string = props.children
 				? (Array.isArray(props.children)

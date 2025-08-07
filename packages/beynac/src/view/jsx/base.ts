@@ -1,3 +1,5 @@
+// biome-ignore-all lint/performance/noDynamicNamespaceImportAccess: vendored code
+
 import { raw } from "../helper/html";
 import type {
 	HtmlEscaped,
@@ -19,7 +21,7 @@ import type {
 } from "./intrinsic-elements";
 import { normalizeIntrinsicElementKey, styleObjectForEach } from "./utils";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: vendored code
 export type Props = Record<string, any>;
 export type FC<P = Props> = {
 	(props: P): HtmlEscapedString | Promise<HtmlEscapedString> | null;
@@ -28,7 +30,6 @@ export type FC<P = Props> = {
 };
 export type DOMAttributes = HonoJSX.HTMLAttributes;
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace JSX {
 	export type Element = HtmlEscapedString | Promise<HtmlEscapedString>;
 	export interface ElementChildrenAttribute {
@@ -43,7 +44,8 @@ export namespace JSX {
 }
 
 let nameSpaceContext: Context<string> | undefined;
-export const getNameSpaceContext = () => nameSpaceContext;
+export const getNameSpaceContext = (): Context<string> | undefined =>
+	nameSpaceContext;
 
 const toSVGAttributeName = (key: string): string =>
 	/[A-Z]/.test(key) &&
@@ -72,7 +74,7 @@ const emptyTags = [
 	"track",
 	"wbr",
 ];
-export const booleanAttributes = [
+const booleanAttributes = [
 	"allowfullscreen",
 	"async",
 	"autofocus",
@@ -141,24 +143,27 @@ export type Child =
 	| boolean
 	| Child[];
 export class JSXNode implements HtmlEscaped {
+	// biome-ignore lint/complexity/noBannedTypes: vendored code
 	tag: string | Function;
 	props: Props;
 	key?: string;
 	children: Child[];
 	isEscaped: true = true as const;
 	localContexts?: LocalContexts;
+	// biome-ignore lint/complexity/noBannedTypes: vendored code
 	constructor(tag: string | Function, props: Props, children: Child[]) {
 		this.tag = tag;
 		this.props = props;
 		this.children = children;
 	}
 
+	// biome-ignore lint/complexity/noBannedTypes: vendored code
 	get type(): string | Function {
 		return this.tag as string;
 	}
 
 	// Added for compatibility with libraries that rely on React's internal structure
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	// biome-ignore lint/suspicious/noExplicitAny: vendored code
 	get ref(): any {
 		return this.props.ref || null;
 	}
@@ -262,6 +267,7 @@ class JSXFunctionNode extends JSXNode {
 	override toStringToBuffer(buffer: StringBufferWithCallbacks): void {
 		const { children } = this;
 
+		// biome-ignore lint/complexity/noBannedTypes: vendored code
 		const res = (this.tag as Function).call(null, {
 			...this.props,
 			children: children.length <= 1 ? children[0] : children,
@@ -310,6 +316,7 @@ export class JSXFragmentNode extends JSXNode {
 }
 
 export const jsx = (
+	// biome-ignore lint/complexity/noBannedTypes: vendored code
 	tag: string | Function,
 	props: Props | null,
 	...children: (string | number | HtmlEscapedString)[]
@@ -329,6 +336,7 @@ export const jsx = (
 
 let initDomRenderer = false;
 export const jsxFn = (
+	// biome-ignore lint/complexity/noBannedTypes: vendored code
 	tag: string | Function,
 	props: Props,
 	children: (string | number | HtmlEscapedString)[],
@@ -407,7 +415,8 @@ export const memo = <T>(
 			computed = null;
 		}
 		prevProps = props;
-		return (computed ||= component(props));
+		computed ||= component(props);
+		return computed;
 	};
 
 	return wrapper as FC<T>;
@@ -442,7 +451,8 @@ export const cloneElement = <T extends JSXNode | JSX.Element>(
 	props: Partial<Props>,
 	...children: Child[]
 ): T => {
-	let childrenToClone;
+	// biome-ignore lint/suspicious/noExplicitAny: vendored code
+	let childrenToClone: any;
 	if (children.length > 0) {
 		childrenToClone = children;
 	} else {

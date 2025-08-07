@@ -13,9 +13,30 @@
 			},
 			"style": {
 				"useTemplate": "off"
+			},
+			"correctness": {
+				"noUnusedVariables": {
+					"level": "error",
+					"options": {
+						"ignoreRestSiblings": true
+					}
+				}
 			}
 		}
 	},
+	"overrides": [
+		{
+			"includes": ["**/*.test.{ts,tsx,mts,js,jsx,mjs}"],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noExplicitAny": "off"
+					},
+					"a11y": "off"
+				}
+			}
+		}
+	],
 	"files": {
 		"includes": [
 			"./*.json",

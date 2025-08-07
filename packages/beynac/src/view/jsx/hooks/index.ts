@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noConfusingVoidType: vendored code
 import type { JSX } from "../base";
 
 type UpdateStateFunction<T> = (newState: T | ((currentState: T) => T)) => void;
@@ -101,6 +102,7 @@ export const useInsertionEffect = (
 	// No-op in SSR
 };
 
+// biome-ignore lint/complexity/noBannedTypes: vendored code
 export const useCallback = <T extends Function>(
 	callback: T,
 	_deps: readonly unknown[],
@@ -151,7 +153,6 @@ export const useId = (): string => {
 };
 
 // Define to avoid errors. This hook currently does nothing.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const useDebugValue = (
 	_value: unknown,
 	_formatter?: (value: unknown) => string,
@@ -161,6 +162,7 @@ export const createRef = <T>(): RefObject<T> => {
 	return { current: null };
 };
 
+// biome-ignore lint/complexity/noBannedTypes: vendored code
 export const forwardRef = <T, P = {}>(
 	Component: (props: P, ref?: RefObject<T>) => JSX.Element,
 ): ((props: P & { ref?: RefObject<T> }) => JSX.Element) => {
@@ -203,9 +205,11 @@ export const useOptimistic = <T, N>(
 };
 
 export const useActionState = <T>(
+	// biome-ignore lint/complexity/noBannedTypes: vendored code
 	_fn: Function,
 	initialState: T,
 	_permalink?: string,
+	// biome-ignore lint/complexity/noBannedTypes: vendored code
 ): [T, Function] => {
 	// For SSR, return initial state and a no-op function
 	return [initialState, () => {}];

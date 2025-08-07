@@ -30,7 +30,7 @@ export const html = (
 			? (values[i] as Array<unknown>).flat(Infinity)
 			: [values[i]];
 		for (let i = 0, len = children.length; i < len; i++) {
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			// biome-ignore lint/suspicious/noExplicitAny: vendored code
 			const child = children[i] as any;
 			if (typeof child === "string") {
 				escapeToBuffer(child, buffer);
