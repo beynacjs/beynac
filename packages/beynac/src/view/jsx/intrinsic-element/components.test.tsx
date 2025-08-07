@@ -1,6 +1,5 @@
 /** @jsxImportSource ../ */
 import { describe, expect, it } from "bun:test";
-import { useActionState } from "../";
 
 describe("intrinsic element", () => {
 	describe("document metadata", () => {

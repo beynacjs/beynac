@@ -1,7 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { BaseMime } from "../utils/mime";
-import type { StringLiteralUnion } from "../utils/types";
+
+/**
+ * String literal types with auto-completion
+ * @see https://github.com/Microsoft/TypeScript/issues/29729
+ */
+type StringLiteralUnion<T> = T | (string & Record<never, never>);
 
 /**
  * This code is based on React.
