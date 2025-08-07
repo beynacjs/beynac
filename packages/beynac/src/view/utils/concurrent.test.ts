@@ -1,13 +1,12 @@
 import { createPool } from "./concurrent";
 
 describe("concurrent execution", () => {
-	test.each`
-		concurrency | count
-		${1}        | ${10}
-		${10}       | ${10}
-		${100}      | ${10}
-		${Infinity} | ${2000}
-	`(
+	test.each([
+		{ concurrency: 1, count: 10 },
+		{ concurrency: 10, count: 10 },
+		{ concurrency: 100, count: 10 },
+		{ concurrency: Infinity, count: 2000 },
+	])(
 		"concurrency $concurrency, count $count",
 		async ({ concurrency, count }) => {
 			const running = new Set();
@@ -41,11 +40,10 @@ describe("concurrent execution", () => {
 	);
 
 	describe("with interval", () => {
-		test.each`
-			concurrency | interval
-			${1}        | ${10}
-			${2}        | ${10}
-		`(
+		test.each([
+			{ concurrency: 1, interval: 10 },
+			{ concurrency: 2, interval: 10 },
+		])(
 			"concurrency $concurrency, interval $interval",
 			async ({ concurrency, interval }) => {
 				const workingTimeQueue: number[] = [];

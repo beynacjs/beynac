@@ -49,12 +49,11 @@ describe("convertIPv4ToBinary", () => {
 
 describe("convertIPv4ToString", () => {
 	// add tons of test cases here
-	test.each`
-		input        | expected
-		${"0.0.0.0"} | ${"0.0.0.0"}
-		${"0.0.0.1"} | ${"0.0.0.1"}
-		${"0.0.1.0"} | ${"0.0.1.0"}
-	`("convertIPv4ToString($input) === $expected", ({ input, expected }) => {
+	test.each([
+		{ input: "0.0.0.0", expected: "0.0.0.0" },
+		{ input: "0.0.0.1", expected: "0.0.0.1" },
+		{ input: "0.0.1.0", expected: "0.0.1.0" },
+	])("convertIPv4ToString($input) === $expected", ({ input, expected }) => {
 		expect(convertIPv4BinaryToString(convertIPv4ToBinary(input))).toBe(
 			expected,
 		);
@@ -76,16 +75,18 @@ describe("convertIPv6ToBinary", () => {
 
 describe("convertIPv6ToString", () => {
 	// add tons of test cases here
-	test.each`
-		input                                        | expected
-		${"::1"}                                     | ${"::1"}
-		${"1::"}                                     | ${"1::"}
-		${"1234:::5678"}                             | ${"1234::5678"}
-		${"2001:2::"}                                | ${"2001:2::"}
-		${"2001::db8:0:0:0:0:1"}                     | ${"2001:0:db8::1"}
-		${"1234:5678:9abc:def0:1234:5678:9abc:def0"} | ${"1234:5678:9abc:def0:1234:5678:9abc:def0"}
-		${"::ffff:127.0.0.1"}                        | ${"::ffff:127.0.0.1"}
-	`("convertIPv6ToString($input) === $expected", ({ input, expected }) => {
+	test.each([
+		{ input: "::1", expected: "::1" },
+		{ input: "1::", expected: "1::" },
+		{ input: "1234:::5678", expected: "1234::5678" },
+		{ input: "2001:2::", expected: "2001:2::" },
+		{ input: "2001::db8:0:0:0:0:1", expected: "2001:0:db8::1" },
+		{
+			input: "1234:5678:9abc:def0:1234:5678:9abc:def0",
+			expected: "1234:5678:9abc:def0:1234:5678:9abc:def0",
+		},
+		{ input: "::ffff:127.0.0.1", expected: "::ffff:127.0.0.1" },
+	])("convertIPv6ToString($input) === $expected", ({ input, expected }) => {
 		expect(convertIPv6BinaryToString(convertIPv6ToBinary(input))).toBe(
 			expected,
 		);

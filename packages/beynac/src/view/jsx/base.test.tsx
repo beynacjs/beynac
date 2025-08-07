@@ -1,8 +1,8 @@
 /** @jsxImportSource ./ */
 
+import { describe, expect, it } from "bun:test";
 import type { JSXNode } from "./base";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { cloneElement, Fragment, jsx } from "./base";
+import { cloneElement } from "./base";
 
 describe("cloneElement", () => {
 	it("should clone an element with new props", () => {

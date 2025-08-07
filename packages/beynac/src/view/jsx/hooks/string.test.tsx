@@ -1,4 +1,5 @@
 /** @jsxImportSource ../ */
+import { describe, expect, it, mock } from "bun:test";
 import { useState, useSyncExternalStore } from "..";
 
 describe("useState", () => {
@@ -14,10 +15,10 @@ describe("useState", () => {
 
 describe("useSyncExternalStore", () => {
 	it("should be rendered with result of getServerSnapshot()", () => {
-		const unsubscribe = vi.fn();
-		const subscribe = vi.fn(() => unsubscribe);
-		const getSnapshot = vi.fn();
-		const getServerSnapshot = vi.fn(() => 100);
+		const unsubscribe = mock();
+		const subscribe = mock(() => unsubscribe);
+		const getSnapshot = mock();
+		const getServerSnapshot = mock(() => 100);
 		const App = () => {
 			const count = useSyncExternalStore(
 				subscribe,
@@ -35,7 +36,7 @@ describe("useSyncExternalStore", () => {
 
 	it("should raise an error if getServerShot() is not provided", () => {
 		const App = () => {
-			const count = useSyncExternalStore(vi.fn(), vi.fn());
+			const count = useSyncExternalStore(mock(), mock());
 			return <div>{count}</div>;
 		};
 		const template = <App />;

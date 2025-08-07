@@ -2,8 +2,6 @@ import { raw } from "../helper/html";
 import type { HtmlEscapedString } from "../utils/html";
 import type { FC, PropsWithChildren } from "./";
 import { JSXFragmentNode } from "./base";
-import { DOM_RENDERER } from "./constants";
-import { createContextProviderFunction } from "./dom/context";
 
 export interface Context<T> extends FC<PropsWithChildren<{ value: T }>> {
 	values: T[];
@@ -40,9 +38,6 @@ export const createContext = <T>(defaultValue: T): Context<T> => {
 	}) as Context<T>;
 	context.values = values;
 	context.Provider = context;
-
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	(context as any)[DOM_RENDERER] = createContextProviderFunction(values);
 
 	globalContexts.push(context as Context<unknown>);
 

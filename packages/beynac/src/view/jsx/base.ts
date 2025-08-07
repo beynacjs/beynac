@@ -9,10 +9,9 @@ import {
 	resolveCallbackSync,
 	stringBufferToString,
 } from "../utils/html";
-import { DOM_MEMO, DOM_RENDERER } from "./constants";
 import type { Context } from "./context";
 import { createContext, globalContexts, useContext } from "./context";
-import { domRenderers } from "./intrinsic-element/common";
+// Removed DOM-specific imports
 import * as intrinsicElementTags from "./intrinsic-element/components";
 import type {
 	JSX as HonoJSX,
@@ -334,13 +333,9 @@ export const jsxFn = (
 	props: Props,
 	children: (string | number | HtmlEscapedString)[],
 ): JSXNode => {
+	// DOM renderer initialization removed for SSR-only version
 	if (!initDomRenderer) {
-		for (const k in domRenderers) {
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			(intrinsicElementTags[k as keyof typeof intrinsicElementTags] as any)[
-				DOM_RENDERER
-			] = domRenderers[k];
-		}
+		// Removed DOM_RENDERER assignment
 		initDomRenderer = true;
 	}
 
@@ -380,13 +375,15 @@ export const shallowEqual = (a: Props, b: Props): boolean => {
 	}
 
 	for (let i = 0, len = aKeys.length; i < len; i++) {
+		const key = aKeys[i];
+		if (!key) continue;
 		if (
-			aKeys[i] === "children" &&
+			key === "children" &&
 			bKeys[i] === "children" &&
 			!a.children?.length &&
 			!b.children?.length
 		) {
-		} else if (a[aKeys[i]] !== b[aKeys[i]]) {
+		} else if (a[key] !== b[key]) {
 			return false;
 		}
 	}
@@ -394,9 +391,8 @@ export const shallowEqual = (a: Props, b: Props): boolean => {
 	return true;
 };
 
-export type MemorableFC<T> = FC<T> & {
-	[DOM_MEMO]: (prevProps: Readonly<T>, nextProps: Readonly<T>) => boolean;
-};
+export type MemorableFC<T> = FC<T>;
+
 export const memo = <T>(
 	component: FC<T>,
 	propsAreEqual: (
@@ -406,19 +402,13 @@ export const memo = <T>(
 ): FC<T> => {
 	let computed: ReturnType<FC<T>> = null;
 	let prevProps: T | undefined;
-	const wrapper: MemorableFC<T> = ((props: T) => {
+	const wrapper = (props: T) => {
 		if (prevProps && !propsAreEqual(prevProps, props)) {
 			computed = null;
 		}
 		prevProps = props;
 		return (computed ||= component(props));
-	}) as MemorableFC<T>;
-
-	// This function is for toString(), but it can also be used for DOM renderer.
-	// So, set DOM_MEMO and DOM_RENDERER for DOM renderer.
-	wrapper[DOM_MEMO] = propsAreEqual;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	(wrapper as any)[DOM_RENDERER] = component;
+	};
 
 	return wrapper as FC<T>;
 };

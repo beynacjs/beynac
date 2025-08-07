@@ -30,7 +30,7 @@ const insertIntoHead: (
 
 		let duped = false;
 		const deDupeKeys = deDupeKeyMap[tagName];
-		if (deDupeKeys.length > 0) {
+		if (deDupeKeys && deDupeKeys.length > 0) {
 			LOOP: for (const [, tagProps] of tags) {
 				for (const key of deDupeKeys) {
 					if ((tagProps?.[key] ?? null) === props?.[key]) {
@@ -43,7 +43,7 @@ const insertIntoHead: (
 
 		if (duped) {
 			buffer[0] = buffer[0].replaceAll(tag, "");
-		} else if (deDupeKeys.length > 0) {
+		} else if (deDupeKeys && deDupeKeys.length > 0) {
 			tags.push([tag, props, precedence]);
 		} else {
 			tags.unshift([tag, props, precedence]);
@@ -191,10 +191,11 @@ export const form: FC<
 	}>
 > = (props) => {
 	if (typeof props.action === "function") {
-		props.action =
+		props.action = (
 			PERMALINK in props.action
 				? (props.action[PERMALINK] as string)
-				: undefined;
+				: undefined
+		) as string | Function;
 	}
 	return newJSXNode("form", props);
 };
@@ -206,10 +207,11 @@ const formActionableElement = (
 	}>,
 ) => {
 	if (typeof props.formAction === "function") {
-		props.formAction =
+		props.formAction = (
 			PERMALINK in props.formAction
 				? (props.formAction[PERMALINK] as string)
-				: undefined;
+				: undefined
+		) as string | Function;
 	}
 	return newJSXNode(tag, props);
 };

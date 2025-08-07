@@ -15,13 +15,13 @@ import {
 import { Children } from "./children";
 import { ErrorBoundary } from "./components";
 import { createContext, useContext } from "./context";
-import { useActionState, useOptimistic } from "./dom/hooks";
 import {
 	createRef,
 	forwardRef,
 	startTransition,
 	startViewTransition,
 	use,
+	useActionState,
 	useCallback,
 	useDebugValue,
 	useDeferredValue,
@@ -31,6 +31,7 @@ import {
 	useInsertionEffect,
 	useLayoutEffect,
 	useMemo,
+	useOptimistic,
 	useReducer,
 	useRef,
 	useState,
@@ -72,8 +73,8 @@ export {
 	forwardRef,
 	useImperativeHandle,
 	useSyncExternalStore,
-	useActionState,
-	useOptimistic,
+	type useActionState,
+	type useOptimistic,
 	Suspense,
 	Children,
 	type DOMAttributes,
