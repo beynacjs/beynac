@@ -109,6 +109,7 @@ npx shadcn@latest add switch
 
 In this example, the command will publish the Switch component to `resources/js/components/ui/switch.tsx`. Once the component has been published, you can use it in any of your pages:
 
+<!-- source: manual -->
 ```jsx
 import { Switch } from "@/components/ui/switch"
 
@@ -128,6 +129,7 @@ export default MyPage;
 
 The React starter kit includes two different primary layouts for you to choose from: a "sidebar" layout and a "header" layout. The sidebar layout is the default, but you can switch to the header layout by modifying the layout that is imported at the top of your application's `resources/js/layouts/app-layout.tsx` file:
 
+<!-- source: manual -->
 ```js
 import AppLayoutTemplate from '@/layouts/app/app-sidebar-layout'; // [tl! remove]
 import AppLayoutTemplate from '@/layouts/app/app-header-layout'; // [tl! add]
@@ -150,6 +152,7 @@ The authentication pages included with the React starter kit, such as the login 
 
 To change your authentication layout, modify the layout that is imported at the top of your application's `resources/js/layouts/auth-layout.tsx` file:
 
+<!-- source: manual -->
 ```js
 import AuthLayoutTemplate from '@/layouts/auth/auth-simple-layout'; // [tl! remove]
 import AuthLayoutTemplate from '@/layouts/auth/auth-split-layout'; // [tl! add]
@@ -197,6 +200,7 @@ import { Switch } from '@/Components/ui/switch'
 
 The Vue starter kit includes two different primary layouts for you to choose from: a "sidebar" layout and a "header" layout. The sidebar layout is the default, but you can switch to the header layout by modifying the layout that is imported at the top of your application's `resources/js/layouts/AppLayout.vue` file:
 
+<!-- source: manual -->
 ```js
 import AppLayout from '@/layouts/app/AppSidebarLayout.vue'; // [tl! remove]
 import AppLayout from '@/layouts/app/AppHeaderLayout.vue'; // [tl! add]
@@ -219,6 +223,7 @@ The authentication pages included with the Vue starter kit, such as the login pa
 
 To change your authentication layout, modify the layout that is imported at the top of your application's `resources/js/layouts/AuthLayout.vue` file:
 
+<!-- source: manual -->
 ```js
 import AuthLayout from '@/layouts/auth/AuthSimpleLayout.vue'; // [tl! remove]
 import AuthLayout from '@/layouts/auth/AuthSplitLayout.vue'; // [tl! add]

@@ -640,6 +640,7 @@ If your card requires additional styling beyond the classes and components inclu
 
 If your custom card lives within your application's code base and you are using Laravel's [Vite integration](./vite), you may update your `vite.config.js` file to include a dedicated CSS entry point for your card:
 
+<!-- source: manual -->
 ```js
 laravel({
     input: [
@@ -683,6 +684,7 @@ When this card is included on the dashboard, Pulse will automatically include th
 
 When using Tailwind CSS, you should create a dedicated Tailwind configuration file to avoid loading unnecessary CSS or conflicting with Pulse's Tailwind classes:
 
+<!-- source: manual -->
 ```js
 export default {
     darkMode: 'class',

@@ -149,6 +149,7 @@ class UserController extends Controller
 
 An Inertia page corresponds to a React or Vue component, typically stored within the `resources/js/pages` directory of your application. The data given to the page via the `Inertia::render` method will be used to hydrate the "props" of the page component:
 
+<!-- source: manual -->
 ```jsx
 import Layout from '@/layouts/authenticated';
 import { Head } from '@inertiajs/react';

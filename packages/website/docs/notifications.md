@@ -1100,6 +1100,7 @@ public function broadcastType(): string
 
 Notifications will broadcast on a private channel formatted using a `{notifiable}.{id}` convention. So, if you are sending a notification to an `App\Models\User` instance with an ID of `1`, the notification will be broadcast on the `App.Models.User.1` private channel. When using [Laravel Echo](./broadcasting#client-side-installation), you may easily listen for notifications on a channel using the `notification` method:
 
+<!-- source: manual -->
 ```js
 Echo.private('App.Models.User.' + userId)
     .notification((notification) => {
@@ -1112,6 +1113,7 @@ Echo.private('App.Models.User.' + userId)
 
 Laravel Echo includes React and Vue hooks that make it painless to listen for notifications. To get started, invoke the `useEchoNotification` hook, which is used to listen for notifications. The `useEchoNotification` hook will automatically leave channels when the consuming component is unmounted:
 
+<!-- source: manual -->
 ```js tab=React
 import { useEchoNotification } from "@laravel/echo-react";
 
@@ -1138,6 +1140,7 @@ useEchoNotification(
 
 By default, the hook listens to all notifications. To specify the notification types you would like to listen to, you can provide either a string or array of types to `useEchoNotification`:
 
+<!-- source: manual -->
 ```js tab=React
 import { useEchoNotification } from "@laravel/echo-react";
 
@@ -1166,6 +1169,7 @@ useEchoNotification(
 
 You may also specify the shape of the notification payload data, providing greater type safety and editing convenience:
 
+<!-- source: manual -->
 ```ts
 type InvoicePaidNotification = {
     invoice_id: number;

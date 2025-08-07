@@ -88,6 +88,7 @@ If you would like Pint to fix any files with code style errors but also exit wit
 
 As previously mentioned, Pint does not require any configuration. However, if you wish to customize the presets, rules, or inspected folders, you may do so by creating a `pint.json` file in your project's root directory:
 
+<!-- source: manual -->
 ```json
 {
     "preset": "laravel"
@@ -111,6 +112,7 @@ Presets define a set of rules that can be used to fix code style issues in your 
 
 If you wish, you may also set the preset in your project's `pint.json` file:
 
+<!-- source: manual -->
 ```json
 {
     "preset": "psr12"
@@ -126,6 +128,7 @@ Rules are style guidelines that Pint will use to fix code style issues in your c
 
 However, if you wish, you may enable or disable specific rules in your `pint.json` file or use the `empty` preset and define the rules from scratch:
 
+<!-- source: manual -->
 ```json
 {
     "preset": "laravel",
@@ -147,6 +150,7 @@ Pint is built on top of [PHP CS Fixer](https://github.com/FriendsOfPHP/PHP-CS-Fi
 
 By default, Pint will inspect all `.php` files in your project except those in the `vendor` directory. If you wish to exclude more folders, you may do so using the `exclude` configuration option:
 
+<!-- source: manual -->
 ```json
 {
     "exclude": [
@@ -157,6 +161,7 @@ By default, Pint will inspect all `.php` files in your project except those in t
 
 If you wish to exclude all files that contain a given name pattern, you may do so using the `notName` configuration option:
 
+<!-- source: manual -->
 ```json
 {
     "notName": [
@@ -167,6 +172,7 @@ If you wish to exclude all files that contain a given name pattern, you may do s
 
 If you would like to exclude a file by providing an exact path to the file, you may do so using the `notPath` configuration option:
 
+<!-- source: manual -->
 ```json
 {
     "notPath": [

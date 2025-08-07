@@ -92,6 +92,7 @@ public function register(): void
 
 Finally, you should also prevent the Telescope package from being [auto-discovered](./packages#package-discovery) by adding the following to your `composer.json` file:
 
+<!-- source: manual -->
 ```json
 "extra": {
     "laravel": {
@@ -171,6 +172,7 @@ php artisan telescope:publish
 
 To keep the assets up-to-date and avoid issues in future updates, you may add the `vendor:publish --tag=laravel-assets` command to the `post-update-cmd` scripts in your application's `composer.json` file:
 
+<!-- source: manual -->
 ```json
 {
     "scripts": {

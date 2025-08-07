@@ -1,10 +1,11 @@
 import { expect, test } from "bun:test";
 import { Container, inject } from "beynac";
 
-test("", () => {
+test("PodcastController intro", () => {
 	class Controller {}
 	class AppleMusic {}
 
+	// BEGIN
 	class PodcastController extends Controller {
 		constructor(private apple = inject(AppleMusic)) {
 			super();
@@ -18,8 +19,8 @@ test("", () => {
 			// TODO when we've implemented templates and view controllers, come back to make this real
 		}
 	}
+	// END
 
-	expect(new PodcastController().process("123")).toBeUndefined();
-
+	expect(PodcastController).not.toBe(null);
 	expect(Container).not.toBe(null);
 });

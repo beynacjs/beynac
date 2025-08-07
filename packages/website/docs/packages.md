@@ -40,6 +40,7 @@ When writing a Laravel application, it generally does not matter if you use cont
 
 A Laravel application's `bootstrap/providers.php` file contains the list of service providers that should be loaded by Laravel. However, instead of requiring users to manually add your service provider to the list, you may define the provider in the `extra` section of your package's `composer.json` file so that it is automatically loaded by Laravel. In addition to service providers, you may also list any [facades](./facades) you would like to be registered:
 
+<!-- source: manual -->
 ```json
 "extra": {
     "laravel": {
@@ -60,6 +61,7 @@ Once your package has been configured for discovery, Laravel will automatically 
 
 If you are the consumer of a package and would like to disable package discovery for a package, you may list the package name in the `extra` section of your application's `composer.json` file:
 
+<!-- source: manual -->
 ```json
 "extra": {
     "laravel": {
@@ -72,6 +74,7 @@ If you are the consumer of a package and would like to disable package discovery
 
 You may disable package discovery for all packages using the `*` character inside of your application's `dont-discover` directive:
 
+<!-- source: manual -->
 ```json
 "extra": {
     "laravel": {

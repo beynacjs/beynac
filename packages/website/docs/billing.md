@@ -696,6 +696,7 @@ Next, the Stripe.js library may be used to attach a [Stripe Element](https://str
 
 Next, the card can be verified and a secure "payment method identifier" can be retrieved from Stripe using [Stripe's `confirmCardSetup` method](https://stripe.com/docs/js/setup_intents/confirm_card_setup):
 
+<!-- source: manual -->
 ```js
 const cardHolderName = document.getElementById('card-holder-name');
 const cardButton = document.getElementById('card-button');
@@ -757,6 +758,7 @@ After defining such a form, the Stripe.js library may be used to attach a [Strip
 
 Next, the card can be verified and a secure "payment method identifier" can be retrieved from Stripe using [Stripe's `createPaymentMethod` method](https://stripe.com/docs/stripe-js/reference#stripe-create-payment-method):
 
+<!-- source: manual -->
 ```js
 const cardHolderName = document.getElementById('card-holder-name');
 const cardButton = document.getElementById('card-button');

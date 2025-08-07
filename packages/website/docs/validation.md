@@ -297,6 +297,7 @@ When your application throws a `Illuminate\Validation\ValidationException` excep
 
 Below, you can review an example of the JSON response format for validation errors. Note that nested error keys are flattened into "dot" notation format:
 
+<!-- source: manual -->
 ```json
 {
     "message": "The team name must be a string. (and 4 more errors)",

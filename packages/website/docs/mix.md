@@ -16,6 +16,7 @@ laravelDocs: true
 
 In other words, Mix makes it a cinch to compile and minify your application's CSS and JavaScript files. Through simple method chaining, you can fluently define your asset pipeline. For example:
 
+<!-- source: manual -->
 ```js
 mix.js('resources/js/app.js', 'public/js')
     .postCss('resources/css/app.css', 'public/css');

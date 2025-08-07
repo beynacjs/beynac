@@ -104,6 +104,7 @@ In addition to checking for the CSRF token as a POST parameter, the `Illuminate\
 
 Then, you can instruct a library like jQuery to automatically add the token to all request headers. This provides simple, convenient CSRF protection for your AJAX based applications using legacy JavaScript technology:
 
+<!-- source: manual -->
 ```js
 $.ajaxSetup({
     headers: {

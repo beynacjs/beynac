@@ -315,6 +315,7 @@ Next, you should ensure that your application's CORS configuration is returning 
 
 In addition, you should enable the `withCredentials` and `withXSRFToken` options on your application's global `axios` instance. Typically, this should be performed in your `resources/js/bootstrap.js` file. If you are not using Axios to make HTTP requests from your frontend, you should perform the equivalent configuration on your own HTTP client:
 
+<!-- source: manual -->
 ```js
 axios.defaults.withCredentials = true;
 axios.defaults.withXSRFToken = true;
@@ -334,6 +335,7 @@ Finally, you should ensure your application's session cookie domain configuratio
 
 To authenticate your SPA, your SPA's "login" page should first make a request to the `/sanctum/csrf-cookie` endpoint to initialize CSRF protection for the application:
 
+<!-- source: manual -->
 ```js
 axios.get('/sanctum/csrf-cookie').then(response => {
     // Login...
@@ -386,6 +388,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
 Next, in order for Pusher's authorization requests to succeed, you will need to provide a custom Pusher `authorizer` when initializing [Laravel Echo](./broadcasting#client-side-installation). This allows your application to configure Pusher to use the `axios` instance that is [properly configured for cross-domain requests](#cors-and-cookies):
 
+<!-- source: manual -->
 ```js
 window.Echo = new Echo({
     broadcaster: "pusher",

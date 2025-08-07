@@ -11,21 +11,22 @@ The service container is a powerful tool for managing class dependencies and per
 
 Let's look at a simple example:
 
+<!-- source: PodcastController intro -->
 ```ts
 import { inject } from "beynac";
 
 class PodcastController extends Controller {
-    constructor(private apple = inject(AppleMusic)) {
-        super();
-    }
+	constructor(private apple = inject(AppleMusic)) {
+		super();
+	}
 
-    /**
-     * Show information about the given podcast.
-     */
-    public async process(id: string) {
-        console.log(this.apple);
-        // TODO when we've implemented templates and view controllers, come back to make this real
-    }
+	/**
+	 * Show information about the given podcast.
+	 */
+	public async process(id: string) {
+		return id + String(this.apple);
+		// TODO when we've implemented templates and view controllers, come back to make this real
+	}
 }
 ```
 
@@ -33,18 +34,19 @@ In this example, the `PodcastController` needs to retrieve podcasts from a data 
 
 When the service container is making an instance of `PodcastController`, the `inject(AppleMusic)` function call will return an instance of `AppleMusic`. There are various ways of configuring the injected instance.
 
-We're using typescript default argument syntax, which means that:
+You declare a dependency using default parameter syntax, which means that:
 
-1. In your tests you can pass a mock implementation instead: `new PodcastController(new MockAppleMusic())`.
-2. The type of the dependency is correctly inferred
+1. The type of the parameter is correctly inferred if you're using TypeScript
+2. In your tests you can pass a mock implementation by providing an explicit value: `new PodcastController(new MockAppleMusic())`.
 
 A deep understanding of the Beynac service container is essential to building a powerful, large application, as well as for contributing to the Beynac core itself.
 
 ### Zero Configuration Resolution
 
-If a class has no dependencies or only depends on other concrete classes (not interfaces), the container does not need to be instructed on how to resolve that class. For example, you may place the following code in your `routes/web.php` file:
+If a class has no dependencies or only depends on other concrete classes (not interfaces), the container does not need to be instructed on how to resolve that class. For example, you may place the following code in your `routes/web.php` <-- TODO file:
 
 TODO update for our route syntax
+<!-- source: manual -->
 ```ts
 
 class Service
@@ -76,11 +78,11 @@ Route::get('/', function (req = inject(Request)) {
 });
 ```
 
-In many cases, thanks to automatic dependency injection and [facades](./facades), you can build Laravel applications without **ever** manually binding or resolving anything from the container. **So, when would you ever manually interact with the container?** Let's examine two situations.
+In many cases, thanks to automatic dependency injection and [facades](./facades), you can build Beynac applications without **ever** manually binding or resolving anything from the container. **So, when would you ever manually interact with the container?** Let's examine two situations.
 
-PROGRESS UP TO HERE!
+First, in large applications you often want to decouple components from each other using typescript interfaces. For example, your `PodcastController` would declare a dependency as `inject(MusicService)`, and at runtime an instance of `AppleMusic` (which implements the MusicService interface) will be injected. In this case you must [tell the container how to resolve that interface](#binding-interfaces-to-implementations).
 
-First, if you write a class that implements an interface and you wish to type-hint that interface on a route or class constructor, you must [tell the container how to resolve that interface](#binding-interfaces-to-implementations). Secondly, if you are [writing a Laravel package](./packages) that you plan to share with other Laravel developers, you may need to bind your package's services into the container.
+Secondly, you might want to configure the instances that are provided. The container provides many options for configuring injected instances. You can control the [lifecycle](#binding-lifecycle) - whether a single global instance of a dependency is shared for all dependents or if a new instance is created for each dependent, or for each request. You can set up [contextual bindings](#contextual-binding) to give different versions of a dependency to different dependents. You can modify services provided by other packages by [extending them](#extending-bindings). And more. All of this functionality requires interacting with the container, and this document will show you how.
 
 ## Binding
 
@@ -134,6 +136,10 @@ App::bind(function (Application $app): Transistor {
 
 > [!NOTE]
 > There is no need to bind classes into the container if they do not depend on any interfaces. The container does not need to be instructed on how to build these objects, since it can automatically resolve these objects using reflection.
+
+## Binding Lifecycle
+
+TODO
 
 #### Binding A Singleton
 
@@ -226,7 +232,6 @@ $service = new Transistor(new PodcastParser);
 $this->app->instance(Transistor::class, $service);
 ```
 
-<a name="binding-interfaces-to-implementations"></a>
 ### Binding Interfaces to Implementations
 
 A very powerful feature of the service container is its ability to bind an interface to a given implementation. For example, let's assume we have an `EventPusher` interface and a `RedisEventPusher` implementation. Once we have coded our `RedisEventPusher` implementation of this interface, we can register it with the service container like so:
@@ -251,7 +256,6 @@ public function __construct(
 ) {}
 ```
 
-<a name="contextual-binding"></a>
 ### Contextual Binding
 
 Sometimes you may have two classes that utilize the same interface, but you wish to inject different implementations into each class. For example, two controllers may depend on different implementations of the `Illuminate\Contracts\Filesystem\Filesystem` [contract](./contracts). Laravel provides a simple, fluent interface for defining this behavior:

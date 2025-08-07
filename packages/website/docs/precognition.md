@@ -97,6 +97,7 @@ const submit = () => form.submit();
 
 Now, as the form is filled by the user, Precognition will provide live validation output powered by the validation rules in the route's form request. When the form's inputs are changed, a debounced "precognitive" validation request will be sent to your Laravel application. You may configure the debounce timeout by calling the form's `setValidationTimeout` function:
 
+<!-- source: manual -->
 ```js
 form.setValidationTimeout(3000);
 ```
@@ -171,6 +172,7 @@ To do this with Precognition, you should call the `validate` method passing the 
 
 Of course, you may also execute code in reaction to the response to the form submission. The form's `submit` function returns an Axios request promise. This provides a convenient way to access the response payload, reset the form inputs on successful submission, or handle a failed request:
 
+<!-- source: manual -->
 ```js
 const submit = () => form.submit()
     .then(response => {
@@ -249,6 +251,7 @@ With the Laravel Precognition package installed, you can now create a form objec
 
 To enable live validation, you should listen to each input's `change` and `blur` event. In the `change` event handler, you should set the form's data with the `setData` function, passing the input's name and new value. Then, in the `blur` event handler invoke the form's `validate` method, providing the input's name:
 
+<!-- source: manual -->
 ```jsx
 import { useForm } from 'laravel-precognition-react';
 
@@ -294,30 +297,35 @@ export default function Form() {
 
 Now, as the form is filled by the user, Precognition will provide live validation output powered by the validation rules in the route's form request. When the form's inputs are changed, a debounced "precognitive" validation request will be sent to your Laravel application. You may configure the debounce timeout by calling the form's `setValidationTimeout` function:
 
+<!-- source: manual -->
 ```js
 form.setValidationTimeout(3000);
 ```
 
 When a validation request is in-flight, the form's `validating` property will be `true`:
 
+<!-- source: manual -->
 ```jsx
 {form.validating && <div>Validating...</div>}
 ```
 
 Any validation errors returned during a validation request or a form submission will automatically populate the form's `errors` object:
 
+<!-- source: manual -->
 ```jsx
 {form.invalid('email') && <div>{form.errors.email}</div>}
 ```
 
 You can determine if the form has any errors using the form's `hasErrors` property:
 
+<!-- source: manual -->
 ```jsx
 {form.hasErrors && <div><!-- ... --></div>}
 ```
 
 You may also determine if an input has passed or failed validation by passing the input's name to the form's `valid` and `invalid` functions, respectively:
 
+<!-- source: manual -->
 ```jsx
 {form.valid('email') && <span>✅</span>}
 
@@ -329,6 +337,7 @@ You may also determine if an input has passed or failed validation by passing th
 
 If you are validating a subset of a form's inputs with Precognition, it can be useful to manually clear errors. You may use the form's `forgetError` function to achieve this:
 
+<!-- source: manual -->
 ```jsx
 <input
     id="avatar"
@@ -345,6 +354,7 @@ As we have seen, you can hook into an input's `blur` event and validate individu
 
 To do this with Precognition, you should call the `validate` method passing the field names you wish to validate to the `only` configuration key. You may handle the validation result with `onSuccess` or `onValidationError` callbacks:
 
+<!-- source: manual -->
 ```jsx
 <button
     type="button"
@@ -358,6 +368,7 @@ To do this with Precognition, you should call the `validate` method passing the 
 
 Of course, you may also execute code in reaction to the response to the form submission. The form's `submit` function returns an Axios request promise. This provides a convenient way to access the response payload, reset the form's inputs on a successful form submission, or handle a failed request:
 
+<!-- source: manual -->
 ```js
 const submit = (e) => {
     e.preventDefault();
@@ -398,6 +409,7 @@ Once installed, Precognition's `useForm` function will return an Inertia [form h
 
 The form helper's `submit` method has been streamlined, removing the need to specify the HTTP method or URL. Instead, you may pass Inertia's [visit options](https://inertiajs.com/manual-visits) as the first and only argument. In addition, the `submit` method does not return a Promise as seen in the React example above. Instead, you may provide any of Inertia's supported [event callbacks](https://inertiajs.com/manual-visits#event-callbacks) in the visit options given to the `submit` method:
 
+<!-- source: manual -->
 ```js
 import { useForm } from 'laravel-precognition-react-inertia';
 
@@ -440,6 +452,7 @@ npm install laravel-precognition-alpine
 
 Then, register the Precognition plugin with Alpine in your `resources/js/app.js` file:
 
+<!-- source: manual -->
 ```js
 import Alpine from 'alpinejs';
 import Precognition from 'laravel-precognition-alpine';
@@ -492,6 +505,7 @@ To enable live validation, you should bind the form's data to its relevant input
 
 Now, as the form is filled by the user, Precognition will provide live validation output powered by the validation rules in the route's form request. When the form's inputs are changed, a debounced "precognitive" validation request will be sent to your Laravel application. You may configure the debounce timeout by calling the form's `setValidationTimeout` function:
 
+<!-- source: manual -->
 ```js
 form.setValidationTimeout(3000);
 ```
@@ -602,6 +616,7 @@ Alternatively, if you would like to submit the form via XHR you may use the form
 
 The Precognition validation libraries use the [Axios](https://github.com/axios/axios) HTTP client to send requests to your application's backend. For convenience, the Axios instance may be customized if required by your application. For example, when using the `laravel-precognition-vue` library, you may add additional request headers to each outgoing request in your application's `resources/js/app.js` file:
 
+<!-- source: manual -->
 ```js
 import { client } from 'laravel-precognition-vue';
 
@@ -610,6 +625,7 @@ client.axios().defaults.headers.common['Authorization'] = authToken;
 
 Or, if you already have a configured Axios instance for your application, you may tell Precognition to use that instance instead:
 
+<!-- source: manual -->
 ```js
 import Axios from 'axios';
 import { client } from 'laravel-precognition-vue';
@@ -689,6 +705,7 @@ protected function rules()
 
 If you would like to include files in every validation request, you may invoke the `validateFiles` function on your client-side form instance:
 
+<!-- source: manual -->
 ```js
 form.validateFiles();
 ```

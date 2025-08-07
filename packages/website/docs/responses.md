@@ -414,6 +414,7 @@ npm install @laravel/stream-vue
 
 Then, `useStream` may be used to consume the event stream. After providing your stream URL, the hook will automatically update the `data` with the concatenated response as content is returned from your Laravel application:
 
+<!-- source: manual -->
 ```tsx tab=React
 import { useStream } from "@laravel/stream-react";
 
@@ -467,6 +468,7 @@ When sending data back to the stream via `send`, the active connection to the st
 
 The second argument given to `useStream` is an options object that you may use to customize the stream consumption behavior. The default values for this object are shown below:
 
+<!-- source: manual -->
 ```tsx tab=React
 import { useStream } from "@laravel/stream-react";
 
@@ -513,6 +515,7 @@ const { data } = useStream("chat", {
 
 By default, a request is not made to the stream on initialization. You may pass an initial payload to the stream by using the `initialInput` option:
 
+<!-- source: manual -->
 ```tsx tab=React
 import { useStream } from "@laravel/stream-react";
 
@@ -545,6 +548,7 @@ const { data } = useStream("chat", {
 
 To cancel a stream manually, you may use the `cancel` method returned from the hook:
 
+<!-- source: manual -->
 ```tsx tab=React
 import { useStream } from "@laravel/stream-react";
 
@@ -577,6 +581,7 @@ const { data, cancel } = useStream("chat");
 
 Each time the `useStream` hook is used, a random `id` is generated to identify the stream. This is sent back to the server with each request in the `X-STREAM-ID` header. When consuming the same stream from multiple components, you can read and write to the stream by providing your own `id`:
 
+<!-- source: manual -->
 ```tsx tab=React
 // App.tsx
 import { useStream } from "@laravel/stream-react";
@@ -659,6 +664,7 @@ Route::get('/users.json', function () {
 
 The `useJsonStream` hook is identical to the [useStream hook](#consuming-streamed-responses) except that it will attempt to parse the data as JSON once it has finished streaming:
 
+<!-- source: manual -->
 ```tsx tab=React
 import { useJsonStream } from "@laravel/stream-react";
 
@@ -766,6 +772,7 @@ npm install @laravel/stream-vue
 
 Then, `useEventStream` may be used to consume the event stream. After providing your stream URL, the hook will automatically update the `message` with the concatenated response as messages are returned from your Laravel application:
 
+<!-- source: manual -->
 ```jsx tab=React
 import { useEventStream } from "@laravel/stream-react";
 
@@ -790,6 +797,7 @@ const { message } = useEventStream("/chat");
 
 The second argument given to `useEventStream` is an options object that you may use to customize the stream consumption behavior. The default values for this object are shown below:
 
+<!-- source: manual -->
 ```jsx tab=React
 import { useEventStream } from "@laravel/stream-react";
 
@@ -836,6 +844,7 @@ const { message } = useEventStream("/chat", {
 
 Event streams may also be manually consumed via an [EventSource](https://developer.mozilla.org/en-US/docs/Web/API/EventSource) object by your application's frontend. The `eventStream` method will automatically send a `</stream>` update to the event stream when the stream is complete:
 
+<!-- source: manual -->
 ```js
 const source = new EventSource('/chat');
 

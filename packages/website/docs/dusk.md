@@ -2172,6 +2172,7 @@ Dusk even allows you to make assertions on the state of [Vue component](https://
 <profile dusk="profile-component"></profile>
 ```
 
+<!-- source: manual -->
 ```js
 // Component Definition...
 Vue.component('profile', {
@@ -2542,6 +2543,7 @@ $datePicker->assertSee('January');
 
 To run Dusk tests on [Heroku CI](https://www.heroku.com/continuous-integration), add the following Google Chrome buildpack and scripts to your Heroku `app.json` file:
 
+<!-- source: manual -->
 ```json
 {
   "environments": {

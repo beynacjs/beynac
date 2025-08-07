@@ -1,6 +1,7 @@
 
 This should work
 
+<!-- source: manual -->
 ```js
 when(A).needs(Dep).give(token);
 
@@ -9,6 +10,7 @@ when(A).needs(Dep).give(AltDep);
 
 so should this (it's in website folder tests)
 
+<!-- source: manual -->
 ```ts
 import { inject } from "beynac";
 
@@ -29,6 +31,7 @@ class PodcastController extends Controller {
 
 This should not:
 
+<!-- source: manual -->
 ```ts
 
 when(A).needs(Dep).quux(token);

@@ -382,6 +382,7 @@ When invoking the `toResourceCollection` method, Laravel will attempt to locate 
 
 By default, your outermost resource is wrapped in a `data` key when the resource response is converted to JSON. So, for example, a typical resource collection response looks like the following:
 
+<!-- source: manual -->
 ```json
 {
     "data": [
@@ -465,6 +466,7 @@ class CommentsCollection extends ResourceCollection
 
 When returning paginated collections via a resource response, Laravel will wrap your resource data in a `data` key even if the `withoutWrapping` method has been called. This is because paginated responses always contain `meta` and `links` keys with information about the paginator's state:
 
+<!-- source: manual -->
 ```json
 {
     "data": [
@@ -519,6 +521,7 @@ return User::paginate()->toResourceCollection();
 
 Paginated responses always contain `meta` and `links` keys with information about the paginator's state:
 
+<!-- source: manual -->
 ```json
 {
     "data": [

@@ -1330,6 +1330,7 @@ $response->assertJsonPath($path, $expectedValue);
 
 For example, if the following JSON response is returned by your application:
 
+<!-- source: manual -->
 ```json
 {
     "user": {
@@ -1355,6 +1356,7 @@ $response->assertJsonMissingPath($path);
 
 For example, if the following JSON response is returned by your application:
 
+<!-- source: manual -->
 ```json
 {
     "user": {
@@ -1380,6 +1382,7 @@ $response->assertJsonStructure(array $structure);
 
 For example, if the JSON response returned by your application contains the following data:
 
+<!-- source: manual -->
 ```json
 {
     "user": {
@@ -1400,6 +1403,7 @@ $response->assertJsonStructure([
 
 Sometimes, JSON responses returned by your application may contain arrays of objects:
 
+<!-- source: manual -->
 ```json
 {
     "user": [

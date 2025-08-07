@@ -18,7 +18,7 @@ export type FactoryFunction<T, C extends Container> = (container: C) => {
 	[K in keyof T]: T[K];
 };
 
-type Lifecycle = "transient" | "singleton" | "scoped";
+export type Lifecycle = "transient" | "singleton" | "scoped";
 
 type ContextualOverrides = Map<KeyOrClass, FactoryFunction<unknown, Container>>;
 
@@ -136,7 +136,19 @@ export class Container {
 	 * Bind a value to a type token in the IoC container
 	 *
 	 * @param key a type token created with typeKey
-	 * @param factory a factory function to generate an instance
+	 * @param args arguments to control how the value is bound:
+	 * @param args.factory a factory function to generate an instance - required
+	 *                     when binding a type token.
+	 * @param args.instance an instance to register as a singleton. When
+	 *                      providing an instance, `factory` must not be
+	 *                      provided and `lifecycle` will always be "singleton".
+	 * @param args.lifecycle the lifecycle of the binding. Available options
+	 *                       are:
+	 *
+	 *                       - "transient": a new instance is created on each call to get()
+	 *                       - "scoped": a new instance is created for each request
+	 *                       - "singleton": one instance is created for and reused for all requests
+	 * @param args.ifNotBound if true, the binding will not be created if it already exists
 	 */
 	public bind<T, C extends Container>(
 		this: C,
@@ -148,8 +160,21 @@ export class Container {
 	 * Bind a value to a class reference in the IoC container
 	 *
 	 * @param key a class object
-	 * @param factory a factory function to generate an instance - can be omitted
-	 *                 and an instance of the provided class will be created
+	 * @param args arguments to control how the value is bound:
+	 * @param args.factory a factory function to generate an instance - can be
+	 *                     omitted when binding a class and a new instance of
+	 *                     the class will be created with `new key()`.
+	 * @param args.instance an instance to register as a singleton. When
+	 *                      providing an instance, `factory` must not be
+	 *                      provided and `lifecycle` will always be "singleton".
+	 * @param args.lifecycle the lifecycle of the binding. Available options
+	 *                       are:
+	 *
+	 *                       - "transient": a new instance is created on each call to get()
+	 *                       - "scoped": a new instance is created for each request
+	 *                       - "singleton": one instance is created for and reused for all requests
+	 * @param args.ifNotBound if true, the binding will not be created if it
+	 * already exists
 	 */
 	public bind<T, C extends Container>(
 		this: C,
@@ -430,10 +455,8 @@ export class Container {
 	}
 
 	/**
-	 * Alias a type to a different name.
-	 *
-	 * @param key The abstract type
-	 * @param alias The alias
+	 * Alias a type to a different name. After setting up an alias,
+	 * `container.get(from)` will return the same value as `container.get(to)`
 	 */
 	public alias<T>({
 		to,

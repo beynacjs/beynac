@@ -1280,6 +1280,7 @@ use Laravel\Passport\Http\Middleware\CreateFreshApiToken;
 
 This middleware will attach a `laravel_token` cookie to your outgoing responses. This cookie contains an encrypted JWT that Passport will use to authenticate API requests from your JavaScript application. The JWT has a lifetime equal to your `session.lifetime` configuration value. Now, since the browser will automatically send the cookie with all subsequent requests, you may make requests to your application's API without explicitly passing an access token:
 
+<!-- source: manual -->
 ```js
 axios.get('/api/user')
     .then(response => {

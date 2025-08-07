@@ -1,4 +1,5 @@
-// Container exports
+export type { KeyOrClass } from "./container/container-key";
+
 export {
 	type ClassReference,
 	Container,
@@ -6,6 +7,7 @@ export {
 	type InstanceCallback,
 	inject,
 	injectOptional,
+	Lifecycle,
 } from "./container/index";
 
 export { BeynacError } from "./error";

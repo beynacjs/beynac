@@ -273,6 +273,7 @@ Route::get('/users', function () {
 
 The JSON from the paginator will include meta information such as `total`, `current_page`, `last_page`, and more. The result records are available via the `data` key in the JSON array. Here is an example of the JSON created by returning a paginator instance from a route:
 
+<!-- source: manual -->
 ```json
 {
    "total": 50,
