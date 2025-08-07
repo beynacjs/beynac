@@ -1,3 +1,4 @@
+import { describe, it, test, expect, beforeEach, afterEach, beforeAll, afterAll, mock } from "bun:test";
 import { Context } from "../../context";
 import type { WSContextInit } from ".";
 import { createWSMessageEvent, defineWebSocketHelper, WSContext } from ".";
@@ -32,12 +33,12 @@ describe("defineWebSocketHelper", () => {
 		const upgradeWebSocket = defineWebSocketHelper(() => {
 			return;
 		});
-		const next = vi.fn();
+		const next = mock();
 		await upgradeWebSocket(() => ({}))(
 			new Context(new Request("http://localhost")),
 			next,
 		);
-		expect(next).toBeCalled();
+		expect(next).toHaveBeenCalled();
 	});
 	it("Use upgradeWebSocket in return", async () => {
 		const upgradeWebSocket = defineWebSocketHelper(() => {

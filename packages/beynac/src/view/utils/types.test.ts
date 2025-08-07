@@ -1,3 +1,4 @@
+import { describe, expectTypeOf, it } from "bun:test";
 import type { Equal, Expect, JSONParsed } from "./types";
 
 describe("JSONParsed", () => {

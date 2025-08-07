@@ -1,3 +1,4 @@
+import { describe, it, test, expect, beforeEach, afterEach, beforeAll, afterAll, mock } from "bun:test";
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /** @jsxImportSource ../../jsx */
 import { Hono } from "../../hono";
@@ -115,8 +116,8 @@ describe("toSSG function", () => {
 		);
 
 		fsMock = {
-			writeFile: vi.fn(() => Promise.resolve()),
-			mkdir: vi.fn(() => Promise.resolve()),
+			writeFile: mock(() => Promise.resolve()),
+			mkdir: mock(() => Promise.resolve()),
 		};
 	});
 	it("Should correctly generate static HTML files for Hono routes", async () => {
@@ -126,7 +127,7 @@ describe("toSSG function", () => {
 				writtenFiles[path] = typeof data === "string" ? data : data.toString();
 				return Promise.resolve();
 			},
-			mkdir: vi.fn(() => Promise.resolve()),
+			mkdir: mock(() => Promise.resolve()),
 		};
 
 		const result = await toSSG(app, fsMock, { dir: "./static" });
@@ -149,8 +150,8 @@ describe("toSSG function", () => {
 
 	it("Should handle file system errors correctly in saveContentToFiles", async () => {
 		const fsMock: FileSystemModule = {
-			writeFile: vi.fn(() => Promise.reject(new Error("Write error"))),
-			mkdir: vi.fn(() => Promise.resolve()),
+			writeFile: mock(() => Promise.reject(new Error("Write error"))),
+			mkdir: mock(() => Promise.resolve()),
 		};
 
 		const result = await toSSG(app, fsMock, { dir: "./static" });
@@ -161,8 +162,8 @@ describe("toSSG function", () => {
 
 	it("Should handle overall process errors correctly in toSSG", async () => {
 		const fsMock: FileSystemModule = {
-			writeFile: vi.fn(() => Promise.reject(new Error("Write error"))),
-			mkdir: vi.fn(() => Promise.resolve()),
+			writeFile: mock(() => Promise.reject(new Error("Write error"))),
+			mkdir: mock(() => Promise.resolve()),
 		};
 
 		const result = await toSSG(app, fsMock, { dir: "./static" });
@@ -262,10 +263,10 @@ describe("toSSG function", () => {
 
 	it("should execute additional processing using afterGenerateHook", async () => {
 		const fsMock: FileSystemModule = {
-			writeFile: vi.fn(() => Promise.resolve()),
-			mkdir: vi.fn(() => Promise.resolve()),
+			writeFile: mock(() => Promise.resolve()),
+			mkdir: mock(() => Promise.resolve()),
 		};
-		const afterGenerateHookMock: AfterGenerateHook = vi.fn<AfterGenerateHook>(
+		const afterGenerateHookMock: AfterGenerateHook = mock<AfterGenerateHook>(
 			(result, fsModule, options) => {
 				if (result.files) {
 					result.files.forEach((file) => console.log(file));
@@ -333,11 +334,11 @@ describe("toSSG function", () => {
 
 	it("should avoid memory leak from `req.signal.addEventListener()`", async () => {
 		const fsMock: FileSystemModule = {
-			writeFile: vi.fn(() => Promise.resolve()),
-			mkdir: vi.fn(() => Promise.resolve()),
+			writeFile: mock(() => Promise.resolve()),
+			mkdir: mock(() => Promise.resolve()),
 		};
 
-		const signalAddEventListener = vi.fn(() => {});
+		const signalAddEventListener = mock(() => {});
 		const app = new Hono();
 		app.get("/post/:post", ssgParams([{ post: "1" }, { post: "2" }]), (c) =>
 			c.html(<h1>{c.req.param("post")}</h1>),
@@ -476,8 +477,8 @@ describe("saveContentToFile function", () => {
 
 	beforeEach(() => {
 		fsMock = {
-			writeFile: vi.fn(() => Promise.resolve()),
-			mkdir: vi.fn(() => Promise.resolve()),
+			writeFile: mock(() => Promise.resolve()),
+			mkdir: mock(() => Promise.resolve()),
 		};
 	});
 
@@ -558,8 +559,8 @@ describe("saveContentToFile function", () => {
 
 	it("should handle file writing or directory creation errors", async () => {
 		const fsMock: FileSystemModule = {
-			writeFile: vi.fn(() => Promise.resolve()),
-			mkdir: vi.fn(() => Promise.reject(new Error("File write error"))),
+			writeFile: mock(() => Promise.resolve()),
+			mkdir: mock(() => Promise.reject(new Error("File write error"))),
 		};
 
 		await expect(
@@ -599,8 +600,8 @@ describe("saveContentToFile function", () => {
 		};
 
 		const fsMock: FileSystemModule = {
-			writeFile: vi.fn(() => Promise.resolve()),
-			mkdir: vi.fn(() => Promise.resolve()),
+			writeFile: mock(() => Promise.resolve()),
+			mkdir: mock(() => Promise.resolve()),
 		};
 
 		await saveContentToFile(Promise.resolve(yamlData), fsMock, "./static");
@@ -640,8 +641,8 @@ describe("saveContentToFile function", () => {
 		};
 
 		const fsMock: FileSystemModule = {
-			writeFile: vi.fn(() => Promise.resolve()),
-			mkdir: vi.fn(() => Promise.resolve()),
+			writeFile: mock(() => Promise.resolve()),
+			mkdir: mock(() => Promise.resolve()),
 		};
 
 		const extensionMap = {
@@ -726,8 +727,8 @@ describe("isSSGContext()", () => {
 	app.get("/", (c) => c.html(<h1>{isSSGContext(c) ? "SSG" : "noSSG"}</h1>));
 
 	const fsMock: FileSystemModule = {
-		writeFile: vi.fn(() => Promise.resolve()),
-		mkdir: vi.fn(() => Promise.resolve()),
+		writeFile: mock(() => Promise.resolve()),
+		mkdir: mock(() => Promise.resolve()),
 	};
 
 	it("Should not generate the page if disableSSG is set", async () => {
@@ -756,8 +757,8 @@ describe("disableSSG/onlySSG middlewares", () => {
 	);
 
 	const fsMock: FileSystemModule = {
-		writeFile: vi.fn(() => Promise.resolve()),
-		mkdir: vi.fn(() => Promise.resolve()),
+		writeFile: mock(() => Promise.resolve()),
+		mkdir: mock(() => Promise.resolve()),
 	};
 
 	it("Should not generate the page if disableSSG is set", async () => {
@@ -836,8 +837,8 @@ describe("Request hooks - filterPathsBeforeRequestHook and denyPathsBeforeReques
 		app.get("/other-path", (c) => c.html("Other Path Page"));
 
 		fsMock = {
-			writeFile: vi.fn(() => Promise.resolve()),
-			mkdir: vi.fn(() => Promise.resolve()),
+			writeFile: mock(() => Promise.resolve()),
+			mkdir: mock(() => Promise.resolve()),
 		};
 	});
 
@@ -905,8 +906,8 @@ describe("Combined Response hooks - modify response content", () => {
 		app.get("/content-path", (c) => c.text("Original Content"));
 
 		fsMock = {
-			writeFile: vi.fn(() => Promise.resolve()),
-			mkdir: vi.fn(() => Promise.resolve()),
+			writeFile: mock(() => Promise.resolve()),
+			mkdir: mock(() => Promise.resolve()),
 		};
 	});
 
@@ -961,8 +962,8 @@ describe("Combined Generate hooks - AfterGenerateHook", () => {
 		app.get("/path", (c) => c.text("Page Content"));
 
 		fsMock = {
-			writeFile: vi.fn(() => Promise.resolve()),
-			mkdir: vi.fn(() => Promise.resolve()),
+			writeFile: mock(() => Promise.resolve()),
+			mkdir: mock(() => Promise.resolve()),
 		};
 	});
 
@@ -1004,8 +1005,8 @@ describe("SSG Plugin System", () => {
 		app.get("/blog", (c) => c.html("<h1>Blog</h1>"));
 
 		fsMock = {
-			writeFile: vi.fn(() => Promise.resolve()),
-			mkdir: vi.fn(() => Promise.resolve()),
+			writeFile: mock(() => Promise.resolve()),
+			mkdir: mock(() => Promise.resolve()),
 		};
 	});
 
@@ -1162,13 +1163,13 @@ describe("SSG Plugin System", () => {
 describe("ssgParams", () => {
 	it("should invoke callback only once", async () => {
 		const app = new Hono();
-		const cb = vi.fn(() => [{ post: "1" }, { post: "2" }]);
+		const cb = mock(() => [{ post: "1" }, { post: "2" }]);
 		app.get("/post/:post", ssgParams(cb), (c) =>
 			c.html(<h1>{c.req.param("post")}</h1>),
 		);
 		const fsMock: FileSystemModule = {
-			writeFile: vi.fn(() => Promise.resolve()),
-			mkdir: vi.fn(() => Promise.resolve()),
+			writeFile: mock(() => Promise.resolve()),
+			mkdir: mock(() => Promise.resolve()),
 		};
 		await toSSG(app, fsMock);
 
@@ -1177,7 +1178,7 @@ describe("ssgParams", () => {
 
 	it("should not invoke handler after ssgParams for dynamic route request", async () => {
 		const app = new Hono();
-		const log = vi.fn();
+		const log = mock();
 		app.get(
 			"/shops/:id",
 			ssgParams(() => [{ id: "shop1" }]),
@@ -1188,8 +1189,8 @@ describe("ssgParams", () => {
 			},
 		);
 		const fsMock: FileSystemModule = {
-			writeFile: vi.fn(() => Promise.resolve()),
-			mkdir: vi.fn(() => Promise.resolve()),
+			writeFile: mock(() => Promise.resolve()),
+			mkdir: mock(() => Promise.resolve()),
 		};
 		await toSSG(app, fsMock);
 

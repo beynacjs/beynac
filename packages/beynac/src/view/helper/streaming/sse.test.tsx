@@ -1,3 +1,4 @@
+import { describe, it, test, expect, beforeEach, afterEach, beforeAll, afterAll, mock } from "bun:test";
 /** @jsxImportSource ../../jsx */
 import { Context } from "../../context";
 import { ErrorBoundary } from "../../jsx";
@@ -137,7 +138,7 @@ describe("SSE Streaming helper", () => {
 	});
 
 	it("Check stream Response if error occurred", async () => {
-		const onError = vi.fn();
+		const onError = mock();
 		const res = streamSSE(
 			c,
 			async () => {
@@ -153,8 +154,8 @@ describe("SSE Streaming helper", () => {
 		const { value } = await reader.read();
 		const decodedValue = decoder.decode(value);
 		expect(decodedValue).toBe("event: error\ndata: Test error\n\n");
-		expect(onError).toBeCalledTimes(1);
-		expect(onError).toBeCalledWith(new Error("Test error"), expect.anything()); // 2nd argument is StreamingApi instance
+		expect(onError).toHaveBeenCalledTimes(1);
+		expect(onError).toHaveBeenCalledWith(new Error("Test error"), expect.anything()); // 2nd argument is StreamingApi instance
 	});
 
 	it("Check streamSSE Response via Promise<string>", async () => {

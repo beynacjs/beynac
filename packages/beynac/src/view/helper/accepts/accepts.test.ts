@@ -1,3 +1,4 @@
+import { describe, it, test, expect, beforeEach, afterEach, beforeAll, afterAll, mock } from "bun:test";
 import { Hono } from "../..";
 import { parseAccept } from "../../utils/accept";
 import type { Accept, acceptsConfig, acceptsOptions } from "./accepts";

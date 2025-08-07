@@ -1,3 +1,4 @@
+import { describe, it, test, expect, beforeEach, afterEach, beforeAll, afterAll, mock } from "bun:test";
 import type { StringBuffer } from "./html";
 import { escapeToBuffer } from "./html";
 

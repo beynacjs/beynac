@@ -1,3 +1,4 @@
+import { describe, it, expect, mock } from "bun:test";
 import { StreamingApi } from "./stream";
 
 describe("StreamingApi", () => {
@@ -99,27 +100,27 @@ describe("StreamingApi", () => {
 
 	it("onAbort()", async () => {
 		const { readable, writable } = new TransformStream();
-		const handleAbort1 = vi.fn();
-		const handleAbort2 = vi.fn();
+		const handleAbort1 = mock();
+		const handleAbort2 = mock();
 		const api = new StreamingApi(writable, readable);
 		api.onAbort(handleAbort1);
 		api.onAbort(handleAbort2);
-		expect(handleAbort1).not.toBeCalled();
-		expect(handleAbort2).not.toBeCalled();
+		expect(handleAbort1).not.toHaveBeenCalled();
+		expect(handleAbort2).not.toHaveBeenCalled();
 		await api.responseReadable.cancel();
-		expect(handleAbort1).toBeCalled();
-		expect(handleAbort2).toBeCalled();
+		expect(handleAbort1).toHaveBeenCalled();
+		expect(handleAbort2).toHaveBeenCalled();
 	});
 
 	it("abort()", async () => {
 		const { readable, writable } = new TransformStream();
-		const handleAbort1 = vi.fn();
-		const handleAbort2 = vi.fn();
+		const handleAbort1 = mock();
+		const handleAbort2 = mock();
 		const api = new StreamingApi(writable, readable);
 		api.onAbort(handleAbort1);
 		api.onAbort(handleAbort2);
-		expect(handleAbort1).not.toBeCalled();
-		expect(handleAbort2).not.toBeCalled();
+		expect(handleAbort1).not.toHaveBeenCalled();
+		expect(handleAbort2).not.toHaveBeenCalled();
 		expect(api.aborted).toBe(false);
 
 		api.abort();

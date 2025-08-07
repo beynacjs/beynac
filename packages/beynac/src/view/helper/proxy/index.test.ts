@@ -1,10 +1,21 @@
+import {
+	describe,
+	it,
+	test,
+	expect,
+	beforeEach,
+	afterEach,
+	beforeAll,
+	afterAll,
+	mock,
+} from "bun:test";
 import { Hono } from "../../hono";
 import { proxy } from ".";
 
 describe("Proxy Middleware", () => {
 	describe("proxy", () => {
 		beforeEach(() => {
-			global.fetch = vi.fn().mockImplementation(async (req) => {
+			global.fetch = mock().mockImplementation(async (req) => {
 				if (req.url === "https://example.com/ok") {
 					return Promise.resolve(new Response("ok"));
 				} else if (req.url === "https://example.com/disconnect") {
@@ -81,7 +92,7 @@ describe("Proxy Middleware", () => {
 				),
 			);
 			const res = await app.request("/proxy/compressed");
-			const req = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0];
+			const req = (global.fetch as ReturnType<typeof mock>).mock.calls[0][0];
 
 			expect(req.url).toBe("https://example.com/compressed");
 			expect(req.headers.get("X-Request-Id")).toBe("123");
@@ -107,7 +118,7 @@ describe("Proxy Middleware", () => {
 				),
 			);
 			const res = await app.request("/proxy/uncompressed");
-			const req = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0];
+			const req = (global.fetch as ReturnType<typeof mock>).mock.calls[0][0];
 
 			expect(req.url).toBe("https://example.com/uncompressed");
 			expect(req.headers.get("X-Request-Id")).toBe("123");
@@ -135,7 +146,7 @@ describe("Proxy Middleware", () => {
 				method: "POST",
 				body: "test",
 			});
-			const req = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0];
+			const req = (global.fetch as ReturnType<typeof mock>).mock.calls[0][0];
 
 			expect(req.url).toBe("https://example.com/post");
 
@@ -156,7 +167,7 @@ describe("Proxy Middleware", () => {
 					"Proxy-Authorization": "Basic 123456",
 				},
 			});
-			const req = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0];
+			const req = (global.fetch as ReturnType<typeof mock>).mock.calls[0][0];
 
 			expect(req.headers.get("Connection")).toBeNull();
 			expect(req.headers.get("Keep-Alive")).toBeNull();
@@ -176,7 +187,7 @@ describe("Proxy Middleware", () => {
 			);
 
 			const res = await app.request("/proxy/hop-by-hop");
-			const req = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0];
+			const req = (global.fetch as ReturnType<typeof mock>).mock.calls[0][0];
 
 			expect(req.headers.get("Proxy-Authorization")).toBe("Basic 123456");
 
@@ -216,7 +227,7 @@ describe("Proxy Middleware", () => {
 					Authorization: "Bearer 123",
 				},
 			});
-			const req = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0];
+			const req = (global.fetch as ReturnType<typeof mock>).mock.calls[0][0];
 			expect(req.headers.get("Authorization")).toBeNull();
 		});
 
@@ -257,7 +268,7 @@ describe("Proxy Middleware", () => {
 				return proxy(`https://example.com/${c.req.param("path")}`, req);
 			});
 			const res = await app.request("/proxy/compressed");
-			const req = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0];
+			const req = (global.fetch as ReturnType<typeof mock>).mock.calls[0][0];
 
 			expect(req.url).toBe("https://example.com/compressed");
 			expect(req.headers.get("X-Request-Id")).toBe("123");

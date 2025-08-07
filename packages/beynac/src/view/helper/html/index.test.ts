@@ -1,3 +1,4 @@
+import { describe, it, test, expect, beforeEach, afterEach, beforeAll, afterAll, mock } from "bun:test";
 import { HtmlEscapedCallbackPhase, resolveCallback } from "../../utils/html";
 import { html, raw } from ".";
 

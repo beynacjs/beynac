@@ -29,9 +29,9 @@ describe("useSyncExternalStore", () => {
 		};
 		const template = <App />;
 		expect(template.toString()).toBe("<div>100</div>");
-		expect(unsubscribe).not.toBeCalled();
-		expect(subscribe).not.toBeCalled();
-		expect(getSnapshot).not.toBeCalled();
+		expect(unsubscribe).not.toHaveBeenCalled();
+		expect(subscribe).not.toHaveBeenCalled();
+		expect(getSnapshot).not.toHaveBeenCalled();
 	});
 
 	it("should raise an error if getServerShot() is not provided", () => {

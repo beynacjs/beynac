@@ -1,4 +1,14 @@
-import { describe, expect, it } from "vitest";
+import {
+	afterAll,
+	afterEach,
+	beforeAll,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	mock,
+	test,
+} from "bun:test";
 import { dirname, joinPaths } from "./utils";
 
 describe("joinPath", () => {

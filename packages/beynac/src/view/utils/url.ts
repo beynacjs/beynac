@@ -339,4 +339,5 @@ export const getQueryParams = (
 
 // `decodeURIComponent` is a long name.
 // By making it a function, we can use it commonly when minified, reducing the amount of code.
-export const decodeURIComponent_ = decodeURIComponent;
+export const decodeURIComponent_: typeof decodeURIComponent =
+	decodeURIComponent;

@@ -1,5 +1,15 @@
+import {
+	afterAll,
+	afterEach,
+	beforeAll,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	mock,
+	test,
+} from "bun:test";
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { vi } from "vitest";
 import { encodeBase64, encodeBase64Url } from "../encode";
 import { AlgorithmTypes } from "./jwa";
 import { signing } from "./jws";

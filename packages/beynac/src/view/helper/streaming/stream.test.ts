@@ -1,3 +1,4 @@
+import { describe, it, test, expect, beforeEach, afterEach, beforeAll, afterAll, mock } from "bun:test";
 import { Context } from "../../context";
 import { stream } from ".";
 
@@ -108,7 +109,7 @@ describe("Basic Streaming Helper", () => {
 	});
 
 	it("Check stream Response if error occurred", async () => {
-		const onError = vi.fn();
+		const onError = mock();
 		const res = stream(
 			c,
 			async () => {
@@ -122,7 +123,7 @@ describe("Basic Streaming Helper", () => {
 		const reader = res.body.getReader();
 		const { value } = await reader.read();
 		expect(value).toBeUndefined();
-		expect(onError).toBeCalledTimes(1);
-		expect(onError).toBeCalledWith(new Error("error"), expect.anything()); // 2nd argument is StreamingApi instance
+		expect(onError).toHaveBeenCalledTimes(1);
+		expect(onError).toHaveBeenCalledWith(new Error("error"), expect.anything()); // 2nd argument is StreamingApi instance
 	});
 });

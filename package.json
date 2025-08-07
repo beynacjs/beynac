@@ -13,8 +13,8 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.1.2",
-		"@types/bun": "latest",
-		"bun-types": "latest",
+		"@types/bun": "1.2.19",
+		"bun-types": "1.2.19",
 		"typescript": "^5.8.3"
 	}
 }
