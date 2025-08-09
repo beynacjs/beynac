@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { BeynacError } from "@/error";
 import type { Key } from "@/keys";
-import { ArrayMultiMap, arrayWrap, SetMultiMap } from "@/utils";
+import { ArrayMultiMap, arrayWrap, describeType, SetMultiMap } from "@/utils";
 import { ContextualBindingBuilder } from "./ContextualBindingBuilder";
 import {
 	type ClassReference,
@@ -811,9 +811,6 @@ class ContainerError extends BeynacError {
 		this.name = "ContainerError";
 	}
 }
-
-const describeType = (value: unknown) =>
-	value == null ? String(value) : typeof value;
 
 const getPropertiesThatSurviveRebinding = (
 	binding: Binding | undefined,

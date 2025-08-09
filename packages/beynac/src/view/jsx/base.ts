@@ -142,6 +142,7 @@ export type Child =
 	| undefined
 	| boolean
 	| Child[];
+
 export class JSXNode implements HtmlEscaped {
 	// biome-ignore lint/complexity/noBannedTypes: vendored code
 	tag: string | Function;

@@ -25,19 +25,4 @@ After you have completed the initial port, go over your work and verify that non
 
 - **Run unit tests**: `bun test`
 - **Run lint and format test**: `bun check:lint`
-- **Apply corect formatting to files**: `bun format` - IMPORTANT: always run `bun format` after completing functionality changes
-
-## Code Style Guidelines
-
-- **Language**: TypeScript with strict mode enabled (all strict flags in tsconfig.json)
-- **Module system**: ES modules (`"type": "module"`)
-- **Runtime**: Bun (use `bun:test` for testing imports)
-- **Imports**: Use relative paths with `.ts` extension for local imports
-- **Types**: Define explicit types for all parameters and return values
-- **Naming**: camelCase for variables/functions, PascalCase for classes/types
-- **Error handling**: Throw descriptive Error objects with context
-- **Documentation**: Use JSDoc comments for public APIs with @example blocks
-- **Testing**: Write comprehensive tests covering edge cases and error scenarios
-- **Code organization**: Export main functionality, keep implementation details private
-- **Type safety**: Leverage TypeScript's strict mode - avoid `any`, use type guards
-- **No console.log**: Use proper error handling instead of logging
+- **Apply correct formatting to files**: `bun format` - IMPORTANT: always run `bun format` after completing functionality changes

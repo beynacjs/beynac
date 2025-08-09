@@ -1,0 +1,49 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: we follow react in using any for some types here
+
+import type { IntrinsicElements as IntrinsicElementsDefined } from "./intrinsic-element-types";
+
+// TODO restore context
+// export interface Context<T> extends FC<PropsWithChildren<{ value: T }>> {
+// 	values: T[];
+// 	Provider: FC<PropsWithChildren<{ value: T }>>;
+// }
+
+export namespace JSX {
+	export type Element = {
+		render(): string | Promise<string>;
+		renderChunks(): AsyncGenerator<string, void, void>;
+	};
+
+	export type Children =
+		| string
+		| Promise<string>
+		| number
+		| Element
+		| null
+		| undefined
+		| boolean
+		| Children[];
+
+	export interface ElementChildrenAttribute {
+		children: Children;
+	}
+
+	export interface IntrinsicElements extends IntrinsicElementsDefined {
+		[tagName: string]: AnyProps;
+	}
+
+	export interface IntrinsicAttributes {
+		key?: string | number | bigint | null | undefined;
+	}
+}
+
+type AnyProps = Record<string, any>;
+
+export type Component<P = AnyProps> = (props: P) => JSX.Element | null;
+
+export type PropsWithChildren<P = unknown> = P & {
+	children?: JSX.Children | undefined;
+};
+
+// TODO get this from the csstype package
+export type CSSProperties = Record<string, unknown>;

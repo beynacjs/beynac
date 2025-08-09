@@ -2,6 +2,9 @@ export const arrayWrap = <T>(value: T | T[]): T[] => {
 	return Array.isArray(value) ? value : [value];
 };
 
+export const describeType = (value: unknown): string =>
+	value == null ? String(value) : typeof value;
+
 abstract class MultiMap<K, V> {
 	abstract add(key: K, value: V): void;
 
