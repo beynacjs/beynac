@@ -37,96 +37,68 @@ export class MarkupStream {
 
 		const getNextChunk = (): Chunk => {
 			while (true) {
-				if (nodeStack.length === 0) {
-					return [buffer, null];
-				}
+				const frame = nodeStack.at(-1);
 
-				const frame = nodeStack[nodeStack.length - 1];
+				if (!frame) return [buffer, null];
 
-				// Check if we've processed all children at this level
 				if (!frame.content || frame.index >= frame.content.length) {
-					// Close the tag if this frame has one
+					// Finished processing this frame
 					if (frame.tag) {
-						buffer += `</${frame.tag}>`;
+						buffer += "</";
+						buffer += frame.tag;
+						buffer += ">";
 					}
 					nodeStack.pop();
 
-					// Move to next sibling in parent level if exists
-					if (nodeStack.length > 0) {
-						nodeStack[nodeStack.length - 1].index++;
+					const parentFrame = nodeStack.at(-1);
+					if (parentFrame) {
+						parentFrame.index++;
 					}
 					continue;
 				}
 
 				const node = frame.content[frame.index];
 
-				// Handle null/undefined/boolean
-				if (node == null || typeof node === "boolean") {
-					frame.index++;
-					continue;
-				}
-
-				// Handle strings and numbers
-				if (typeof node === "string") {
-					buffer += node;
-					frame.index++;
-					continue;
-				}
-
-				if (typeof node === "number") {
-					buffer += String(node);
-					frame.index++;
-					continue;
-				}
-
-				// Handle promises
 				if (node instanceof Promise) {
-					const currentChunk = buffer;
-					const currentFrame = frame; // Capture for closure
-					buffer = ""; // Clear buffer after capturing
+					const currentBuffer = buffer;
+					const currentFrame = frame;
+					buffer = "";
 					return [
-						currentChunk,
+						currentBuffer,
 						node.then((resolved) => {
 							if (currentFrame.content) {
 								currentFrame.content[currentFrame.index] = resolved;
 							}
-							// Don't increment position - reprocess at same index
+							// we've replaced the promise with its resolved
+							// value so we can continue from the same position
 							return getNextChunk();
 						}),
 					];
+				} else if (node instanceof MarkupStream) {
+					pushStackFrame(node.content, node.tag, node.attributes);
+				} else if (Array.isArray(node)) {
+					pushStackFrame(node, null, null);
+				} else {
+					// Primitive value: render as content
+					if (node != null && typeof node !== "boolean") {
+						buffer += String(node);
+					}
+					frame.index++;
 				}
-
-				// Handle nested MarkupStream
-				if (node instanceof MarkupStream) {
-					// Render opening tag immediately when entering the stream
-					renderOpeningTag(node);
-					// Push the stream's content array with its tag for closing later
-					nodeStack.push({ content: node.content, tag: node.tag, index: 0 });
-					// Don't increment parent's index here - it will be incremented when we pop back
-					continue;
-				}
-
-				// Handle arrays - push them onto the stack without a tag
-				if (Array.isArray(node)) {
-					nodeStack.push({ content: node, tag: null, index: 0 });
-					// Don't increment parent's index here - it will be incremented when we pop back
-					continue;
-				}
-
-				// Unknown type - skip
-				frame.index++;
 			}
 		};
 
-		// Helper closure to render opening tag - eliminates duplication
-		const renderOpeningTag = (stream: MarkupStream): void => {
-			if (!stream.tag) return;
+		const renderOpeningTag = (
+			tag: string,
+			attributes: Record<string, unknown> | null,
+		): void => {
+			if (!tag) return;
 
 			buffer += "<";
-			buffer += stream.tag;
+			buffer += tag;
 
-			if (stream.attributes) {
-				for (const [key, value] of Object.entries(stream.attributes)) {
+			if (attributes) {
+				for (const [key, value] of Object.entries(attributes)) {
 					if (
 						value === null ||
 						value === undefined ||
@@ -153,18 +125,25 @@ export class MarkupStream {
 			buffer += ">";
 		};
 
-		// Render opening tag for root stream immediately
-		renderOpeningTag(this);
-		// Push root content array with tag for closing later
-		nodeStack.push({ content: this.content, tag: this.tag, index: 0 });
+		const pushStackFrame = (
+			content: Content[] | null,
+			tag: string | null,
+			attributes: Record<string, unknown> | null,
+		): void => {
+			if (tag) {
+				renderOpeningTag(tag, attributes);
+			}
+			nodeStack.push({ content: content ?? [], tag, index: 0 });
+		};
+
+		pushStackFrame(this.content, this.tag, this.attributes);
 
 		return getNextChunk();
 	}
 }
 
-
 type StackFrame = {
-	content: Content[] | null;
+	content: Content[];
 	tag: string | null;
 	index: number;
 };
