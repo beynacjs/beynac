@@ -269,34 +269,19 @@ describe("MarkupStream", () => {
 
 	describe("concurrent promise resolution", () => {
 		test("renders promises in correct order when second resolves first", async () => {
-			const gate = asyncGate(["start", "resolve2", "resolve1", "done"]);
+			const gate = asyncGate(["resolve2", "resolve1"]);
 			const checkpoint1 = gate.task("promise1");
 			const checkpoint2 = gate.task("promise2");
 
-			let resolver1: (value: string) => void;
-			let resolver2: (value: string) => void;
-
-			const promise1 = new Promise<string>((resolve) => {
-				resolver1 = resolve;
-			});
-
-			const promise2 = new Promise<string>((resolve) => {
-				resolver2 = resolve;
-			});
-
-			const promise1Task = async () => {
-				await checkpoint1("start");
+			const promise1 = (async () => {
 				await checkpoint1("resolve1");
-				resolver1!("first");
-				await checkpoint1("done");
-			};
+				return "first";
+			})();
 
-			const promise2Task = async () => {
-				await checkpoint2("start");
+			const promise2 = (async () => {
 				await checkpoint2("resolve2");
-				resolver2!("second");
-				await checkpoint2("done");
-			};
+				return "second";
+			})();
 
 			const stream = new MarkupStream("div", null, [
 				"start ",
@@ -306,67 +291,42 @@ describe("MarkupStream", () => {
 				" end",
 			]);
 
-			const testTask = async () => {
-				await gate.next(); // start
+			const [chunk1, promise1Chunk] = stream.renderChunks();
+			expect(chunk1).toBe("<div>start ");
+			expect(promise1Chunk).not.toBeNull();
 
-				const [chunk1, promise1Chunk] = stream.renderChunks();
-				expect(chunk1).toBe("<div>start ");
-				expect(promise1Chunk).not.toBeNull();
+			// Resolve second promise first
+			await gate.next(); // resolve2
+			await new Promise((resolve) => setTimeout(resolve, 10));
 
-				// Resolve second promise first
-				await gate.next(); // resolve2
-				await new Promise((resolve) => setTimeout(resolve, 10));
+			// First promise still pending, so we wait
+			await gate.next(); // resolve1
+			await new Promise((resolve) => setTimeout(resolve, 10));
 
-				// First promise still pending, so we wait
-				await gate.next(); // resolve1
-				await new Promise((resolve) => setTimeout(resolve, 10));
+			// Now we should get both in correct order
+			const [chunk2, promise2Chunk] = await promise1Chunk!;
+			expect(chunk2).toBe("first middle ");
+			expect(promise2Chunk).not.toBeNull();
 
-				// Now we should get both in correct order
-				const [chunk2, promise2Chunk] = await promise1Chunk!;
-				expect(chunk2).toBe("first middle ");
-				expect(promise2Chunk).not.toBeNull();
-
-				const [chunk3, promise3Chunk] = await promise2Chunk!;
-				expect(chunk3).toBe("second end</div>");
-				expect(promise3Chunk).toBeNull();
-
-				await gate.next(); // done
-			};
-
-			await Promise.all([promise1Task(), promise2Task(), testTask()]);
+			const [chunk3, promise3Chunk] = await promise2Chunk!;
+			expect(chunk3).toBe("second end</div>");
+			expect(promise3Chunk).toBeNull();
 		});
 
 		test("handles nested streams with out-of-order resolution", async () => {
-			const gate = asyncGate(["start", "resolveInner", "resolveOuter", "done"]);
+			const gate = asyncGate(["resolveInner", "resolveOuter"]);
 			const checkpointInner = gate.task("inner");
 			const checkpointOuter = gate.task("outer");
 
-			let resolverInner: (value: string) => void;
-			let resolverOuter: (value: MarkupStream) => void;
-
-			const innerPromise = new Promise<string>((resolve) => {
-				resolverInner = resolve;
-			});
-
-			const outerPromise = new Promise<MarkupStream>((resolve) => {
-				resolverOuter = resolve;
-			});
-
-			const innerTask = async () => {
-				await checkpointInner("start");
+			const innerPromise = (async () => {
 				await checkpointInner("resolveInner");
-				resolverInner!("inner content");
-				await checkpointInner("done");
-			};
+				return "inner content";
+			})();
 
-			const outerTask = async () => {
-				await checkpointOuter("start");
+			const outerPromise = (async () => {
 				await checkpointOuter("resolveOuter");
-				resolverOuter!(
-					new MarkupStream("span", { class: "nested" }, [innerPromise]),
-				);
-				await checkpointOuter("done");
-			};
+				return new MarkupStream("span", { class: "nested" }, [innerPromise]);
+			})();
 
 			const stream = new MarkupStream("div", null, [
 				"before ",
@@ -374,34 +334,26 @@ describe("MarkupStream", () => {
 				" after",
 			]);
 
-			const testTask = async () => {
-				await gate.next(); // start
+			const [chunk1, promise1] = stream.renderChunks();
+			expect(chunk1).toBe("<div>before ");
 
-				const [chunk1, promise1] = stream.renderChunks();
-				expect(chunk1).toBe("<div>before ");
+			// Resolve inner first (but it's inside outer which isn't resolved yet)
+			await gate.next(); // resolveInner
+			await new Promise((resolve) => setTimeout(resolve, 10));
 
-				// Resolve inner first (but it's inside outer which isn't resolved yet)
-				await gate.next(); // resolveInner
-				await new Promise((resolve) => setTimeout(resolve, 10));
+			// Now resolve outer
+			await gate.next(); // resolveOuter
+			await new Promise((resolve) => setTimeout(resolve, 10));
 
-				// Now resolve outer
-				await gate.next(); // resolveOuter
-				await new Promise((resolve) => setTimeout(resolve, 10));
+			// Should get the outer stream structure
+			const [chunk2, promise2] = await promise1!;
+			expect(chunk2).toBe('<span class="nested">');
+			expect(promise2).not.toBeNull();
 
-				// Should get the outer stream structure
-				const [chunk2, promise2] = await promise1!;
-				expect(chunk2).toBe('<span class="nested">');
-				expect(promise2).not.toBeNull();
-
-				// And then the inner content
-				const [chunk3, promise3] = await promise2!;
-				expect(chunk3).toBe("inner content</span> after</div>");
-				expect(promise3).toBeNull();
-
-				await gate.next(); // done
-			};
-
-			await Promise.all([innerTask(), outerTask(), testTask()]);
+			// And then the inner content
+			const [chunk3, promise3] = await promise2!;
+			expect(chunk3).toBe("inner content</span> after</div>");
+			expect(promise3).toBeNull();
 		});
 	});
 
