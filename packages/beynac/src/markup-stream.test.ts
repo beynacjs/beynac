@@ -19,22 +19,19 @@ async function collectChunks(initial: Chunk): Promise<string> {
 describe("MarkupStream", () => {
 	describe("basic functionality", () => {
 		test("renders empty content", () => {
-			// Test both null content and tags with no children
 			const emptyStream = new MarkupStream(null, null, null);
-			expect(emptyStream.renderChunks()).toEqual(["", null]);
+			expect(emptyStream.render()).toBe("");
 
 			const emptyTag = new MarkupStream("br", null, null);
-			expect(emptyTag.renderChunks()).toEqual(["<br></br>", null]);
+			expect(emptyTag.render()).toBe("<br></br>");
 		});
 
 		test("renders text content", () => {
-			// Without tag
 			const plainText = new MarkupStream(null, null, ["Hello World"]);
-			expect(plainText.renderChunks()).toEqual(["Hello World", null]);
+			expect(plainText.render()).toBe("Hello World");
 
-			// With tag
 			const taggedText = new MarkupStream("div", null, ["Hello"]);
-			expect(taggedText.renderChunks()).toEqual(["<div>Hello</div>", null]);
+			expect(taggedText.render()).toBe("<div>Hello</div>");
 		});
 
 		test("renders tag with attributes", () => {
@@ -43,16 +40,14 @@ describe("MarkupStream", () => {
 				{ id: "test", class: "container" },
 				["Content"],
 			);
-			const [content, promise] = stream.renderChunks();
-			expect(content).toBe('<div id="test" class="container">Content</div>');
-			expect(promise).toBeNull();
+			expect(stream.render()).toBe(
+				'<div id="test" class="container">Content</div>',
+			);
 		});
 
 		test("renders numbers", () => {
 			const stream = new MarkupStream(null, null, [42, " is the answer"]);
-			const [content, promise] = stream.renderChunks();
-			expect(content).toBe("42 is the answer");
-			expect(promise).toBeNull();
+			expect(stream.render()).toBe("42 is the answer");
 		});
 
 		test("skips null, undefined, and boolean values", () => {
@@ -64,9 +59,7 @@ describe("MarkupStream", () => {
 				false,
 				"end",
 			]);
-			const [content, promise] = stream.renderChunks();
-			expect(content).toBe("startend");
-			expect(promise).toBeNull();
+			expect(stream.render()).toBe("startend");
 		});
 
 		test("renders nested arrays", () => {
@@ -98,9 +91,7 @@ describe("MarkupStream", () => {
 				[[], [[]]],
 				"d",
 			]);
-			const [content, promise] = stream.renderChunks();
-			expect(content).toBe("abcd");
-			expect(promise).toBeNull();
+			expect(stream.render()).toBe("abcd");
 		});
 
 		test("renders arrays with all skippable values", () => {
@@ -110,9 +101,7 @@ describe("MarkupStream", () => {
 				[[null], [undefined, [true, false]]],
 				"end",
 			]);
-			const [content, promise] = stream.renderChunks();
-			expect(content).toBe("startend");
-			expect(promise).toBeNull();
+			expect(stream.render()).toBe("startend");
 		});
 
 		test("renders promises resolving to nested arrays", async () => {
@@ -153,8 +142,7 @@ describe("MarkupStream", () => {
 				{ disabled: true, hidden: false, checked: true },
 				[],
 			);
-			const [content] = stream.renderChunks();
-			expect(content).toBe("<input disabled checked></input>");
+			expect(stream.render()).toBe("<input disabled checked></input>");
 		});
 
 		test("skips null, undefined, and function attributes", () => {
@@ -164,12 +152,11 @@ describe("MarkupStream", () => {
 					id: "test",
 					nullAttr: null,
 					undefinedAttr: undefined,
-					funcAttr: () => {},
+					funcAttr: function foo() {},
 				},
 				[],
 			);
-			const [content] = stream.renderChunks();
-			expect(content).toBe('<div id="test"></div>');
+			expect(stream.render()).toBe('<div id="test" funcAttr="function foo() {}"></div>');
 		});
 
 		test("escapes attribute values", () => {
@@ -181,9 +168,8 @@ describe("MarkupStream", () => {
 				},
 				[],
 			);
-			const [content] = stream.renderChunks();
-			expect(content).toBe(
-				'<div title="Test &quot;quotes&quot; &amp; &lt;brackets&gt;" data-value="It\'s a test"></div>',
+			expect(stream.render()).toBe(
+				`<div title="Test &quot;quotes&quot; &amp; &lt;brackets&gt;" data-value="It's a test"></div>`,
 			);
 		});
 	});
@@ -276,7 +262,7 @@ describe("MarkupStream", () => {
 				"e",
 			]);
 
-			const result = await collectChunks(stream.renderChunks());
+			const result = await stream.render();
 			expect(result).toBe("abcde");
 		});
 	});
@@ -429,18 +415,14 @@ describe("MarkupStream", () => {
 				" end",
 			]);
 
-			const [content, promise] = stream.renderChunks();
-			expect(content).toBe(
+			expect(stream.render()).toBe(
 				"<div>start <span><b><i>deep</i></b></span> end</div>",
 			);
-			expect(promise).toBeNull();
 		});
 
 		test("handles empty arrays", () => {
 			const stream = new MarkupStream("div", null, [[]]);
-			const [content, promise] = stream.renderChunks();
-			expect(content).toBe("<div></div>");
-			expect(promise).toBeNull();
+			expect(stream.render()).toBe("<div></div>");
 		});
 
 		test("handles promise resolving to null", async () => {
@@ -450,12 +432,8 @@ describe("MarkupStream", () => {
 				" after",
 			]);
 
-			const [chunk1, promise1] = stream.renderChunks();
-			expect(chunk1).toBe("<div>before ");
-
-			const [chunk2, promise2] = await promise1!;
-			expect(chunk2).toBe(" after</div>");
-			expect(promise2).toBeNull();
+			const result = await stream.render();
+			expect(result).toBe("<div>before  after</div>");
 		});
 
 		test("handles promise resolving to array with mixed content", async () => {
@@ -468,26 +446,18 @@ describe("MarkupStream", () => {
 				] as Content[]),
 			]);
 
-			const [chunk1, promise1] = stream.renderChunks();
-			expect(chunk1).toBe("<div>");
-
-			const [chunk2, promise2] = await promise1!;
-			expect(chunk2).toBe("text42<span>nested</span></div>");
-			expect(promise2).toBeNull();
+			const result = await stream.render();
+			expect(result).toBe("<div>text42<span>nested</span></div>");
 		});
 
 		test("handles falsy number 0", () => {
 			const stream = new MarkupStream(null, null, [0, " items"]);
-			const [content, promise] = stream.renderChunks();
-			expect(content).toBe("0 items");
-			expect(promise).toBeNull();
+			expect(stream.render()).toBe("0 items");
 		});
 
 		test("handles empty string", () => {
 			const stream = new MarkupStream(null, null, ["", "text", ""]);
-			const [content, promise] = stream.renderChunks();
-			expect(content).toBe("text");
-			expect(promise).toBeNull();
+			expect(stream.render()).toBe("text");
 		});
 	});
 });

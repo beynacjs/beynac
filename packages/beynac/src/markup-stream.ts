@@ -99,11 +99,7 @@ export class MarkupStream {
 
 			if (attributes) {
 				for (const [key, value] of Object.entries(attributes)) {
-					if (
-						value === null ||
-						value === undefined ||
-						typeof value === "function"
-					) {
+					if (value == null) {
 						continue;
 					}
 
@@ -139,6 +135,23 @@ export class MarkupStream {
 		pushStackFrame(this.content, this.tag, this.attributes);
 
 		return getNextChunk();
+	}
+
+	render(): string | Promise<string> {
+		let [content, next] = this.renderChunks();
+
+		if (!next) {
+			return content;
+		}
+
+		return (async () => {
+			while (next) {
+				const [chunkContent, chunkNext]: Chunk = await next;
+				content += chunkContent;
+				next = chunkNext;
+			}
+			return content;
+		})();
 	}
 }
 
