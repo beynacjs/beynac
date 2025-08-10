@@ -156,7 +156,9 @@ describe("MarkupStream", () => {
 				},
 				[],
 			);
-			expect(stream.render()).toBe('<div id="test" funcAttr="function foo() {}"></div>');
+			expect(stream.render()).toBe(
+				'<div id="test" funcAttr="function foo() {}"></div>',
+			);
 		});
 
 		test("escapes attribute values", () => {
@@ -170,6 +172,29 @@ describe("MarkupStream", () => {
 			);
 			expect(stream.render()).toBe(
 				`<div title="Test &quot;quotes&quot; &amp; &lt;brackets&gt;" data-value="It's a test"></div>`,
+			);
+		});
+
+		test("escapes attribute values", () => {
+			const stream = new MarkupStream(
+				"div",
+				{
+					title: 'Test "quotes" & <brackets>',
+					"data-value": "It's a test",
+				},
+				[],
+			);
+			expect(stream.render()).toBe(
+				`<div title="Test &quot;quotes&quot; &amp; &lt;brackets&gt;" data-value="It's a test"></div>`,
+			);
+		});
+
+		test("escapes content", () => {
+			const stream = new MarkupStream("div", null, [
+				`I'm a little <teapot> "short" & stout`,
+			]);
+			expect(stream.render()).toBe(
+				`<div>I'm a little &lt;teapot&gt; &quot;short&quot; &amp; stout</div>`,
 			);
 		});
 	});
@@ -273,14 +298,14 @@ describe("MarkupStream", () => {
 			const checkpoint1 = gate.task("promise1");
 			const checkpoint2 = gate.task("promise2");
 
-			let order: string[] = []
+			const order: string[] = [];
 
 			const promise1 = (async () => {
 				await checkpoint1("resolve1");
-				order.push("first")
+				order.push("first");
 				return "first";
 			})();
-			
+
 			const promise2 = (async () => {
 				await checkpoint2("resolve2");
 				order.push("second");
@@ -302,7 +327,7 @@ describe("MarkupStream", () => {
 			await gate.next(); // resolve second
 			await gate.next(); // resolve first
 
-			expect(order).toEqual(["second", "first"])
+			expect(order).toEqual(["second", "first"]);
 
 			// Now we should get both in correct order
 			const [chunk2, promise2Chunk] = await promise1Chunk!;

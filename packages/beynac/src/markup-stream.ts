@@ -1,6 +1,11 @@
+import { RawContent, raw } from "./raw";
+
+export { raw } from "./raw";
+
 export type Content =
 	| string
 	| number
+	| RawContent
 	| MarkupStream
 	| null
 	| undefined
@@ -81,7 +86,11 @@ export class MarkupStream {
 				} else {
 					// Primitive value: render as content
 					if (node != null && typeof node !== "boolean") {
-						buffer += String(node);
+						if (node instanceof RawContent) {
+							buffer += node;
+						} else {
+							buffer += escapeHtml(String(node));
+						}
 					}
 					frame.index++;
 				}
