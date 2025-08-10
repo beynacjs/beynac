@@ -32,6 +32,9 @@
 					"suspicious": {
 						"noExplicitAny": "off"
 					},
+					"style": {
+						"noNonNullAssertion": "off"
+					},
 					"a11y": "off"
 				}
 			}

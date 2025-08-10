@@ -13,8 +13,6 @@ export const jsx: JSXFactory = (
 export const jsxs: JSXFactory = jsx;
 export const jsxDEV: JSXFactory = jsx;
 
-type Output = string | Promise<string>;
-
 class JSXElement {
 	constructor(
 		public tag: string | Component,

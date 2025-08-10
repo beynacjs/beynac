@@ -12,26 +12,6 @@ export type PropsWithChildren<P = unknown> = P & {
 };
 export type CSSProperties = JSX.CSSProperties;
 
-export type Props = Record<string, any>;
-export type FC<P = Props> = {
-	(props: P): HtmlEscapedString | Promise<HtmlEscapedString> | null;
-	defaultProps?: Partial<P> | undefined;
-	displayName?: string | undefined;
-};
-
-export namespace JSX {
-	export type Element = HtmlEscapedString | Promise<HtmlEscapedString>;
-	export interface ElementChildrenAttribute {
-		children: Child;
-	}
-	export interface IntrinsicElements extends IntrinsicElementsDefined {
-		[tagName: string]: Props;
-	}
-	export interface IntrinsicAttributes {
-		key?: string | number | bigint | null | undefined;
-	}
-}
-
 /**
  * React types
  */

@@ -11,7 +11,7 @@ describe("html template literal", () => {
 
 		test("gives type error on invalid interpolation", () => {
 			// @ts-expect-error
-			html`<div>{}</div>`;
+			html`<div>${Symbol()}</div>`;
 		});
 
 		test("interpolates values", () => {
