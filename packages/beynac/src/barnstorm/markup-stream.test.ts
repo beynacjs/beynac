@@ -1,21 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { asyncGate } from "../test-utils/async-gate";
 import { MarkupStream } from "./markup-stream";
-import type { Chunk, Content } from "./public-types";
-
-// Helper to collect all chunks from async rendering
-async function collectChunks(initial: Chunk): Promise<string> {
-	const chunks: string[] = [];
-	let current = initial;
-
-	while (current[1] !== null) {
-		chunks.push(current[0]);
-		current = await current[1];
-	}
-	chunks.push(current[0]);
-
-	return chunks.join("");
-}
+import type { Content } from "./public-types";
 
 describe("MarkupStream", () => {
 	describe("basic functionality", () => {
@@ -24,7 +10,7 @@ describe("MarkupStream", () => {
 			expect(emptyStream.render()).toBe("");
 
 			const emptyTag = new MarkupStream("br", null, null);
-			expect(emptyTag.render()).toBe("<br></br>");
+			expect(emptyTag.render()).toBe("<br>");
 		});
 
 		test("renders text content", () => {
@@ -80,7 +66,7 @@ describe("MarkupStream", () => {
 				[Promise.resolve(["c", "d"] as Content[])],
 			]);
 
-			const result = await collectChunks(stream.renderChunks());
+			const result = await stream.render();
 			expect(result).toBe("abcd");
 		});
 
@@ -137,13 +123,13 @@ describe("MarkupStream", () => {
 	});
 
 	describe("attribute handling", () => {
-		test("handles boolean attributes", () => {
+		test("handles boolean attributes in HTML mode", () => {
 			const stream = new MarkupStream(
 				"input",
 				{ disabled: true, hidden: false, checked: true },
 				[],
 			);
-			expect(stream.render()).toBe("<input disabled checked></input>");
+			expect(stream.render()).toBe("<input disabled checked>");
 		});
 
 		test("skips null, undefined, and function attributes", () => {
@@ -437,6 +423,103 @@ describe("MarkupStream", () => {
 		test("handles empty string", () => {
 			const stream = new MarkupStream(null, null, ["", "text", ""]);
 			expect(stream.render()).toBe("text");
+		});
+	});
+
+	describe("HTML mode (default)", () => {
+		test("renders empty tags without closing tag", () => {
+			const br = new MarkupStream("br", null, []);
+			expect(br.render()).toBe("<br>");
+
+			const input = new MarkupStream("input", { type: "text" }, []);
+			expect(input.render()).toBe('<input type="text">');
+
+			const img = new MarkupStream("img", { src: "test.jpg" }, []);
+			expect(img.render()).toBe('<img src="test.jpg">');
+		});
+
+		test("renders boolean attributes correctly", () => {
+			const input = new MarkupStream(
+				"input",
+				{
+					type: "checkbox",
+					checked: true,
+					disabled: false,
+					readonly: true,
+				},
+				[],
+			);
+			expect(input.render()).toBe('<input type="checkbox" checked readonly>');
+		});
+
+		test("renders non-boolean attributes with boolean values as strings", () => {
+			const div = new MarkupStream(
+				"div",
+				{
+					id: false,
+					"data-active": true,
+					"aria-hidden": false,
+				},
+				[],
+			);
+			expect(div.render()).toBe(
+				'<div id="false" data-active="true" aria-hidden="false"></div>',
+			);
+		});
+
+		test("renders empty elements with immediate closing", () => {
+			const div = new MarkupStream("div", null, []);
+			expect(div.render()).toBe("<div></div>");
+
+			const span = new MarkupStream("span", { id: "test" }, []);
+			expect(span.render()).toBe('<span id="test"></span>');
+		});
+	});
+
+	describe("XML mode", () => {
+		test("renders empty elements with self-closing tags", () => {
+			const br = new MarkupStream("br", null, []);
+			expect(br.render({ mode: "xml" })).toBe("<br />");
+
+			const div = new MarkupStream("div", null, []);
+			expect(div.render({ mode: "xml" })).toBe("<div />");
+
+			const input = new MarkupStream("input", { type: "text" }, []);
+			expect(input.render({ mode: "xml" })).toBe('<input type="text" />');
+		});
+
+		test("renders all attributes with values", () => {
+			const input = new MarkupStream(
+				"input",
+				{
+					type: "checkbox",
+					checked: true,
+					disabled: false,
+					readonly: true,
+				},
+				[],
+			);
+			expect(input.render({ mode: "xml" })).toBe(
+				'<input type="checkbox" checked="true" disabled="false" readonly="true" />',
+			);
+		});
+
+		test("renders elements with content normally", () => {
+			const div = new MarkupStream("div", null, ["content"]);
+			expect(div.render({ mode: "xml" })).toBe("<div>content</div>");
+
+			const span = new MarkupStream("span", { id: "test" }, ["text"]);
+			expect(span.render({ mode: "xml" })).toBe('<span id="test">text</span>');
+		});
+
+		test("handles nested empty elements", () => {
+			const outer = new MarkupStream("outer", null, [
+				new MarkupStream("inner", null, []),
+				new MarkupStream("br", null, []),
+			]);
+			expect(outer.render({ mode: "xml" })).toBe(
+				"<outer><inner /><br /></outer>",
+			);
 		});
 	});
 });

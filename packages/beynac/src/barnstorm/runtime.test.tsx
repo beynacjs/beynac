@@ -13,6 +13,7 @@ test("renders childless non-empty elements", () => {
 });
 
 test("renders empty tags", () => {
+	debugger;
 	expect((<input value="yo" />).render()).toBe('<input value="yo">');
 });
 

@@ -1,7 +1,11 @@
-import type { Chunk, Content } from "./public-types";
+import type { Chunk, Content, JSX } from "./public-types";
 import { RawContent } from "./raw";
 
-export class MarkupStream {
+export type RenderOptions = {
+	mode?: "html" | "xml";
+};
+
+export class MarkupStream implements JSX.Element {
 	readonly tag: string | null;
 	readonly attributes: Record<string, unknown> | null;
 	readonly content: Content[] | null;
@@ -22,7 +26,7 @@ export class MarkupStream {
 		}
 	}
 
-	renderChunks(): Chunk {
+	renderChunks({ mode = "html" }: RenderOptions = {}): Chunk {
 		let buffer = "";
 		const nodeStack: StackFrame[] = [];
 
@@ -33,11 +37,18 @@ export class MarkupStream {
 				if (!frame) return [buffer, null];
 
 				if (!frame.content || frame.index >= frame.content.length) {
-					// Finished processing this frame
 					if (frame.tag) {
-						buffer += "</";
-						buffer += frame.tag;
-						buffer += ">";
+						const needsClosing = 
+							mode === "html"
+								// in html mode, tags need closing unless they're one of the known empty tags
+								? !emptyTags.has(frame.tag)
+								// in xml mode, tags need closing if they have content (empty tags will be rendered as <self-closing />)
+								: !!frame.content?.length;
+						if (needsClosing) {
+							buffer += "</";
+							buffer += frame.tag;
+							buffer += ">";
+						}
 					}
 					nodeStack.pop();
 
@@ -86,6 +97,7 @@ export class MarkupStream {
 		const renderOpeningTag = (
 			tag: string,
 			attributes: Record<string, unknown> | null,
+			selfClosing: boolean,
 		): void => {
 			if (!tag) return;
 
@@ -98,12 +110,23 @@ export class MarkupStream {
 						continue;
 					}
 
-					if (typeof value === "boolean") {
-						if (value) {
+					if (mode === "html" && booleanAttributes.has(key)) {
+						// HTML mode: boolean attributes
+						if (value === true) {
 							buffer += " ";
 							buffer += key;
+						} else if (value === false) {
+							// Omit false boolean attributes in HTML
+						} else {
+							// Non-boolean value for a boolean attribute
+							buffer += " ";
+							buffer += key;
+							buffer += '="';
+							buffer += escapeHtml(String(value));
+							buffer += '"';
 						}
 					} else {
+						// XML mode or non-boolean attributes in HTML
 						buffer += " ";
 						buffer += key;
 						buffer += '="';
@@ -113,7 +136,11 @@ export class MarkupStream {
 				}
 			}
 
-			buffer += ">";
+			if (selfClosing) {
+				buffer += " />";
+			} else {
+				buffer += ">";
+			}
 		};
 
 		const pushStackFrame = (
@@ -121,10 +148,12 @@ export class MarkupStream {
 			tag: string | null,
 			attributes: Record<string, unknown> | null,
 		): void => {
+			const selfClosing = mode === "xml" && !content?.length;
 			if (tag) {
-				renderOpeningTag(tag, attributes);
+				renderOpeningTag(tag, attributes, selfClosing);
 			}
-			nodeStack.push({ content: content ?? [], tag, index: 0 });
+			const htmlEmptyTag = tag && mode === "html" && emptyTags.has(tag);
+			nodeStack.push({ content: htmlEmptyTag ? [] : (content ?? []), tag, index: 0 });
 		};
 
 		pushStackFrame(this.content, this.tag, this.attributes);
@@ -132,8 +161,8 @@ export class MarkupStream {
 		return getNextChunk();
 	}
 
-	render(): string | Promise<string> {
-		let [content, next] = this.renderChunks();
+	render(options?: RenderOptions): string | Promise<string> {
+		let [content, next] = this.renderChunks(options);
 
 		if (!next) {
 			return content;
@@ -165,3 +194,50 @@ const HTML_ESCAPE: Record<string, string> = {
 
 const escapeHtml = (str: string) =>
 	str.replace(/[&<>"]/g, (ch) => HTML_ESCAPE[ch]);
+
+const emptyTags = new Set([
+	"area",
+	"base",
+	"br",
+	"col",
+	"embed",
+	"hr",
+	"img",
+	"input",
+	"keygen",
+	"link",
+	"meta",
+	"param",
+	"source",
+	"track",
+	"wbr",
+]);
+
+const booleanAttributes = new Set([
+	"allowfullscreen",
+	"async",
+	"autofocus",
+	"autoplay",
+	"checked",
+	"controls",
+	"default",
+	"defer",
+	"disabled",
+	"download",
+	"formnovalidate",
+	"hidden",
+	"inert",
+	"ismap",
+	"itemscope",
+	"loop",
+	"multiple",
+	"muted",
+	"nomodule",
+	"novalidate",
+	"open",
+	"playsinline",
+	"readonly",
+	"required",
+	"reversed",
+	"selected",
+]);

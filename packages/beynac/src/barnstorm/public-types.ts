@@ -20,7 +20,7 @@ export type Chunk = [string, Promise<Chunk> | null];
 export namespace JSX {
 	export type Element = {
 		render(): string | Promise<string>;
-		renderChunks(): AsyncGenerator<string, void, void>;
+		renderChunks(): Chunk;
 	};
 
 	export type Children =
