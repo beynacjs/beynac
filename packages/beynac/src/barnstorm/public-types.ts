@@ -1,12 +1,21 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: we follow react in using any for some types here
 
 import type { IntrinsicElements as IntrinsicElementsDefined } from "./intrinsic-element-types";
+import type { MarkupStream } from "./markup-stream";
+import type { RawContent } from "./raw";
 
-// TODO restore context
-// export interface Context<T> extends FC<PropsWithChildren<{ value: T }>> {
-// 	values: T[];
-// 	Provider: FC<PropsWithChildren<{ value: T }>>;
-// }
+export type Content =
+	| string
+	| number
+	| RawContent
+	| MarkupStream
+	| null
+	| undefined
+	| boolean
+	| Promise<Content>
+	| Content[];
+
+export type Chunk = [string, Promise<Chunk> | null];
 
 export namespace JSX {
 	export type Element = {

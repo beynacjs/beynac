@@ -1,20 +1,5 @@
+import type { Chunk, Content } from "./public-types";
 import { RawContent } from "./raw";
-
-export { html } from "./html";
-export { raw } from "./raw";
-
-export type Content =
-	| string
-	| number
-	| RawContent
-	| MarkupStream
-	| null
-	| undefined
-	| boolean
-	| Promise<Content>
-	| Content[];
-
-export type Chunk = [string, Promise<Chunk> | null];
 
 export class MarkupStream {
 	readonly tag: string | null;

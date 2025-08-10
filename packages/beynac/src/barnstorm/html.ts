@@ -1,9 +1,10 @@
 import { MarkupStream } from "./markup-stream";
+import { Content } from "./public-types";
 import { RawContent } from "./raw";
 
 export function html(
 	strings: TemplateStringsArray,
-	...values: unknown[]
+	...values: Content[]
 ): MarkupStream {
 	const content: unknown[] = [];
 

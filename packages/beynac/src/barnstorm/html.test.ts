@@ -1,12 +1,17 @@
 import { describe, expect, test } from "bun:test";
 import { html } from "./html";
-import { raw } from "./markup-stream";
+import { raw } from "./raw";
 
 describe("html template literal", () => {
 	describe("basic functionality", () => {
 		test("renders simple HTML template", () => {
 			const result = html`<div>Hello World</div>`;
 			expect(result.render()).toBe("<div>Hello World</div>");
+		});
+
+		test("gives type error on invalid interpolation", () => {
+			// @ts-expect-error
+			html`<div>{}</div>`;
 		});
 
 		test("interpolates values", () => {

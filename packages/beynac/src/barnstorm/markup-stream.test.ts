@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { type Chunk, type Content, MarkupStream } from "./markup-stream";
-import { asyncGate } from "./test-utils/async-gate";
+import { asyncGate } from "../test-utils/async-gate";
+import { MarkupStream } from "./markup-stream";
+import type { Chunk, Content } from "./public-types";
 
 // Helper to collect all chunks from async rendering
 async function collectChunks(initial: Chunk): Promise<string> {
