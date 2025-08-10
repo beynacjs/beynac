@@ -225,8 +225,8 @@ describe("MarkupStream", () => {
 
 			// The promise is now wrapped as content
 			expect(stream.content).not.toBeNull();
-			expect(stream.content!.length).toBe(1);
-			expect(stream.content![0]).toBeInstanceOf(Promise);
+			expect(stream.content?.length).toBe(1);
+			expect(stream.content?.[0]).toBeInstanceOf(Promise);
 
 			const [chunk1, promise1] = stream.renderChunks();
 			expect(chunk1).toBe("<div>");

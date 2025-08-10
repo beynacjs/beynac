@@ -1,5 +1,6 @@
-import { RawContent, raw } from "./raw";
+import { RawContent } from "./raw";
 
+export { html } from "./html";
 export { raw } from "./raw";
 
 export type Content =
