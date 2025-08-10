@@ -10,34 +10,6 @@ export type Content =
 
 export type Chunk = [string, Promise<Chunk> | null];
 
-type StackFrame = {
-	stream: MarkupStream;
-	index: number;
-};
-
-const HTML_ESCAPE: Record<string, string> = {
-	"&": "&amp;",
-	"<": "&lt;",
-	">": "&gt;",
-	'"': "&quot;",
-};
-
-const escapeHtml = (str: string) =>
-	str.replace(/[&<>"]/g, (ch) => HTML_ESCAPE[ch]);
-
-// Helper to flatten nested arrays
-function flattenContent(content: Content[]): Content[] {
-	const result: Content[] = [];
-	for (const item of content) {
-		if (Array.isArray(item)) {
-			result.push(...flattenContent(item));
-		} else {
-			result.push(item);
-		}
-	}
-	return result;
-}
-
 export class MarkupStream {
 	readonly tag: string | null;
 	readonly attributes: Record<string, unknown> | null;
@@ -55,7 +27,7 @@ export class MarkupStream {
 			// Just wrap the promise as content - it will be handled during rendering
 			this.content = [children];
 		} else {
-			this.content = children ? flattenContent(children) : null;
+			this.content = children;
 		}
 	}
 
@@ -65,7 +37,6 @@ export class MarkupStream {
 
 		const getNextChunk = (): Chunk => {
 			while (true) {
-				// Check if we're done
 				if (nodeStack.length === 0) {
 					return [buffer, null];
 				}
@@ -73,12 +44,11 @@ export class MarkupStream {
 				const frame = nodeStack[nodeStack.length - 1];
 
 				// Check if we've processed all children at this level
-				if (
-					!frame.stream.content ||
-					frame.index >= frame.stream.content.length
-				) {
-					// Close the current stream's tag
-					renderClosingTag(frame.stream);
+				if (!frame.content || frame.index >= frame.content.length) {
+					// Close the tag if this frame has one
+					if (frame.tag) {
+						buffer += `</${frame.tag}>`;
+					}
 					nodeStack.pop();
 
 					// Move to next sibling in parent level if exists
@@ -88,7 +58,7 @@ export class MarkupStream {
 					continue;
 				}
 
-				const node = frame.stream.content[frame.index];
+				const node = frame.content[frame.index];
 
 				// Handle null/undefined/boolean
 				if (node == null || typeof node === "boolean") {
@@ -117,15 +87,8 @@ export class MarkupStream {
 					return [
 						currentChunk,
 						node.then((resolved) => {
-							if (currentFrame.stream.content && Array.isArray(resolved)) {
-								const flattened = flattenContent([resolved]);
-								currentFrame.stream.content.splice(
-									currentFrame.index,
-									1,
-									...flattened,
-								);
-							} else if (currentFrame.stream.content) {
-								currentFrame.stream.content[currentFrame.index] = resolved;
+							if (currentFrame.content) {
+								currentFrame.content[currentFrame.index] = resolved;
 							}
 							// Don't increment position - reprocess at same index
 							return getNextChunk();
@@ -137,17 +100,17 @@ export class MarkupStream {
 				if (node instanceof MarkupStream) {
 					// Render opening tag immediately when entering the stream
 					renderOpeningTag(node);
-					// Push with index: 0 to start processing children
-					nodeStack.push({ stream: node, index: 0 });
+					// Push the stream's content array with its tag for closing later
+					nodeStack.push({ content: node.content, tag: node.tag, index: 0 });
 					// Don't increment parent's index here - it will be incremented when we pop back
 					continue;
 				}
 
-				// Arrays should have been flattened
+				// Handle arrays - push them onto the stack without a tag
 				if (Array.isArray(node)) {
-					throw new Error(
-						"Unexpected nested array - should have been flattened",
-					);
+					nodeStack.push({ content: node, tag: null, index: 0 });
+					// Don't increment parent's index here - it will be incremented when we pop back
+					continue;
 				}
 
 				// Unknown type - skip
@@ -190,18 +153,28 @@ export class MarkupStream {
 			buffer += ">";
 		};
 
-		// Helper closure to render closing tag
-		const renderClosingTag = (stream: MarkupStream): void => {
-			if (stream.tag) {
-				buffer += `</${stream.tag}>`;
-			}
-		};
-
 		// Render opening tag for root stream immediately
 		renderOpeningTag(this);
-		// Push root MarkupStream with index: 0 to start processing children
-		nodeStack.push({ stream: this, index: 0 });
+		// Push root content array with tag for closing later
+		nodeStack.push({ content: this.content, tag: this.tag, index: 0 });
 
 		return getNextChunk();
 	}
 }
+
+
+type StackFrame = {
+	content: Content[] | null;
+	tag: string | null;
+	index: number;
+};
+
+const HTML_ESCAPE: Record<string, string> = {
+	"&": "&amp;",
+	"<": "&lt;",
+	">": "&gt;",
+	'"': "&quot;",
+};
+
+const escapeHtml = (str: string) =>
+	str.replace(/[&<>"]/g, (ch) => HTML_ESCAPE[ch]);
