@@ -273,13 +273,17 @@ describe("MarkupStream", () => {
 			const checkpoint1 = gate.task("promise1");
 			const checkpoint2 = gate.task("promise2");
 
+			let order: string[] = []
+
 			const promise1 = (async () => {
 				await checkpoint1("resolve1");
+				order.push("first")
 				return "first";
 			})();
-
+			
 			const promise2 = (async () => {
 				await checkpoint2("resolve2");
+				order.push("second");
 				return "second";
 			})();
 
@@ -295,13 +299,10 @@ describe("MarkupStream", () => {
 			expect(chunk1).toBe("<div>start ");
 			expect(promise1Chunk).not.toBeNull();
 
-			// Resolve second promise first
-			await gate.next(); // resolve2
-			await new Promise((resolve) => setTimeout(resolve, 10));
+			await gate.next(); // resolve second
+			await gate.next(); // resolve first
 
-			// First promise still pending, so we wait
-			await gate.next(); // resolve1
-			await new Promise((resolve) => setTimeout(resolve, 10));
+			expect(order).toEqual(["second", "first"])
 
 			// Now we should get both in correct order
 			const [chunk2, promise2Chunk] = await promise1Chunk!;
