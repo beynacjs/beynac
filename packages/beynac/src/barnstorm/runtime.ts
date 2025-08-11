@@ -28,3 +28,10 @@ export const jsx: JSXFactory = (
 };
 export const jsxs: JSXFactory = jsx;
 export const jsxDEV: JSXFactory = jsx;
+
+export const Fragment = (
+	props: Record<string, unknown> | null,
+): JSX.Element => {
+	const children = props?.children ?? null;
+	return new MarkupStream(null, null, arrayWrap(children) as Content[]);
+};

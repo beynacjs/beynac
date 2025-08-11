@@ -14,8 +14,9 @@ export const getKeyName = (key: KeyOrClass): string => {
 	if (typeof key === "function") {
 		return `[${key.name}]`;
 	}
-	if (typeof key === "symbol" && key.description) {
-		return `[${key.description}]`;
+	// Keys are objects with a toString method
+	if (typeof key === "object" && key !== null && "toString" in key) {
+		return key.toString();
 	}
 	return "[unknown]";
 };

@@ -9,7 +9,7 @@ import { NO_VALUE, type NoValue } from "./no-value";
 
 const invalidInjectMessage = `Dependencies that use inject() must be created by the container. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms`;
 
-export function inject<T>(token: Key<T>): T;
+export function inject<T>(token: Key<T>): Exclude<T, undefined>;
 export function inject<T>(token: ClassReference<T>): T;
 
 /**
@@ -30,7 +30,7 @@ export function inject<T>(token: ClassReference<T>): T;
  * // in your tests: you can supply a mock dependency
  * const instance = new MyClass(new MockEmailService());
  */
-export function inject<T>(arg: KeyOrClass<T>): T {
+export function inject<T>(arg: KeyOrClass<T>): Exclude<T, undefined> {
 	if (!_currentInjectHandler) {
 		throw new BeynacError(invalidInjectMessage);
 	}
@@ -38,10 +38,10 @@ export function inject<T>(arg: KeyOrClass<T>): T {
 	if (result === NO_VALUE) {
 		throw new BeynacError(`Required dependency ${getKeyName(arg)} not found`);
 	}
-	return result;
+	return result as Exclude<T, undefined>;
 }
 
-export function injectOptional<T>(token: Key<T>): T;
+export function injectOptional<T>(token: Key<T>): Exclude<T, undefined> | null;
 export function injectOptional<T>(token: ClassReference<T>): T | null;
 
 /**
@@ -61,12 +61,14 @@ export function injectOptional<T>(token: ClassReference<T>): T | null;
  * // in your tests: you can supply a mock dependency
  * const instance = new MyClass(new MockEmailService());
  */
-export function injectOptional<T>(arg: KeyOrClass<T>): T | null {
+export function injectOptional<T>(
+	arg: KeyOrClass<T>,
+): Exclude<T, undefined> | null {
 	if (!_currentInjectHandler) {
 		throw new BeynacError(invalidInjectMessage);
 	}
 	const result = _currentInjectHandler(arg, true);
-	return result === NO_VALUE ? null : result;
+	return result === NO_VALUE ? null : (result as Exclude<T, undefined>);
 }
 
 type InjectHandler = <T>(arg: KeyOrClass<T>, optional: boolean) => T | NoValue;

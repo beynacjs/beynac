@@ -13,7 +13,6 @@ test("renders childless non-empty elements", () => {
 });
 
 test("renders empty tags", () => {
-	debugger;
 	expect((<input value="yo" />).render()).toBe('<input value="yo">');
 });
 
@@ -41,12 +40,12 @@ test("renders children", () => {
 	).toBe(`<div><input type="checkbox" checked></div>`);
 });
 
-test.skip("renders fragments", () => {
-	// expect(
-	// 	(
-	// 		<>
-	// 			<div>hello</div>
-	// 		</>
-	// 	).render(),
-	// ).toBe(`<div><input type="checkbox" checked></div>`);
+test("renders fragments", () => {
+	expect(
+		(
+			<>
+				<div>hello</div>
+			</>
+		).render(),
+	).toBe(`<div>hello</div>`);
 });

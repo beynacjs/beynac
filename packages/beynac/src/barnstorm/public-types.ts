@@ -1,8 +1,14 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: we follow react in using any for some types here
 
+import type { Key } from "@/keys";
 import type { IntrinsicElements as IntrinsicElementsDefined } from "./intrinsic-element-types";
 import type { MarkupStream } from "./markup-stream";
 import type { RawContent } from "./raw";
+
+export interface Context {
+	get<T>(key: Key<T>): T | null;
+	set<T>(key: Key<T>, value: T): void;
+}
 
 export type Content =
 	| string
@@ -14,7 +20,7 @@ export type Content =
 	| boolean
 	| Promise<Content>
 	| Content[]
-	| (() => Content);
+	| ((context: Context) => Content);
 
 export type Chunk = [string, Promise<Chunk> | null];
 

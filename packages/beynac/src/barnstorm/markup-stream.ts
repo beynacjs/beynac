@@ -1,4 +1,5 @@
-import type { Chunk, Content, JSX } from "./public-types";
+import { ContextImpl } from "./context";
+import type { Chunk, Content, Context, JSX } from "./public-types";
 import { RawContent } from "./raw";
 
 export type RenderOptions = {
@@ -9,14 +10,19 @@ export class MarkupStream implements JSX.Element {
 	readonly tag: string | null;
 	readonly attributes: Record<string, unknown> | null;
 	readonly content: Content[] | null;
+	readonly context?: ContextImpl;
 
 	constructor(
 		tag: string | null,
 		attributes: Record<string, unknown> | null,
 		children: Array<Content> | null | Promise<Array<Content> | null>,
+		context?: ContextImpl,
 	) {
 		this.tag = tag;
 		this.attributes = attributes;
+		if (context !== undefined) {
+			this.context = context;
+		}
 
 		if (children instanceof Promise) {
 			// Just wrap the promise as content - it will be handled during rendering
@@ -29,9 +35,28 @@ export class MarkupStream implements JSX.Element {
 	renderChunks({ mode = "html" }: RenderOptions = {}): Chunk {
 		let buffer = "";
 		const nodeStack: StackFrame[] = [];
+		const rootContext = this.context || new ContextImpl();
 
-		const evaluateContentFunction = (fn: () => Content): Content => {
-			return fn();
+		const evaluateContentFunction = (
+			fn: (context: Context) => Content,
+			currentContext: ContextImpl,
+		): Content => {
+			// Call the function with the current context
+			const result = fn(currentContext);
+
+			// Check if context was cloned (meaning set was called)
+			const clonedContext = currentContext._takeCloneAndReset();
+
+			if (clonedContext) {
+				// Always wrap result in new MarkupStream to propagate the cloned context
+				if (Array.isArray(result)) {
+					return new MarkupStream(null, null, result, clonedContext);
+				} else {
+					return new MarkupStream(null, null, [result], clonedContext);
+				}
+			}
+
+			return result;
 		};
 
 		const getNextChunk = (): Chunk => {
@@ -81,13 +106,15 @@ export class MarkupStream implements JSX.Element {
 						}),
 					];
 				} else if (typeof node === "function") {
-					const result = evaluateContentFunction(node);
+					const result = evaluateContentFunction(node, frame.context);
 					frame.content[frame.index] = result;
 					// Don't increment index, process the result on next iteration
 				} else if (node instanceof MarkupStream) {
-					pushStackFrame(node.content, node.tag, node.attributes);
+					// Use the MarkupStream's context if it has one, otherwise current
+					const childContext = node.context || frame.context;
+					pushStackFrame(node.content, node.tag, node.attributes, childContext);
 				} else if (Array.isArray(node)) {
-					pushStackFrame(node, null, null);
+					pushStackFrame(node, null, null, frame.context);
 				} else {
 					// Primitive value: render as content
 					if (node != null && typeof node !== "boolean") {
@@ -155,6 +182,7 @@ export class MarkupStream implements JSX.Element {
 			content: Content[] | null,
 			tag: string | null,
 			attributes: Record<string, unknown> | null,
+			context: ContextImpl,
 		): void => {
 			const selfClosing = mode === "xml" && !content?.length;
 			if (tag) {
@@ -165,10 +193,11 @@ export class MarkupStream implements JSX.Element {
 				content: htmlEmptyTag ? [] : (content ?? []),
 				tag,
 				index: 0,
+				context,
 			});
 		};
 
-		pushStackFrame(this.content, this.tag, this.attributes);
+		pushStackFrame(this.content, this.tag, this.attributes, rootContext);
 
 		return getNextChunk();
 	}
@@ -195,6 +224,7 @@ type StackFrame = {
 	content: Content[];
 	tag: string | null;
 	index: number;
+	context: ContextImpl;
 };
 
 const HTML_ESCAPE: Record<string, string> = {

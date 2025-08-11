@@ -1,11 +1,17 @@
-declare const brand: unique symbol;
+const keyDefault: unique symbol = Symbol("keyDefault");
+const keyBrand: unique symbol = Symbol("keyBrand");
 
 /**
- * A token representing an arbitrary type
+ * A token representing an arbitrary type with optional default value
  */
-export type Key<T = unknown> = symbol & {
-	[brand]: T;
+export type Key<T = unknown> = {
+	readonly [keyDefault]: unknown;
+	readonly [keyBrand]?: T;
 };
+
+export const isKey = (value: unknown): value is Key => value instanceof KeyImpl;
+
+export const getKeyDefault = <T>(key: Key<T>): unknown => key[keyDefault];
 
 /**
  * Create a token that allows typescript types that don't normally have a
@@ -17,8 +23,34 @@ export type Key<T = unknown> = symbol & {
  *     sail(): void;
  * }
  * // the convention is to use the same name for the type and the token
- * export const Ship = typeKey<Ship>("Ship");
+ * export const Ship = key<Ship>({ name: "Ship" });
  *
- * @param name a name for debugging purposes
+ * // With default value
+ * export const Port = key({ name: "Port", default: 3000 });
+ *
+ * @param options - Object with optional name and default value
  */
-export const key = <T>(name = "anonymous"): Key<T> => Symbol(name) as Key<T>;
+export function key(options?: { name?: string }): Key<unknown>;
+export function key<T>(options?: { name?: string }): Key<T | undefined>;
+export function key<T>(options: { name?: string; default: T }): Key<T>;
+export function key<T = unknown>(
+	options: { name?: string; default?: T } = {},
+): Key<T> | Key<T | undefined> | Key<unknown> {
+	const { name = "anonymous", default: defaultValue } = options;
+	return new KeyImpl<T>(name, defaultValue);
+}
+
+class KeyImpl<T> implements Key<T> {
+	#name: string;
+	[keyDefault]: unknown;
+	[keyBrand]?: T;
+
+	constructor(name: string, defaultValue?: unknown) {
+		this.#name = name;
+		this[keyDefault] = defaultValue;
+	}
+
+	toString(): string {
+		return `[${this.#name}]`;
+	}
+}

@@ -1,2 +1,2 @@
 export type { JSX } from "./public-types";
-export { jsx, jsxDEV, jsxs } from "./runtime";
+export { Fragment, jsx, jsxDEV, jsxs } from "./runtime";
