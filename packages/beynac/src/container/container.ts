@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { BeynacError } from "@/error";
-import type { Key } from "@/keys";
+import { getKeyDefault, isKey, type Key } from "@/keys";
 import { ArrayMultiMap, arrayWrap, describeType, SetMultiMap } from "@/utils";
 import { ContextualBindingBuilder } from "./ContextualBindingBuilder";
 import {
@@ -300,6 +300,14 @@ export class Container {
 			}
 
 			if (!factory) {
+				// Check if key has a default value
+				if (isKey(key)) {
+					const defaultValue = getKeyDefault(key);
+					if (defaultValue !== undefined) {
+						return defaultValue as T;
+					}
+				}
+
 				const name = getKeyName(key);
 				throw this.#containerError(
 					`Can't create an instance of ${name} because no value or factory function was supplied`,
