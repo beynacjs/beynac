@@ -476,6 +476,121 @@ describe("MarkupStream", () => {
 		});
 	});
 
+	describe("function content", () => {
+		test("renders function returning string", () => {
+			const stream = new MarkupStream("div", null, [
+				"before ",
+				() => "function result",
+				" after",
+			]);
+			expect(stream.render()).toBe("<div>before function result after</div>");
+		});
+
+		test("renders function returning MarkupStream", () => {
+			const stream = new MarkupStream("div", null, [
+				"text ",
+				() => new MarkupStream("span", { id: "lazy" }, ["lazy content"]),
+			]);
+			expect(stream.render()).toBe(
+				'<div>text <span id="lazy">lazy content</span></div>',
+			);
+		});
+
+		test("renders function returning array", () => {
+			const stream = new MarkupStream("div", null, [() => ["a", "b", "c"]]);
+			expect(stream.render()).toBe("<div>abc</div>");
+		});
+
+		test("renders function returning null/undefined/boolean", () => {
+			const stream = new MarkupStream("div", null, [
+				"start",
+				() => null,
+				() => undefined,
+				() => true,
+				() => false,
+				"end",
+			]);
+			expect(stream.render()).toBe("<div>startend</div>");
+		});
+
+		test("renders nested functions", () => {
+			const stream = new MarkupStream("div", null, [
+				() => () => () => "deeply nested",
+			]);
+			expect(stream.render()).toBe("<div>deeply nested</div>");
+		});
+
+		test("renders function returning promise", async () => {
+			const stream = new MarkupStream("div", null, [
+				"before ",
+				() => Promise.resolve("async from function"),
+				" after",
+			]);
+			const result = await stream.render();
+			expect(result).toBe("<div>before async from function after</div>");
+		});
+
+		test("handles complex edge case: function → promise → function → content", async () => {
+			const complexContent = () => Promise.resolve(() => "final content");
+
+			const stream = new MarkupStream("div", null, [
+				"before ",
+				complexContent,
+				" after",
+			]);
+
+			const result = await stream.render();
+			expect(result).toBe("<div>before final content after</div>");
+		});
+
+		test("handles even more complex: function → promise → function → promise → function", async () => {
+			const veryComplex = () =>
+				Promise.resolve(() => Promise.resolve(() => "very final"));
+
+			const stream = new MarkupStream("div", null, [
+				"start ",
+				veryComplex,
+				" end",
+			]);
+
+			const result = await stream.render();
+			expect(result).toBe("<div>start very final end</div>");
+		});
+
+		test("functions are called lazily during rendering", () => {
+			let callCount = 0;
+			const trackingFunction = () => {
+				callCount++;
+				return `called ${callCount} time(s)`;
+			};
+
+			const stream = new MarkupStream("div", null, [trackingFunction]);
+
+			// Function shouldn't be called yet
+			expect(callCount).toBe(0);
+
+			// Now render, which should call the function
+			const result = stream.render();
+			expect(callCount).toBe(1);
+			expect(result).toBe("<div>called 1 time(s)</div>");
+		});
+
+		test("multiple functions in sequence", () => {
+			let counter = 0;
+			const makeFunction = () => () => `${++counter}`;
+
+			const stream = new MarkupStream("div", null, [
+				makeFunction(),
+				"-",
+				makeFunction(),
+				"-",
+				makeFunction(),
+			]);
+
+			expect(stream.render()).toBe("<div>1-2-3</div>");
+		});
+	});
+
 	describe("XML mode", () => {
 		test("renders empty elements with self-closing tags", () => {
 			const br = new MarkupStream("br", null, []);

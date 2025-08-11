@@ -30,6 +30,10 @@ export class MarkupStream implements JSX.Element {
 		let buffer = "";
 		const nodeStack: StackFrame[] = [];
 
+		const evaluateContentFunction = (fn: () => Content): Content => {
+			return fn();
+		};
+
 		const getNextChunk = (): Chunk => {
 			while (true) {
 				const frame = nodeStack.at(-1);
@@ -38,12 +42,12 @@ export class MarkupStream implements JSX.Element {
 
 				if (!frame.content || frame.index >= frame.content.length) {
 					if (frame.tag) {
-						const needsClosing = 
+						const needsClosing =
 							mode === "html"
-								// in html mode, tags need closing unless they're one of the known empty tags
-								? !emptyTags.has(frame.tag)
-								// in xml mode, tags need closing if they have content (empty tags will be rendered as <self-closing />)
-								: !!frame.content?.length;
+								? // in html mode, tags need closing unless they're one of the known empty tags
+									!emptyTags.has(frame.tag)
+								: // in xml mode, tags need closing if they have content (empty tags will be rendered as <self-closing />)
+									!!frame.content?.length;
 						if (needsClosing) {
 							buffer += "</";
 							buffer += frame.tag;
@@ -76,6 +80,10 @@ export class MarkupStream implements JSX.Element {
 							return getNextChunk();
 						}),
 					];
+				} else if (typeof node === "function") {
+					const result = evaluateContentFunction(node);
+					frame.content[frame.index] = result;
+					// Don't increment index, process the result on next iteration
 				} else if (node instanceof MarkupStream) {
 					pushStackFrame(node.content, node.tag, node.attributes);
 				} else if (Array.isArray(node)) {
@@ -153,7 +161,11 @@ export class MarkupStream implements JSX.Element {
 				renderOpeningTag(tag, attributes, selfClosing);
 			}
 			const htmlEmptyTag = tag && mode === "html" && emptyTags.has(tag);
-			nodeStack.push({ content: htmlEmptyTag ? [] : (content ?? []), tag, index: 0 });
+			nodeStack.push({
+				content: htmlEmptyTag ? [] : (content ?? []),
+				tag,
+				index: 0,
+			});
 		};
 
 		pushStackFrame(this.content, this.tag, this.attributes);

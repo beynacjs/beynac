@@ -13,7 +13,8 @@ export type Content =
 	| undefined
 	| boolean
 	| Promise<Content>
-	| Content[];
+	| Content[]
+	| (() => Content);
 
 export type Chunk = [string, Promise<Chunk> | null];
 
