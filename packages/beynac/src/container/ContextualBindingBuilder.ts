@@ -32,7 +32,7 @@ class ContextualBindingBuilderFinal<T, C extends Container> {
 	 *
 	 * @param key The implementation
 	 */
-	give(key: KeyOrClass<T>): void {
+	give(key: KeyOrClass<T | undefined>): void {
 		type Factory = FactoryFunction<unknown, C>;
 		this.add(this.need, (() => this.container.get(key)) as Factory);
 	}

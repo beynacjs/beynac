@@ -20,7 +20,9 @@ export class MarkupStream implements JSX.Element {
 	) {
 		this.tag = tag;
 		this.attributes = attributes;
-		this.context = context;
+		if (context !== undefined) {
+			this.context = context;
+		}
 
 		if (children instanceof Promise) {
 			// Just wrap the promise as content - it will be handled during rendering

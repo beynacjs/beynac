@@ -33,14 +33,14 @@ describe("Container", () => {
 	});
 
 	test("failed resolution of unbound token", () => {
-		const string = key("Test");
+		const string = key({ name: "Test" });
 		expect(() => container.get(string)).toThrowErrorMatchingInlineSnapshot(
 			`"Can't create an instance of [Test] because no value or factory function was supplied"`,
 		);
 	});
 
 	test("resolution of bound class with injected dependencies", () => {
-		const nameToken = key<string>("name");
+		const nameToken = key<string>({ name: "name" });
 		class HasNameDependency {
 			constructor(public name = inject(nameToken)) {}
 		}
@@ -50,7 +50,7 @@ describe("Container", () => {
 	});
 
 	test("resolution of bound class with factory function and injected dependencies", () => {
-		const nameToken = key<string>("name");
+		const nameToken = key<string>({ name: "name" });
 		class HasNameDependency {
 			constructor(public name = inject(nameToken)) {}
 		}
@@ -71,7 +71,7 @@ describe("Container", () => {
 	});
 
 	test("error when trying to instantiate a value with unbound dependencies", () => {
-		const nameToken = key<string>("name");
+		const nameToken = key<string>({ name: "name" });
 		class HasNameDependency {
 			constructor(public name = inject(nameToken)) {}
 		}
@@ -91,7 +91,7 @@ describe("Container", () => {
 	});
 
 	test("error when resolving a value with missing injected dependencies", () => {
-		const nameToken = key<string>("name");
+		const nameToken = key<string>({ name: "name" });
 		class HasNameDependency {
 			constructor(public name = inject(nameToken)) {}
 		}
@@ -228,8 +228,8 @@ describe("Container", () => {
 	});
 
 	test("alias to unbound type token", () => {
-		const from = key("from");
-		const to = key("to");
+		const from = key({ name: "from" });
+		const to = key({ name: "to" });
 		container.alias({ from, to });
 		expect(() => container.get(from)).toThrowErrorMatchingInlineSnapshot(
 			`"Can't create an instance of [to] because no value or factory function was supplied"`,
@@ -248,10 +248,10 @@ describe("Container", () => {
 	});
 
 	test("error message when following circular alias", () => {
-		const quux = key("quux");
-		const foo = key("foo");
-		const bar = key("bar");
-		const baz = key("baz");
+		const quux = key({ name: "quux" });
+		const foo = key({ name: "foo" });
+		const bar = key({ name: "bar" });
+		const baz = key({ name: "baz" });
 		container.alias({ from: quux, to: foo });
 		container.alias({ from: foo, to: bar });
 		container.alias({ from: bar, to: baz });
@@ -375,7 +375,7 @@ describe("Container", () => {
 		interface Contract {
 			_?: number;
 		}
-		const Contract = key<Contract>("Contract");
+		const Contract = key<Contract>({ name: "Contract" });
 		class Impl implements Contract {}
 		class Dependent {
 			constructor(public impl = inject(Contract)) {}
@@ -445,7 +445,7 @@ describe("Container", () => {
 		interface I {
 			foo: string;
 		}
-		const Parent = key<I>("I");
+		const Parent = key<I>({ name: "I" });
 		expect(() => container.get(Parent)).toThrowErrorMatchingInlineSnapshot(
 			`"Can't create an instance of [I] because no value or factory function was supplied"`,
 		);
@@ -573,7 +573,7 @@ describe("Container", () => {
 		class B {
 			constructor(public c = inject(C)) {}
 		}
-		const C = key("C");
+		const C = key({ name: "C" });
 
 		expect(() => {
 			container.get(A);
@@ -600,7 +600,7 @@ describe("Container", () => {
 	});
 
 	test("it throws exception when abstract is same as alias", () => {
-		const token = key("tokenName");
+		const token = key({ name: "tokenName" });
 		expect(() => {
 			container.alias({ from: token, to: token });
 		}).toThrowErrorMatchingInlineSnapshot(
@@ -650,7 +650,7 @@ describe("Container", () => {
 
 describe("Container contextual bindings", () => {
 	test("contextual binding can provide different dependencies based on context", () => {
-		const token = key<Dep>();
+		const token = key<Dep>({ name: "Dep" });
 		container.bind(token, { factory: () => new Dep("token") });
 
 		class Class extends Dep {
@@ -796,11 +796,11 @@ describe("Container contextual bindings", () => {
 	});
 
 	test("contextual binding works on existing aliased instances", () => {
-		const instance = key<Dep>("instance");
+		const instance = key<Dep>({ name: "instance" });
 		container.bind(instance, {
 			instance: new Dep("instance"),
 		});
-		const alias = key<Dep>("alias");
+		const alias = key<Dep>({ name: "alias" });
 		container.alias({ from: alias, to: instance });
 
 		class A {
@@ -816,12 +816,12 @@ describe("Container contextual bindings", () => {
 	});
 
 	test("contextual binding can replace an instance with null", () => {
-		const instance = key<Dep | null>("instance");
+		const instance = key<Dep | null>({ name: "instance" });
 		container.bind(instance, {
 			instance: new Dep("instance"),
 			lifecycle: "singleton",
 		});
-		const alias = key<Dep | null>("alias");
+		const alias = key<Dep | null>({ name: "alias" });
 		container.alias({ from: alias, to: instance });
 
 		class A {
@@ -837,8 +837,8 @@ describe("Container contextual bindings", () => {
 	});
 
 	test("contextual binding works on new aliased instances", () => {
-		const instance = key<Dep>("instance");
-		const alias = key<Dep>("alias");
+		const instance = key<Dep>({ name: "instance" });
+		const alias = key<Dep>({ name: "alias" });
 
 		class A {
 			constructor(public dep = inject(alias)) {}
@@ -859,10 +859,10 @@ describe("Container contextual bindings", () => {
 	});
 
 	test("contextual binding does not pick up stale re-aliased references", () => {
-		const dummy = key<Dep>("dummy");
-		const alias = key<Dep>("alias");
-		const unrelated = key<Dep>("unrelated");
-		const instance = key<Dep>("instance");
+		const dummy = key<Dep>({ name: "dummy" });
+		const alias = key<Dep>({ name: "alias" });
+		const unrelated = key<Dep>({ name: "unrelated" });
+		const instance = key<Dep>({ name: "instance" });
 
 		class A {
 			constructor(public dep = inject(alias)) {}
@@ -893,7 +893,7 @@ describe("Container contextual bindings", () => {
 		class A {
 			constructor(public dep = inject(Dep)) {}
 		}
-		const stub = key<Dep>("stub");
+		const stub = key<Dep>({ name: "stub" });
 
 		container
 			.when(A)
@@ -912,7 +912,7 @@ describe("Container contextual bindings", () => {
 			constructor(public dep = inject(Dep)) {}
 		}
 
-		const stub = key<Dep>("stub");
+		const stub = key<Dep>({ name: "stub" });
 		container.bind(Dep, { factory: () => new Dep("incorrect") });
 		container.bind(stub, { factory: () => new Dep("incorrect") });
 		container.alias({ from: Dep, to: stub });
@@ -1023,7 +1023,7 @@ describe("Container contextual bindings", () => {
 
 	test("contextual binding works with aliased targets", () => {
 		container.bind(Dep, { factory: () => new Dep("bound") });
-		const alias = key<Dep>("alias");
+		const alias = key<Dep>({ name: "alias" });
 		container.alias({ from: alias, to: IDep });
 
 		class A {
@@ -1064,8 +1064,8 @@ describe("Container tagging", () => {
 	test("container tags", () => {
 		class A {}
 		class B {}
-		const foo = key("foo");
-		const bar = key("bar");
+		const foo = key({ name: "foo" });
+		const bar = key({ name: "bar" });
 
 		container.tag(A, [foo, bar]);
 		container.tag(B, [foo]);
@@ -1095,7 +1095,7 @@ describe("Container tagging", () => {
 		class A extends Dep {}
 		class B extends Dep {}
 
-		const foo = key("foo");
+		const foo = key({ name: "foo" });
 
 		container.tag(A, foo);
 		container.tag(B, foo);
@@ -1114,7 +1114,7 @@ describe("Container tagging", () => {
 		class A extends Dep {}
 		class B extends Dep {}
 
-		const foo = key("foo");
+		const foo = key({ name: "foo" });
 
 		container.tag(A, foo);
 		container.tag(B, foo);
@@ -1134,7 +1134,7 @@ describe("Container tagging", () => {
 		class A extends Dep {}
 		class B extends Dep {}
 
-		const foo = key("foo");
+		const foo = key({ name: "foo" });
 
 		container.tag(A, foo);
 		container.tag(B, foo);
@@ -1150,7 +1150,7 @@ describe("Container tagging", () => {
 
 describe("Container extend", () => {
 	test("extended bindings", () => {
-		const fooKey = key<string>("foo");
+		const fooKey = key<string>({ name: "foo" });
 		container.bind(fooKey, { instance: "foo", lifecycle: "singleton" });
 		container.extend(fooKey, (old) => {
 			return `${old} extended`;
@@ -1159,7 +1159,7 @@ describe("Container extend", () => {
 		expect(container.get(fooKey)).toBe("foo extended");
 
 		const container2 = new Container();
-		const objKey = key<{ name: string; age?: number }>("obj");
+		const objKey = key<{ name: string; age?: number }>({ name: "obj" });
 
 		container2.bind(objKey, {
 			factory: () => {
@@ -1180,7 +1180,7 @@ describe("Container extend", () => {
 	});
 
 	test("extended bindings work with contextual overrides", () => {
-		const fooKey = key<string>("foo");
+		const fooKey = key<string>({ name: "foo" });
 		container.bind(fooKey, { instance: "foo", lifecycle: "singleton" });
 		container.extend(fooKey, (old) => {
 			return `${old} extended`;
@@ -1206,7 +1206,7 @@ describe("Container extend", () => {
 	test("extend instances are preserved", () => {
 		type T = Record<string, string>;
 
-		const fooKey = key<T>("foo");
+		const fooKey = key<T>({ name: "foo" });
 		container.bind(fooKey, {
 			factory: () => {
 				const obj: T = {};
@@ -1253,7 +1253,7 @@ describe("Container extend", () => {
 	});
 
 	test("extend can be called before bind", () => {
-		const fooKey = key<string>("foo");
+		const fooKey = key<string>({ name: "foo" });
 		container.extend(fooKey, (old) => {
 			return `${old} bar`;
 		});
@@ -1265,7 +1265,7 @@ describe("Container extend", () => {
 	test("extend instance rebinding callback", () => {
 		let testRebind = false;
 
-		const fooKey = key<object>("foo");
+		const fooKey = key<object>({ name: "foo" });
 		container.onRebinding(fooKey, () => {
 			testRebind = true;
 		});
@@ -1306,7 +1306,7 @@ describe("Container extend", () => {
 	test("extend bind rebinding callback", () => {
 		let testRebind = false;
 
-		const fooKey = key<object>("foo");
+		const fooKey = key<object>({ name: "foo" });
 		container.onRebinding(fooKey, () => {
 			testRebind = true;
 		});
@@ -1381,7 +1381,7 @@ describe("Container extend", () => {
 	});
 
 	test("multiple extends", () => {
-		const fooKey = key<string>("foo");
+		const fooKey = key<string>({ name: "foo" });
 		container.bind(fooKey, { instance: "foo", lifecycle: "singleton" });
 		container.extend(fooKey, (old) => {
 			return `${old} bar`;
@@ -1414,7 +1414,7 @@ describe("Container extend", () => {
 		interface I {
 			value: string;
 		}
-		const I = key<I>("I");
+		const I = key<I>({ name: "I" });
 		class Impl implements I {
 			constructor(public value: string) {}
 		}
@@ -1776,7 +1776,7 @@ describe("Container resolving callbacks", () => {
 
 describe("Container withScope", () => {
 	test("scoped type token resolution throws outside scope", () => {
-		const token = key("token");
+		const token = key({ name: "token" });
 		container.bind(token, {
 			factory: () => {
 				return {};
@@ -2128,4 +2128,4 @@ class Dep implements IDep {
 interface IDep {
 	get name(): string;
 }
-const IDep = key<IDep>("IDep");
+const IDep = key<IDep>({ name: "IDep" });

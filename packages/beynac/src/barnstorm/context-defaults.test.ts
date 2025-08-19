@@ -4,18 +4,20 @@ import { ContextImpl } from "./context";
 import { MarkupStream } from "./markup-stream";
 
 describe("Context with default values", () => {
-
 	describe("context get with defaults", () => {
 		test("returns default when key not set", () => {
 			const ctx = new ContextImpl();
-			const keyWithDefault = key<string, string>("test", "defaultValue");
+			const keyWithDefault = key<string>({
+				name: "test",
+				default: "defaultValue",
+			});
 			const result = ctx.get(keyWithDefault);
 			expect(result).toBe("defaultValue");
 		});
 
 		test("returns set value over default", () => {
 			const ctx = new ContextImpl();
-			const keyWithDefault = key("test", "defaultValue");
+			const keyWithDefault = key({ name: "test", default: "defaultValue" });
 			ctx.set(keyWithDefault, "setValue");
 			const result = ctx.get(keyWithDefault);
 			expect(result).toBe("setValue");
@@ -23,7 +25,7 @@ describe("Context with default values", () => {
 
 		test("returns null for key without default", () => {
 			const ctx = new ContextImpl();
-			const keyWithoutDefault = key<string>("test");
+			const keyWithoutDefault = key<string>({ name: "test" });
 			// Context always returns null when no value exists and no default provided
 			const result = ctx.get(keyWithoutDefault);
 			expect(result).toBeNull();
@@ -32,34 +34,40 @@ describe("Context with default values", () => {
 		test("default values work with different types", () => {
 			const ctx = new ContextImpl();
 
-			const numberKey = key<number, number>("num", 42);
+			const numberKey = key<number>({ name: "num", default: 42 });
 			expect(ctx.get(numberKey)).toBe(42);
 
-			const boolKey = key<boolean, boolean>("bool", true);
+			const boolKey = key<boolean>({ name: "bool", default: true });
 			expect(ctx.get(boolKey)).toBe(true);
 
-			const objectKey = key<{ name: string }, { name: string }>("obj", {
-				name: "default",
+			const objectKey = key<{ name: string }>({
+				name: "obj",
+				default: {
+					name: "default",
+				},
 			});
 			expect(ctx.get(objectKey)).toEqual({ name: "default" });
 
-			const arrayKey = key<number[], number[]>("arr", [1, 2, 3]);
+			const arrayKey = key<number[]>({ name: "arr", default: [1, 2, 3] });
 			expect(ctx.get(arrayKey)).toEqual([1, 2, 3]);
 		});
 
 		test("default with null value", () => {
 			const ctx = new ContextImpl();
-			const keyWithNullDefault = key<string | null, null>("test", null);
+			const keyWithNullDefault = key<string | null>({
+				name: "test",
+				default: null,
+			});
 			const result = ctx.get(keyWithNullDefault);
 			expect(result).toBe(null);
 		});
 
 		test("undefined default returns null (same as no default)", () => {
 			const ctx = new ContextImpl();
-			const keyWithUndefinedDefault = key<string | undefined, undefined>(
-				"test",
-				undefined,
-			);
+			const keyWithUndefinedDefault = key<string | undefined>({
+				name: "test",
+				default: undefined,
+			});
 			// With current keys.ts, undefined default is same as no default - returns null
 			const result = ctx.get(keyWithUndefinedDefault);
 			expect(result).toBe(null);
@@ -68,8 +76,8 @@ describe("Context with default values", () => {
 
 	describe("context defaults in rendering", () => {
 		test("default values propagate through context tree", () => {
-			const themeKey = key<string, string>("theme", "light");
-			const fontSizeKey = key<number, number>("fontSize", 16);
+			const themeKey = key<string>({ name: "theme", default: "light" });
+			const fontSizeKey = key<number>({ name: "fontSize", default: 16 });
 
 			const stream = new MarkupStream("div", null, [
 				(ctx) => {
@@ -84,7 +92,7 @@ describe("Context with default values", () => {
 		});
 
 		test("overridden defaults in child context", () => {
-			const colorKey = key<string, string>("color", "blue");
+			const colorKey = key<string>({ name: "color", default: "blue" });
 
 			const stream = new MarkupStream("div", null, [
 				(ctx) => {
@@ -101,7 +109,7 @@ describe("Context with default values", () => {
 		});
 
 		test("sibling contexts get default values", () => {
-			const countKey = key<number, number>("count", 0);
+			const countKey = key<number>({ name: "count", default: 0 });
 
 			const stream = new MarkupStream("div", null, [
 				(ctx) => {
@@ -119,14 +127,14 @@ describe("Context with default values", () => {
 		test("compile-time type checking for defaults", () => {
 			const ctx = new ContextImpl();
 
-			// Key with default - should not include null in type
-			const keyWithDefault = key<string, string>("test", "default");
-			const result1: string = ctx.get(keyWithDefault); // Should compile without null check
+			// Key with default - Context still returns T | null
+			const keyWithDefault = key<string>({ name: "test", default: "default" });
+			const result1: string | null = ctx.get(keyWithDefault); // Context always includes null
 			expect(result1).toBe("default");
 
-			// Key without default - should include null in type
-			const keyWithoutDefault = key<string>("test2");
-			const result2: string | null = ctx.get(keyWithoutDefault); // Must include null
+			// Key without default - includes undefined and null
+			const keyWithoutDefault = key<string>({ name: "test2" });
+			const result2: string | undefined | null = ctx.get(keyWithoutDefault); // Includes undefined and null
 			expect(result2).toBeNull();
 
 			// This would be a compile error if uncommented:

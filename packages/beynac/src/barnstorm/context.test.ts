@@ -8,21 +8,21 @@ describe("Context", () => {
 	describe("basic operations", () => {
 		test("get returns null for non-existent key", () => {
 			const ctx = new ContextImpl();
-			const testKey = key<string>("test");
+			const testKey = key<string>({ name: "test" });
 			expect(ctx.get(testKey)).toBeNull();
 		});
 
 		test("set and get work correctly", () => {
 			const ctx = new ContextImpl();
-			const testKey = key<string>("test");
+			const testKey = key<string>({ name: "test" });
 			ctx.set(testKey, "value");
 			expect(ctx.get(testKey)).toBe("value");
 		});
 
 		test("get returns from clone after set is called", () => {
 			const ctx = new ContextImpl();
-			const key1 = key<string>("first");
-			const key2 = key<string>("second");
+			const key1 = key<string>({ name: "first" });
+			const key2 = key<string>({ name: "second" });
 
 			// Set initial value
 			ctx.set(key1, "initial");
@@ -42,7 +42,7 @@ describe("Context", () => {
 
 	describe("context in rendering", () => {
 		test("context propagates to children", () => {
-			const testKey = key<string>("test");
+			const testKey = key<string>({ name: "test" });
 			const stream = new MarkupStream("div", null, [
 				(ctx) => {
 					ctx.set(testKey, "parent");
@@ -55,7 +55,7 @@ describe("Context", () => {
 		});
 
 		test("context changes don't affect siblings", () => {
-			const testKey = key<string>("test");
+			const testKey = key<string>({ name: "test" });
 			const stream = new MarkupStream("div", null, [
 				(ctx) => {
 					ctx.set(testKey, "first");
@@ -67,7 +67,7 @@ describe("Context", () => {
 		});
 
 		test("nested context overrides", () => {
-			const testKey = key<string>("test");
+			const testKey = key<string>({ name: "test" });
 			const stream = new MarkupStream("div", null, [
 				(ctx) => {
 					ctx.set(testKey, "parent");
@@ -97,7 +97,7 @@ describe("Context", () => {
 		});
 
 		test("context propagates through arrays", () => {
-			const testKey = key<number>("count");
+			const testKey = key<number>({ name: "count" });
 			const stream = new MarkupStream("div", null, [
 				(ctx) => {
 					ctx.set(testKey, 1);
@@ -112,7 +112,7 @@ describe("Context", () => {
 		});
 
 		test("context propagates through nested MarkupStreams", () => {
-			const testKey = key<string>("theme");
+			const testKey = key<string>({ name: "theme" });
 			const stream = new MarkupStream("div", null, [
 				(ctx) => {
 					ctx.set(testKey, "dark");
@@ -129,7 +129,7 @@ describe("Context", () => {
 		});
 
 		test("context propagates through async functions", async () => {
-			const testKey = key<string>("async");
+			const testKey = key<string>({ name: "async" });
 			const stream = new MarkupStream("div", null, [
 				(ctx) => {
 					ctx.set(testKey, "async-value");
@@ -141,7 +141,7 @@ describe("Context", () => {
 		});
 
 		test("complex: function → promise → function → content", async () => {
-			const testKey = key<string>("complex");
+			const testKey = key<string>({ name: "complex" });
 			const complexContent = (ctx: Context) => {
 				ctx.set(testKey, "level1");
 				return Promise.resolve((ctx: Context) => {
@@ -161,7 +161,7 @@ describe("Context", () => {
 		});
 
 		test("even more complex: function → promise → function → promise → function", async () => {
-			const testKey = key<string>("chain");
+			const testKey = key<string>({ name: "chain" });
 			const veryComplex = (ctx: Context) => {
 				ctx.set(testKey, "level1");
 				return Promise.resolve((ctx: Context) => {
@@ -184,8 +184,8 @@ describe("Context", () => {
 		});
 
 		test("context isolation between parallel siblings", () => {
-			const key1 = key<string>("key1");
-			const key2 = key<string>("key2");
+			const key1 = key<string>({ name: "key1" });
+			const key2 = key<string>({ name: "key2" });
 
 			const stream = new MarkupStream("div", null, [
 				(ctx) => {
@@ -205,7 +205,7 @@ describe("Context", () => {
 		});
 
 		test("multiple functions with shared context propagation", () => {
-			const counterKey = key<number>("counter");
+			const counterKey = key<number>({ name: "counter" });
 
 			const incrementer = (ctx: Context) => {
 				const current = ctx.get(counterKey) || 0;
@@ -238,7 +238,7 @@ describe("Context", () => {
 		});
 
 		test("context with existing values", () => {
-			const testKey = key<string>("preset");
+			const testKey = key<string>({ name: "preset" });
 			const initialValues = new Map<Key, unknown>();
 			initialValues.set(testKey, "initial");
 
@@ -254,7 +254,7 @@ describe("Context", () => {
 
 		test("takeCloneAndReset resets clone for siblings", () => {
 			const ctx = new ContextImpl();
-			const testKey = key<string>("test");
+			const testKey = key<string>({ name: "test" });
 
 			// First use - creates clone
 			ctx.set(testKey, "value1");

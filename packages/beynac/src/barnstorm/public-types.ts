@@ -6,7 +6,7 @@ import type { MarkupStream } from "./markup-stream";
 import type { RawContent } from "./raw";
 
 export interface Context {
-	get<T, D = null>(key: Key<T, D>): T | D;
+	get<T>(key: Key<T>): T | null;
 	set<T>(key: Key<T>, value: T): void;
 }
 

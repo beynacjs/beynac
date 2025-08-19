@@ -4,16 +4,14 @@ const keyBrand: unique symbol = Symbol("keyBrand");
 /**
  * A token representing an arbitrary type with optional default value
  */
-export type Key<T = unknown, D = unknown> = {
-	readonly [keyDefault]: D | undefined;
+export type Key<T = unknown> = {
+	readonly [keyDefault]: unknown;
 	readonly [keyBrand]?: T;
 };
 
-export const isKey = (value: unknown): value is Key =>
-	value instanceof KeyImpl;
+export const isKey = (value: unknown): value is Key => value instanceof KeyImpl;
 
-export const getKeyDefault = <T, D>(key: Key<T, D>): D | undefined =>
-	key[keyDefault];
+export const getKeyDefault = <T>(key: Key<T>): unknown => key[keyDefault];
 
 /**
  * Create a token that allows typescript types that don't normally have a
@@ -25,27 +23,29 @@ export const getKeyDefault = <T, D>(key: Key<T, D>): D | undefined =>
  *     sail(): void;
  * }
  * // the convention is to use the same name for the type and the token
- * export const Ship = key<Ship>("Ship");
+ * export const Ship = key<Ship>({ name: "Ship" });
  *
  * // With default value
- * export const Port = key<number>("Port", 3000);
+ * export const Port = key({ name: "Port", default: 3000 });
  *
- * @param name a name for debugging purposes
- * @param defaultValue optional default value (defaults to null)
+ * @param options - Object with optional name and default value
  */
-export function key<T, D extends T = never>(
-	name = "anonymous",
-	defaultValue: D | undefined = undefined,
-): Key<T, D> {
-	return new KeyImpl<T, D>(name, defaultValue);
+export function key(options?: { name?: string }): Key<unknown>;
+export function key<T>(options?: { name?: string }): Key<T | undefined>;
+export function key<T>(options: { name?: string; default: T }): Key<T>;
+export function key<T = unknown>(
+	options: { name?: string; default?: T } = {},
+): Key<T> | Key<T | undefined> | Key<unknown> {
+	const { name = "anonymous", default: defaultValue } = options;
+	return new KeyImpl<T>(name, defaultValue);
 }
 
-class KeyImpl<T, D> implements Key<T, D> {
+class KeyImpl<T> implements Key<T> {
 	#name: string;
-	[keyDefault]: D | undefined;
+	[keyDefault]: unknown;
 	[keyBrand]?: T;
 
-	constructor(name: string, defaultValue?: D) {
+	constructor(name: string, defaultValue?: unknown) {
 		this.#name = name;
 		this[keyDefault] = defaultValue;
 	}

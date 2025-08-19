@@ -246,7 +246,7 @@ export class Container {
 		return this.#getActualBinding(key).type !== "implicit";
 	}
 
-	public get<T>(abstract: KeyOrClass<T>): T {
+	public get<T>(abstract: KeyOrClass<T>): Exclude<T, undefined> {
 		const binding = this.#getConcreteBinding(abstract);
 		const key = binding.key as KeyOrClass<T>;
 
@@ -284,12 +284,12 @@ export class Container {
 					if (scopeInstances.has(key)) {
 						const instance = scopeInstances.get(key) as T;
 						this.#fireResolvingCallbacks(key, instance);
-						return instance;
+						return instance as Exclude<T, undefined>;
 					}
 				} else if (binding?.instance !== undefined && !needsContextualBuild) {
 					const instance = binding.instance as T;
 					this.#fireResolvingCallbacks(key, instance);
-					return instance;
+					return instance as Exclude<T, undefined>;
 				}
 				factory = binding.factory;
 			}
@@ -304,7 +304,7 @@ export class Container {
 				if (isKey(key)) {
 					const defaultValue = getKeyDefault(key);
 					if (defaultValue !== undefined) {
-						return defaultValue as T;
+						return defaultValue as Exclude<T, undefined>;
 					}
 				}
 
@@ -336,7 +336,7 @@ export class Container {
 
 			this.#fireResolvingCallbacks(key, instance);
 
-			return instance;
+			return instance as Exclude<T, undefined>;
 		} finally {
 			this.#buildStack.delete(key);
 			_setInjectHandler(previousInjectHandler);
@@ -561,7 +561,7 @@ export class Container {
 	public extend<T, C extends Container>(
 		this: C,
 		key: KeyOrClass<T>,
-		callback: ExtenderCallback<T, C>,
+		callback: ExtenderCallback<Exclude<T, undefined>, C>,
 	): void {
 		const binding = this.#getConcreteBinding(key);
 		binding.extenders ??= [];
@@ -570,7 +570,10 @@ export class Container {
 		// If there's already a shared instance, apply the extender immediately
 		// const binding = this.#bindings.get(key);
 		if (binding.type === "concrete" && binding.instance !== undefined) {
-			binding.instance = callback(binding.instance as T, this);
+			binding.instance = callback(
+				binding.instance as Exclude<T, undefined>,
+				this,
+			);
 			this.#rebound(key);
 		} else if (this.resolved(key)) {
 			this.#rebound(key);

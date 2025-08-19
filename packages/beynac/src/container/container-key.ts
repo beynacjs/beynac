@@ -8,9 +8,7 @@ export type ClassReference<T = unknown> = abstract new () => T;
 /**
  * A key that can be bound to a value in the IoC container
  */
-export type KeyOrClass<T = unknown, D = unknown> =
-	| ClassReference<T>
-	| Key<T, D>;
+export type KeyOrClass<T = unknown> = ClassReference<T> | Key<T>;
 
 export const getKeyName = (key: KeyOrClass): string => {
 	if (typeof key === "function") {

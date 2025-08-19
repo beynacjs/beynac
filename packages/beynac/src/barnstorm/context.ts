@@ -9,7 +9,7 @@ export class ContextImpl implements Context {
 		this.values = values ?? new Map();
 	}
 
-	get<T, D = null>(key: Key<T, D>): T | D | null {
+	get<T>(key: Key<T>): T | null {
 		// If we have a clone, read from it
 		if (this.clone) {
 			return this.clone.get(key);
@@ -19,14 +19,14 @@ export class ContextImpl implements Context {
 			return value as T;
 		}
 		// Return the default value if provided, or null if no default
-		const defaultValue = getKeyDefault(key) ?? null;
+		const defaultValue = getKeyDefault(key);
 		if (defaultValue !== undefined) {
-			return defaultValue as D;
+			return defaultValue as T;
 		}
 		return null;
 	}
 
-	set<T, D>(key: Key<T, D>, value: T): void {
+	set<T>(key: Key<T>, value: T): void {
 		// Clone on first set if not already cloned
 		if (!this.clone) {
 			this.clone = new ContextImpl(new Map(this.values));

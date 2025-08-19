@@ -6,7 +6,10 @@ describe("Container with default values", () => {
 	describe("get with defaults", () => {
 		test("returns default when key not bound", () => {
 			const container = new Container();
-			const keyWithDefault = key<string, string>("test", "defaultValue");
+			const keyWithDefault = key<string>({
+				name: "test",
+				default: "defaultValue",
+			});
 
 			const result = container.get(keyWithDefault);
 			expect(result).toBe("defaultValue");
@@ -14,7 +17,10 @@ describe("Container with default values", () => {
 
 		test("returns bound value over default", () => {
 			const container = new Container();
-			const keyWithDefault = key<string, string>("test", "defaultValue");
+			const keyWithDefault = key<string>({
+				name: "test",
+				default: "defaultValue",
+			});
 
 			container.bind(keyWithDefault, { instance: "boundValue" });
 
@@ -24,7 +30,7 @@ describe("Container with default values", () => {
 
 		test("throws for key without explicit default and no binding", () => {
 			const container = new Container();
-			const keyWithoutDefault = key<string>("test");
+			const keyWithoutDefault = key<string>({ name: "test" });
 
 			// Keys without explicit default should throw
 			expect(() => container.get(keyWithoutDefault)).toThrow(
@@ -35,24 +41,30 @@ describe("Container with default values", () => {
 		test("default values work with different types", () => {
 			const container = new Container();
 
-			const numberKey = key<number, number>("num", 42);
+			const numberKey = key<number>({ name: "num", default: 42 });
 			expect(container.get(numberKey)).toBe(42);
 
-			const boolKey = key<boolean, boolean>("bool", true);
+			const boolKey = key<boolean>({ name: "bool", default: true });
 			expect(container.get(boolKey)).toBe(true);
 
-			const objectKey = key<{ name: string }, { name: string }>("obj", {
-				name: "default",
+			const objectKey = key<{ name: string }>({
+				name: "obj",
+				default: {
+					name: "default",
+				},
 			});
 			expect(container.get(objectKey)).toEqual({ name: "default" });
 
-			const arrayKey = key<number[], number[]>("arr", [1, 2, 3]);
+			const arrayKey = key<number[]>({ name: "arr", default: [1, 2, 3] });
 			expect(container.get(arrayKey)).toEqual([1, 2, 3]);
 		});
 
 		test("explicit null default does not throw", () => {
 			const container = new Container();
-			const keyWithNullDefault = key<string | null, null>("test", null);
+			const keyWithNullDefault = key<string | null>({
+				name: "test",
+				default: null,
+			});
 
 			// Explicit null default should return null, not throw
 			const result = container.get(keyWithNullDefault);
@@ -61,10 +73,10 @@ describe("Container with default values", () => {
 
 		test("explicit undefined default throws (same as no default)", () => {
 			const container = new Container();
-			const keyWithUndefinedDefault = key<string | undefined, undefined>(
-				"test",
-				undefined,
-			);
+			const keyWithUndefinedDefault = key<string | undefined>({
+				name: "test",
+				default: undefined,
+			});
 
 			// With current keys.ts, explicit undefined is same as no default - both throw
 			expect(() => container.get(keyWithUndefinedDefault)).toThrow(
@@ -76,7 +88,10 @@ describe("Container with default values", () => {
 	describe("binding checks with defaults", () => {
 		test("key with default is not considered bound", () => {
 			const container = new Container();
-			const keyWithDefault = key<string, string>("test", "defaultValue");
+			const keyWithDefault = key<string>({
+				name: "test",
+				default: "defaultValue",
+			});
 
 			expect(container.bound(keyWithDefault)).toBe(false);
 
@@ -96,7 +111,10 @@ describe("Container with default values", () => {
 			// Commenting out createScopedContainer as it may not exist
 			// const scopedContainer = container.createScopedContainer();
 
-			const keyWithDefault = key<string, string>("test", "defaultValue");
+			const keyWithDefault = key<string>({
+				name: "test",
+				default: "defaultValue",
+			});
 
 			// Test just the main container
 			expect(container.get(keyWithDefault)).toBe("defaultValue");
@@ -107,7 +125,10 @@ describe("Container with default values", () => {
 	describe("optional injection with defaults", () => {
 		test("optional inject returns default when available", () => {
 			const container = new Container();
-			const keyWithDefault = key<string, string>("optional", "defaultValue");
+			const keyWithDefault = key<string>({
+				name: "optional",
+				default: "defaultValue",
+			});
 
 			// Key with default returns the default value
 			const value = container.get(keyWithDefault);
