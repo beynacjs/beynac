@@ -4,6 +4,7 @@ import { ContextImpl } from "./context";
 import { MarkupStream } from "./markup-stream";
 import type { Context } from "./public-types";
 import { expectTypeOf } from "expect-type";
+import { asyncGate } from "../test-utils/async-gate";
 
 describe("Context", () => {
   describe("basic operations", () => {
@@ -229,6 +230,49 @@ describe("Context", () => {
       ]);
 
       expect(stream.render()).toBe("<div>1-011-10</div>");
+    });
+
+    test.skip("async siblings can not pollute each other's context when running concurrently", async () => {
+      // This test is intended to demonstrate that when two async components run
+      // concurrently, they don't interfere with each other's context. But
+      // because our renderer does not resolve promises in parallel, components
+      // can't (yet!) render concurrently, and this test hangs waiting for the
+      // second async component to run, which it won't until the first component
+      // completes. This test should be restored when/if we implement parallel
+      // rendering.
+      //
+      // There's an argument for not implementing parallel rendering - Laravel
+      // doesn't do it, and it would use more memory.
+
+      const gate = asyncGate(["sibling1_start", "sibling2_start", "read"]);
+      const sibling1 = gate.task("sibling1");
+      const sibling2 = gate.task("sibling2");
+
+      const token = key<string>();
+
+      const stream = new MarkupStream(null, null, [
+        [
+          async (ctx) => {
+            await sibling1("sibling1_start");
+            ctx.set(token, "value1");
+            await sibling1("read");
+            return `s1=${ctx.get(token)};`;
+          },
+          async (ctx) => {
+            await sibling2("sibling2_start");
+            ctx.set(token, "value2");
+            await sibling2("read");
+            return `s2=${ctx.get(token)};`;
+          },
+        ],
+      ]);
+      const renderPromise = stream.render();
+
+      await gate.run();
+
+      const result = await renderPromise;
+
+      expect(result).toMatchInlineSnapshot();
     });
   });
 
