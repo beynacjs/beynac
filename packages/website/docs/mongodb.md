@@ -6,13 +6,14 @@ laravelDocs: true
 
 - [Introduction](#introduction)
 - [Installation](#installation)
-    - [MongoDB Driver](#mongodb-driver)
-    - [Starting a MongoDB Server](#starting-a-mongodb-server)
-    - [Install the Laravel MongoDB Package](#install-the-laravel-mongodb-package)
+  - [MongoDB Driver](#mongodb-driver)
+  - [Starting a MongoDB Server](#starting-a-mongodb-server)
+  - [Install the Laravel MongoDB Package](#install-the-laravel-mongodb-package)
 - [Configuration](#configuration)
 - [Features](#features)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 [MongoDB](https://www.mongodb.com/resources/products/fundamentals/why-use-mongodb) is one of the most popular NoSQL document-oriented database, used for its high write load (useful for analytics or IoT) and high availability (easy to set replica sets with automatic failover). It can also shard the database easily for horizontal scalability and has a powerful query language for doing aggregation, text search or geospatial queries.
@@ -26,9 +27,11 @@ composer require mongodb/laravel-mongodb
 ```
 
 <a name="installation"></a>
+
 ## Installation
 
 <a name="mongodb-driver"></a>
+
 ### MongoDB Driver
 
 To connect to a MongoDB database, the `mongodb` PHP extension is required. If you are developing locally using [Laravel Herd](https://herd.laravel.com) or installed PHP via `php.new`, you already have this extension installed on your system. However, if you need to install the extension manually, you may do so via PECL:
@@ -40,6 +43,7 @@ pecl install mongodb
 For more information on installing the MongoDB PHP extension, check out the [MongoDB PHP extension installation instructions](https://www.php.net/manual/en/mongodb.installation.php).
 
 <a name="starting-a-mongodb-server"></a>
+
 ### Starting a MongoDB Server
 
 The MongoDB Community Server can be used to run MongoDB locally and is available for installation on Windows, macOS, Linux, or as a Docker container. To learn how to install MongoDB, please refer to the [official MongoDB Community installation guide](https://docs.mongodb.com/manual/administration/install-community/).
@@ -62,6 +66,7 @@ MONGODB_DATABASE="laravel_app"
 ```
 
 <a name="install-the-laravel-mongodb-package"></a>
+
 ### Install the Laravel MongoDB Package
 
 Finally, use Composer to install the Laravel MongoDB package:
@@ -74,6 +79,7 @@ composer require mongodb/laravel-mongodb
 > This installation of the package will fail if the `mongodb` PHP extension is not installed. The PHP configuration can differ between the CLI and the web server, so ensure the extension is enabled in both configurations.
 
 <a name="configuration"></a>
+
 ## Configuration
 
 You may configure your MongoDB connection via your application's `config/database.php` configuration file. Within this file, add a `mongodb` connection that utilizes the `mongodb` driver:
@@ -89,6 +95,7 @@ You may configure your MongoDB connection via your application's `config/databas
 ```
 
 <a name="features"></a>
+
 ## Features
 
 Once your configuration is complete, you can use the `mongodb` package and database connection in your application to leverage a variety of powerful features:

@@ -1,20 +1,27 @@
 {
-	"type": "module",
-	"private": true,
-	"workspaces": [
-		"packages/*"
-	],
-	"scripts": {
-		"check": "bun run check:test && bun run check:lint && bun run check:projects",
-		"check:test": "bun test packages/*/src",
-		"check:projects": "bun run --filter='*' check",
-		"check:lint": "biome check .",
-		"format": "biome check --write ."
-	},
-	"devDependencies": {
-		"@biomejs/biome": "^2.1.2",
-		"@types/bun": "1.2.19",
-		"bun-types": "1.2.19",
-		"typescript": "^5.8.3"
-	}
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "check": "bun run check:test && bun run check:lint && bun run check:projects",
+    "check:test": "bun test packages/*/src",
+    "check:projects": "bun run --filter='*' check",
+    "check:lint": "eslint .",
+    "format": "prettier --write . && eslint . --fix",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "@types/bun": "1.2.19",
+    "@types/eslint__js": "^8.42.3",
+    "bun-types": "1.2.19",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-eslint-comments": "^3.2.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.22.0"
+  }
 }

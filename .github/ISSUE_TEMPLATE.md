@@ -1,8 +1,10 @@
 ## Bug Description
+
 <!-- A clear and concise description of what the bug is -->
 
 ## Minimal Reproducible Example
-<!-- 
+
+<!--
 IMPORTANT: Please provide a minimal reproducible example that demonstrates the issue. This makes it much easier for us to understand and fix the problem.
 
 1. The best reproducible example is a PR with a failing test. If you have the skills to create one, consider not filing an issue and filing a PR instead. There is a much better chance that your issue will be fixed quickly.
@@ -15,15 +17,19 @@ IMPORTANT: Please provide a minimal reproducible example that demonstrates the i
 Link or code sample to reproduce issue
 
 ## Expected Behavior
+
 <!-- A clear and concise description of what you expected to happen -->
 
 ## Actual Behavior
+
 <!-- A clear and concise description of what actually happened -->
 
 ## Environment
+
 - Beynac version:
 - Node/Bun version:
 - Operating System:
 
 ## Additional Context
+
 <!-- Add any other context about the problem here -->

@@ -7,6 +7,7 @@ laravelDocs: true
 - [Upgrading To 12.0 From 11.x](#upgrade-12.0)
 
 <a name="high-impact-changes"></a>
+
 ## High Impact Changes
 
 <div class="content-list" markdown="1">
@@ -17,6 +18,7 @@ laravelDocs: true
 </div>
 
 <a name="medium-impact-changes"></a>
+
 ## Medium Impact Changes
 
 <div class="content-list" markdown="1">
@@ -26,6 +28,7 @@ laravelDocs: true
 </div>
 
 <a name="low-impact-changes"></a>
+
 ## Low Impact Changes
 
 <div class="content-list" markdown="1">
@@ -41,6 +44,7 @@ laravelDocs: true
 </div>
 
 <a name="upgrade-12.0"></a>
+
 ## Upgrading To 12.0 From 11.x
 
 #### Estimated Upgrade Time: 5 Minutes
@@ -49,6 +53,7 @@ laravelDocs: true
 > We attempt to document every possible breaking change. Since some of these breaking changes are in obscure parts of the framework only a portion of these changes may actually affect your application. Want to save time? You can use [Laravel Shift](https://laravelshift.com/) to help automate your application upgrades.
 
 <a name="updating-dependencies"></a>
+
 ### Updating Dependencies
 
 **Likelihood Of Impact: High**
@@ -64,6 +69,7 @@ You should update the following dependencies in your application's `composer.jso
 </div>
 
 <a name="carbon-3"></a>
+
 #### Carbon 3
 
 **Likelihood Of Impact: Low**
@@ -71,6 +77,7 @@ You should update the following dependencies in your application's `composer.jso
 Support for [Carbon 2.x](https://carbon.nesbot.com/docs/) has been removed. All Laravel 12 applications now require [Carbon 3.x](https://carbon.nesbot.com/docs/#api-carbon-3).
 
 <a name="updating-the-laravel-installer"></a>
+
 ### Updating the Laravel Installer
 
 If you are using the Laravel installer CLI tool to create new Laravel applications, you should update your installer installation to be compatible with Laravel 12.x and the [new Laravel starter kits](https://laravel.com/starter-kits). If you installed the Laravel installer via `composer global require`, you may update the installer using `composer global update`:
@@ -97,9 +104,11 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManage
 Or, if you are using [Laravel Herd's](https://herd.laravel.com) bundled copy of the Laravel installer, you should update your Herd installation to the latest release.
 
 <a name="authentication"></a>
+
 ### Authentication
 
 <a name="updated-databasetokenrepository-constructor-signature"></a>
+
 #### Updated `DatabaseTokenRepository` Constructor Signature
 
 **Likelihood Of Impact: Very Low**
@@ -107,9 +116,11 @@ Or, if you are using [Laravel Herd's](https://herd.laravel.com) bundled copy of 
 The constructor of the `Illuminate\Auth\Passwords\DatabaseTokenRepository` class now expects the `$expires` parameter to be given in seconds, rather than minutes.
 
 <a name="concurrency"></a>
+
 ### Concurrency
 
 <a name="concurrency-result-index-mapping"></a>
+
 #### Concurrency Result Index Mapping
 
 **Likelihood Of Impact: Low**
@@ -126,9 +137,11 @@ $result = Concurrency::run([
 ```
 
 <a name="container"></a>
+
 ### Container
 
 <a name="container-class-dependency-resolution"></a>
+
 #### Container Class Dependency Resolution
 
 **Likelihood Of Impact: Low**
@@ -151,9 +164,11 @@ $example->date === null;
 ```
 
 <a name="database"></a>
+
 ### Database
 
 <a name="multi-schema-database-inspecting"></a>
+
 #### Multi-Schema Database Inspecting
 
 **Likelihood Of Impact: Low**
@@ -187,6 +202,7 @@ $tables = Schema::getTableListing(schema: 'main', schemaQualified: false);
 The `db:table` and `db:show` commands now output the results of all schemas on MySQL, MariaDB, and SQLite, just like PostgreSQL and SQL Server.
 
 <a name="updated-blueprint-constructor-signature"></a>
+
 #### Updated `Blueprint` Constructor Signature
 
 **Likelihood Of Impact: Very Low**
@@ -194,9 +210,11 @@ The `db:table` and `db:show` commands now output the results of all schemas on M
 The constructor of the `Illuminate\Database\Schema\Blueprint` class now expects an instance of `Illuminate\Database\Connection` as its first argument.
 
 <a name="eloquent"></a>
+
 ### Eloquent
 
 <a name="models-and-uuidv7"></a>
+
 #### Models and UUIDv7
 
 **Likelihood Of Impact: Medium**
@@ -211,9 +229,11 @@ use Illuminate\Database\Eloquent\Concerns\HasVersion4Uuids as HasUuids; // [tl! 
 The `HasVersion7Uuids` trait has been removed. If you were previously using this trait, you should use the `HasUuids` trait instead, which now provides the same behavior.
 
 <a name="requests"></a>
+
 ### Requests
 
 <a name="nested-array-request-merging"></a>
+
 #### Nested Array Request Merging
 
 **Likelihood Of Impact: Low**
@@ -227,9 +247,11 @@ $request->mergeIfMissing([
 ```
 
 <a name="storage"></a>
+
 ### Storage
 
 <a name="local-filesystem-disk-default-root-path"></a>
+
 #### Local Filesystem Disk Default Root Path
 
 **Likelihood Of Impact: Low**
@@ -237,9 +259,11 @@ $request->mergeIfMissing([
 If your application does not explicitly define a `local` disk in your filesystems configuration, Laravel will now default the local disk's root to `storage/app/private`. In previous releases, this defaulted to `storage/app`. As a result, calls to `Storage::disk('local')` will read from and write to `storage/app/private` unless otherwise configured. To restore the previous behavior, you may define the `local` disk manually and set the desired root path.
 
 <a name="validation"></a>
+
 ### Validation
 
 <a name="image-validation"></a>
+
 #### Image Validation Now Excludes SVGs
 
 **Likelihood Of Impact: Low**
@@ -256,6 +280,7 @@ use Illuminate\Validation\Rules\File;
 ```
 
 <a name="miscellaneous"></a>
+
 ### Miscellaneous
 
 We also encourage you to view the changes in the `laravel/laravel` [GitHub repository](https://github.com/laravel/laravel). While many of these changes are not required, you may wish to keep these files in sync with your application. Some of these changes will be covered in this upgrade guide, but others, such as changes to configuration files or comments, will not be. You can easily view the changes with the [GitHub comparison tool](https://github.com/laravel/laravel/compare/11.x...12.x) and choose which updates are important to you.

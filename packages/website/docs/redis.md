@@ -6,15 +6,16 @@ laravelDocs: true
 
 - [Introduction](#introduction)
 - [Configuration](#configuration)
-    - [Clusters](#clusters)
-    - [Predis](#predis)
-    - [PhpRedis](#phpredis)
+  - [Clusters](#clusters)
+  - [Predis](#predis)
+  - [PhpRedis](#phpredis)
 - [Interacting With Redis](#interacting-with-redis)
-    - [Transactions](#transactions)
-    - [Pipelining Commands](#pipelining-commands)
+  - [Transactions](#transactions)
+  - [Pipelining Commands](#pipelining-commands)
 - [Pub / Sub](#pubsub)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 [Redis](https://redis.io) is an open source, advanced key-value store. It is often referred to as a data structure server since keys can contain [strings](https://redis.io/docs/data-types/strings/), [hashes](https://redis.io/docs/data-types/hashes/), [lists](https://redis.io/docs/data-types/lists/), [sets](https://redis.io/docs/data-types/sets/), and [sorted sets](https://redis.io/docs/data-types/sorted-sets/).
@@ -28,6 +29,7 @@ composer require predis/predis
 ```
 
 <a name="configuration"></a>
+
 ## Configuration
 
 You may configure your application's Redis settings via the `config/database.php` configuration file. Within this file, you will see a `redis` array containing the Redis servers utilized by your application:
@@ -87,6 +89,7 @@ Each Redis server defined in your configuration file is required to have a name,
 ```
 
 <a name="configuring-the-connection-scheme"></a>
+
 #### Configuring the Connection Scheme
 
 By default, Redis clients will use the `tcp` scheme when connecting to your Redis servers; however, you may use TLS / SSL encryption by specifying a `scheme` configuration option in your Redis server's configuration array:
@@ -104,6 +107,7 @@ By default, Redis clients will use the `tcp` scheme when connecting to your Redi
 ```
 
 <a name="clusters"></a>
+
 ### Clusters
 
 If your application is utilizing a cluster of Redis servers, you should define these clusters within a `clusters` key of your Redis configuration. This configuration key does not exist by default so you will need to create it within your application's `config/database.php` configuration file:
@@ -155,6 +159,7 @@ If you would like to use client-side sharding instead of native Redis clustering
 ```
 
 <a name="predis"></a>
+
 ### Predis
 
 If you would like your application to interact with Redis via the Predis package, you should ensure the `REDIS_CLIENT` environment variable's value is `predis`:
@@ -183,6 +188,7 @@ In addition to the default configuration options, Predis supports additional [co
 ```
 
 <a name="phpredis"></a>
+
 ### PhpRedis
 
 By default, Laravel will use the PhpRedis extension to communicate with Redis. The client that Laravel will use to communicate with Redis is dictated by the value of the `redis.client` configuration option, which typically reflects the value of the `REDIS_CLIENT` environment variable:
@@ -215,6 +221,7 @@ In addition to the default configuration options, PhpRedis supports the followin
 ```
 
 <a name="unix-socket-connections"></a>
+
 #### Unix Socket Connections
 
 Redis connections can also be configured to use Unix sockets instead of TCP. This can offer improved performance by eliminating TCP overhead for connections to Redis instances on the same server as your application. To configure Redis to use a Unix socket, set your `REDIS_HOST` environment variable to the path of the Redis socket and the `REDIS_PORT` environment variable to `0`:
@@ -225,6 +232,7 @@ REDIS_PORT=0
 ```
 
 <a name="phpredis-serialization"></a>
+
 #### PhpRedis Serialization and Compression
 
 The PhpRedis extension may also be configured to use a variety of serializers and compression algorithms. These algorithms can be configured via the `options` array of your Redis configuration:
@@ -250,6 +258,7 @@ Currently supported serializers include: `Redis::SERIALIZER_NONE` (default), `Re
 Supported compression algorithms include: `Redis::COMPRESSION_NONE` (default), `Redis::COMPRESSION_LZF`, `Redis::COMPRESSION_ZSTD`, and `Redis::COMPRESSION_LZ4`.
 
 <a name="interacting-with-redis"></a>
+
 ## Interacting With Redis
 
 You may interact with Redis by calling various methods on the `Redis` [facade](./facades). The `Redis` facade supports dynamic methods, meaning you may call any [Redis command](https://redis.io/commands) on the facade and the command will be passed directly to Redis. In this example, we will call the Redis `GET` command by calling the `get` method on the `Redis` facade:
@@ -293,6 +302,7 @@ $values = Redis::command('lrange', ['name', 5, 10]);
 ```
 
 <a name="using-multiple-redis-connections"></a>
+
 #### Using Multiple Redis Connections
 
 Your application's `config/database.php` configuration file allows you to define multiple Redis connections / servers. You may obtain a connection to a specific Redis connection using the `Redis` facade's `connection` method:
@@ -308,6 +318,7 @@ $redis = Redis::connection();
 ```
 
 <a name="transactions"></a>
+
 ### Transactions
 
 The `Redis` facade's `transaction` method provides a convenient wrapper around Redis' native `MULTI` and `EXEC` commands. The `transaction` method accepts a closure as its only argument. This closure will receive a Redis connection instance and may issue any commands it would like to this instance. All of the Redis commands issued within the closure will be executed in a single, atomic transaction:
@@ -349,6 +360,7 @@ LUA, 2, 'first-counter', 'second-counter');
 > Please consult the [Redis documentation](https://redis.io/commands/eval) for more information on Redis scripting.
 
 <a name="pipelining-commands"></a>
+
 ### Pipelining Commands
 
 Sometimes you may need to execute dozens of Redis commands. Instead of making a network trip to your Redis server for each command, you may use the `pipeline` method. The `pipeline` method accepts one argument: a closure that receives a Redis instance. You may issue all of your commands to this Redis instance and they will all be sent to the Redis server at the same time to reduce network trips to the server. The commands will still be executed in the order they were issued:
@@ -365,6 +377,7 @@ Facades\Redis::pipeline(function (Redis $pipe) {
 ```
 
 <a name="pubsub"></a>
+
 ## Pub / Sub
 
 Laravel provides a convenient interface to the Redis `publish` and `subscribe` commands. These Redis commands allow you to listen for messages on a given "channel". You may publish messages to the channel from another application, or even using another programming language, allowing easy communication between applications and processes.
@@ -422,6 +435,7 @@ Route::get('/publish', function () {
 ```
 
 <a name="wildcard-subscriptions"></a>
+
 #### Wildcard Subscriptions
 
 Using the `psubscribe` method, you may subscribe to a wildcard channel, which may be useful for catching all messages on all channels. The channel name will be passed as the second argument to the provided closure:

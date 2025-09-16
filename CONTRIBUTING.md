@@ -11,6 +11,7 @@ Currently, all development is happening in the `spike` branch. It's too early to
 If you'd like to contribute, please get in touch and we will arrange working around each other. We're excited to collaborate with anyone interested in the project!
 
 Feel free to:
+
 - Open issues for bugs or feature suggestions
 - Discuss ideas in the issues section
 - Reach out about contributing code

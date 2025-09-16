@@ -6,23 +6,26 @@ laravelDocs: true
 
 - [Introduction](#introduction)
 - [The Basics](#the-basics)
-    - [Generating URLs](#generating-urls)
-    - [Accessing the Current URL](#accessing-the-current-url)
+  - [Generating URLs](#generating-urls)
+  - [Accessing the Current URL](#accessing-the-current-url)
 - [URLs for Named Routes](#urls-for-named-routes)
-    - [Signed URLs](#signed-urls)
+  - [Signed URLs](#signed-urls)
 - [URLs for Controller Actions](#urls-for-controller-actions)
 - [Fluent URI Objects](#fluent-uri-objects)
 - [Default Values](#default-values)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 Laravel provides several helpers to assist you in generating URLs for your application. These helpers are primarily helpful when building links in your templates and API responses, or when generating redirect responses to another part of your application.
 
 <a name="the-basics"></a>
+
 ## The Basics
 
 <a name="generating-urls"></a>
+
 ### Generating URLs
 
 The `url` helper may be used to generate arbitrary URLs for your application. The generated URL will automatically use the scheme (HTTP or HTTPS) and host from the current request being handled by the application:
@@ -68,6 +71,7 @@ echo urldecode($url);
 ```
 
 <a name="accessing-the-current-url"></a>
+
 ### Accessing the Current URL
 
 If no path is provided to the `url` helper, an `Illuminate\Routing\UrlGenerator` instance is returned, allowing you to access information about the current URL:
@@ -95,6 +99,7 @@ echo URL::current();
 ```
 
 <a name="urls-for-named-routes"></a>
+
 ## URLs for Named Routes
 
 The `route` helper may be used to generate URLs to [named routes](./routing#named-routes). Named routes allow you to generate URLs without being coupled to the actual URL defined on the route. Therefore, if the route's URL changes, no changes need to be made to your calls to the `route` function. For example, imagine your application contains a route defined like the following:
@@ -134,6 +139,7 @@ echo route('post.show', ['post' => 1, 'search' => 'rocket']);
 ```
 
 <a name="eloquent-models"></a>
+
 #### Eloquent Models
 
 You will often be generating URLs using the route key (typically the primary key) of [Eloquent models](./eloquent). For this reason, you may pass Eloquent models as parameter values. The `route` helper will automatically extract the model's route key:
@@ -143,6 +149,7 @@ echo route('post.show', ['post' => $post]);
 ```
 
 <a name="signed-urls"></a>
+
 ### Signed URLs
 
 Laravel allows you to easily create "signed" URLs to named routes. These URLs have a "signature" hash appended to the query string which allows Laravel to verify that the URL has not been modified since it was created. Signed URLs are especially useful for routes that are publicly accessible yet need a layer of protection against URL manipulation.
@@ -172,6 +179,7 @@ return URL::temporarySignedRoute(
 ```
 
 <a name="validating-signed-route-requests"></a>
+
 #### Validating Signed Route Requests
 
 To verify that an incoming request has a valid signature, you should call the `hasValidSignature` method on the incoming `Illuminate\Http\Request` instance:
@@ -213,6 +221,7 @@ Route::post('/unsubscribe/{user}', function (Request $request) {
 ```
 
 <a name="responding-to-invalid-signed-routes"></a>
+
 #### Responding to Invalid Signed Routes
 
 When someone visits a signed URL that has expired, they will receive a generic error page for the `403` HTTP status code. However, you can customize this behavior by defining a custom "render" closure for the `InvalidSignatureException` exception in your application's `bootstrap/app.php` file:
@@ -228,6 +237,7 @@ use Illuminate\Routing\Exceptions\InvalidSignatureException;
 ```
 
 <a name="urls-for-controller-actions"></a>
+
 ## URLs for Controller Actions
 
 The `action` function generates a URL for the given controller action:
@@ -245,6 +255,7 @@ $url = action([UserController::class, 'profile'], ['id' => 1]);
 ```
 
 <a name="fluent-uri-objects"></a>
+
 ## Fluent URI Objects
 
 Laravel's `Uri` class provides a convenient and fluent interface for creating and manipulating URIs via objects. This class wraps the functionality provided by the underlying League URI package and integrates seamlessly with Laravel's routing system.
@@ -286,6 +297,7 @@ $uri = Uri::of('https://example.com')
 For more information on working with fluent URI objects, consult the [URI documentation](./helpers#uri).
 
 <a name="default-values"></a>
+
 ## Default Values
 
 For some applications, you may wish to specify request-wide default values for certain URL parameters. For example, imagine many of your routes define a `{locale}` parameter:
@@ -327,6 +339,7 @@ class SetDefaultLocaleForUrls
 Once the default value for the `locale` parameter has been set, you are no longer required to pass its value when generating URLs via the `route` helper.
 
 <a name="url-defaults-middleware-priority"></a>
+
 #### URL Defaults and Middleware Priority
 
 Setting URL default values can interfere with Laravel's handling of implicit model bindings. Therefore, you should [prioritize your middleware](./middleware#sorting-middleware) that set URL defaults to be executed before Laravel's own `SubstituteBindings` middleware. You can accomplish this using the `priority` middleware method in your application's `bootstrap/app.php` file:

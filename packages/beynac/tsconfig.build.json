@@ -1,23 +1,23 @@
 {
-	"extends": "./tsconfig.json",
-	"compilerOptions": {
-		"stripInternal": true,
-		"declarationMap": true
-	},
-	"exclude": [
-		"node_modules",
-		"dist",
-		"src/**/*.test.ts",
-		"src/**/*.test.tsx",
-		"src/**/*.test.js",
-		"src/**/*.test.jsx",
-		"src/**/*.spec.ts",
-		"src/**/*.spec.tsx",
-		"src/**/*.spec.js",
-		"src/**/*.spec.jsx",
-		"**/*.test.ts",
-		"**/*.test.tsx",
-		"**/*.spec.ts",
-		"**/*.spec.tsx"
-	]
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "stripInternal": true,
+    "declarationMap": true
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.test.js",
+    "src/**/*.test.jsx",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx",
+    "src/**/*.spec.js",
+    "src/**/*.spec.jsx",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
+  ]
 }

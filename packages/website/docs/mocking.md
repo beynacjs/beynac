@@ -7,10 +7,11 @@ laravelDocs: true
 - [Introduction](#introduction)
 - [Mocking Objects](#mocking-objects)
 - [Mocking Facades](#mocking-facades)
-    - [Facade Spies](#facade-spies)
+  - [Facade Spies](#facade-spies)
 - [Interacting With Time](#interacting-with-time)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 When testing Laravel applications, you may wish to "mock" certain aspects of your application so they are not actually executed during a given test. For example, when testing a controller that dispatches an event, you may wish to mock the event listeners so they are not actually executed during the test. This allows you to only test the controller's HTTP response without worrying about the execution of the event listeners since the event listeners can be tested in their own test case.
@@ -18,6 +19,7 @@ When testing Laravel applications, you may wish to "mock" certain aspects of you
 Laravel provides helpful methods for mocking events, jobs, and other facades out of the box. These helpers primarily provide a convenience layer over Mockery so you do not have to manually make complicated Mockery method calls.
 
 <a name="mocking-objects"></a>
+
 ## Mocking Objects
 
 When mocking an object that is going to be injected into your application via Laravel's [service container](./container), you will need to bind your mocked instance into the container as an `instance` binding. This will instruct the container to use your mocked instance of the object instead of constructing the object itself:
@@ -88,6 +90,7 @@ $spy->shouldHaveReceived('process');
 ```
 
 <a name="mocking-facades"></a>
+
 ## Mocking Facades
 
 Unlike traditional static method calls, [facades](./facades) (including [real-time facades](./facades#real-time-facades)) may be mocked. This provides a great advantage over traditional static methods and grants you the same testability that you would have if you were using traditional dependency injection. When testing, you may often want to mock a call to a Laravel facade that occurs in one of your controllers. For example, consider the following controller action:
@@ -160,6 +163,7 @@ class UserControllerTest extends TestCase
 > You should not mock the `Request` facade. Instead, pass the input you desire into the [HTTP testing methods](./http-tests) such as `get` and `post` when running your test. Likewise, instead of mocking the `Config` facade, call the `Config::set` method in your tests.
 
 <a name="facade-spies"></a>
+
 ### Facade Spies
 
 If you would like to [spy](http://docs.mockery.io/en/latest/reference/spies.html) on a facade, you may call the `spy` method on the corresponding facade. Spies are similar to mocks; however, spies record any interaction between the spy and the code being tested, allowing you to make assertions after the code is executed:
@@ -196,6 +200,7 @@ public function test_values_are_stored_in_cache(): void
 ```
 
 <a name="interacting-with-time"></a>
+
 ## Interacting With Time
 
 When testing, you may occasionally need to modify the time returned by helpers such as `now` or `Illuminate\Support\Carbon::now()`. Thankfully, Laravel's base feature test class includes helpers that allow you to manipulate the current time:

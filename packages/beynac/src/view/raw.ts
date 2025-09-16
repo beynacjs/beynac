@@ -1,19 +1,19 @@
 export class RawContent {
-	#content: string;
+  #content: string;
 
-	constructor(content: string) {
-		this.#content = content;
-	}
+  constructor(content: string) {
+    this.#content = content;
+  }
 
-	toString(): string {
-		return this.#content;
-	}
+  toString(): string {
+    return this.#content;
+  }
 
-	[Symbol.toPrimitive](): string {
-		return this.#content;
-	}
+  [Symbol.toPrimitive](): string {
+    return this.#content;
+  }
 }
 
 export function raw(content: string): RawContent {
-	return new RawContent(content);
+  return new RawContent(content);
 }

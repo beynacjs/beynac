@@ -7,19 +7,20 @@ laravelDocs: true
 - [Introduction](#introduction)
 - [Creating an Application Using a Starter Kit](#creating-an-application)
 - [Available Starter Kits](#available-starter-kits)
-    - [React](#react)
-    - [Vue](#vue)
-    - [Livewire](#livewire)
+  - [React](#react)
+  - [Vue](#vue)
+  - [Livewire](#livewire)
 - [Starter Kit Customization](#starter-kit-customization)
-    - [React](#react-customization)
-    - [Vue](#vue-customization)
-    - [Livewire](#livewire-customization)
+  - [React](#react-customization)
+  - [Vue](#vue-customization)
+  - [Livewire](#livewire-customization)
 - [WorkOS AuthKit Authentication](#workos)
 - [Inertia SSR](#inertia-ssr)
 - [Community Maintained Starter Kits](#community-maintained-starter-kits)
 - [Frequently Asked Questions](#faqs)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 To give you a head start building your new Laravel application, we are happy to offer [application starter kits](https://laravel.com/starter-kits). These starter kits give you a head start on building your next Laravel application, and include the routes, controllers, and views you need to register and authenticate your application's users.
@@ -27,6 +28,7 @@ To give you a head start building your new Laravel application, we are happy to 
 While you are welcome to use these starter kits, they are not required. You are free to build your own application from the ground up by simply installing a fresh copy of Laravel. Either way, we know you will build something great!
 
 <a name="creating-an-application"></a>
+
 ## Creating an Application Using a Starter Kit
 
 To create a new Laravel application using one of our starter kits, you should first [install PHP and the Laravel CLI tool](./installation#installing-php). If you already have PHP and Composer installed, you may install the Laravel installer CLI tool via Composer:
@@ -52,9 +54,11 @@ composer run dev
 Once you have started the Laravel development server, your application will be accessible in your web browser at [http://localhost:8000](http://localhost:8000).
 
 <a name="available-starter-kits"></a>
+
 ## Available Starter Kits
 
 <a name="react"></a>
+
 ### React
 
 Our React starter kit provides a robust, modern starting point for building Laravel applications with a React frontend using [Inertia](https://inertiajs.com).
@@ -64,6 +68,7 @@ Inertia allows you to build modern, single-page React applications using classic
 The React starter kit utilizes React 19, TypeScript, Tailwind, and the [shadcn/ui](https://ui.shadcn.com) component library.
 
 <a name="vue"></a>
+
 ### Vue
 
 Our Vue starter kit provides a great starting point for building Laravel applications with a Vue frontend using [Inertia](https://inertiajs.com).
@@ -73,6 +78,7 @@ Inertia allows you to build modern, single-page Vue applications using classic s
 The Vue starter kit utilizes the Vue Composition API, TypeScript, Tailwind, and the [shadcn-vue](https://www.shadcn-vue.com/) component library.
 
 <a name="livewire"></a>
+
 ### Livewire
 
 Our Livewire starter kit provides the perfect starting point for building Laravel applications with a [Laravel Livewire](https://livewire.laravel.com) frontend.
@@ -82,9 +88,11 @@ Livewire is a powerful way of building dynamic, reactive, frontend UIs using jus
 The Livewire starter kit utilizes Livewire, Tailwind, and the [Flux UI](https://fluxui.dev) component library.
 
 <a name="starter-kit-customization"></a>
+
 ## Starter Kit Customization
 
 <a name="react-customization"></a>
+
 ### React
 
 Our React starter kit is built with Inertia 2, React 19, Tailwind 4, and [shadcn/ui](https://ui.shadcn.com). As with all of our starter kits, all of the backend and frontend code exists within your application to allow for full customization.
@@ -110,8 +118,9 @@ npx shadcn@latest add switch
 In this example, the command will publish the Switch component to `resources/js/components/ui/switch.tsx`. Once the component has been published, you can use it in any of your pages:
 
 <!-- source: manual -->
+
 ```jsx
-import { Switch } from "@/components/ui/switch"
+import { Switch } from "@/components/ui/switch";
 
 const MyPage = () => {
   return (
@@ -125,17 +134,20 @@ export default MyPage;
 ```
 
 <a name="react-available-layouts"></a>
+
 #### Available Layouts
 
 The React starter kit includes two different primary layouts for you to choose from: a "sidebar" layout and a "header" layout. The sidebar layout is the default, but you can switch to the header layout by modifying the layout that is imported at the top of your application's `resources/js/layouts/app-layout.tsx` file:
 
 <!-- source: manual -->
+
 ```js
-import AppLayoutTemplate from '@/layouts/app/app-sidebar-layout'; // [tl! remove]
-import AppLayoutTemplate from '@/layouts/app/app-header-layout'; // [tl! add]
+import AppLayoutTemplate from "@/layouts/app/app-sidebar-layout"; // [tl! remove]
+import AppLayoutTemplate from "@/layouts/app/app-header-layout"; // [tl! add]
 ```
 
 <a name="react-sidebar-variants"></a>
+
 #### Sidebar Variants
 
 The sidebar layout includes three different variants: the default sidebar variant, the "inset" variant, and the "floating" variant. You may choose the variant you like best by modifying the `resources/js/components/app-sidebar.tsx` component:
@@ -146,6 +158,7 @@ The sidebar layout includes three different variants: the default sidebar varian
 ```
 
 <a name="react-authentication-page-layout-variants"></a>
+
 #### Authentication Page Layout Variants
 
 The authentication pages included with the React starter kit, such as the login page and registration page, also offer three different layout variants: "simple", "card", and "split".
@@ -153,12 +166,14 @@ The authentication pages included with the React starter kit, such as the login 
 To change your authentication layout, modify the layout that is imported at the top of your application's `resources/js/layouts/auth-layout.tsx` file:
 
 <!-- source: manual -->
+
 ```js
-import AuthLayoutTemplate from '@/layouts/auth/auth-simple-layout'; // [tl! remove]
-import AuthLayoutTemplate from '@/layouts/auth/auth-split-layout'; // [tl! add]
+import AuthLayoutTemplate from "@/layouts/auth/auth-simple-layout"; // [tl! remove]
+import AuthLayoutTemplate from "@/layouts/auth/auth-split-layout"; // [tl! add]
 ```
 
 <a name="vue-customization"></a>
+
 ### Vue
 
 Our Vue starter kit is built with Inertia 2, Vue 3 Composition API, Tailwind, and [shadcn-vue](https://www.shadcn-vue.com/). As with all of our starter kits, all of the backend and frontend code exists within your application to allow for full customization.
@@ -185,28 +200,31 @@ In this example, the command will publish the Switch component to `resources/js/
 
 ```vue
 <script setup lang="ts">
-import { Switch } from '@/Components/ui/switch'
+import { Switch } from "@/Components/ui/switch";
 </script>
 
 <template>
-    <div>
-        <Switch />
-    </div>
+  <div>
+    <Switch />
+  </div>
 </template>
 ```
 
 <a name="vue-available-layouts"></a>
+
 #### Available Layouts
 
 The Vue starter kit includes two different primary layouts for you to choose from: a "sidebar" layout and a "header" layout. The sidebar layout is the default, but you can switch to the header layout by modifying the layout that is imported at the top of your application's `resources/js/layouts/AppLayout.vue` file:
 
 <!-- source: manual -->
+
 ```js
-import AppLayout from '@/layouts/app/AppSidebarLayout.vue'; // [tl! remove]
-import AppLayout from '@/layouts/app/AppHeaderLayout.vue'; // [tl! add]
+import AppLayout from "@/layouts/app/AppSidebarLayout.vue"; // [tl! remove]
+import AppLayout from "@/layouts/app/AppHeaderLayout.vue"; // [tl! add]
 ```
 
 <a name="vue-sidebar-variants"></a>
+
 #### Sidebar Variants
 
 The sidebar layout includes three different variants: the default sidebar variant, the "inset" variant, and the "floating" variant. You may choose the variant you like best by modifying the `resources/js/components/AppSidebar.vue` component:
@@ -217,6 +235,7 @@ The sidebar layout includes three different variants: the default sidebar varian
 ```
 
 <a name="vue-authentication-page-layout-variants"></a>
+
 #### Authentication Page Layout Variants
 
 The authentication pages included with the Vue starter kit, such as the login page and registration page, also offer three different layout variants: "simple", "card", and "split".
@@ -224,12 +243,14 @@ The authentication pages included with the Vue starter kit, such as the login pa
 To change your authentication layout, modify the layout that is imported at the top of your application's `resources/js/layouts/AuthLayout.vue` file:
 
 <!-- source: manual -->
+
 ```js
-import AuthLayout from '@/layouts/auth/AuthSimpleLayout.vue'; // [tl! remove]
-import AuthLayout from '@/layouts/auth/AuthSplitLayout.vue'; // [tl! add]
+import AuthLayout from "@/layouts/auth/AuthSimpleLayout.vue"; // [tl! remove]
+import AuthLayout from "@/layouts/auth/AuthSplitLayout.vue"; // [tl! add]
 ```
 
 <a name="livewire-customization"></a>
+
 ### Livewire
 
 Our Livewire starter kit is built with Livewire 3, Tailwind, and [Flux UI](https://fluxui.dev/). As with all of our starter kits, all of the backend and frontend code exists within your application to allow for full customization.
@@ -253,6 +274,7 @@ resources/views
 The frontend code is located in the `resources/views` directory, while the `app/Livewire` directory contains the corresponding backend logic for the Livewire components.
 
 <a name="livewire-available-layouts"></a>
+
 #### Available Layouts
 
 The Livewire starter kit includes two different primary layouts for you to choose from: a "sidebar" layout and a "header" layout. The sidebar layout is the default, but you can switch to the header layout by modifying the layout that is used by your application's `resources/views/components/layouts/app.blade.php` file. In addition, you should add the `container` attribute to the main Flux component:
@@ -266,6 +288,7 @@ The Livewire starter kit includes two different primary layouts for you to choos
 ```
 
 <a name="livewire-authentication-page-layout-variants"></a>
+
 #### Authentication Page Layout Variants
 
 The authentication pages included with the Livewire starter kit, such as the login page and registration page, also offer three different layout variants: "simple", "card", and "split".
@@ -279,6 +302,7 @@ To change your authentication layout, modify the layout that is used by your app
 ```
 
 <a name="workos"></a>
+
 ## WorkOS AuthKit Authentication
 
 By default, the React, Vue, and Livewire starter kits all utilize Laravel's built-in authentication system to offer login, registration, password reset, email verification, and more. In addition, we also offer a [WorkOS AuthKit](https://authkit.com) powered variant of each starter kit that offers:
@@ -309,16 +333,19 @@ WORKOS_REDIRECT_URL="${APP_URL}/authenticate"
 Additionally, you should configure the application homepage URL in your WorkOS dashboard. This URL is where users will be redirected after they log out of your application.
 
 <a name="configuring-authkit-authentication-methods"></a>
+
 #### Configuring AuthKit Authentication Methods
 
 When using a WorkOS powered starter kit, we recommend that you disable "Email + Password" authentication within your application's WorkOS AuthKit configuration settings, allowing users to only authenticate via social authentication providers, passkeys, "Magic Auth", and SSO. This allows your application to totally avoid handling user passwords.
 
 <a name="configuring-authkit-session-timeouts"></a>
+
 #### Configuring AuthKit Session Timeouts
 
 In addition, we recommend that you configure your WorkOS AuthKit session inactivity timeout to match your Laravel application's configured session timeout threshold, which is typically two hours.
 
 <a name="inertia-ssr"></a>
+
 ### Inertia SSR
 
 The React and Vue starter kits are compatible with Inertia's [server-side rendering](https://inertiajs.com/server-side-rendering) capabilities. To build an Inertia SSR compatible bundle for your application, run the `build:ssr` command:
@@ -334,6 +361,7 @@ composer dev:ssr
 ```
 
 <a name="community-maintained-starter-kits"></a>
+
 ### Community Maintained Starter Kits
 
 When creating a new Laravel application using the Laravel installer, you may provide any community maintained starter kit available on Packagist to the `--using` flag:
@@ -343,19 +371,23 @@ laravel new my-app --using=example/starter-kit
 ```
 
 <a name="creating-starter-kits"></a>
+
 #### Creating Starter Kits
 
 To ensure your starter kit is available to others, you will need to publish it to [Packagist](https://packagist.org). Your starter kit should define its required environment variables in its `.env.example` file, and any necessary post-installation commands should be listed in the `post-create-project-cmd` array of the starter kit's `composer.json` file.
 
 <a name="faqs"></a>
+
 ### Frequently Asked Questions
 
 <a name="faq-upgrade"></a>
+
 #### How do I upgrade?
 
 Every starter kit gives you a solid starting point for your next application. With full ownership of the code, you can tweak, customize, and build your application exactly as you envision. However, there is no need to update the starter kit itself.
 
 <a name="faq-enable-email-verification"></a>
+
 #### How do I enable email verification?
 
 Email verification can be added by uncommenting the `MustVerifyEmail` import in your `App/Models/User.php` model and ensuring the model implements the `MustVerifyEmail` interface:
@@ -388,6 +420,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 > Email verification is not required when using the [WorkOS](#workos) variant of the starter kits.
 
 <a name="faq-modify-email-template"></a>
+
 #### How do I modify the default email template?
 
 You may want to customize the default email template to better align with your application's branding. To modify this template, you should publish the email views to your application with the following command:

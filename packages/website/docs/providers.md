@@ -6,12 +6,13 @@ laravelDocs: true
 
 - [Introduction](#introduction)
 - [Writing Service Providers](#writing-service-providers)
-    - [The Register Method](#the-register-method)
-    - [The Boot Method](#the-boot-method)
+  - [The Register Method](#the-register-method)
+  - [The Boot Method](#the-boot-method)
 - [Registering Providers](#registering-providers)
 - [Deferred Providers](#deferred-providers)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 Service providers are the central place of all Laravel application bootstrapping. Your own application, as well as all of Laravel's core services, are bootstrapped via service providers.
@@ -26,6 +27,7 @@ All user-defined service providers are registered in the `bootstrap/providers.ph
 > If you would like to learn more about how Laravel handles requests and works internally, check out our documentation on the Laravel [request lifecycle](./lifecycle).
 
 <a name="writing-service-providers"></a>
+
 ## Writing Service Providers
 
 All service providers extend the `Illuminate\Support\ServiceProvider` class. Most service providers contain a `register` and a `boot` method. Within the `register` method, you should **only bind things into the [service container](./container)**. You should never attempt to register any event listeners, routes, or any other piece of functionality within the `register` method.
@@ -37,6 +39,7 @@ php artisan make:provider RiakServiceProvider
 ```
 
 <a name="the-register-method"></a>
+
 ### The Register Method
 
 As mentioned previously, within the `register` method, you should only bind things into the [service container](./container). You should never attempt to register any event listeners, routes, or any other piece of functionality within the `register` method. Otherwise, you may accidentally use a service that is provided by a service provider which has not loaded yet.
@@ -69,6 +72,7 @@ class RiakServiceProvider extends ServiceProvider
 This service provider only defines a `register` method, and uses that method to define an implementation of `App\Services\Riak\Connection` in the service container. If you're not yet familiar with Laravel's service container, check out [its documentation](./container).
 
 <a name="the-bindings-and-singletons-properties"></a>
+
 #### The `bindings` and `singletons` Properties
 
 If your service provider registers many simple bindings, you may wish to use the `bindings` and `singletons` properties instead of manually registering each container binding. When the service provider is loaded by the framework, it will automatically check for these properties and register their bindings:
@@ -109,6 +113,7 @@ class AppServiceProvider extends ServiceProvider
 ```
 
 <a name="the-boot-method"></a>
+
 ### The Boot Method
 
 So, what if we need to register a [view composer](./views#view-composers) within our service provider? This should be done within the `boot` method. **This method is called after all other service providers have been registered**, meaning you have access to all other services that have been registered by the framework:
@@ -136,6 +141,7 @@ class ComposerServiceProvider extends ServiceProvider
 ```
 
 <a name="boot-method-dependency-injection"></a>
+
 #### Boot Method Dependency Injection
 
 You may type-hint dependencies for your service provider's `boot` method. The [service container](./container) will automatically inject any dependencies you need:
@@ -155,6 +161,7 @@ public function boot(ResponseFactory $response): void
 ```
 
 <a name="registering-providers"></a>
+
 ## Registering Providers
 
 All service providers are registered in the `bootstrap/providers.php` configuration file. This file returns an array that contains the class names of your application's service providers:
@@ -179,6 +186,7 @@ return [
 ```
 
 <a name="deferred-providers"></a>
+
 ## Deferred Providers
 
 If your provider is **only** registering bindings in the [service container](./container), you may choose to defer its registration until one of the registered bindings is actually needed. Deferring the loading of such a provider will improve the performance of your application, since it is not loaded from the filesystem on every request.

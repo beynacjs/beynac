@@ -7,15 +7,16 @@ laravelDocs: true
 - [Introduction](#introduction)
 - [Defining Middleware](#defining-middleware)
 - [Registering Middleware](#registering-middleware)
-    - [Global Middleware](#global-middleware)
-    - [Assigning Middleware to Routes](#assigning-middleware-to-routes)
-    - [Middleware Groups](#middleware-groups)
-    - [Middleware Aliases](#middleware-aliases)
-    - [Sorting Middleware](#sorting-middleware)
+  - [Global Middleware](#global-middleware)
+  - [Assigning Middleware to Routes](#assigning-middleware-to-routes)
+  - [Middleware Groups](#middleware-groups)
+  - [Middleware Aliases](#middleware-aliases)
+  - [Sorting Middleware](#sorting-middleware)
 - [Middleware Parameters](#middleware-parameters)
 - [Terminable Middleware](#terminable-middleware)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 Middleware provide a convenient mechanism for inspecting and filtering HTTP requests entering your application. For example, Laravel includes a middleware that verifies the user of your application is authenticated. If the user is not authenticated, the middleware will redirect the user to your application's login screen. However, if the user is authenticated, the middleware will allow the request to proceed further into the application.
@@ -23,6 +24,7 @@ Middleware provide a convenient mechanism for inspecting and filtering HTTP requ
 Additional middleware can be written to perform a variety of tasks besides authentication. For example, a logging middleware might log all incoming requests to your application. A variety of middleware are included in Laravel, including middleware for authentication and CSRF protection; however, all user-defined middleware are typically located in your application's `app/Http/Middleware` directory.
 
 <a name="defining-middleware"></a>
+
 ## Defining Middleware
 
 To create a new middleware, use the `make:middleware` Artisan command:
@@ -68,6 +70,7 @@ It's best to envision middleware as a series of "layers" HTTP requests must pass
 > All middleware are resolved via the [service container](./container), so you may type-hint any dependencies you need within a middleware's constructor.
 
 <a name="middleware-and-responses"></a>
+
 #### Middleware and Responses
 
 Of course, a middleware can perform tasks before or after passing the request deeper into the application. For example, the following middleware would perform some task **before** the request is handled by the application:
@@ -117,9 +120,11 @@ class AfterMiddleware
 ```
 
 <a name="registering-middleware"></a>
+
 ## Registering Middleware
 
 <a name="global-middleware"></a>
+
 ### Global Middleware
 
 If you want a middleware to run during every HTTP request to your application, you may append it to the global middleware stack in your application's `bootstrap/app.php` file:
@@ -135,6 +140,7 @@ use App\Http\Middleware\EnsureTokenIsValid;
 The `$middleware` object provided to the `withMiddleware` closure is an instance of `Illuminate\Foundation\Configuration\Middleware` and is responsible for managing the middleware assigned to your application's routes. The `append` method adds the middleware to the end of the list of global middleware. If you would like to add a middleware to the beginning of the list, you should use the `prepend` method.
 
 <a name="manually-managing-laravels-default-global-middleware"></a>
+
 #### Manually Managing Laravel's Default Global Middleware
 
 If you would like to manage Laravel's global middleware stack manually, you may provide Laravel's default stack of global middleware to the `use` method. Then, you may adjust the default middleware stack as necessary:
@@ -155,6 +161,7 @@ If you would like to manage Laravel's global middleware stack manually, you may 
 ```
 
 <a name="assigning-middleware-to-routes"></a>
+
 ### Assigning Middleware to Routes
 
 If you would like to assign middleware to specific routes, you may invoke the `middleware` method when defining the route:
@@ -176,6 +183,7 @@ Route::get('/', function () {
 ```
 
 <a name="excluding-middleware"></a>
+
 #### Excluding Middleware
 
 When assigning middleware to a group of routes, you may occasionally need to prevent the middleware from being applied to an individual route within the group. You may accomplish this using the `withoutMiddleware` method:
@@ -209,6 +217,7 @@ Route::withoutMiddleware([EnsureTokenIsValid::class])->group(function () {
 The `withoutMiddleware` method can only remove route middleware and does not apply to [global middleware](#global-middleware).
 
 <a name="middleware-groups"></a>
+
 ### Middleware Groups
 
 Sometimes you may want to group several middleware under a single key to make them easier to assign to routes. You may accomplish this using the `appendToGroup` method within your application's `bootstrap/app.php` file:
@@ -243,6 +252,7 @@ Route::middleware(['group-name'])->group(function () {
 ```
 
 <a name="laravels-default-middleware-groups"></a>
+
 #### Laravel's Default Middleware Groups
 
 Laravel includes predefined `web` and `api` middleware groups that contain common middleware you may want to apply to your web and API routes. Remember, Laravel automatically applies these middleware groups to the corresponding `routes/web.php` and `routes/api.php` files:
@@ -305,6 +315,7 @@ $middleware->web(remove: [
 ```
 
 <a name="manually-managing-laravels-default-middleware-groups"></a>
+
 #### Manually Managing Laravel's Default Middleware Groups
 
 If you would like to manually manage all of the middleware within Laravel's default `web` and `api` middleware groups, you may redefine the groups entirely. The example below will define the `web` and `api` middleware groups with their default middleware, allowing you to customize them as necessary:
@@ -333,6 +344,7 @@ If you would like to manually manage all of the middleware within Laravel's defa
 > By default, the `web` and `api` middleware groups are automatically applied to your application's corresponding `routes/web.php` and `routes/api.php` files by the `bootstrap/app.php` file.
 
 <a name="middleware-aliases"></a>
+
 ### Middleware Aliases
 
 You may assign aliases to middleware in your application's `bootstrap/app.php` file. Middleware aliases allow you to define a short alias for a given middleware class, which can be especially useful for middleware with long class names:
@@ -377,6 +389,7 @@ For convenience, some of Laravel's built-in middleware are aliased by default. F
 </div>
 
 <a name="sorting-middleware"></a>
+
 ### Sorting Middleware
 
 Rarely, you may need your middleware to execute in a specific order but not have control over their order when they are assigned to the route. In these situations, you may specify your middleware priority using the `priority` method in your application's `bootstrap/app.php` file:
@@ -401,6 +414,7 @@ Rarely, you may need your middleware to execute in a specific order but not have
 ```
 
 <a name="middleware-parameters"></a>
+
 ## Middleware Parameters
 
 Middleware can also receive additional parameters. For example, if your application needs to verify that the authenticated user has a given "role" before performing a given action, you could create an `EnsureUserHasRole` middleware that receives a role name as an additional argument.
@@ -453,6 +467,7 @@ Route::put('/post/{id}', function (string $id) {
 ```
 
 <a name="terminable-middleware"></a>
+
 ## Terminable Middleware
 
 Sometimes a middleware may need to do some work after the HTTP response has been sent to the browser. If you define a `terminate` method on your middleware and your web server is using FastCGI, the `terminate` method will automatically be called after the response is sent to the browser:

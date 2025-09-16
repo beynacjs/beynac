@@ -6,20 +6,21 @@ laravelDocs: true
 
 - [Introduction](#introduction)
 - [Installation](#installation)
-    - [Page Paths / URIs](#page-paths-uris)
-    - [Subdomain Routing](#subdomain-routing)
+  - [Page Paths / URIs](#page-paths-uris)
+  - [Subdomain Routing](#subdomain-routing)
 - [Creating Routes](#creating-routes)
-    - [Nested Routes](#nested-routes)
-    - [Index Routes](#index-routes)
+  - [Nested Routes](#nested-routes)
+  - [Index Routes](#index-routes)
 - [Route Parameters](#route-parameters)
 - [Route Model Binding](#route-model-binding)
-    - [Soft Deleted Models](#soft-deleted-models)
+  - [Soft Deleted Models](#soft-deleted-models)
 - [Render Hooks](#render-hooks)
 - [Named Routes](#named-routes)
 - [Middleware](#middleware)
 - [Route Caching](#route-caching)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 [Laravel Folio](https://github.com/laravel/folio) is a powerful page based router designed to simplify routing in Laravel applications. With Laravel Folio, generating a route becomes as effortless as creating a Blade template within your application's `resources/views/pages` directory.
@@ -33,6 +34,7 @@ For example, to create a page that is accessible at the `/greeting` URL, just cr
 ```
 
 <a name="installation"></a>
+
 ## Installation
 
 To get started, install Folio into your project using the Composer package manager:
@@ -48,6 +50,7 @@ php artisan folio:install
 ```
 
 <a name="page-paths-uris"></a>
+
 ### Page Paths / URIs
 
 By default, Folio serves pages from your application's `resources/views/pages` directory, but you may customize these directories in your Folio service provider's `boot` method.
@@ -74,6 +77,7 @@ Folio::path(resource_path('views/pages/admin'))
 ```
 
 <a name="subdomain-routing"></a>
+
 ### Subdomain Routing
 
 You may also route to pages based on the incoming request's subdomain. For example, you may wish to route requests from `admin.example.com` to a different page directory than the rest of your Folio pages. You may accomplish this by invoking the `domain` method after invoking the `Folio::path` method:
@@ -95,6 +99,7 @@ Folio::domain('{account}.example.com')
 ```
 
 <a name="creating-routes"></a>
+
 ## Creating Routes
 
 You may create a Folio route by placing a Blade template in any of your Folio mounted directories. By default, Folio mounts the `resources/views/pages` directory, but you may customize these directories in your Folio service provider's `boot` method.
@@ -108,6 +113,7 @@ php artisan folio:list
 ```
 
 <a name="nested-routes"></a>
+
 ### Nested Routes
 
 You may create a nested route by creating one or more directories within one of Folio's directories. For instance, to create a page that is accessible via `/user/profile`, create a `profile.blade.php` template within the `pages/user` directory:
@@ -119,6 +125,7 @@ php artisan folio:page user/profile
 ```
 
 <a name="index-routes"></a>
+
 ### Index Routes
 
 Sometimes, you may wish to make a given page the "index" of a directory. By placing an `index.blade.php` template within a Folio directory, any requests to the root of that directory will be routed to that page:
@@ -132,6 +139,7 @@ php artisan folio:page users/index
 ```
 
 <a name="route-parameters"></a>
+
 ## Route Parameters
 
 Often, you will need to have segments of the incoming request's URL injected into your page so that you can interact with them. For example, you may need to access the "ID" of the user whose profile is being displayed. To accomplish this, you may encapsulate a segment of the page's filename in square brackets:
@@ -145,9 +153,7 @@ php artisan folio:page "users/[id]"
 Captured segments can be accessed as variables within your Blade template:
 
 ```html
-<div>
-    User {{ $id }}
-</div>
+<div>User {{ $id }}</div>
 ```
 
 To capture multiple segments, you can prefix the encapsulated segment with three dots `...`:
@@ -162,13 +168,14 @@ When capturing multiple segments, the captured segments will be injected into th
 
 ```html
 <ul>
-    @foreach ($ids as $id)
-        <li>User {{ $id }}</li>
-    @endforeach
+  @foreach ($ids as $id)
+  <li>User {{ $id }}</li>
+  @endforeach
 </ul>
 ```
 
 <a name="route-model-binding"></a>
+
 ## Route Model Binding
 
 If a wildcard segment of your page template's filename corresponds one of your application's Eloquent models, Folio will automatically take advantage of Laravel's route model binding capabilities and attempt to inject the resolved model instance into your page:
@@ -182,9 +189,7 @@ php artisan folio:page "users/[User]"
 Captured models can be accessed as variables within your Blade template. The model's variable name will be converted to "camel case":
 
 ```html
-<div>
-    User {{ $user->id }}
-</div>
+<div>User {{ $user->id }}</div>
 ```
 
 #### Customizing the Key
@@ -204,6 +209,7 @@ php artisan folio:page "users/[.App.Models.User]"
 ```
 
 <a name="soft-deleted-models"></a>
+
 ### Soft Deleted Models
 
 By default, models that have been soft deleted are not retrieved when resolving implicit model bindings. However, if you wish, you can instruct Folio to retrieve soft deleted models by invoking the `withTrashed` function within the page's template:
@@ -223,6 +229,7 @@ withTrashed();
 ```
 
 <a name="render-hooks"></a>
+
 ## Render Hooks
 
 By default, Folio will return the content of the page's Blade template as the response to the incoming request. However, you may customize the response by invoking the `render` function within the page's template.
@@ -256,6 +263,7 @@ render(function (View $view, Post $post) {
 ```
 
 <a name="named-routes"></a>
+
 ## Named Routes
 
 You may specify a name for a given page's route using the `name` function:
@@ -283,6 +291,7 @@ route('users.show', ['user' => $user]);
 ```
 
 <a name="middleware"></a>
+
 ## Middleware
 
 You can apply middleware to a specific page by invoking the `middleware` function within the page's template:
@@ -340,6 +349,7 @@ Folio::path(resource_path('views/pages'))->middleware([
 ```
 
 <a name="route-caching"></a>
+
 ## Route Caching
 
 When using Folio, you should always take advantage of [Laravel's route caching capabilities](./routing#route-caching). Folio listens for the `route:cache` Artisan command to ensure that Folio page definitions and route names are properly cached for maximum performance.

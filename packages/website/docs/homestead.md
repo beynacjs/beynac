@@ -6,38 +6,39 @@ laravelDocs: true
 
 - [Introduction](#introduction)
 - [Installation and Setup](#installation-and-setup)
-    - [First Steps](#first-steps)
-    - [Configuring Homestead](#configuring-homestead)
-    - [Configuring Nginx Sites](#configuring-nginx-sites)
-    - [Configuring Services](#configuring-services)
-    - [Launching the Vagrant Box](#launching-the-vagrant-box)
-    - [Per Project Installation](#per-project-installation)
-    - [Installing Optional Features](#installing-optional-features)
-    - [Aliases](#aliases)
+  - [First Steps](#first-steps)
+  - [Configuring Homestead](#configuring-homestead)
+  - [Configuring Nginx Sites](#configuring-nginx-sites)
+  - [Configuring Services](#configuring-services)
+  - [Launching the Vagrant Box](#launching-the-vagrant-box)
+  - [Per Project Installation](#per-project-installation)
+  - [Installing Optional Features](#installing-optional-features)
+  - [Aliases](#aliases)
 - [Updating Homestead](#updating-homestead)
 - [Daily Usage](#daily-usage)
-    - [Connecting via SSH](#connecting-via-ssh)
-    - [Adding Additional Sites](#adding-additional-sites)
-    - [Environment Variables](#environment-variables)
-    - [Ports](#ports)
-    - [PHP Versions](#php-versions)
-    - [Connecting to Databases](#connecting-to-databases)
-    - [Database Backups](#database-backups)
-    - [Configuring Cron Schedules](#configuring-cron-schedules)
-    - [Configuring Mailpit](#configuring-mailpit)
-    - [Configuring Minio](#configuring-minio)
-    - [Laravel Dusk](#laravel-dusk)
-    - [Sharing Your Environment](#sharing-your-environment)
+  - [Connecting via SSH](#connecting-via-ssh)
+  - [Adding Additional Sites](#adding-additional-sites)
+  - [Environment Variables](#environment-variables)
+  - [Ports](#ports)
+  - [PHP Versions](#php-versions)
+  - [Connecting to Databases](#connecting-to-databases)
+  - [Database Backups](#database-backups)
+  - [Configuring Cron Schedules](#configuring-cron-schedules)
+  - [Configuring Mailpit](#configuring-mailpit)
+  - [Configuring Minio](#configuring-minio)
+  - [Laravel Dusk](#laravel-dusk)
+  - [Sharing Your Environment](#sharing-your-environment)
 - [Debugging and Profiling](#debugging-and-profiling)
-    - [Debugging Web Requests With Xdebug](#debugging-web-requests)
-    - [Debugging CLI Applications](#debugging-cli-applications)
-    - [Profiling Applications With Blackfire](#profiling-applications-with-blackfire)
+  - [Debugging Web Requests With Xdebug](#debugging-web-requests)
+  - [Debugging CLI Applications](#debugging-cli-applications)
+  - [Profiling Applications With Blackfire](#profiling-applications-with-blackfire)
 - [Network Interfaces](#network-interfaces)
 - [Extending Homestead](#extending-homestead)
 - [Provider Specific Settings](#provider-specific-settings)
-    - [VirtualBox](#provider-specific-virtualbox)
+  - [VirtualBox](#provider-specific-virtualbox)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 > [!WARNING]
@@ -53,6 +54,7 @@ Homestead runs on any Windows, macOS, or Linux system and includes Nginx, PHP, M
 > If you are using Windows, you may need to enable hardware virtualization (VT-x). It can usually be enabled via your BIOS. If you are using Hyper-V on a UEFI system you may additionally need to disable Hyper-V in order to access VT-x.
 
 <a name="included-software"></a>
+
 ### Included Software
 
 <style>
@@ -98,6 +100,7 @@ Homestead runs on any Windows, macOS, or Linux system and includes Nginx, PHP, M
 </div>
 
 <a name="optional-software"></a>
+
 ### Optional Software
 
 <style>
@@ -145,9 +148,11 @@ Homestead runs on any Windows, macOS, or Linux system and includes Nginx, PHP, M
 </div>
 
 <a name="installation-and-setup"></a>
+
 ## Installation and Setup
 
 <a name="first-steps"></a>
+
 ### First Steps
 
 Before launching your Homestead environment, you must install [Vagrant](https://developer.hashicorp.com/vagrant/downloads) as well as one of the following supported providers:
@@ -160,6 +165,7 @@ All of these software packages provide easy-to-use visual installers for all pop
 To use the Parallels provider, you will need to install [Parallels Vagrant plug-in](https://github.com/Parallels/vagrant-parallels). It is free of charge.
 
 <a name="installing-homestead"></a>
+
 #### Installing Homestead
 
 You may install Homestead by cloning the Homestead repository onto your host machine. Consider cloning the repository into a `Homestead` folder within your "home" directory, as the Homestead virtual machine will serve as the host to all of your Laravel applications. Throughout this documentation, we will refer to this directory as your "Homestead directory":
@@ -187,9 +193,11 @@ init.bat
 ```
 
 <a name="configuring-homestead"></a>
+
 ### Configuring Homestead
 
 <a name="setting-your-provider"></a>
+
 #### Setting Your Provider
 
 The `provider` key in your `Homestead.yaml` file indicates which Vagrant provider should be used: `virtualbox` or `parallels`:
@@ -200,27 +208,28 @@ The `provider` key in your `Homestead.yaml` file indicates which Vagrant provide
 > If you are using Apple Silicon the Parallels provider is required.
 
 <a name="configuring-shared-folders"></a>
+
 #### Configuring Shared Folders
 
 The `folders` property of the `Homestead.yaml` file lists all of the folders you wish to share with your Homestead environment. As files within these folders are changed, they will be kept in sync between your local machine and the Homestead virtual environment. You may configure as many shared folders as necessary:
 
 ```yaml
 folders:
-    - map: ~/code/project1
-      to: /home/vagrant/project1
+  - map: ~/code/project1
+    to: /home/vagrant/project1
 ```
 
 > [!WARNING]
 > Windows users should not use the `~/` path syntax and instead should use the full path to their project, such as `C:\Users\user\Code\project1`.
 
-You should always map individual applications to their own folder mapping instead of mapping a single large directory that contains all of your applications. When you map a folder, the virtual machine must keep track of all disk IO for *every* file in the folder. You may experience reduced performance if you have a large number of files in a folder:
+You should always map individual applications to their own folder mapping instead of mapping a single large directory that contains all of your applications. When you map a folder, the virtual machine must keep track of all disk IO for _every_ file in the folder. You may experience reduced performance if you have a large number of files in a folder:
 
 ```yaml
 folders:
-    - map: ~/code/project1
-      to: /home/vagrant/project1
-    - map: ~/code/project2
-      to: /home/vagrant/project2
+  - map: ~/code/project1
+    to: /home/vagrant/project1
+  - map: ~/code/project2
+    to: /home/vagrant/project2
 ```
 
 > [!WARNING]
@@ -230,9 +239,9 @@ To enable [NFS](https://developer.hashicorp.com/vagrant/docs/synced-folders/nfs)
 
 ```yaml
 folders:
-    - map: ~/code/project1
-      to: /home/vagrant/project1
-      type: "nfs"
+  - map: ~/code/project1
+    to: /home/vagrant/project1
+    type: "nfs"
 ```
 
 > [!WARNING]
@@ -242,23 +251,24 @@ You may also pass any options supported by Vagrant's [Synced Folders](https://de
 
 ```yaml
 folders:
-    - map: ~/code/project1
-      to: /home/vagrant/project1
-      type: "rsync"
-      options:
-          rsync__args: ["--verbose", "--archive", "--delete", "-zz"]
-          rsync__exclude: ["node_modules"]
+  - map: ~/code/project1
+    to: /home/vagrant/project1
+    type: "rsync"
+    options:
+      rsync__args: ["--verbose", "--archive", "--delete", "-zz"]
+      rsync__exclude: ["node_modules"]
 ```
 
 <a name="configuring-nginx-sites"></a>
+
 ### Configuring Nginx Sites
 
 Not familiar with Nginx? No problem. Your `Homestead.yaml` file's `sites` property allows you to easily map a "domain" to a folder on your Homestead environment. A sample site configuration is included in the `Homestead.yaml` file. Again, you may add as many sites to your Homestead environment as necessary. Homestead can serve as a convenient, virtualized environment for every Laravel application you are working on:
 
 ```yaml
 sites:
-    - map: homestead.test
-      to: /home/vagrant/project1/public
+  - map: homestead.test
+    to: /home/vagrant/project1/public
 ```
 
 If you change the `sites` property after provisioning the Homestead virtual machine, you should execute the `vagrant reload --provision` command in your terminal to update the Nginx configuration on the virtual machine.
@@ -267,6 +277,7 @@ If you change the `sites` property after provisioning the Homestead virtual mach
 > Homestead scripts are built to be as idempotent as possible. However, if you are experiencing issues while provisioning you should destroy and rebuild the machine by executing the `vagrant destroy && vagrant up` command.
 
 <a name="hostname-resolution"></a>
+
 #### Hostname Resolution
 
 Homestead publishes hostnames using `mDNS` for automatic host resolution. If you set `hostname: homestead` in your `Homestead.yaml` file, the host will be available at `homestead.local`. macOS, iOS, and Linux desktop distributions include `mDNS` support by default. If you are using Windows, you must install [Bonjour Print Services for Windows](https://support.apple.com/kb/DL999?viewlocale=en_US&locale=en_US).
@@ -284,21 +295,23 @@ http://homestead.test
 ```
 
 <a name="configuring-services"></a>
+
 ### Configuring Services
 
 Homestead starts several services by default; however, you may customize which services are enabled or disabled during provisioning. For example, you may enable PostgreSQL and disable MySQL by modifying the `services` option within your `Homestead.yaml` file:
 
 ```yaml
 services:
-    - enabled:
-        - "postgresql"
-    - disabled:
-        - "mysql"
+  - enabled:
+      - "postgresql"
+  - disabled:
+      - "mysql"
 ```
 
 The specified services will be started or stopped based on their order in the `enabled` and `disabled` directives.
 
 <a name="launching-the-vagrant-box"></a>
+
 ### Launching the Vagrant Box
 
 Once you have edited the `Homestead.yaml` to your liking, run the `vagrant up` command from your Homestead directory. Vagrant will boot the virtual machine and automatically configure your shared folders and Nginx sites.
@@ -306,6 +319,7 @@ Once you have edited the `Homestead.yaml` to your liking, run the `vagrant up` c
 To destroy the machine, you may use the `vagrant destroy` command.
 
 <a name="per-project-installation"></a>
+
 ### Per Project Installation
 
 Instead of installing Homestead globally and sharing the same Homestead virtual machine across all of your projects, you may instead configure a Homestead instance for each project you manage. Installing Homestead per project may be beneficial if you wish to ship a `Vagrantfile` with your project, allowing others working on the project to `vagrant up` immediately after cloning the project's repository.
@@ -329,6 +343,7 @@ vendor\\bin\\homestead make
 Next, run the `vagrant up` command in your terminal and access your project at `http://homestead.test` in your browser. Remember, you will still need to add an `/etc/hosts` file entry for `homestead.test` or the domain of your choice if you are not using automatic [hostname resolution](#hostname-resolution).
 
 <a name="installing-optional-features"></a>
+
 ### Installing Optional Features
 
 Optional software is installed using the `features` option within your `Homestead.yaml` file. Most features can be enabled or disabled with a boolean value, while some features allow multiple configuration options:
@@ -375,6 +390,7 @@ features:
 ```
 
 <a name="elasticsearch"></a>
+
 #### Elasticsearch
 
 You may specify a supported version of Elasticsearch, which must be an exact version number (major.minor.patch). The default installation will create a cluster named 'homestead'. You should never give Elasticsearch more than half of the operating system's memory, so make sure your Homestead virtual machine has at least twice the Elasticsearch allocation.
@@ -383,21 +399,25 @@ You may specify a supported version of Elasticsearch, which must be an exact ver
 > Check out the [Elasticsearch documentation](https://www.elastic.co/guide/en/elasticsearch/reference/current) to learn how to customize your configuration.
 
 <a name="mariadb"></a>
+
 #### MariaDB
 
 Enabling MariaDB will remove MySQL and install MariaDB. MariaDB typically serves as a drop-in replacement for MySQL, so you should still use the `mysql` database driver in your application's database configuration.
 
 <a name="mongodb"></a>
+
 #### MongoDB
 
 The default MongoDB installation will set the database username to `homestead` and the corresponding password to `secret`.
 
 <a name="neo4j"></a>
+
 #### Neo4j
 
 The default Neo4j installation will set the database username to `homestead` and the corresponding password to `secret`. To access the Neo4j browser, visit `http://homestead.test:7474` via your web browser. The ports `7687` (Bolt), `7474` (HTTP), and `7473` (HTTPS) are ready to serve requests from the Neo4j client.
 
 <a name="aliases"></a>
+
 ### Aliases
 
 You may add Bash aliases to your Homestead virtual machine by modifying the `aliases` file within your Homestead directory:
@@ -410,6 +430,7 @@ alias ..='cd ..'
 After you have updated the `aliases` file, you should re-provision the Homestead virtual machine using the `vagrant reload --provision` command. This will ensure that your new aliases are available on the machine.
 
 <a name="updating-homestead"></a>
+
 ## Updating Homestead
 
 Before you begin updating Homestead you should ensure you have removed your current virtual machine by running the following command in your Homestead directory:
@@ -457,24 +478,27 @@ vagrant up
 ```
 
 <a name="daily-usage"></a>
+
 ## Daily Usage
 
 <a name="connecting-via-ssh"></a>
+
 ### Connecting via SSH
 
 You can SSH into your virtual machine by executing the `vagrant ssh` terminal command from your Homestead directory.
 
 <a name="adding-additional-sites"></a>
+
 ### Adding Additional Sites
 
 Once your Homestead environment is provisioned and running, you may want to add additional Nginx sites for your other Laravel projects. You can run as many Laravel projects as you wish on a single Homestead environment. To add an additional site, add the site to your `Homestead.yaml` file.
 
 ```yaml
 sites:
-    - map: homestead.test
-      to: /home/vagrant/project1/public
-    - map: another.test
-      to: /home/vagrant/project2/public
+  - map: homestead.test
+    to: /home/vagrant/project1/public
+  - map: another.test
+    to: /home/vagrant/project2/public
 ```
 
 > [!WARNING]
@@ -490,49 +514,53 @@ If Vagrant is not automatically managing your "hosts" file, you may need to add 
 Once the site has been added, execute the `vagrant reload --provision` terminal command from your Homestead directory.
 
 <a name="site-types"></a>
+
 #### Site Types
 
 Homestead supports several "types" of sites which allow you to easily run projects that are not based on Laravel. For example, we may easily add a Statamic application to Homestead using the `statamic` site type:
 
 ```yaml
 sites:
-    - map: statamic.test
-      to: /home/vagrant/my-symfony-project/web
-      type: "statamic"
+  - map: statamic.test
+    to: /home/vagrant/my-symfony-project/web
+    type: "statamic"
 ```
 
 The available site types are: `apache`, `apache-proxy`, `apigility`, `expressive`, `laravel` (the default), `proxy` (for nginx), `silverstripe`, `statamic`, `symfony2`, `symfony4`, and `zf`.
 
 <a name="site-parameters"></a>
+
 #### Site Parameters
 
 You may add additional Nginx `fastcgi_param` values to your site via the `params` site directive:
 
 ```yaml
 sites:
-    - map: homestead.test
-      to: /home/vagrant/project1/public
-      params:
-          - key: FOO
-            value: BAR
+  - map: homestead.test
+    to: /home/vagrant/project1/public
+    params:
+      - key: FOO
+        value: BAR
 ```
 
 <a name="environment-variables"></a>
+
 ### Environment Variables
 
 You can define global environment variables by adding them to your `Homestead.yaml` file:
 
 ```yaml
 variables:
-    - key: APP_ENV
-      value: local
-    - key: FOO
-      value: bar
+  - key: APP_ENV
+    value: local
+  - key: FOO
+    value: bar
 ```
 
 After updating the `Homestead.yaml` file, be sure to re-provision the machine by executing the `vagrant reload --provision` command. This will update the PHP-FPM configuration for all of the installed PHP versions and also update the environment for the `vagrant` user.
 
 <a name="ports"></a>
+
 ### Ports
 
 By default, the following ports are forwarded to your Homestead environment:
@@ -545,17 +573,18 @@ By default, the following ports are forwarded to your Homestead environment:
 </div>
 
 <a name="forwarding-additional-ports"></a>
+
 #### Forwarding Additional Ports
 
 If you wish, you may forward additional ports to the Vagrant box by defining a `ports` configuration entry within your `Homestead.yaml` file. After updating the `Homestead.yaml` file, be sure to re-provision the machine by executing the `vagrant reload --provision` command:
 
 ```yaml
 ports:
-    - send: 50000
-      to: 5000
-    - send: 7777
-      to: 777
-      protocol: udp
+  - send: 50000
+    to: 5000
+  - send: 7777
+    to: 777
+    protocol: udp
 ```
 
 Below is a list of additional Homestead service ports that you may wish to map from your host machine to your Vagrant box:
@@ -573,15 +602,16 @@ Below is a list of additional Homestead service ports that you may wish to map f
 </div>
 
 <a name="php-versions"></a>
+
 ### PHP Versions
 
 Homestead supports running multiple versions of PHP on the same virtual machine. You may specify which version of PHP to use for a given site within your `Homestead.yaml` file. The available PHP versions are: "5.6", "7.0", "7.1", "7.2", "7.3", "7.4", "8.0", "8.1", "8.2", and "8.3", (the default):
 
 ```yaml
 sites:
-    - map: homestead.test
-      to: /home/vagrant/project1/public
-      php: "7.1"
+  - map: homestead.test
+    to: /home/vagrant/project1/public
+    php: "7.1"
 ```
 
 [Within your Homestead virtual machine](#connecting-via-ssh), you may use any of the supported PHP versions via the CLI:
@@ -615,6 +645,7 @@ php83
 ```
 
 <a name="connecting-to-databases"></a>
+
 ### Connecting to Databases
 
 A `homestead` database is configured for both MySQL and PostgreSQL out of the box. To connect to your MySQL or PostgreSQL database from your host machine's database client, you should connect to `127.0.0.1` on port `33060` (MySQL) or `54320` (PostgreSQL). The username and password for both databases is `homestead` / `secret`.
@@ -623,6 +654,7 @@ A `homestead` database is configured for both MySQL and PostgreSQL out of the bo
 > You should only use these non-standard ports when connecting to the databases from your host machine. You will use the default 3306 and 5432 ports in your Laravel application's `database` configuration file since Laravel is running _within_ the virtual machine.
 
 <a name="database-backups"></a>
+
 ### Database Backups
 
 Homestead can automatically backup your database when your Homestead virtual machine is destroyed. To utilize this feature, you must be using Vagrant 2.1.0 or greater. Or, if you are using an older version of Vagrant, you must install the `vagrant-triggers` plug-in. To enable automatic database backups, add the following line to your `Homestead.yaml` file:
@@ -634,6 +666,7 @@ backup: true
 Once configured, Homestead will export your databases to `.backup/mysql_backup` and `.backup/postgres_backup` directories when the `vagrant destroy` command is executed. These directories can be found in the folder where you installed Homestead or in the root of your project if you are using the [per project installation](#per-project-installation) method.
 
 <a name="configuring-cron-schedules"></a>
+
 ### Configuring Cron Schedules
 
 Laravel provides a convenient way to [schedule cron jobs](./scheduling) by scheduling a single `schedule:run` Artisan command to run every minute. The `schedule:run` command will examine the job schedule defined in your `routes/console.php` file to determine which scheduled tasks to run.
@@ -642,14 +675,15 @@ If you would like the `schedule:run` command to be run for a Homestead site, you
 
 ```yaml
 sites:
-    - map: homestead.test
-      to: /home/vagrant/project1/public
-      schedule: true
+  - map: homestead.test
+    to: /home/vagrant/project1/public
+    schedule: true
 ```
 
 The cron job for the site will be defined in the `/etc/cron.d` directory of the Homestead virtual machine.
 
 <a name="configuring-mailpit"></a>
+
 ### Configuring Mailpit
 
 [Mailpit](https://github.com/axllent/mailpit) allows you to intercept your outgoing email and examine it without actually sending the mail to its recipients. To get started, update your application's `.env` file to use the following mail settings:
@@ -666,6 +700,7 @@ MAIL_ENCRYPTION=null
 Once Mailpit has been configured, you may access the Mailpit dashboard at `http://localhost:8025`.
 
 <a name="configuring-minio"></a>
+
 ### Configuring Minio
 
 [Minio](https://github.com/minio/minio) is an open source object storage server with an Amazon S3 compatible API. To install Minio, update your `Homestead.yaml` file with the following configuration option in the [features](#installing-optional-features) section:
@@ -688,27 +723,29 @@ To provision Minio powered "S3" buckets, add a `buckets` directive to your `Home
 
 ```yaml
 buckets:
-    - name: your-bucket
-      policy: public
-    - name: your-private-bucket
-      policy: none
+  - name: your-bucket
+    policy: public
+  - name: your-private-bucket
+    policy: none
 ```
 
 Supported `policy` values include: `none`, `download`, `upload`, and `public`.
 
 <a name="laravel-dusk"></a>
+
 ### Laravel Dusk
 
 In order to run [Laravel Dusk](./dusk) tests within Homestead, you should enable the [webdriver feature](#installing-optional-features) in your Homestead configuration:
 
 ```yaml
 features:
-    - webdriver: true
+  - webdriver: true
 ```
 
 After enabling the `webdriver` feature, you should execute the `vagrant reload --provision` command in your terminal.
 
 <a name="sharing-your-environment"></a>
+
 ### Sharing Your Environment
 
 Sometimes you may wish to share what you're currently working on with coworkers or a client. Vagrant has built-in support for this via the `vagrant share` command; however, this will not work if you have multiple sites configured in your `Homestead.yaml` file.
@@ -731,9 +768,11 @@ If you need to share content over HTTPS rather than HTTP, using the `sshare` com
 > Remember, Vagrant is inherently insecure and you are exposing your virtual machine to the Internet when running the `share` command.
 
 <a name="debugging-and-profiling"></a>
+
 ## Debugging and Profiling
 
 <a name="debugging-web-requests"></a>
+
 ### Debugging Web Requests With Xdebug
 
 Homestead includes support for step debugging using [Xdebug](https://xdebug.org). For example, you can access a page in your browser and PHP will connect to your IDE to allow inspection and modification of the running code.
@@ -744,6 +783,7 @@ By default, Xdebug is already running and ready to accept connections. If you ne
 > Xdebug causes PHP to run significantly slower. To disable Xdebug, run `sudo phpdismod xdebug` within your Homestead virtual machine and restart the FPM service.
 
 <a name="autostarting-xdebug"></a>
+
 #### Autostarting Xdebug
 
 When debugging functional tests that make requests to the web server, it is easier to autostart debugging rather than modifying tests to pass through a custom header or cookie to trigger debugging. To force Xdebug to start automatically, modify the `/etc/php/7.x/fpm/conf.d/20-xdebug.ini` file inside your Homestead virtual machine and add the following configuration:
@@ -756,6 +796,7 @@ xdebug.start_with_request = yes
 ```
 
 <a name="debugging-cli-applications"></a>
+
 ### Debugging CLI Applications
 
 To debug a PHP CLI application, use the `xphp` shell alias inside your Homestead virtual machine:
@@ -765,6 +806,7 @@ xphp /path/to/script
 ```
 
 <a name="profiling-applications-with-blackfire"></a>
+
 ### Profiling Applications With Blackfire
 
 [Blackfire](https://blackfire.io/docs/introduction) is a service for profiling web requests and CLI applications. It offers an interactive user interface which displays profile data in call-graphs and timelines. It is built for use in development, staging, and production, with no overhead for end users. In addition, Blackfire provides performance, quality, and security checks on code and `php.ini` configuration settings.
@@ -775,54 +817,56 @@ To enable Blackfire, use the "features" setting in your Homestead configuration 
 
 ```yaml
 features:
-    - blackfire:
-        server_id: "server_id"
-        server_token: "server_value"
-        client_id: "client_id"
-        client_token: "client_value"
+  - blackfire:
+      server_id: "server_id"
+      server_token: "server_value"
+      client_id: "client_id"
+      client_token: "client_value"
 ```
 
 Blackfire server credentials and client credentials [require a Blackfire account](https://blackfire.io/signup). Blackfire offers various options to profile an application, including a CLI tool and browser extension. Please [review the Blackfire documentation for more details](https://blackfire.io/docs/php/integrations/laravel/index).
 
 <a name="network-interfaces"></a>
+
 ## Network Interfaces
 
 The `networks` property of the `Homestead.yaml` file configures network interfaces for your Homestead virtual machine. You may configure as many interfaces as necessary:
 
 ```yaml
 networks:
-    - type: "private_network"
-      ip: "192.168.10.20"
+  - type: "private_network"
+    ip: "192.168.10.20"
 ```
 
 To enable a [bridged](https://developer.hashicorp.com/vagrant/docs/networking/public_network) interface, configure a `bridge` setting for the network and change the network type to `public_network`:
 
 ```yaml
 networks:
-    - type: "public_network"
-      ip: "192.168.10.20"
-      bridge: "en1: Wi-Fi (AirPort)"
+  - type: "public_network"
+    ip: "192.168.10.20"
+    bridge: "en1: Wi-Fi (AirPort)"
 ```
 
 To enable [DHCP](https://developer.hashicorp.com/vagrant/docs/networking/public_network#dhcp), just remove the `ip` option from your configuration:
 
 ```yaml
 networks:
-    - type: "public_network"
-      bridge: "en1: Wi-Fi (AirPort)"
+  - type: "public_network"
+    bridge: "en1: Wi-Fi (AirPort)"
 ```
 
 To update what device the network is using, you may add a `dev` option to the network's configuration. The default `dev` value is `eth0`:
 
 ```yaml
 networks:
-    - type: "public_network"
-      ip: "192.168.10.20"
-      bridge: "en1: Wi-Fi (AirPort)"
-      dev: "enp2s0"
+  - type: "public_network"
+    ip: "192.168.10.20"
+    bridge: "en1: Wi-Fi (AirPort)"
+    dev: "enp2s0"
 ```
 
 <a name="extending-homestead"></a>
+
 ## Extending Homestead
 
 You may extend Homestead using the `after.sh` script in the root of your Homestead directory. Within this file, you may add any shell commands that are necessary to properly configure and customize your virtual machine.
@@ -837,22 +881,26 @@ sudo apt-get -y \
 ```
 
 <a name="user-customizations"></a>
+
 ### User Customizations
 
 When using Homestead with your team, you may want to tweak Homestead to better fit your personal development style. To accomplish this, you may create a `user-customizations.sh` file in the root of your Homestead directory (the same directory containing your `Homestead.yaml` file). Within this file, you may make any customization you would like; however, the `user-customizations.sh` should not be version controlled.
 
 <a name="provider-specific-settings"></a>
+
 ## Provider Specific Settings
 
 <a name="provider-specific-virtualbox"></a>
+
 ### VirtualBox
 
 <a name="natdnshostresolver"></a>
+
 #### `natdnshostresolver`
 
 By default, Homestead configures the `natdnshostresolver` setting to `on`. This allows Homestead to use your host operating system's DNS settings. If you would like to override this behavior, add the following configuration options to your `Homestead.yaml` file:
 
 ```yaml
 provider: virtualbox
-natdnshostresolver: 'off'
+natdnshostresolver: "off"
 ```

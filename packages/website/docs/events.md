@@ -7,27 +7,28 @@ laravelDocs: true
 - [Introduction](#introduction)
 - [Generating Events and Listeners](#generating-events-and-listeners)
 - [Registering Events and Listeners](#registering-events-and-listeners)
-    - [Event Discovery](#event-discovery)
-    - [Manually Registering Events](#manually-registering-events)
-    - [Closure Listeners](#closure-listeners)
+  - [Event Discovery](#event-discovery)
+  - [Manually Registering Events](#manually-registering-events)
+  - [Closure Listeners](#closure-listeners)
 - [Defining Events](#defining-events)
 - [Defining Listeners](#defining-listeners)
 - [Queued Event Listeners](#queued-event-listeners)
-    - [Manually Interacting With the Queue](#manually-interacting-with-the-queue)
-    - [Queued Event Listeners and Database Transactions](#queued-event-listeners-and-database-transactions)
-    - [Queued Listener Middleware](#queued-listener-middleware)
-    - [Encrypted Queued Listeners](#encrypted-queued-listeners)
-    - [Handling Failed Jobs](#handling-failed-jobs)
+  - [Manually Interacting With the Queue](#manually-interacting-with-the-queue)
+  - [Queued Event Listeners and Database Transactions](#queued-event-listeners-and-database-transactions)
+  - [Queued Listener Middleware](#queued-listener-middleware)
+  - [Encrypted Queued Listeners](#encrypted-queued-listeners)
+  - [Handling Failed Jobs](#handling-failed-jobs)
 - [Dispatching Events](#dispatching-events)
-    - [Dispatching Events After Database Transactions](#dispatching-events-after-database-transactions)
+  - [Dispatching Events After Database Transactions](#dispatching-events-after-database-transactions)
 - [Event Subscribers](#event-subscribers)
-    - [Writing Event Subscribers](#writing-event-subscribers)
-    - [Registering Event Subscribers](#registering-event-subscribers)
+  - [Writing Event Subscribers](#writing-event-subscribers)
+  - [Registering Event Subscribers](#registering-event-subscribers)
 - [Testing](#testing)
-    - [Faking a Subset of Events](#faking-a-subset-of-events)
-    - [Scoped Events Fakes](#scoped-event-fakes)
+  - [Faking a Subset of Events](#faking-a-subset-of-events)
+  - [Scoped Events Fakes](#scoped-event-fakes)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 Laravel's events provide a simple observer pattern implementation, allowing you to subscribe and listen for various events that occur within your application. Event classes are typically stored in the `app/Events` directory, while their listeners are stored in `app/Listeners`. Don't worry if you don't see these directories in your application as they will be created for you as you generate events and listeners using Artisan console commands.
@@ -35,6 +36,7 @@ Laravel's events provide a simple observer pattern implementation, allowing you 
 Events serve as a great way to decouple various aspects of your application, since a single event can have multiple listeners that do not depend on each other. For example, you may wish to send a Slack notification to your user each time an order has shipped. Instead of coupling your order processing code to your Slack notification code, you can raise an `App\Events\OrderShipped` event which a listener can receive and use to dispatch a Slack notification.
 
 <a name="generating-events-and-listeners"></a>
+
 ## Generating Events and Listeners
 
 To quickly generate events and listeners, you may use the `make:event` and `make:listener` Artisan commands:
@@ -54,9 +56,11 @@ php artisan make:listener
 ```
 
 <a name="registering-events-and-listeners"></a>
+
 ## Registering Events and Listeners
 
 <a name="event-discovery"></a>
+
 ### Event Discovery
 
 By default, Laravel will automatically find and register your event listeners by scanning your application's `Listeners` directory. When Laravel finds any listener class method that begins with `handle` or `__invoke`, Laravel will register those methods as event listeners for the event that is type-hinted in the method's signature:
@@ -111,11 +115,13 @@ php artisan event:list
 ```
 
 <a name="event-discovery-in-production"></a>
+
 #### Event Discovery in Production
 
 To give your application a speed boost, you should cache a manifest of all of your application's listeners using the `optimize` or `event:cache` Artisan commands. Typically, this command should be run as part of your application's [deployment process](./deployment#optimization). This manifest will be used by the framework to speed up the event registration process. The `event:clear` command may be used to destroy the event cache.
 
 <a name="manually-registering-events"></a>
+
 ### Manually Registering Events
 
 Using the `Event` facade, you may manually register events and their corresponding listeners within the `boot` method of your application's `AppServiceProvider`:
@@ -144,6 +150,7 @@ php artisan event:list
 ```
 
 <a name="closure-listeners"></a>
+
 ### Closure Listeners
 
 Typically, listeners are defined as classes; however, you may also manually register closure-based event listeners in the `boot` method of your application's `AppServiceProvider`:
@@ -164,6 +171,7 @@ public function boot(): void
 ```
 
 <a name="queuable-anonymous-event-listeners"></a>
+
 #### Queueable Anonymous Event Listeners
 
 When registering closure-based event listeners, you may wrap the listener closure within the `Illuminate\Events\queueable` function to instruct Laravel to execute the listener using the [queue](./queues):
@@ -208,6 +216,7 @@ Event::listen(queueable(function (PodcastProcessed $event) {
 ```
 
 <a name="wildcard-event-listeners"></a>
+
 #### Wildcard Event Listeners
 
 You may also register listeners using the `*` character as a wildcard parameter, allowing you to catch multiple events on the same listener. Wildcard listeners receive the event name as their first argument and the entire event data array as their second argument:
@@ -219,6 +228,7 @@ Event::listen('event.*', function (string $eventName, array $data) {
 ```
 
 <a name="defining-events"></a>
+
 ## Defining Events
 
 An event class is essentially a data container which holds the information related to the event. For example, let's assume an `App\Events\OrderShipped` event receives an [Eloquent ORM](./eloquent) object:
@@ -249,6 +259,7 @@ class OrderShipped
 As you can see, this event class contains no logic. It is a container for the `App\Models\Order` instance that was purchased. The `SerializesModels` trait used by the event will gracefully serialize any Eloquent models if the event object is serialized using PHP's `serialize` function, such as when utilizing [queued listeners](#queued-event-listeners).
 
 <a name="defining-listeners"></a>
+
 ## Defining Listeners
 
 Next, let's take a look at the listener for our example event. Event listeners receive event instances in their `handle` method. The `make:listener` Artisan command, when invoked with the `--event` option, will automatically import the proper event class and type-hint the event in the `handle` method. Within the `handle` method, you may perform any actions necessary to respond to the event:
@@ -281,11 +292,13 @@ class SendShipmentNotification
 > Your event listeners may also type-hint any dependencies they need on their constructors. All event listeners are resolved via the Laravel [service container](./container), so dependencies will be injected automatically.
 
 <a name="stopping-the-propagation-of-an-event"></a>
+
 #### Stopping The Propagation Of An Event
 
 Sometimes, you may wish to stop the propagation of an event to other listeners. You may do so by returning `false` from your listener's `handle` method.
 
 <a name="queued-event-listeners"></a>
+
 ## Queued Event Listeners
 
 Queueing listeners can be beneficial if your listener is going to perform a slow task such as sending an email or making an HTTP request. Before using queued listeners, make sure to [configure your queue](./queues) and start a queue worker on your server or local development environment.
@@ -309,6 +322,7 @@ class SendShipmentNotification implements ShouldQueue
 That's it! Now, when an event handled by this listener is dispatched, the listener will automatically be queued by the event dispatcher using Laravel's [queue system](./queues). If no exceptions are thrown when the listener is executed by the queue, the queued job will automatically be deleted after it has finished processing.
 
 <a name="customizing-the-queue-connection-queue-name"></a>
+
 #### Customizing The Queue Connection, Name, & Delay
 
 If you would like to customize the queue connection, queue name, or queue delay time of an event listener, you may define the `$connection`, `$queue`, or `$delay` properties on your listener class:
@@ -375,6 +389,7 @@ public function withDelay(OrderShipped $event): int
 ```
 
 <a name="conditionally-queueing-listeners"></a>
+
 #### Conditionally Queueing Listeners
 
 Sometimes, you may need to determine whether a listener should be queued based on some data that are only available at runtime. To accomplish this, a `shouldQueue` method may be added to a listener to determine whether the listener should be queued. If the `shouldQueue` method returns `false`, the listener will not be queued:
@@ -408,6 +423,7 @@ class RewardGiftCard implements ShouldQueue
 ```
 
 <a name="manually-interacting-with-the-queue"></a>
+
 ### Manually Interacting With the Queue
 
 If you need to manually access the listener's underlying queue job's `delete` and `release` methods, you may do so using the `Illuminate\Queue\InteractsWithQueue` trait. This trait is imported by default on generated listeners and provides access to these methods:
@@ -438,6 +454,7 @@ class SendShipmentNotification implements ShouldQueue
 ```
 
 <a name="queued-event-listeners-and-database-transactions"></a>
+
 ### Queued Event Listeners and Database Transactions
 
 When queued listeners are dispatched within database transactions, they may be processed by the queue before the database transaction has committed. When this happens, any updates you have made to models or database records during the database transaction may not yet be reflected in the database. In addition, any models or database records created within the transaction may not exist in the database. If your listener depends on these models, unexpected errors can occur when the job that dispatches the queued listener is processed.
@@ -462,6 +479,7 @@ class SendShipmentNotification implements ShouldQueueAfterCommit
 > To learn more about working around these issues, please review the documentation regarding [queued jobs and database transactions](./queues#jobs-and-database-transactions).
 
 <a name="queued-listener-middleware"></a>
+
 ### Queued Listener Middleware
 
 Queued listeners can also utilize [job middleware](./queues#job-middleware). Job middleware allow you to wrap custom logic around the execution of queued listeners, reducing boilerplate in the listeners themselves. After creating job middleware, they may be attached to a listener by returning them from the listener's `middleware` method:
@@ -498,6 +516,7 @@ class SendShipmentNotification implements ShouldQueue
 ```
 
 <a name="encrypted-queued-listeners"></a>
+
 #### Encrypted Queued Listeners
 
 Laravel allows you to ensure the privacy and integrity of a queued listener's data via [encryption](./encryption). To get started, simply add the `ShouldBeEncrypted` interface to the listener class. Once this interface has been added to the class, Laravel will automatically encrypt your listener before pushing it onto a queue:
@@ -518,6 +537,7 @@ class SendShipmentNotification implements ShouldQueue, ShouldBeEncrypted
 ```
 
 <a name="handling-failed-jobs"></a>
+
 ### Handling Failed Jobs
 
 Sometimes your queued event listeners may fail. If the queued listener exceeds the maximum number of attempts as defined by your queue worker, the `failed` method will be called on your listener. The `failed` method receives the event instance and the `Throwable` that caused the failure:
@@ -555,6 +575,7 @@ class SendShipmentNotification implements ShouldQueue
 ```
 
 <a name="specifying-queued-listener-maximum-attempts"></a>
+
 #### Specifying Queued Listener Maximum Attempts
 
 If one of your queued listeners is encountering an error, you likely do not want it to keep retrying indefinitely. Therefore, Laravel provides various ways to specify how many times or for how long a listener may be attempted.
@@ -600,6 +621,7 @@ public function retryUntil(): DateTime
 If both `retryUntil` and `tries` are defined, Laravel gives precedence to the `retryUntil` method.
 
 <a name="specifying-queued-listener-backoff"></a>
+
 #### Specifying Queued Listener Backoff
 
 If you would like to configure how many seconds Laravel should wait before retrying a listener that has encountered an exception, you may do so by defining a `backoff` property on your listener class:
@@ -640,6 +662,7 @@ public function backoff(OrderShipped $event): array
 ```
 
 <a name="specifying-queued-listener-max-exceptions"></a>
+
 #### Specifying Queued Listener Max Exceptions
 
 Sometimes you may wish to specify that a queued listener may be attempted many times, but should fail if the retries are triggered by a given number of unhandled exceptions (as opposed to being released by the `release` method directly). To accomplish this, you may define a `maxExceptions` property on your listener class:
@@ -684,6 +707,7 @@ class SendShipmentNotification implements ShouldQueue
 In this example, the listener will be retried up to 25 times. However, the listener will fail if three unhandled exceptions are thrown by the listener.
 
 <a name="specifying-queued-listener-timeout"></a>
+
 #### Specifying Queued Listener Timeout
 
 Often, you know roughly how long you expect your queued listeners to take. For this reason, Laravel allows you to specify a "timeout" value. If a listener is processing for longer than the number of seconds specified by the timeout value, the worker processing the listener will exit with an error. You may define the maximum number of seconds a listener should be allowed to run by defining a `timeout` property on your listener class:
@@ -729,6 +753,7 @@ class SendShipmentNotification implements ShouldQueue
 ```
 
 <a name="dispatching-events"></a>
+
 ## Dispatching Events
 
 To dispatch an event, you may call the static `dispatch` method on the event. This method is made available on the event by the `Illuminate\Foundation\Events\Dispatchable` trait. Any arguments passed to the `dispatch` method will be passed to the event's constructor:
@@ -773,6 +798,7 @@ OrderShipped::dispatchUnless($condition, $order);
 > When testing, it can be helpful to assert that certain events were dispatched without actually triggering their listeners. Laravel's [built-in testing helpers](#testing) make it a cinch.
 
 <a name="dispatching-events-after-database-transactions"></a>
+
 ### Dispatching Events After Database Transactions
 
 Sometimes, you may want to instruct Laravel to only dispatch an event after the active database transaction has committed. To do so, you may implement the `ShouldDispatchAfterCommit` interface on the event class.
@@ -804,9 +830,11 @@ class OrderShipped implements ShouldDispatchAfterCommit
 ```
 
 <a name="event-subscribers"></a>
+
 ## Event Subscribers
 
 <a name="writing-event-subscribers"></a>
+
 ### Writing Event Subscribers
 
 Event subscribers are classes that may subscribe to multiple events from within the subscriber class itself, allowing you to define several event handlers within a single class. Subscribers should define a `subscribe` method, which receives an event dispatcher instance. You may call the `listen` method on the given dispatcher to register event listeners:
@@ -889,6 +917,7 @@ class UserEventSubscriber
 ```
 
 <a name="registering-event-subscribers"></a>
+
 ### Registering Event Subscribers
 
 After writing the subscriber, Laravel will automatically register handler methods within the subscriber if they follow Laravel's [event discovery conventions](#event-discovery). Otherwise, you may manually register your subscriber using the `subscribe` method of the `Event` facade. Typically, this should be done within the `boot` method of your application's `AppServiceProvider`:
@@ -915,6 +944,7 @@ class AppServiceProvider extends ServiceProvider
 ```
 
 <a name="testing"></a>
+
 ## Testing
 
 When testing code that dispatches events, you may wish to instruct Laravel to not actually execute the event's listeners, since the listener's code can be tested directly and separately of the code that dispatches the corresponding event. Of course, to test the listener itself, you may instantiate a listener instance and invoke the `handle` method directly in your test.
@@ -1004,6 +1034,7 @@ Event::assertListening(
 > After calling `Event::fake()`, no event listeners will be executed. So, if your tests use model factories that rely on events, such as creating a UUID during a model's `creating` event, you should call `Event::fake()` **after** using your factories.
 
 <a name="faking-a-subset-of-events"></a>
+
 ### Faking a Subset of Events
 
 If you only want to fake event listeners for a specific set of events, you may pass them to the `fake` or `fakeFor` method:
@@ -1055,6 +1086,7 @@ Event::fake()->except([
 ```
 
 <a name="scoped-event-fakes"></a>
+
 ### Scoped Event Fakes
 
 If you only want to fake event listeners for a portion of your test, you may use the `fakeFor` method:

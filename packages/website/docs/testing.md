@@ -8,11 +8,12 @@ laravelDocs: true
 - [Environment](#environment)
 - [Creating Tests](#creating-tests)
 - [Running Tests](#running-tests)
-    - [Running Tests in Parallel](#running-tests-in-parallel)
-    - [Reporting Test Coverage](#reporting-test-coverage)
-    - [Profiling Tests](#profiling-tests)
+  - [Running Tests in Parallel](#running-tests-in-parallel)
+  - [Reporting Test Coverage](#reporting-test-coverage)
+  - [Profiling Tests](#profiling-tests)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 Laravel is built with testing in mind. In fact, support for testing with [Pest](https://pestphp.com) and [PHPUnit](https://phpunit.de) is included out of the box and a `phpunit.xml` file is already set up for your application. The framework also ships with convenient helper methods that allow you to expressively test your applications.
@@ -24,6 +25,7 @@ Feature tests may test a larger portion of your code, including how several obje
 An `ExampleTest.php` file is provided in both the `Feature` and `Unit` test directories. After installing a new Laravel application, execute the `vendor/bin/pest`, `vendor/bin/phpunit`, or `php artisan test` commands to run your tests.
 
 <a name="environment"></a>
+
 ## Environment
 
 When running tests, Laravel will automatically set the [configuration environment](./configuration#environment-configuration) to `testing` because of the environment variables defined in the `phpunit.xml` file. Laravel also automatically configures the session and cache to the `array` driver so that no session or cache data will be persisted while testing.
@@ -31,11 +33,13 @@ When running tests, Laravel will automatically set the [configuration environmen
 You are free to define other testing environment configuration values as necessary. The `testing` environment variables may be configured in your application's `phpunit.xml` file, but make sure to clear your configuration cache using the `config:clear` Artisan command before running your tests!
 
 <a name="the-env-testing-environment-file"></a>
+
 #### The `.env.testing` Environment File
 
 In addition, you may create a `.env.testing` file in the root of your project. This file will be used instead of the `.env` file when running Pest and PHPUnit tests or executing Artisan commands with the `--env=testing` option.
 
 <a name="creating-tests"></a>
+
 ## Creating Tests
 
 To create a new test case, use the `make:test` Artisan command. By default, tests will be placed in the `tests/Feature` directory:
@@ -86,6 +90,7 @@ class ExampleTest extends TestCase
 > If you define your own `setUp` / `tearDown` methods within a test class, be sure to call the respective `parent::setUp()` / `parent::tearDown()` methods on the parent class. Typically, you should invoke `parent::setUp()` at the start of your own `setUp` method, and `parent::tearDown()` at the end of your `tearDown` method.
 
 <a name="running-tests"></a>
+
 ## Running Tests
 
 As mentioned previously, once you've written tests, you may run them using `pest` or `phpunit`:
@@ -111,6 +116,7 @@ php artisan test --testsuite=Feature --stop-on-failure
 ```
 
 <a name="running-tests-in-parallel"></a>
+
 ### Running Tests in Parallel
 
 By default, Laravel and Pest / PHPUnit execute your tests sequentially within a single process. However, you may greatly reduce the amount of time it takes to run your tests by running tests simultaneously across multiple processes. To get started, you should install the `brianium/paratest` Composer package as a "dev" dependency. Then, include the `--parallel` option when executing the `test` Artisan command:
@@ -131,6 +137,7 @@ php artisan test --parallel --processes=4
 > When running tests in parallel, some Pest / PHPUnit options (such as `--do-not-cache-result`) may not be available.
 
 <a name="parallel-testing-and-databases"></a>
+
 #### Parallel Testing and Databases
 
 As long as you have configured a primary database connection, Laravel automatically handles creating and migrating a test database for each parallel process that is running your tests. The test databases will be suffixed with a process token which is unique per process. For example, if you have two parallel test processes, Laravel will create and use `your_db_test_1` and `your_db_test_2` test databases.
@@ -142,6 +149,7 @@ php artisan test --parallel --recreate-databases
 ```
 
 <a name="parallel-testing-hooks"></a>
+
 #### Parallel Testing Hooks
 
 Occasionally, you may need to prepare certain resources used by your application's tests so they may be safely used by multiple test processes.
@@ -190,6 +198,7 @@ class AppServiceProvider extends ServiceProvider
 ```
 
 <a name="accessing-the-parallel-testing-token"></a>
+
 #### Accessing the Parallel Testing Token
 
 If you would like to access the current parallel process "token" from any other location in your application's test code, you may use the `token` method. This token is a unique, string identifier for an individual test process and may be used to segment resources across parallel test processes. For example, Laravel automatically appends this token to the end of the test databases created by each parallel testing process:
@@ -197,6 +206,7 @@ If you would like to access the current parallel process "token" from any other 
     $token = ParallelTesting::token();
 
 <a name="reporting-test-coverage"></a>
+
 ### Reporting Test Coverage
 
 > [!WARNING]
@@ -209,6 +219,7 @@ php artisan test --coverage
 ```
 
 <a name="enforcing-a-minimum-coverage-threshold"></a>
+
 #### Enforcing a Minimum Coverage Threshold
 
 You may use the `--min` option to define a minimum test coverage threshold for your application. The test suite will fail if this threshold is not met:
@@ -218,6 +229,7 @@ php artisan test --coverage --min=80.3
 ```
 
 <a name="profiling-tests"></a>
+
 ### Profiling Tests
 
 The Artisan test runner also includes a convenient mechanism for listing your application's slowest tests. Invoke the `test` command with the `--profile` option to be presented with a list of your ten slowest tests, allowing you to easily investigate which tests can be improved to speed up your test suite:

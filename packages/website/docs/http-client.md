@@ -6,28 +6,30 @@ laravelDocs: true
 
 - [Introduction](#introduction)
 - [Making Requests](#making-requests)
-    - [Request Data](#request-data)
-    - [Headers](#headers)
-    - [Authentication](#authentication)
-    - [Timeout](#timeout)
-    - [Retries](#retries)
-    - [Error Handling](#error-handling)
-    - [Guzzle Middleware](#guzzle-middleware)
-    - [Guzzle Options](#guzzle-options)
+  - [Request Data](#request-data)
+  - [Headers](#headers)
+  - [Authentication](#authentication)
+  - [Timeout](#timeout)
+  - [Retries](#retries)
+  - [Error Handling](#error-handling)
+  - [Guzzle Middleware](#guzzle-middleware)
+  - [Guzzle Options](#guzzle-options)
 - [Concurrent Requests](#concurrent-requests)
 - [Macros](#macros)
 - [Testing](#testing)
-    - [Faking Responses](#faking-responses)
-    - [Inspecting Requests](#inspecting-requests)
-    - [Preventing Stray Requests](#preventing-stray-requests)
+  - [Faking Responses](#faking-responses)
+  - [Inspecting Requests](#inspecting-requests)
+  - [Preventing Stray Requests](#preventing-stray-requests)
 - [Events](#events)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 Laravel provides an expressive, minimal API around the [Guzzle HTTP client](http://docs.guzzlephp.org/en/stable/), allowing you to quickly make outgoing HTTP requests to communicate with other web applications. Laravel's wrapper around Guzzle is focused on its most common use cases and a wonderful developer experience.
 
 <a name="making-requests"></a>
+
 ## Making Requests
 
 To make requests, you may use the `head`, `get`, `post`, `put`, `patch`, and `delete` methods provided by the `Http` facade. First, let's examine how to make a basic `GET` request to another URL:
@@ -83,6 +85,7 @@ $response->serverError() : bool;         // 500 Internal Server Error
 ```
 
 <a name="uri-templates"></a>
+
 #### URI Templates
 
 The HTTP client also allows you to construct request URLs using the [URI template specification](https://www.rfc-editor.org/rfc/rfc6570). To define the URL parameters that can be expanded by your URI template, you may use the `withUrlParameters` method:
@@ -97,6 +100,7 @@ Http::withUrlParameters([
 ```
 
 <a name="dumping-requests"></a>
+
 #### Dumping Requests
 
 If you would like to dump the outgoing request instance before it is sent and terminate the script's execution, you may add the `dd` method to the beginning of your request definition:
@@ -106,6 +110,7 @@ return Http::dd()->get('http://example.com');
 ```
 
 <a name="request-data"></a>
+
 ### Request Data
 
 Of course, it is common when making `POST`, `PUT`, and `PATCH` requests to send additional data with your request, so these methods accept an array of data as their second argument. By default, data will be sent using the `application/json` content type:
@@ -120,6 +125,7 @@ $response = Http::post('http://example.com/users', [
 ```
 
 <a name="get-request-query-parameters"></a>
+
 #### GET Request Query Parameters
 
 When making `GET` requests, you may either append a query string to the URL directly or pass an array of key / value pairs as the second argument to the `get` method:
@@ -141,6 +147,7 @@ Http::retry(3, 100)->withQueryParameters([
 ```
 
 <a name="sending-form-url-encoded-requests"></a>
+
 #### Sending Form URL Encoded Requests
 
 If you would like to send data using the `application/x-www-form-urlencoded` content type, you should call the `asForm` method before making your request:
@@ -153,6 +160,7 @@ $response = Http::asForm()->post('http://example.com/users', [
 ```
 
 <a name="sending-a-raw-request-body"></a>
+
 #### Sending a Raw Request Body
 
 You may use the `withBody` method if you would like to provide a raw request body when making a request. The content type may be provided via the method's second argument:
@@ -164,6 +172,7 @@ $response = Http::withBody(
 ```
 
 <a name="multi-part-requests"></a>
+
 #### Multi-Part Requests
 
 If you would like to send files as multi-part requests, you should call the `attach` method before making your request. This method accepts the name of the file and its contents. If needed, you may provide a third argument which will be considered the file's filename, while a fourth argument may be used to provide headers associated with the file:
@@ -185,6 +194,7 @@ $response = Http::attach(
 ```
 
 <a name="headers"></a>
+
 ### Headers
 
 Headers may be added to requests using the `withHeaders` method. This `withHeaders` method accepts an array of key / value pairs:
@@ -223,6 +233,7 @@ $response = Http::withHeaders([
 ```
 
 <a name="authentication"></a>
+
 ### Authentication
 
 You may specify basic and digest authentication credentials using the `withBasicAuth` and `withDigestAuth` methods, respectively:
@@ -236,6 +247,7 @@ $response = Http::withDigestAuth('taylor@laravel.com', 'secret')->post(/* ... */
 ```
 
 <a name="bearer-tokens"></a>
+
 #### Bearer Tokens
 
 If you would like to quickly add a bearer token to the request's `Authorization` header, you may use the `withToken` method:
@@ -245,6 +257,7 @@ $response = Http::withToken('token')->post(/* ... */);
 ```
 
 <a name="timeout"></a>
+
 ### Timeout
 
 The `timeout` method may be used to specify the maximum number of seconds to wait for a response. By default, the HTTP client will timeout after 30 seconds:
@@ -253,7 +266,7 @@ The `timeout` method may be used to specify the maximum number of seconds to wai
 $response = Http::timeout(3)->get(/* ... */);
 ```
 
-If the given timeout is exceeded, an instance of `Illuminate\Http\Client\ConnectionException` will  be thrown.
+If the given timeout is exceeded, an instance of `Illuminate\Http\Client\ConnectionException` will be thrown.
 
 You may specify the maximum number of seconds to wait while trying to connect to a server using the `connectTimeout` method. The default is 10 seconds:
 
@@ -262,6 +275,7 @@ $response = Http::connectTimeout(3)->get(/* ... */);
 ```
 
 <a name="retries"></a>
+
 ### Retries
 
 If you would like the HTTP client to automatically retry the request if a client or server error occurs, you may use the `retry` method. The `retry` method accepts the maximum number of times the request should be attempted and the number of milliseconds that Laravel should wait in between attempts:
@@ -325,6 +339,7 @@ $response = Http::retry(3, 100, throw: false)->post(/* ... */);
 > If all of the requests fail because of a connection issue, a `Illuminate\Http\Client\ConnectionException` will still be thrown even when the `throw` argument is set to `false`.
 
 <a name="error-handling"></a>
+
 ### Error Handling
 
 Unlike Guzzle's default behavior, Laravel's HTTP client wrapper does not throw exceptions on client or server errors (`400` and `500` level responses from servers). You may determine if one of these errors was returned using the `successful`, `clientError`, or `serverError` methods:
@@ -347,6 +362,7 @@ $response->onError(callable $callback);
 ```
 
 <a name="throwing-exceptions"></a>
+
 #### Throwing Exceptions
 
 If you have a response instance and would like to throw an instance of `Illuminate\Http\Client\RequestException` if the response status code indicates a client or server error, you may use the `throw` or `throwIf` methods:
@@ -420,6 +436,7 @@ return Http::truncateExceptionsAt(240)->post(/* ... */);
 ```
 
 <a name="guzzle-middleware"></a>
+
 ### Guzzle Middleware
 
 Since Laravel's HTTP client is powered by Guzzle, you may take advantage of [Guzzle Middleware](https://docs.guzzlephp.org/en/stable/handlers-and-middleware.html) to manipulate the outgoing request or inspect the incoming response. To manipulate the outgoing request, register a Guzzle middleware via the `withRequestMiddleware` method:
@@ -453,6 +470,7 @@ $response = Http::withResponseMiddleware(
 ```
 
 <a name="global-middleware"></a>
+
 #### Global Middleware
 
 Sometimes, you may want to register a middleware that applies to every outgoing request and incoming response. To accomplish this, you may use the `globalRequestMiddleware` and `globalResponseMiddleware` methods. Typically, these methods should be invoked in the `boot` method of your application's `AppServiceProvider`:
@@ -470,6 +488,7 @@ Http::globalResponseMiddleware(fn ($response) => $response->withHeader(
 ```
 
 <a name="guzzle-options"></a>
+
 ### Guzzle Options
 
 You may specify additional [Guzzle request options](http://docs.guzzlephp.org/en/stable/request-options.html) for an outgoing request using the `withOptions` method. The `withOptions` method accepts an array of key / value pairs:
@@ -481,6 +500,7 @@ $response = Http::withOptions([
 ```
 
 <a name="global-options"></a>
+
 #### Global Options
 
 To configure default options for every outgoing request, you may utilize the `globalOptions` method. Typically, this method should be invoked from the `boot` method of your application's `AppServiceProvider`:
@@ -500,6 +520,7 @@ public function boot(): void
 ```
 
 <a name="concurrent-requests"></a>
+
 ## Concurrent Requests
 
 Sometimes, you may wish to make multiple HTTP requests concurrently. In other words, you want several requests to be dispatched at the same time instead of issuing the requests sequentially. This can lead to substantial performance improvements when interacting with slow HTTP APIs.
@@ -537,6 +558,7 @@ return $responses['first']->ok();
 ```
 
 <a name="customizing-concurrent-requests"></a>
+
 #### Customizing Concurrent Requests
 
 The `pool` method cannot be chained with other HTTP client methods such as the `withHeaders` or `middleware` methods. If you want to apply custom headers or middleware to pooled requests, you should configure those options on each request in the pool:
@@ -557,6 +579,7 @@ $responses = Http::pool(fn (Pool $pool) => [
 ```
 
 <a name="macros"></a>
+
 ## Macros
 
 The Laravel HTTP client allows you to define "macros", which can serve as a fluent, expressive mechanism to configure common request paths and headers when interacting with services throughout your application. To get started, you may define the macro within the `boot` method of your application's `App\Providers\AppServiceProvider` class:
@@ -584,11 +607,13 @@ $response = Http::github()->get('/');
 ```
 
 <a name="testing"></a>
+
 ## Testing
 
 Many Laravel services provide functionality to help you easily and expressively write tests, and Laravel's HTTP client is no exception. The `Http` facade's `fake` method allows you to instruct the HTTP client to return stubbed / dummy responses when requests are made.
 
 <a name="faking-responses"></a>
+
 ### Faking Responses
 
 For example, to instruct the HTTP client to return empty, `200` status code responses for every request, you may call the `fake` method with no arguments:
@@ -602,6 +627,7 @@ $response = Http::post(/* ... */);
 ```
 
 <a name="faking-specific-urls"></a>
+
 #### Faking Specific URLs
 
 Alternatively, you may pass an array to the `fake` method. The array's keys should represent URL patterns that you wish to fake and their associated responses. The `*` character may be used as a wildcard character. You may use the `Http` facade's `response` method to construct stub / fake responses for these endpoints:
@@ -639,6 +665,7 @@ Http::fake([
 ```
 
 <a name="faking-connection-exceptions"></a>
+
 #### Faking Exceptions
 
 Sometimes you may need to test your application's behavior if the HTTP client encounters an `Illuminate\Http\Client\ConnectionException` when attempting to make a request. You can instruct the HTTP client to throw a connection exception using the `failedConnection` method:
@@ -658,6 +685,7 @@ Http::fake([
 ```
 
 <a name="faking-response-sequences"></a>
+
 #### Faking Response Sequences
 
 Sometimes you may need to specify that a single URL should return a series of fake responses in a specific order. You may accomplish this using the `Http::sequence` method to build the responses:
@@ -693,6 +721,7 @@ Http::fakeSequence()
 ```
 
 <a name="fake-callback"></a>
+
 #### Fake Callback
 
 If you require more complicated logic to determine what responses to return for certain endpoints, you may pass a closure to the `fake` method. This closure will receive an instance of `Illuminate\Http\Client\Request` and should return a response instance. Within your closure, you may perform whatever logic is necessary to determine what type of response to return:
@@ -706,6 +735,7 @@ Http::fake(function (Request $request) {
 ```
 
 <a name="inspecting-requests"></a>
+
 ### Inspecting Requests
 
 When faking responses, you may occasionally wish to inspect the requests the client receives in order to make sure your application is sending the correct data or headers. You may accomplish this by calling the `Http::assertSent` method after calling `Http::fake`.
@@ -768,6 +798,7 @@ Http::assertNothingSent();
 ```
 
 <a name="recording-requests-and-responses"></a>
+
 #### Recording Requests / Responses
 
 You may use the `recorded` method to gather all requests and their corresponding responses. The `recorded` method returns a collection of arrays that contains instances of `Illuminate\Http\Client\Request` and `Illuminate\Http\Client\Response`:
@@ -807,6 +838,7 @@ $recorded = Http::recorded(function (Request $request, Response $response) {
 ```
 
 <a name="preventing-stray-requests"></a>
+
 ### Preventing Stray Requests
 
 If you would like to ensure that all requests sent via the HTTP client have been faked throughout your individual test or complete test suite, you can call the `preventStrayRequests` method. After calling this method, any requests that do not have a corresponding fake response will throw an exception rather than making the actual HTTP request:
@@ -828,6 +860,7 @@ Http::get('https://laravel.com');
 ```
 
 <a name="events"></a>
+
 ## Events
 
 Laravel fires three events during the process of sending HTTP requests. The `RequestSending` event is fired prior to a request being sent, while the `ResponseReceived` event is fired after a response is received for a given request. The `ConnectionFailed` event is fired if no response is received for a given request.

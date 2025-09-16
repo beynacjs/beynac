@@ -7,24 +7,26 @@ laravelDocs: true
 - [Introduction](#introduction)
 - [Server Requirements](#server-requirements)
 - [Server Configuration](#server-configuration)
-    - [Nginx](#nginx)
-    - [FrankenPHP](#frankenphp)
-    - [Directory Permissions](#directory-permissions)
+  - [Nginx](#nginx)
+  - [FrankenPHP](#frankenphp)
+  - [Directory Permissions](#directory-permissions)
 - [Optimization](#optimization)
-    - [Caching Configuration](#optimizing-configuration-loading)
-    - [Caching Events](#caching-events)
-    - [Caching Routes](#optimizing-route-loading)
-    - [Caching Views](#optimizing-view-loading)
+  - [Caching Configuration](#optimizing-configuration-loading)
+  - [Caching Events](#caching-events)
+  - [Caching Routes](#optimizing-route-loading)
+  - [Caching Views](#optimizing-view-loading)
 - [Debug Mode](#debug-mode)
 - [The Health Route](#the-health-route)
 - [Deploying With Laravel Cloud or Forge](#deploying-with-cloud-or-forge)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 When you're ready to deploy your Laravel application to production, there are some important things you can do to make sure your application is running as efficiently as possible. In this document, we'll cover some great starting points for making sure your Laravel application is deployed properly.
 
 <a name="server-requirements"></a>
+
 ## Server Requirements
 
 The Laravel framework has a few system requirements. You should ensure that your web server has the following minimum PHP version and extensions:
@@ -49,9 +51,11 @@ The Laravel framework has a few system requirements. You should ensure that your
 </div>
 
 <a name="server-configuration"></a>
+
 ## Server Configuration
 
 <a name="nginx"></a>
+
 ### Nginx
 
 If you are deploying your application to a server that is running Nginx, you may use the following configuration file as a starting point for configuring your web server. Most likely, this file will need to be customized depending on your server's configuration. **If you would like assistance in managing your server, consider using a fully-managed Laravel platform like [Laravel Cloud](https://cloud.laravel.com).**
@@ -95,6 +99,7 @@ server {
 ```
 
 <a name="frankenphp"></a>
+
 ### FrankenPHP
 
 [FrankenPHP](https://frankenphp.dev/) may also be used to serve your Laravel applications. FrankenPHP is a modern PHP application server written in Go. To serve a Laravel PHP application using FrankenPHP, you may simply invoke its `php-server` command:
@@ -106,11 +111,13 @@ frankenphp php-server -r public/
 To take advantage of more powerful features supported by FrankenPHP, such as its [Laravel Octane](./octane) integration, HTTP/3, modern compression, or the ability to package Laravel applications as standalone binaries, please consult FrankenPHP's [Laravel documentation](https://frankenphp.dev/docs/laravel/).
 
 <a name="directory-permissions"></a>
+
 ### Directory Permissions
 
 Laravel will need to write to the `bootstrap/cache` and `storage` directories, so you should ensure the web server process owner has permission to write to these directories.
 
 <a name="optimization"></a>
+
 ## Optimization
 
 When deploying your application to production, there are a variety of files that should be cached, including your configuration, events, routes, and views. Laravel provides a single, convenient `optimize` Artisan command that will cache all of these files. This command should typically be invoked as part of your application's deployment process:
@@ -128,6 +135,7 @@ php artisan optimize:clear
 In the following documentation, we will discuss each of the granular optimization commands that are executed by the `optimize` command.
 
 <a name="optimizing-configuration-loading"></a>
+
 ### Caching Configuration
 
 When deploying your application to production, you should make sure that you run the `config:cache` Artisan command during your deployment process:
@@ -142,6 +150,7 @@ This command will combine all of Laravel's configuration files into a single, ca
 > If you execute the `config:cache` command during your deployment process, you should be sure that you are only calling the `env` function from within your configuration files. Once the configuration has been cached, the `.env` file will not be loaded and all calls to the `env` function for `.env` variables will return `null`.
 
 <a name="caching-events"></a>
+
 ### Caching Events
 
 You should cache your application's auto-discovered event to listener mappings during your deployment process. This can be accomplished by invoking the `event:cache` Artisan command during deployment:
@@ -151,6 +160,7 @@ php artisan event:cache
 ```
 
 <a name="optimizing-route-loading"></a>
+
 ### Caching Routes
 
 If you are building a large application with many routes, you should make sure that you are running the `route:cache` Artisan command during your deployment process:
@@ -162,6 +172,7 @@ php artisan route:cache
 This command reduces all of your route registrations into a single method call within a cached file, improving the performance of route registration when registering hundreds of routes.
 
 <a name="optimizing-view-loading"></a>
+
 ### Caching Views
 
 When deploying your application to production, you should make sure that you run the `view:cache` Artisan command during your deployment process:
@@ -173,6 +184,7 @@ php artisan view:cache
 This command precompiles all your Blade views so they are not compiled on demand, improving the performance of each request that returns a view.
 
 <a name="debug-mode"></a>
+
 ## Debug Mode
 
 The debug option in your `config/app.php` configuration file determines how much information about an error is actually displayed to the user. By default, this option is set to respect the value of the `APP_DEBUG` environment variable, which is stored in your application's `.env` file.
@@ -181,6 +193,7 @@ The debug option in your `config/app.php` configuration file determines how much
 > **In your production environment, this value should always be `false`. If the `APP_DEBUG` variable is set to `true` in production, you risk exposing sensitive configuration values to your application's end users.**
 
 <a name="the-health-route"></a>
+
 ## The Health Route
 
 Laravel includes a built-in health check route that can be used to monitor the status of your application. In production, this route may be used to report the status of your application to an uptime monitor, load balancer, or orchestration system such as Kubernetes.
@@ -199,9 +212,11 @@ By default, the health check route is served at `/up` and will return a 200 HTTP
 When HTTP requests are made to this route, Laravel will also dispatch a `Illuminate\Foundation\Events\DiagnosingHealth` event, allowing you to perform additional health checks relevant to your application. Within a [listener](./events) for this event, you may check your application's database or cache status. If you detect a problem with your application, you may simply throw an exception from the listener.
 
 <a name="deploying-with-cloud-or-forge"></a>
+
 ## Deploying With Laravel Cloud or Forge
 
 <a name="laravel-cloud"></a>
+
 #### Laravel Cloud
 
 If you would like a fully-managed, auto-scaling deployment platform tuned for Laravel, check out [Laravel Cloud](https://cloud.laravel.com). Laravel Cloud is a robust deployment platform for Laravel, offering managed compute, databases, caches, and object storage.
@@ -209,6 +224,7 @@ If you would like a fully-managed, auto-scaling deployment platform tuned for La
 Launch your Laravel application on Cloud and fall in love with the scalable simplicity. Laravel Cloud is fine-tuned by Laravel's creators to work seamlessly with the framework so you can keep writing your Laravel applications exactly like you're used to.
 
 <a name="laravel-forge"></a>
+
 #### Laravel Forge
 
 If you prefer to manage your own servers but aren't comfortable configuring all of the various services needed to run a robust Laravel application, [Laravel Forge](https://forge.laravel.com) is a VPS server management platform for Laravel applications.

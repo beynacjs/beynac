@@ -6,15 +6,16 @@ laravelDocs: true
 
 - [Introduction](#introduction)
 - [Using PHP](#using-php)
-    - [PHP and Blade](#php-and-blade)
-    - [Livewire](#livewire)
-    - [Starter Kits](#php-starter-kits)
+  - [PHP and Blade](#php-and-blade)
+  - [Livewire](#livewire)
+  - [Starter Kits](#php-starter-kits)
 - [Using React or Vue](#using-react-or-vue)
-    - [Inertia](#inertia)
-    - [Starter Kits](#inertia-starter-kits)
+  - [Inertia](#inertia)
+  - [Starter Kits](#inertia-starter-kits)
 - [Bundling Assets](#bundling-assets)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 Laravel is a backend framework that provides all of the features you need to build modern web applications, such as [routing](./routing), [validation](./validation), [caching](./cache), [queues](./queues), [file storage](./filesystem), and more. However, we believe it's important to offer developers a beautiful full-stack experience, including powerful approaches for building your application's frontend.
@@ -22,9 +23,11 @@ Laravel is a backend framework that provides all of the features you need to bui
 There are two primary ways to tackle frontend development when building an application with Laravel, and which approach you choose is determined by whether you would like to build your frontend by leveraging PHP or by using JavaScript frameworks such as Vue and React. We'll discuss both of these options below so that you can make an informed decision regarding the best approach to frontend development for your application.
 
 <a name="using-php"></a>
+
 ## Using PHP
 
 <a name="php-and-blade"></a>
+
 ### PHP and Blade
 
 In the past, most PHP applications rendered HTML to the browser using simple HTML templates interspersed with PHP `echo` statements which render data that was retrieved from a database during the request:
@@ -50,6 +53,7 @@ In Laravel, this approach to rendering HTML can still be achieved using [views](
 When building applications in this fashion, form submissions and other page interactions typically receive an entirely new HTML document from the server and the entire page is re-rendered by the browser. Even today, many applications may be perfectly suited to having their frontends constructed in this way using simple Blade templates.
 
 <a name="growing-expectations"></a>
+
 #### Growing Expectations
 
 However, as user expectations regarding web applications have matured, many developers have found the need to build more dynamic frontends with interactions that feel more polished. In light of this, some developers choose to begin building their application's frontend using JavaScript frameworks such as Vue and React.
@@ -59,6 +63,7 @@ Others, preferring to stick with the backend language they are comfortable with,
 Within the Laravel ecosystem, the need to create modern, dynamic frontends by primarily using PHP has led to the creation of [Laravel Livewire](https://livewire.laravel.com) and [Alpine.js](https://alpinejs.dev/).
 
 <a name="livewire"></a>
+
 ### Livewire
 
 [Laravel Livewire](https://livewire.laravel.com) is a framework for building Laravel powered frontends that feel dynamic, modern, and alive just like frontends built with modern JavaScript frameworks like Vue and React.
@@ -104,11 +109,13 @@ For many, Livewire has revolutionized frontend development with Laravel, allowin
 If you're new to Laravel, we recommend getting familiar with the basic usage of [views](./views) and [Blade](./blade). Then, consult the official [Laravel Livewire documentation](https://livewire.laravel.com/docs) to learn how to take your application to the next level with interactive Livewire components.
 
 <a name="php-starter-kits"></a>
+
 ### Starter Kits
 
 If you would like to build your frontend using PHP and Livewire, you can leverage our [Livewire starter kit](./starter-kits) to jump-start your application's development.
 
 <a name="using-react-or-vue"></a>
+
 ## Using React or Vue
 
 Although it's possible to build modern frontends using Laravel and Livewire, many developers still prefer to leverage the power of a JavaScript framework like React or Vue. This allows developers to take advantage of the rich ecosystem of JavaScript packages and tools available via NPM.
@@ -118,6 +125,7 @@ However, without additional tooling, pairing Laravel with React or Vue would lea
 In addition, developers are left maintaining two separate code repositories, often needing to coordinate maintenance, releases, and deployments across both repositories. While these problems are not insurmountable, we don't believe it's a productive or enjoyable way to develop applications.
 
 <a name="inertia"></a>
+
 ### Inertia
 
 Thankfully, Laravel offers the best of both worlds. [Inertia](https://inertiajs.com) bridges the gap between your Laravel application and your modern React or Vue frontend, allowing you to build full-fledged, modern frontends using React or Vue while leveraging Laravel routes and controllers for routing, data hydration, and authentication — all within a single code repository. With this approach, you can enjoy the full power of both Laravel and React / Vue without crippling the capabilities of either tool.
@@ -150,18 +158,19 @@ class UserController extends Controller
 An Inertia page corresponds to a React or Vue component, typically stored within the `resources/js/pages` directory of your application. The data given to the page via the `Inertia::render` method will be used to hydrate the "props" of the page component:
 
 <!-- source: manual -->
+
 ```jsx
-import Layout from '@/layouts/authenticated';
-import { Head } from '@inertiajs/react';
+import Layout from "@/layouts/authenticated";
+import { Head } from "@inertiajs/react";
 
 export default function Show({ user }) {
-    return (
-        <Layout>
-            <Head title="Welcome" />
-            <h1>Welcome</h1>
-            <p>Hello {user.name}, welcome to Inertia.</p>
-        </Layout>
-    )
+  return (
+    <Layout>
+      <Head title="Welcome" />
+      <h1>Welcome</h1>
+      <p>Hello {user.name}, welcome to Inertia.</p>
+    </Layout>
+  );
 }
 ```
 
@@ -172,11 +181,13 @@ As you can see, Inertia allows you to leverage the full power of React or Vue wh
 If you're concerned about diving into Inertia because your application requires server-side rendering, don't worry. Inertia offers [server-side rendering support](https://inertiajs.com/server-side-rendering). And, when deploying your application via [Laravel Cloud](https://cloud.laravel.com) or [Laravel Forge](https://forge.laravel.com), it's a breeze to ensure that Inertia's server-side rendering process is always running.
 
 <a name="inertia-starter-kits"></a>
+
 ### Starter Kits
 
 If you would like to build your frontend using Inertia and Vue / React, you can leverage our [React or Vue application starter kits](./starter-kits) to jump-start your application's development. Both of these starter kits scaffold your application's backend and frontend authentication flow using Inertia, Vue / React, [Tailwind](https://tailwindcss.com), and [Vite](https://vitejs.dev) so that you can start building your next big idea.
 
 <a name="bundling-assets"></a>
+
 ## Bundling Assets
 
 Regardless of whether you choose to develop your frontend using Blade and Livewire or Vue / React and Inertia, you will likely need to bundle your application's CSS into production-ready assets. Of course, if you choose to build your application's frontend with Vue or React, you will also need to bundle your components into browser ready JavaScript assets.

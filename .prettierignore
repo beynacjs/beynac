@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+**/dist/
+packages/website/.vitepress/cache/
+packages/website/.vitepress/dist/
+packages/website/public/api/
+
+# Other projects
+laravel/
+
+# Temporary files
+packages/beynac/src/tmp-hono-view/
+port-progress.ts
+
+# Lock files
+bun.lockb
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

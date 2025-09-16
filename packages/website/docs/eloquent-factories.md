@@ -6,22 +6,23 @@ laravelDocs: true
 
 - [Introduction](#introduction)
 - [Defining Model Factories](#defining-model-factories)
-    - [Generating Factories](#generating-factories)
-    - [Factory States](#factory-states)
-    - [Factory Callbacks](#factory-callbacks)
+  - [Generating Factories](#generating-factories)
+  - [Factory States](#factory-states)
+  - [Factory Callbacks](#factory-callbacks)
 - [Creating Models Using Factories](#creating-models-using-factories)
-    - [Instantiating Models](#instantiating-models)
-    - [Persisting Models](#persisting-models)
-    - [Sequences](#sequences)
+  - [Instantiating Models](#instantiating-models)
+  - [Persisting Models](#persisting-models)
+  - [Sequences](#sequences)
 - [Factory Relationships](#factory-relationships)
-    - [Has Many Relationships](#has-many-relationships)
-    - [Belongs To Relationships](#belongs-to-relationships)
-    - [Many to Many Relationships](#many-to-many-relationships)
-    - [Polymorphic Relationships](#polymorphic-relationships)
-    - [Defining Relationships Within Factories](#defining-relationships-within-factories)
-    - [Recycling an Existing Model for Relationships](#recycling-an-existing-model-for-relationships)
+  - [Has Many Relationships](#has-many-relationships)
+  - [Belongs To Relationships](#belongs-to-relationships)
+  - [Many to Many Relationships](#many-to-many-relationships)
+  - [Polymorphic Relationships](#polymorphic-relationships)
+  - [Defining Relationships Within Factories](#defining-relationships-within-factories)
+  - [Recycling an Existing Model for Relationships](#recycling-an-existing-model-for-relationships)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 When testing your application or seeding your database, you may need to insert a few records into your database. Instead of manually specifying the value of each column, Laravel allows you to define a set of default attributes for each of your [Eloquent models](./eloquent) using model factories.
@@ -81,9 +82,11 @@ Via the `fake` helper, factories have access to the [Faker](https://github.com/F
 > You can change your application's Faker locale by updating the `faker_locale` option in your `config/app.php` configuration file.
 
 <a name="defining-model-factories"></a>
+
 ## Defining Model Factories
 
 <a name="generating-factories"></a>
+
 ### Generating Factories
 
 To create a factory, execute the `make:factory` [Artisan command](./artisan):
@@ -95,6 +98,7 @@ php artisan make:factory PostFactory
 The new factory class will be placed in your `database/factories` directory.
 
 <a name="factory-and-model-discovery-conventions"></a>
+
 #### Model and Factory Discovery Conventions
 
 Once you have defined your factories, you may use the static `factory` method provided to your models by the `Illuminate\Database\Eloquent\Factories\HasFactory` trait in order to instantiate a factory instance for that model.
@@ -131,6 +135,7 @@ class FlightFactory extends Factory
 ```
 
 <a name="factory-states"></a>
+
 ### Factory States
 
 State manipulation methods allow you to define discrete modifications that can be applied to your model factories in any combination. For example, your `Database\Factories\UserFactory` factory might contain a `suspended` state method that modifies one of its default attribute values.
@@ -154,6 +159,7 @@ public function suspended(): Factory
 ```
 
 <a name="trashed-state"></a>
+
 #### "Trashed" State
 
 If your Eloquent model can be [soft deleted](./eloquent#soft-deleting), you may invoke the built-in `trashed` state method to indicate that the created model should already be "soft deleted". You do not need to manually define the `trashed` state as it is automatically available to all factories:
@@ -165,6 +171,7 @@ $user = User::factory()->trashed()->create();
 ```
 
 <a name="factory-callbacks"></a>
+
 ### Factory Callbacks
 
 Factory callbacks are registered using the `afterMaking` and `afterCreating` methods and allow you to perform additional tasks after making or creating a model. You should register these callbacks by defining a `configure` method on your factory class. This method will be automatically called by Laravel when the factory is instantiated:
@@ -217,9 +224,11 @@ public function suspended(): Factory
 ```
 
 <a name="creating-models-using-factories"></a>
+
 ## Creating Models Using Factories
 
 <a name="instantiating-models"></a>
+
 ### Instantiating Models
 
 Once you have defined your factories, you may use the static `factory` method provided to your models by the `Illuminate\Database\Eloquent\Factories\HasFactory` trait in order to instantiate a factory instance for that model. Let's take a look at a few examples of creating models. First, we'll use the `make` method to create models without persisting them to the database:
@@ -237,6 +246,7 @@ $users = User::factory()->count(3)->make();
 ```
 
 <a name="applying-states"></a>
+
 #### Applying States
 
 You may also apply any of your [states](#factory-states) to the models. If you would like to apply multiple state transformations to the models, you may simply call the state transformation methods directly:
@@ -246,6 +256,7 @@ $users = User::factory()->count(5)->suspended()->make();
 ```
 
 <a name="overriding-attributes"></a>
+
 #### Overriding Attributes
 
 If you would like to override some of the default values of your models, you may pass an array of values to the `make` method. Only the specified attributes will be replaced while the rest of the attributes remain set to their default values as specified by the factory:
@@ -268,6 +279,7 @@ $user = User::factory()->state([
 > [Mass assignment protection](./eloquent#mass-assignment) is automatically disabled when creating models using factories.
 
 <a name="persisting-models"></a>
+
 ### Persisting Models
 
 The `create` method instantiates model instances and persists them to the database using Eloquent's `save` method:
@@ -291,6 +303,7 @@ $user = User::factory()->create([
 ```
 
 <a name="sequences"></a>
+
 ### Sequences
 
 Sometimes you may wish to alternate the value of a given model attribute for each created model. You may accomplish this by defining a state transformation as a sequence. For example, you may wish to alternate the value of an `admin` column between `Y` and `N` for each created user:
@@ -345,9 +358,11 @@ $users = User::factory()
 ```
 
 <a name="factory-relationships"></a>
+
 ## Factory Relationships
 
 <a name="has-many-relationships"></a>
+
 ### Has Many Relationships
 
 Next, let's explore building Eloquent model relationships using Laravel's fluent factory methods. First, let's assume our application has an `App\Models\User` model and an `App\Models\Post` model. Also, let's assume that the `User` model defines a `hasMany` relationship with `Post`. We can create a user that has three posts using the `has` method provided by the Laravel's factories. The `has` method accepts a factory instance:
@@ -384,6 +399,7 @@ $user = User::factory()
 ```
 
 <a name="has-many-relationships-using-magic-methods"></a>
+
 #### Using Magic Methods
 
 For convenience, you may use Laravel's magic factory relationship methods to build relationships. For example, the following example will use convention to determine that the related models should be created via a `posts` relationship method on the `User` model:
@@ -415,6 +431,7 @@ $user = User::factory()
 ```
 
 <a name="belongs-to-relationships"></a>
+
 ### Belongs To Relationships
 
 Now that we have explored how to build "has many" relationships using factories, let's explore the inverse of the relationship. The `for` method may be used to define the parent model that factory created models belong to. For example, we can create three `App\Models\Post` model instances that belong to a single user:
@@ -443,6 +460,7 @@ $posts = Post::factory()
 ```
 
 <a name="belongs-to-relationships-using-magic-methods"></a>
+
 #### Using Magic Methods
 
 For convenience, you may use Laravel's magic factory relationship methods to define "belongs to" relationships. For example, the following example will use convention to determine that the three posts should belong to the `user` relationship on the `Post` model:
@@ -457,6 +475,7 @@ $posts = Post::factory()
 ```
 
 <a name="many-to-many-relationships"></a>
+
 ### Many to Many Relationships
 
 Like [has many relationships](#has-many-relationships), "many to many" relationships may be created using the `has` method:
@@ -471,6 +490,7 @@ $user = User::factory()
 ```
 
 <a name="pivot-table-attributes"></a>
+
 #### Pivot Table Attributes
 
 If you need to define attributes that should be set on the pivot / intermediate table linking the models, you may use the `hasAttached` method. This method accepts an array of pivot table attribute names and values as its second argument:
@@ -514,6 +534,7 @@ $user = User::factory()
 ```
 
 <a name="many-to-many-relationships-using-magic-methods"></a>
+
 #### Using Magic Methods
 
 For convenience, you may use Laravel's magic factory relationship methods to define many to many relationships. For example, the following example will use convention to determine that the related models should be created via a `roles` relationship method on the `User` model:
@@ -527,6 +548,7 @@ $user = User::factory()
 ```
 
 <a name="polymorphic-relationships"></a>
+
 ### Polymorphic Relationships
 
 [Polymorphic relationships](./eloquent-relationships#polymorphic-relationships) may also be created using factories. Polymorphic "morph many" relationships are created in the same way as typical "has many" relationships. For example, if an `App\Models\Post` model has a `morphMany` relationship with an `App\Models\Comment` model:
@@ -538,6 +560,7 @@ $post = Post::factory()->hasComments(3)->create();
 ```
 
 <a name="morph-to-relationships"></a>
+
 #### Morph To Relationships
 
 Magic methods may not be used to create `morphTo` relationships. Instead, the `for` method must be used directly and the name of the relationship must be explicitly provided. For example, imagine that the `Comment` model has a `commentable` method that defines a `morphTo` relationship. In this situation, we may create three comments that belong to a single post by using the `for` method directly:
@@ -549,6 +572,7 @@ $comments = Comment::factory()->count(3)->for(
 ```
 
 <a name="polymorphic-many-to-many-relationships"></a>
+
 #### Polymorphic Many to Many Relationships
 
 Polymorphic "many to many" (`morphToMany` / `morphedByMany`) relationships may be created just like non-polymorphic "many to many" relationships:
@@ -574,6 +598,7 @@ $videos = Video::factory()
 ```
 
 <a name="defining-relationships-within-factories"></a>
+
 ### Defining Relationships Within Factories
 
 To define a relationship within your model factory, you will typically assign a new factory instance to the foreign key of the relationship. This is normally done for the "inverse" relationships such as `belongsTo` and `morphTo` relationships. For example, if you would like to create a new user when creating a post, you may do the following:
@@ -618,6 +643,7 @@ public function definition(): array
 ```
 
 <a name="recycling-an-existing-model-for-relationships"></a>
+
 ### Recycling an Existing Model for Relationships
 
 If you have models that share a common relationship with another model, you may use the `recycle` method to ensure a single instance of the related model is recycled for all of the relationships created by the factory.

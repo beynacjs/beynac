@@ -1,9 +1,9 @@
 import { BeynacError } from "@/error";
 import type { Key } from "@/keys";
 import {
-	type ClassReference,
-	getKeyName,
-	type KeyOrClass,
+  type ClassReference,
+  getKeyName,
+  type KeyOrClass,
 } from "./container-key";
 import { NO_VALUE, type NoValue } from "./no-value";
 
@@ -31,14 +31,14 @@ export function inject<T>(token: ClassReference<T>): T;
  * const instance = new MyClass(new MockEmailService());
  */
 export function inject<T>(arg: KeyOrClass<T>): Exclude<T, undefined> {
-	if (!_currentInjectHandler) {
-		throw new BeynacError(invalidInjectMessage);
-	}
-	const result = _currentInjectHandler(arg, false);
-	if (result === NO_VALUE) {
-		throw new BeynacError(`Required dependency ${getKeyName(arg)} not found`);
-	}
-	return result as Exclude<T, undefined>;
+  if (!_currentInjectHandler) {
+    throw new BeynacError(invalidInjectMessage);
+  }
+  const result = _currentInjectHandler(arg, false);
+  if (result === NO_VALUE) {
+    throw new BeynacError(`Required dependency ${getKeyName(arg)} not found`);
+  }
+  return result as Exclude<T, undefined>;
 }
 
 export function injectOptional<T>(token: Key<T>): Exclude<T, undefined> | null;
@@ -62,13 +62,13 @@ export function injectOptional<T>(token: ClassReference<T>): T | null;
  * const instance = new MyClass(new MockEmailService());
  */
 export function injectOptional<T>(
-	arg: KeyOrClass<T>,
+  arg: KeyOrClass<T>
 ): Exclude<T, undefined> | null {
-	if (!_currentInjectHandler) {
-		throw new BeynacError(invalidInjectMessage);
-	}
-	const result = _currentInjectHandler(arg, true);
-	return result === NO_VALUE ? null : (result as Exclude<T, undefined>);
+  if (!_currentInjectHandler) {
+    throw new BeynacError(invalidInjectMessage);
+  }
+  const result = _currentInjectHandler(arg, true);
+  return result === NO_VALUE ? null : (result as Exclude<T, undefined>);
 }
 
 type InjectHandler = <T>(arg: KeyOrClass<T>, optional: boolean) => T | NoValue;
@@ -76,9 +76,9 @@ type InjectHandler = <T>(arg: KeyOrClass<T>, optional: boolean) => T | NoValue;
 let _currentInjectHandler: InjectHandler | null = null;
 
 export const _getInjectHandler = (): InjectHandler | null => {
-	return _currentInjectHandler;
+  return _currentInjectHandler;
 };
 
 export const _setInjectHandler = (handler: InjectHandler | null): void => {
-	_currentInjectHandler = handler;
+  _currentInjectHandler = handler;
 };

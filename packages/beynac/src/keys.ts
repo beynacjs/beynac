@@ -5,8 +5,9 @@ const keyBrand: unique symbol = Symbol("keyBrand");
  * A token representing an arbitrary type with optional default value
  */
 export type Key<T = unknown> = {
-	readonly [keyDefault]: unknown;
-	readonly [keyBrand]?: T;
+  readonly [keyDefault]: T;
+  readonly [keyBrand]?: T;
+  toString(): string;
 };
 
 export const isKey = (value: unknown): value is Key => value instanceof KeyImpl;
@@ -34,23 +35,23 @@ export function key(options?: { name?: string }): Key<unknown>;
 export function key<T>(options?: { name?: string }): Key<T | undefined>;
 export function key<T>(options: { name?: string; default: T }): Key<T>;
 export function key<T = unknown>(
-	options: { name?: string; default?: T } = {},
+  options: { name?: string; default?: T } = {}
 ): Key<T> | Key<T | undefined> | Key<unknown> {
-	const { name = "anonymous", default: defaultValue } = options;
-	return new KeyImpl<T>(name, defaultValue);
+  const { name = "anonymous", default: defaultValue } = options;
+  return new KeyImpl<T>(name, defaultValue);
 }
 
 class KeyImpl<T> implements Key<T> {
-	#name: string;
-	[keyDefault]: unknown;
-	[keyBrand]?: T;
+  #name: string;
+  [keyDefault]: T | undefined;
+  [keyBrand]?: T;
 
-	constructor(name: string, defaultValue?: unknown) {
-		this.#name = name;
-		this[keyDefault] = defaultValue;
-	}
+  constructor(name: string, defaultValue?: T) {
+    this.#name = name;
+    this[keyDefault] = defaultValue;
+  }
 
-	toString(): string {
-		return `[${this.#name}]`;
-	}
+  toString(): string {
+    return `[${this.#name}]`;
+  }
 }

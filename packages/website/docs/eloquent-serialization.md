@@ -6,13 +6,14 @@ laravelDocs: true
 
 - [Introduction](#introduction)
 - [Serializing Models and Collections](#serializing-models-and-collections)
-    - [Serializing to Arrays](#serializing-to-arrays)
-    - [Serializing to JSON](#serializing-to-json)
+  - [Serializing to Arrays](#serializing-to-arrays)
+  - [Serializing to JSON](#serializing-to-json)
 - [Hiding Attributes From JSON](#hiding-attributes-from-json)
 - [Appending Values to JSON](#appending-values-to-json)
 - [Date Serialization](#date-serialization)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 When building APIs using Laravel, you will often need to convert your models and relationships to arrays or JSON. Eloquent includes convenient methods for making these conversions, as well as controlling which attributes are included in the serialized representation of your models.
@@ -21,9 +22,11 @@ When building APIs using Laravel, you will often need to convert your models and
 > For an even more robust way of handling Eloquent model and collection JSON serialization, check out the documentation on [Eloquent API resources](./eloquent-resources).
 
 <a name="serializing-models-and-collections"></a>
+
 ## Serializing Models and Collections
 
 <a name="serializing-to-arrays"></a>
+
 ### Serializing to Arrays
 
 To convert a model and its loaded [relationships](./eloquent-relationships) to an array, you should use the `toArray` method. This method is recursive, so all attributes and all relations (including the relations of relations) will be converted to arrays:
@@ -53,6 +56,7 @@ return $users->toArray();
 ```
 
 <a name="serializing-to-json"></a>
+
 ### Serializing to JSON
 
 To convert a model to JSON, you should use the `toJson` method. Like `toArray`, the `toJson` method is recursive, so all attributes and relations will be converted to JSON. You may also specify any JSON encoding options that are [supported by PHP](https://secure.php.net/manual/en/function.json-encode.php):
@@ -82,11 +86,13 @@ Route::get('/users', function () {
 ```
 
 <a name="relationships"></a>
+
 #### Relationships
 
 When an Eloquent model is converted to JSON, its loaded relationships will automatically be included as attributes on the JSON object. Also, though Eloquent relationship methods are defined using "camel case" method names, a relationship's JSON attribute will be "snake case".
 
 <a name="hiding-attributes-from-json"></a>
+
 ## Hiding Attributes From JSON
 
 Sometimes you may wish to limit the attributes, such as passwords, that are included in your model's array or JSON representation. To do so, add a `$hidden` property to your model. Attributes that are listed in the `$hidden` property's array will not be included in the serialized representation of your model:
@@ -133,6 +139,7 @@ class User extends Model
 ```
 
 <a name="temporarily-modifying-attribute-visibility"></a>
+
 #### Temporarily Modifying Attribute Visibility
 
 If you would like to make some typically hidden attributes visible on a given model instance, you may use the `makeVisible` method. The `makeVisible` method returns the model instance:
@@ -156,6 +163,7 @@ return $user->setHidden(['email', 'password', 'remember_token'])->toArray();
 ```
 
 <a name="appending-values-to-json"></a>
+
 ## Appending Values to JSON
 
 Occasionally, when converting models to arrays or JSON, you may wish to add attributes that do not have a corresponding column in your database. To do so, first define an [accessor](./eloquent-mutators) for the value:
@@ -205,6 +213,7 @@ class User extends Model
 Once the attribute has been added to the `appends` list, it will be included in both the model's array and JSON representations. Attributes in the `appends` array will also respect the `visible` and `hidden` settings configured on the model.
 
 <a name="appending-at-run-time"></a>
+
 #### Appending at Run Time
 
 At runtime, you may instruct a model instance to append additional attributes using the `append` method. Or, you may use the `setAppends` method to override the entire array of appended properties for a given model instance:
@@ -216,9 +225,11 @@ return $user->setAppends(['is_admin'])->toArray();
 ```
 
 <a name="date-serialization"></a>
+
 ## Date Serialization
 
 <a name="customizing-the-default-date-format"></a>
+
 #### Customizing the Default Date Format
 
 You may customize the default serialization format by overriding the `serializeDate` method. This method does not affect how your dates are formatted for storage in the database:
@@ -234,6 +245,7 @@ protected function serializeDate(DateTimeInterface $date): string
 ```
 
 <a name="customizing-the-date-format-per-attribute"></a>
+
 #### Customizing the Date Format per Attribute
 
 You may customize the serialization format of individual Eloquent date attributes by specifying the date format in the model's [cast declarations](./eloquent-mutators#attribute-casting):

@@ -6,30 +6,32 @@ laravelDocs: true
 
 - [Introduction](#introduction)
 - [Invoking Processes](#invoking-processes)
-    - [Process Options](#process-options)
-    - [Process Output](#process-output)
-    - [Pipelines](#process-pipelines)
+  - [Process Options](#process-options)
+  - [Process Output](#process-output)
+  - [Pipelines](#process-pipelines)
 - [Asynchronous Processes](#asynchronous-processes)
-    - [Process IDs and Signals](#process-ids-and-signals)
-    - [Asynchronous Process Output](#asynchronous-process-output)
-    - [Asynchronous Process Timeouts](#asynchronous-process-timeouts)
+  - [Process IDs and Signals](#process-ids-and-signals)
+  - [Asynchronous Process Output](#asynchronous-process-output)
+  - [Asynchronous Process Timeouts](#asynchronous-process-timeouts)
 - [Concurrent Processes](#concurrent-processes)
-    - [Naming Pool Processes](#naming-pool-processes)
-    - [Pool Process IDs and Signals](#pool-process-ids-and-signals)
+  - [Naming Pool Processes](#naming-pool-processes)
+  - [Pool Process IDs and Signals](#pool-process-ids-and-signals)
 - [Testing](#testing)
-    - [Faking Processes](#faking-processes)
-    - [Faking Specific Processes](#faking-specific-processes)
-    - [Faking Process Sequences](#faking-process-sequences)
-    - [Faking Asynchronous Process Lifecycles](#faking-asynchronous-process-lifecycles)
-    - [Available Assertions](#available-assertions)
-    - [Preventing Stray Processes](#preventing-stray-processes)
+  - [Faking Processes](#faking-processes)
+  - [Faking Specific Processes](#faking-specific-processes)
+  - [Faking Process Sequences](#faking-process-sequences)
+  - [Faking Asynchronous Process Lifecycles](#faking-asynchronous-process-lifecycles)
+  - [Available Assertions](#available-assertions)
+  - [Preventing Stray Processes](#preventing-stray-processes)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 Laravel provides an expressive, minimal API around the [Symfony Process component](https://symfony.com/doc/current/components/process.html), allowing you to conveniently invoke external processes from your Laravel application. Laravel's process features are focused on the most common use cases and a wonderful developer experience.
 
 <a name="invoking-processes"></a>
+
 ## Invoking Processes
 
 To invoke a process, you may use the `run` and `start` methods offered by the `Process` facade. The `run` method will invoke a process and wait for the process to finish executing, while the `start` method is used for asynchronous process execution. We'll examine both approaches within this documentation. First, let's examine how to invoke a basic, synchronous process and inspect its result:
@@ -55,6 +57,7 @@ $result->errorOutput();
 ```
 
 <a name="throwing-exceptions"></a>
+
 #### Throwing Exceptions
 
 If you have a process result and would like to throw an instance of `Illuminate\Process\Exceptions\ProcessFailedException` if the exit code is greater than zero (thus indicating failure), you may use the `throw` and `throwIf` methods. If the process did not fail, the process result instance will be returned:
@@ -66,11 +69,13 @@ $result = Process::run('ls -la')->throwIf($condition);
 ```
 
 <a name="process-options"></a>
+
 ### Process Options
 
 Of course, you may need to customize the behavior of a process before invoking it. Thankfully, Laravel allows you to tweak a variety of process features, such as the working directory, timeout, and environment variables.
 
 <a name="working-directory-path"></a>
+
 #### Working Directory Path
 
 You may use the `path` method to specify the working directory of the process. If this method is not invoked, the process will inherit the working directory of the currently executing PHP script:
@@ -80,6 +85,7 @@ $result = Process::path(__DIR__)->run('ls -la');
 ```
 
 <a name="input"></a>
+
 #### Input
 
 You may provide input via the "standard input" of the process using the `input` method:
@@ -89,6 +95,7 @@ $result = Process::input('Hello World')->run('cat');
 ```
 
 <a name="timeouts"></a>
+
 #### Timeouts
 
 By default, processes will throw an instance of `Illuminate\Process\Exceptions\ProcessTimedOutException` after executing for more than 60 seconds. However, you can customize this behavior via the `timeout` method:
@@ -110,6 +117,7 @@ $result = Process::timeout(60)->idleTimeout(30)->run('bash import.sh');
 ```
 
 <a name="environment-variables"></a>
+
 #### Environment Variables
 
 Environment variables may be provided to the process via the `env` method. The invoked process will also inherit all of the environment variables defined by your system:
@@ -129,6 +137,7 @@ $result = Process::forever()
 ```
 
 <a name="tty-mode"></a>
+
 #### TTY Mode
 
 The `tty` method may be used to enable TTY mode for your process. TTY mode connects the input and output of the process to the input and output of your program, allowing your process to open an editor like Vim or Nano as a process:
@@ -138,6 +147,7 @@ Process::forever()->tty()->run('vim');
 ```
 
 <a name="process-output"></a>
+
 ### Process Output
 
 As previously discussed, process output may be accessed using the `output` (stdout) and `errorOutput` (stderr) methods on a process result:
@@ -168,6 +178,7 @@ if (Process::run('ls -la')->seeInOutput('laravel')) {
 ```
 
 <a name="disabling-process-output"></a>
+
 #### Disabling Process Output
 
 If your process is writing a significant amount of output that you are not interested in, you can conserve memory by disabling output retrieval entirely. To accomplish this, invoke the `quietly` method while building the process:
@@ -179,6 +190,7 @@ $result = Process::quietly()->run('bash import.sh');
 ```
 
 <a name="process-pipelines"></a>
+
 ### Pipelines
 
 Sometimes you may want to make the output of one process the input of another process. This is often referred to as "piping" the output of a process into another. The `pipe` method provided by the `Process` facades makes this easy to accomplish. The `pipe` method will execute the piped processes synchronously and return the process result for the last process in the pipeline:
@@ -229,6 +241,7 @@ $result = Process::pipe(function (Pipe $pipe) {
 ```
 
 <a name="asynchronous-processes"></a>
+
 ## Asynchronous Processes
 
 While the `run` method invokes processes synchronously, the `start` method may be used to invoke a process asynchronously. This allows your application to continue performing other tasks while the process runs in the background. Once the process has been invoked, you may utilize the `running` method to determine if the process is still running:
@@ -254,6 +267,7 @@ $result = $process->wait();
 ```
 
 <a name="process-ids-and-signals"></a>
+
 ### Process IDs and Signals
 
 The `id` method may be used to retrieve the operating system assigned process ID of the running process:
@@ -271,6 +285,7 @@ $process->signal(SIGUSR2);
 ```
 
 <a name="asynchronous-process-output"></a>
+
 ### Asynchronous Process Output
 
 While an asynchronous process is running, you may access its entire current output using the `output` and `errorOutput` methods; however, you may utilize the `latestOutput` and `latestErrorOutput` to access the output from the process that has occurred since the output was last retrieved:
@@ -307,6 +322,7 @@ $process->waitUntil(function (string $type, string $output) {
 ```
 
 <a name="asynchronous-process-timeouts"></a>
+
 ### Asynchronous Process Timeouts
 
 While an asynchronous process is running, you may verify that the process has not timed out using the `ensureNotTimedOut` method. This method will throw a [timeout exception](#timeouts) if the process has timed out:
@@ -324,6 +340,7 @@ while ($process->running()) {
 ```
 
 <a name="concurrent-processes"></a>
+
 ## Concurrent Processes
 
 Laravel also makes it a breeze to manage a pool of concurrent, asynchronous processes, allowing you to easily execute many tasks simultaneously. To get started, invoke the `pool` method, which accepts a closure that receives an instance of `Illuminate\Process\Pool`.
@@ -370,6 +387,7 @@ echo $first->output();
 ```
 
 <a name="naming-pool-processes"></a>
+
 ### Naming Pool Processes
 
 Accessing process pool results via a numeric key is not very expressive; therefore, Laravel allows you to assign string keys to each process within a pool via the `as` method. This key will also be passed to the closure provided to the `start` method, allowing you to determine which process the output belongs to:
@@ -389,6 +407,7 @@ return $results['first']->output();
 ```
 
 <a name="pool-process-ids-and-signals"></a>
+
 ### Pool Process IDs and Signals
 
 Since the process pool's `running` method provides a collection of all invoked processes within the pool, you may easily access the underlying pool process IDs:
@@ -404,11 +423,13 @@ $pool->signal(SIGUSR2);
 ```
 
 <a name="testing"></a>
+
 ## Testing
 
 Many Laravel services provide functionality to help you easily and expressively write tests, and Laravel's process service is no exception. The `Process` facade's `fake` method allows you to instruct Laravel to return stubbed / dummy results when processes are invoked.
 
 <a name="faking-processes"></a>
+
 ### Faking Processes
 
 To explore Laravel's ability to fake processes, let's imagine a route that invokes a process:
@@ -492,6 +513,7 @@ Process::fake([
 ```
 
 <a name="faking-specific-processes"></a>
+
 ### Faking Specific Processes
 
 As you may have noticed in a previous example, the `Process` facade allows you to specify different fake results per process by passing an array to the `fake` method.
@@ -519,6 +541,7 @@ Process::fake([
 ```
 
 <a name="faking-process-sequences"></a>
+
 ### Faking Process Sequences
 
 If the code you are testing invokes multiple processes with the same command, you may wish to assign a different fake process result to each process invocation. You may accomplish this via the `Process` facade's `sequence` method:
@@ -532,6 +555,7 @@ Process::fake([
 ```
 
 <a name="faking-asynchronous-process-lifecycles"></a>
+
 ### Faking Asynchronous Process Lifecycles
 
 Thus far, we have primarily discussed faking processes which are invoked synchronously using the `run` method. However, if you are attempting to test code that interacts with asynchronous processes invoked via `start`, you may need a more sophisticated approach to describing your fake processes.
@@ -570,11 +594,13 @@ Process::fake([
 Let's dig into the example above. Using the `output` and `errorOutput` methods, we may specify multiple lines of output that will be returned in sequence. The `exitCode` method may be used to specify the final exit code of the fake process. Finally, the `iterations` method may be used to specify how many times the `running` method should return `true`.
 
 <a name="available-assertions"></a>
+
 ### Available Assertions
 
 As [previously discussed](#faking-processes), Laravel provides several process assertions for your feature tests. We'll discuss each of these assertions below.
 
 <a name="assert-process-ran"></a>
+
 #### assertRan
 
 Assert that a given process was invoked:
@@ -598,6 +624,7 @@ Process::assertRan(fn ($process, $result) =>
 The `$process` passed to the `assertRan` closure is an instance of `Illuminate\Process\PendingProcess`, while the `$result` is an instance of `Illuminate\Contracts\Process\ProcessResult`.
 
 <a name="assert-process-didnt-run"></a>
+
 #### assertDidntRun
 
 Assert that a given process was not invoked:
@@ -617,6 +644,7 @@ Process::assertDidntRun(fn (PendingProcess $process, ProcessResult $result) =>
 ```
 
 <a name="assert-process-ran-times"></a>
+
 #### assertRanTimes
 
 Assert that a given process was invoked a given number of times:
@@ -636,6 +664,7 @@ Process::assertRanTimes(function (PendingProcess $process, ProcessResult $result
 ```
 
 <a name="preventing-stray-processes"></a>
+
 ### Preventing Stray Processes
 
 If you would like to ensure that all invoked processes have been faked throughout your individual test or complete test suite, you can call the `preventStrayProcesses` method. After calling this method, any processes that do not have a corresponding fake result will throw an exception rather than starting an actual process:

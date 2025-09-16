@@ -1,7 +1,7 @@
-
 This should work
 
 <!-- source: manual -->
+
 ```js
 when(A).needs(Dep).give(token);
 
@@ -11,31 +11,31 @@ when(A).needs(Dep).give(AltDep);
 so should this (it's in website folder tests)
 
 <!-- source: manual -->
+
 ```ts
 import { inject } from "beynac";
 
 class PodcastController extends Controller {
-	constructor(private apple = inject(AppleMusic)) {
-		super();
-	}
+  constructor(private apple = inject(AppleMusic)) {
+    super();
+  }
 
-	/**
-	 * Show information about the given podcast.
-	 */
-	public async process(id: string) {
-		return id + String(this.apple);
-		// TODO when we've implemented templates and view controllers, come back to make this real
-	}
+  /**
+   * Show information about the given podcast.
+   */
+  public async process(id: string) {
+    return id + String(this.apple);
+    // TODO when we've implemented templates and view controllers, come back to make this real
+  }
 }
 ```
 
 This should not:
 
 <!-- source: manual -->
+
 ```ts
-
 when(A).needs(Dep).quux(token);
-
 ```
 
 This should be ignored as no syntax language:

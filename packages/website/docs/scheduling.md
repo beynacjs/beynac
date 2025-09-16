@@ -6,24 +6,25 @@ laravelDocs: true
 
 - [Introduction](#introduction)
 - [Defining Schedules](#defining-schedules)
-    - [Scheduling Artisan Commands](#scheduling-artisan-commands)
-    - [Scheduling Queued Jobs](#scheduling-queued-jobs)
-    - [Scheduling Shell Commands](#scheduling-shell-commands)
-    - [Schedule Frequency Options](#schedule-frequency-options)
-    - [Timezones](#timezones)
-    - [Preventing Task Overlaps](#preventing-task-overlaps)
-    - [Running Tasks on One Server](#running-tasks-on-one-server)
-    - [Background Tasks](#background-tasks)
-    - [Maintenance Mode](#maintenance-mode)
-    - [Schedule Groups](#schedule-groups)
+  - [Scheduling Artisan Commands](#scheduling-artisan-commands)
+  - [Scheduling Queued Jobs](#scheduling-queued-jobs)
+  - [Scheduling Shell Commands](#scheduling-shell-commands)
+  - [Schedule Frequency Options](#schedule-frequency-options)
+  - [Timezones](#timezones)
+  - [Preventing Task Overlaps](#preventing-task-overlaps)
+  - [Running Tasks on One Server](#running-tasks-on-one-server)
+  - [Background Tasks](#background-tasks)
+  - [Maintenance Mode](#maintenance-mode)
+  - [Schedule Groups](#schedule-groups)
 - [Running the Scheduler](#running-the-scheduler)
-    - [Sub-Minute Scheduled Tasks](#sub-minute-scheduled-tasks)
-    - [Running the Scheduler Locally](#running-the-scheduler-locally)
+  - [Sub-Minute Scheduled Tasks](#sub-minute-scheduled-tasks)
+  - [Running the Scheduler Locally](#running-the-scheduler-locally)
 - [Task Output](#task-output)
 - [Task Hooks](#task-hooks)
 - [Events](#events)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 In the past, you may have written a cron configuration entry for each task you needed to schedule on your server. However, this can quickly become a pain because your task schedule is no longer in source control and you must SSH into your server to view your existing cron entries or add additional entries.
@@ -31,6 +32,7 @@ In the past, you may have written a cron configuration entry for each task you n
 Laravel's command scheduler offers a fresh approach to managing scheduled tasks on your server. The scheduler allows you to fluently and expressively define your command schedule within your Laravel application itself. When using the scheduler, only a single cron entry is needed on your server. Your task schedule is typically defined in your application's `routes/console.php` file.
 
 <a name="defining-schedules"></a>
+
 ## Defining Schedules
 
 You may define all of your scheduled tasks in your application's `routes/console.php` file. To get started, let's take a look at an example. In this example, we will schedule a closure to be called every day at midnight. Within the closure we will execute a database query to clear a table:
@@ -69,6 +71,7 @@ php artisan schedule:list
 ```
 
 <a name="scheduling-artisan-commands"></a>
+
 ### Scheduling Artisan Commands
 
 In addition to scheduling closures, you may also schedule [Artisan commands](./artisan) and system commands. For example, you may use the `command` method to schedule an Artisan command using either the command's name or class.
@@ -85,6 +88,7 @@ Schedule::command(SendEmailsCommand::class, ['Taylor', '--force'])->daily();
 ```
 
 <a name="scheduling-artisan-closure-commands"></a>
+
 #### Scheduling Artisan Closure Commands
 
 If you want to schedule an Artisan command defined by a closure, you may chain the scheduling related methods after the command's definition:
@@ -104,6 +108,7 @@ Artisan::command('emails:send {user} {--force}', function ($user) {
 ```
 
 <a name="scheduling-queued-jobs"></a>
+
 ### Scheduling Queued Jobs
 
 The `job` method may be used to schedule a [queued job](./queues). This method provides a convenient way to schedule queued jobs without using the `call` method to define closures to queue the job:
@@ -126,6 +131,7 @@ Schedule::job(new Heartbeat, 'heartbeats', 'sqs')->everyFiveMinutes();
 ```
 
 <a name="scheduling-shell-commands"></a>
+
 ### Scheduling Shell Commands
 
 The `exec` method may be used to issue a command to the operating system:
@@ -137,6 +143,7 @@ Schedule::exec('node /home/forge/script.js')->daily();
 ```
 
 <a name="schedule-frequency-options"></a>
+
 ### Schedule Frequency Options
 
 We've already seen a few examples of how you may configure a task to run at specified intervals. However, there are many more task schedule frequencies that you may assign to a task:
@@ -228,6 +235,7 @@ A list of additional schedule constraints may be found below:
 </div>
 
 <a name="day-constraints"></a>
+
 #### Day Constraints
 
 The `days` method may be used to limit the execution of a task to specific days of the week. For example, you may schedule a command to run hourly on Sundays and Wednesdays:
@@ -252,6 +260,7 @@ Facades\Schedule::command('emails:send')
 ```
 
 <a name="between-time-constraints"></a>
+
 #### Between Time Constraints
 
 The `between` method may be used to limit the execution of a task based on the time of day:
@@ -271,6 +280,7 @@ Schedule::command('emails:send')
 ```
 
 <a name="truth-test-constraints"></a>
+
 #### Truth Test Constraints
 
 The `when` method may be used to limit the execution of a task based on the result of a given truth test. In other words, if the given closure returns `true`, the task will execute as long as no other constraining conditions prevent the task from running:
@@ -292,6 +302,7 @@ Schedule::command('emails:send')->daily()->skip(function () {
 When using chained `when` methods, the scheduled command will only execute if all `when` conditions return `true`.
 
 <a name="environment-constraints"></a>
+
 #### Environment Constraints
 
 The `environments` method may be used to execute tasks only on the given environments (as defined by the `APP_ENV` [environment variable](./configuration#environment-configuration)):
@@ -303,6 +314,7 @@ Schedule::command('emails:send')
 ```
 
 <a name="timezones"></a>
+
 ### Timezones
 
 Using the `timezone` method, you may specify that a scheduled task's time should be interpreted within a given timezone:
@@ -327,6 +339,7 @@ If you are repeatedly assigning the same timezone to all of your scheduled tasks
 > Remember that some timezones utilize daylight savings time. When daylight saving time changes occur, your scheduled task may run twice or even not run at all. For this reason, we recommend avoiding timezone scheduling when possible.
 
 <a name="preventing-task-overlaps"></a>
+
 ### Preventing Task Overlaps
 
 By default, scheduled tasks will be run even if the previous instance of the task is still running. To prevent this, you may use the `withoutOverlapping` method:
@@ -348,6 +361,7 @@ Schedule::command('emails:send')->withoutOverlapping(10);
 Behind the scenes, the `withoutOverlapping` method utilizes your application's [cache](./cache) to obtain locks. If necessary, you can clear these cache locks using the `schedule:clear-cache` Artisan command. This is typically only necessary if a task becomes stuck due to an unexpected server problem.
 
 <a name="running-tasks-on-one-server"></a>
+
 ### Running Tasks on One Server
 
 > [!WARNING]
@@ -373,6 +387,7 @@ Schedule::useCache('database');
 ```
 
 <a name="naming-unique-jobs"></a>
+
 #### Naming Single Server Jobs
 
 Sometimes you may need to schedule the same job to be dispatched with different parameters, while still instructing Laravel to run each permutation of the job on a single server. To accomplish this, you may assign each schedule definition a unique name via the `name` method:
@@ -399,6 +414,7 @@ Schedule::call(fn () => User::resetApiRequestCount())
 ```
 
 <a name="background-tasks"></a>
+
 ### Background Tasks
 
 By default, multiple tasks scheduled at the same time will execute sequentially based on the order they are defined in your `schedule` method. If you have long-running tasks, this may cause subsequent tasks to start much later than anticipated. If you would like to run tasks in the background so that they may all run simultaneously, you may use the `runInBackground` method:
@@ -415,6 +431,7 @@ Schedule::command('analytics:report')
 > The `runInBackground` method may only be used when scheduling tasks via the `command` and `exec` methods.
 
 <a name="maintenance-mode"></a>
+
 ### Maintenance Mode
 
 Your application's scheduled tasks will not run when the application is in [maintenance mode](./configuration#maintenance-mode), since we don't want your tasks to interfere with any unfinished maintenance you may be performing on your server. However, if you would like to force a task to run even in maintenance mode, you may call the `evenInMaintenanceMode` method when defining the task:
@@ -424,6 +441,7 @@ Schedule::command('emails:send')->evenInMaintenanceMode();
 ```
 
 <a name="schedule-groups"></a>
+
 ### Schedule Groups
 
 When defining multiple scheduled tasks with similar configurations, you can use Laravel’s task grouping feature to avoid repeating the same settings for each task. Grouping tasks simplifies your code and ensures consistency across related tasks.
@@ -443,6 +461,7 @@ Schedule::daily()
 ```
 
 <a name="running-the-scheduler"></a>
+
 ## Running the Scheduler
 
 Now that we have learned how to define scheduled tasks, let's discuss how to actually run them on our server. The `schedule:run` Artisan command will evaluate all of your scheduled tasks and determine if they need to run based on the server's current time.
@@ -454,6 +473,7 @@ So, when using Laravel's scheduler, we only need to add a single cron configurat
 ```
 
 <a name="sub-minute-scheduled-tasks"></a>
+
 ### Sub-Minute Scheduled Tasks
 
 On most operating systems, cron jobs are limited to running a maximum of once per minute. However, Laravel's scheduler allows you to schedule tasks to run at more frequent intervals, even as often as once per second:
@@ -479,6 +499,7 @@ Schedule::command('users:delete')->everyTenSeconds()->runInBackground();
 ```
 
 <a name="interrupting-sub-minute-tasks"></a>
+
 #### Interrupting Sub-Minute Tasks
 
 As the `schedule:run` command runs for the entire minute of invocation when sub-minute tasks are defined, you may sometimes need to interrupt the command when deploying your application. Otherwise, an instance of the `schedule:run` command that is already running would continue using your application's previously deployed code until the current minute ends.
@@ -490,6 +511,7 @@ php artisan schedule:interrupt
 ```
 
 <a name="running-the-scheduler-locally"></a>
+
 ### Running the Scheduler Locally
 
 Typically, you would not add a scheduler cron entry to your local development machine. Instead, you may use the `schedule:work` Artisan command. This command will run in the foreground and invoke the scheduler every minute until you terminate the command. When sub-minute tasks are defined, the scheduler will continue running within each minute to process those tasks:
@@ -499,6 +521,7 @@ php artisan schedule:work
 ```
 
 <a name="task-output"></a>
+
 ## Task Output
 
 The Laravel scheduler provides several convenient methods for working with the output generated by scheduled tasks. First, using the `sendOutputTo` method, you may send the output to a file for later inspection:
@@ -540,6 +563,7 @@ Schedule::command('report:generate')
 > The `emailOutputTo`, `emailOutputOnFailure`, `sendOutputTo`, and `appendOutputTo` methods are exclusive to the `command` and `exec` methods.
 
 <a name="task-hooks"></a>
+
 ## Task Hooks
 
 Using the `before` and `after` methods, you may specify code to be executed before and after the scheduled task is executed:
@@ -586,6 +610,7 @@ Schedule::command('emails:send')
 ```
 
 <a name="pinging-urls"></a>
+
 #### Pinging URLs
 
 Using the `pingBefore` and `thenPing` methods, the scheduler can automatically ping a given URL before or after a task is executed. This method is useful for notifying an external service, such as [Envoyer](https://envoyer.io), that your scheduled task is beginning or has finished execution:
@@ -621,6 +646,7 @@ Schedule::command('emails:send')
 ```
 
 <a name="events"></a>
+
 ## Events
 
 Laravel dispatches a variety of [events](./events) during the scheduling process. You may [define listeners](./events) for any of the following events:

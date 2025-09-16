@@ -7,16 +7,17 @@ laravelDocs: true
 - [Introduction](#introduction)
 - [Configuration](#configuration)
 - [Handling Exceptions](#handling-exceptions)
-    - [Reporting Exceptions](#reporting-exceptions)
-    - [Exception Log Levels](#exception-log-levels)
-    - [Ignoring Exceptions by Type](#ignoring-exceptions-by-type)
-    - [Rendering Exceptions](#rendering-exceptions)
-    - [Reportable and Renderable Exceptions](#renderable-exceptions)
+  - [Reporting Exceptions](#reporting-exceptions)
+  - [Exception Log Levels](#exception-log-levels)
+  - [Ignoring Exceptions by Type](#ignoring-exceptions-by-type)
+  - [Rendering Exceptions](#rendering-exceptions)
+  - [Reportable and Renderable Exceptions](#renderable-exceptions)
 - [Throttling Reported Exceptions](#throttling-reported-exceptions)
 - [HTTP Exceptions](#http-exceptions)
-    - [Custom HTTP Error Pages](#custom-http-error-pages)
+  - [Custom HTTP Error Pages](#custom-http-error-pages)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 When you start a new Laravel project, error and exception handling is already configured for you; however, at any point, you may use the `withExceptions` method in your application's `bootstrap/app.php` to manage how exceptions are reported and rendered by your application.
@@ -24,6 +25,7 @@ When you start a new Laravel project, error and exception handling is already co
 The `$exceptions` object provided to the `withExceptions` closure is an instance of `Illuminate\Foundation\Configuration\Exceptions` and is responsible for managing exception handling in your application. We'll dive deeper into this object throughout this documentation.
 
 <a name="configuration"></a>
+
 ## Configuration
 
 The `debug` option in your `config/app.php` configuration file determines how much information about an error is actually displayed to the user. By default, this option is set to respect the value of the `APP_DEBUG` environment variable, which is stored in your `.env` file.
@@ -31,9 +33,11 @@ The `debug` option in your `config/app.php` configuration file determines how mu
 During local development, you should set the `APP_DEBUG` environment variable to `true`. **In your production environment, this value should always be `false`. If the value is set to `true` in production, you risk exposing sensitive configuration values to your application's end users.**
 
 <a name="handling-exceptions"></a>
+
 ## Handling Exceptions
 
 <a name="reporting-exceptions"></a>
+
 ### Reporting Exceptions
 
 In Laravel, exception reporting is used to log exceptions or send them to an external service like [Sentry](https://github.com/getsentry/sentry-laravel) or [Flare](https://flareapp.io). By default, exceptions will be logged based on your [logging](./logging) configuration. However, you are free to log exceptions however you wish.
@@ -70,6 +74,7 @@ use App\Exceptions\InvalidOrderException;
 > To customize the exception reporting for a given exception, you may also utilize [reportable exceptions](./errors#renderable-exceptions).
 
 <a name="global-log-context"></a>
+
 #### Global Log Context
 
 If available, Laravel automatically adds the current user's ID to every exception's log message as contextual data. You may define your own global contextual data using the `context` exception method in your application's `bootstrap/app.php` file. This information will be included in every exception's log message written by your application:
@@ -83,6 +88,7 @@ If available, Laravel automatically adds the current user's ID to every exceptio
 ```
 
 <a name="exception-log-context"></a>
+
 #### Exception Log Context
 
 While adding context to every log message can be useful, sometimes a particular exception may have unique context that you would like to include in your logs. By defining a `context` method on one of your application's exceptions, you may specify any data relevant to that exception that should be added to the exception's log entry:
@@ -111,6 +117,7 @@ class InvalidOrderException extends Exception
 ```
 
 <a name="the-report-helper"></a>
+
 #### The `report` Helper
 
 Sometimes you may need to report an exception but continue handling the current request. The `report` helper function allows you to quickly report an exception without rendering an error page to the user:
@@ -129,6 +136,7 @@ public function isValid(string $value): bool
 ```
 
 <a name="deduplicating-reported-exceptions"></a>
+
 #### Deduplicating Reported Exceptions
 
 If you are using the `report` function throughout your application, you may occasionally report the same exception multiple times, creating duplicate entries in your logs.
@@ -159,6 +167,7 @@ report($caught); // ignored
 ```
 
 <a name="exception-log-levels"></a>
+
 ### Exception Log Levels
 
 When messages are written to your application's [logs](./logging), the messages are written at a specified [log level](./logging#log-levels), which indicates the severity or importance of the message being logged.
@@ -177,6 +186,7 @@ use Psr\Log\LogLevel;
 ```
 
 <a name="ignoring-exceptions-by-type"></a>
+
 ### Ignoring Exceptions by Type
 
 When building your application, there will be some types of exceptions you never want to report. To ignore these exceptions, you may use the `dontReport` exception method in your application's `bootstrap/app.php` file. Any class provided to this method will never be reported; however, they may still have custom rendering logic:
@@ -232,6 +242,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 ```
 
 <a name="rendering-exceptions"></a>
+
 ### Rendering Exceptions
 
 By default, the Laravel exception handler will convert exceptions into an HTTP response for you. However, you are free to register a custom rendering closure for exceptions of a given type. You may accomplish this by using the `render` exception method in your application's `bootstrap/app.php` file.
@@ -267,6 +278,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 ```
 
 <a name="rendering-exceptions-as-json"></a>
+
 #### Rendering Exceptions as JSON
 
 When rendering an exception, Laravel will automatically determine if the exception should be rendered as an HTML or JSON response based on the `Accept` header of the request. If you would like to customize how Laravel determines whether to render HTML or JSON exception responses, you may utilize the `shouldRenderJsonWhen` method:
@@ -287,6 +299,7 @@ use Throwable;
 ```
 
 <a name="customizing-the-exception-response"></a>
+
 #### Customizing the Exception Response
 
 Rarely, you may need to customize the entire HTTP response rendered by Laravel's exception handler. To accomplish this, you may register a response customization closure using the `respond` method:
@@ -308,6 +321,7 @@ use Symfony\Component\HttpFoundation\Response;
 ```
 
 <a name="renderable-exceptions"></a>
+
 ### Reportable and Renderable Exceptions
 
 Instead of defining custom reporting and rendering behavior in your application's `bootstrap/app.php` file, you may define `report` and `render` methods directly on your application's exceptions. When these methods exist, they will automatically be called by the framework:
@@ -381,6 +395,7 @@ public function report(): bool
 > You may type-hint any required dependencies of the `report` method and they will automatically be injected into the method by Laravel's [service container](./container).
 
 <a name="throttling-reported-exceptions"></a>
+
 ### Throttling Reported Exceptions
 
 If your application reports a very large number of exceptions, you may want to throttle how many exceptions are actually logged or sent to your application's external error tracking service.
@@ -467,6 +482,7 @@ use Throwable;
 ```
 
 <a name="http-exceptions"></a>
+
 ## HTTP Exceptions
 
 Some exceptions describe HTTP error codes from the server. For example, this may be a "page not found" error (404), an "unauthorized error" (401), or even a developer generated 500 error. In order to generate such a response from anywhere in your application, you may use the `abort` helper:
@@ -476,6 +492,7 @@ abort(404);
 ```
 
 <a name="custom-http-error-pages"></a>
+
 ### Custom HTTP Error Pages
 
 Laravel makes it easy to display custom error pages for various HTTP status codes. For example, to customize the error page for 404 HTTP status codes, create a `resources/views/errors/404.blade.php` view template. This view will be rendered for all 404 errors generated by your application. The views within this directory should be named to match the HTTP status code they correspond to. The `Symfony\Component\HttpKernel\Exception\HttpException` instance raised by the `abort` function will be passed to the view as an `$exception` variable:
@@ -491,6 +508,7 @@ php artisan vendor:publish --tag=laravel-errors
 ```
 
 <a name="fallback-http-error-pages"></a>
+
 #### Fallback HTTP Error Pages
 
 You may also define a "fallback" error page for a given series of HTTP status codes. This page will be rendered if there is not a corresponding page for the specific HTTP status code that occurred. To accomplish this, define a `4xx.blade.php` template and a `5xx.blade.php` template in your application's `resources/views/errors` directory.

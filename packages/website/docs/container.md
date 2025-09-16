@@ -4,7 +4,6 @@ laravelDocs: true
 
 # Service Container
 
-
 ## Introduction
 
 The service container is a powerful tool for managing class dependencies and performing dependency injection. Dependency injection is a fancy phrase that essentially means this: class dependencies are "injected" into the class via the constructor.
@@ -12,21 +11,22 @@ The service container is a powerful tool for managing class dependencies and per
 Let's look at a simple example:
 
 <!-- source: PodcastController intro -->
+
 ```ts
 import { inject } from "beynac";
 
 class PodcastController extends Controller {
-	constructor(private apple = inject(AppleMusic)) {
-		super();
-	}
+  constructor(private apple = inject(AppleMusic)) {
+    super();
+  }
 
-	/**
-	 * Show information about the given podcast.
-	 */
-	public async process(id: string) {
-		return id + String(this.apple);
-		// TODO when we've implemented templates and view controllers, come back to make this real
-	}
+  /**
+   * Show information about the given podcast.
+   */
+  public async process(id: string) {
+    return id + String(this.apple);
+    // TODO when we've implemented templates and view controllers, come back to make this real
+  }
 }
 ```
 
@@ -46,16 +46,16 @@ A deep understanding of the Beynac service container is essential to building a 
 If a class has no dependencies or only depends on other concrete classes (not interfaces), the container does not need to be instructed on how to resolve that class. For example, you may place the following code in your `routes/web.php` <-- TODO file:
 
 TODO update for our route syntax
-<!-- source: manual -->
-```ts
 
-class Service
-{
-    // ...
+<!-- source: manual -->
+
+```ts
+class Service {
+  // ...
 }
 
-Route.get('/api/service', (service = inject(Service)) => {
-    console.log(service);
+Route.get("/api/service", (service = inject(Service)) => {
+  console.log(service);
 });
 ```
 
@@ -70,6 +70,7 @@ Thankfully, many of the classes you will be writing when building an application
 Thanks to zero configuration resolution, you will often `inject()` dependencies on routes, controllers, event listeners, and elsewhere without ever manually interacting with the container. For example, you might specify `inject(Request)` on your route definition so that you can easily access the current request. Even though we never have to interact with the container to write this code, it is managing the injection of these dependencies behind the scenes:
 
 // TODO confirm current
+
 ```php
 use Illuminate\Http\Request;
 
@@ -180,6 +181,7 @@ class Transistor
 ```
 
 <a name="binding-scoped"></a>
+
 #### Binding Scoped Singletons
 
 The `scoped` method binds a class or interface into the container that should only be resolved one time within a given Laravel request / job lifecycle. While this method is similar to the `singleton` method, instances registered using the `scoped` method will be flushed whenever the Laravel application starts a new "lifecycle", such as when a [Laravel Octane](./octane) worker processes a new request or when a Laravel [queue worker](./queues) processes a new job:
@@ -219,6 +221,7 @@ class Transistor
 ```
 
 <a name="binding-instances"></a>
+
 #### Binding Instances
 
 You may also bind an existing object instance into the container using the `instance` method. The given instance will always be returned on subsequent calls into the container:
@@ -281,6 +284,7 @@ $this->app->when([VideoController::class, UploadController::class])
 ```
 
 <a name="contextual-attributes"></a>
+
 ### Contextual Attributes
 
 Since contextual binding is often used to inject implementations of drivers or configuration values, Laravel offers a variety of contextual binding attributes that allow to inject these types of values without manually defining the contextual bindings in your service providers.
@@ -360,6 +364,7 @@ Route::get('/user', function (#[CurrentUser] User $user) {
 ```
 
 <a name="defining-custom-attributes"></a>
+
 #### Defining Custom Attributes
 
 You can create your own contextual attributes by implementing the `Illuminate\Contracts\Container\ContextualAttribute` contract. The container will call your attribute's `resolve` method, which should resolve the value that should be injected into the class utilizing the attribute. In the example below, we will re-implement Laravel's built-in `Config` attribute:
@@ -398,6 +403,7 @@ class Config implements ContextualAttribute
 ```
 
 <a name="binding-primitives"></a>
+
 ### Binding Primitives
 
 Sometimes you may have a class that receives some injected classes, but also needs an injected primitive value such as an integer. You may easily use contextual binding to inject any value your class may need:
@@ -427,6 +433,7 @@ $this->app->when(ReportAggregator::class)
 ```
 
 <a name="binding-typed-variadics"></a>
+
 ### Binding Typed Variadics
 
 Occasionally, you may have a class that receives an array of typed objects using a variadic constructor argument:
@@ -485,6 +492,7 @@ $this->app->when(Firewall::class)
 ```
 
 <a name="variadic-tag-dependencies"></a>
+
 #### Variadic Tag Dependencies
 
 Sometimes a class may have a variadic dependency that is type-hinted as a given class (`Report ...$reports`). Using the `needs` and `giveTagged` methods, you may easily inject all of the container bindings with that [tag](#tagging) for the given dependency:
@@ -496,6 +504,7 @@ $this->app->when(ReportAggregator::class)
 ```
 
 <a name="tagging"></a>
+
 ### Tagging
 
 Occasionally, you may need to resolve all of a certain "category" of binding. For example, perhaps you are building a report analyzer that receives an array of many different `Report` interface implementations. After registering the `Report` implementations, you can assign them a tag using the `tag` method:
@@ -521,6 +530,7 @@ $this->app->bind(ReportAnalyzer::class, function (Application $app) {
 ```
 
 <a name="extending-bindings"></a>
+
 ### Extending Bindings
 
 The `extend` method allows the modification of resolved services. For example, when a service is resolved, you may run additional code to decorate or configure the service. The `extend` method accepts two arguments, the service class you're extending and a closure that should return the modified service. The closure receives the service being resolved and the container instance:
@@ -532,9 +542,11 @@ $this->app->extend(Service::class, function (Service $service, Application $app)
 ```
 
 <a name="resolving"></a>
+
 ## Resolving
 
 <a name="the-make-method"></a>
+
 ### The `make` Method
 
 You may use the `make` method to resolve a class instance from the container. The `make` method accepts the name of the class or interface you wish to resolve:
@@ -586,6 +598,7 @@ public function __construct(
 ```
 
 <a name="automatic-injection"></a>
+
 ### Automatic Injection
 
 Alternatively, and importantly, you may type-hint the dependency in the constructor of a class that is resolved by the container, including [controllers](./controllers), [event listeners](./events), [middleware](./middleware), and more. Additionally, you may type-hint dependencies in the `handle` method of [queued jobs](./queues). In practice, this is how most of your objects should be resolved by the container.
@@ -619,6 +632,7 @@ class PodcastController extends Controller
 ```
 
 <a name="method-invocation-and-injection"></a>
+
 ## Method Invocation and Injection
 
 Sometimes you may wish to invoke a method on an object instance while allowing the container to automatically inject that method's dependencies. For example, given the following class:
@@ -665,6 +679,7 @@ $result = App::call(function (AppleMusic $apple) {
 ```
 
 <a name="container-events"></a>
+
 ## Container Events
 
 The service container fires an event each time it resolves an object. You may listen to this event using the `resolving` method:
@@ -685,6 +700,7 @@ $this->app->resolving(function (mixed $object, Application $app) {
 As you can see, the object being resolved will be passed to the callback, allowing you to set any additional properties on the object before it is given to its consumer.
 
 <a name="rebinding"></a>
+
 ### Rebinding
 
 The `rebinding` method allows you to listen for when a service is re-bound to the container, meaning it is registered again or overridden after its initial binding. This can be useful when you need to update dependencies or modify behavior each time a specific binding is updated:
@@ -709,6 +725,7 @@ $this->app->bind(PodcastPublisher::class, TransistorPublisher::class);
 ```
 
 <a name="psr-11"></a>
+
 ## PSR-11
 
 Laravel's service container implements the [PSR-11](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-11-container.md) interface. Therefore, you may type-hint the PSR-11 container interface to obtain an instance of the Laravel container:

@@ -5,18 +5,19 @@ laravelDocs: true
 # Views
 
 - [Introduction](#introduction)
-    - [Writing Views in React / Vue](#writing-views-in-react-or-vue)
+  - [Writing Views in React / Vue](#writing-views-in-react-or-vue)
 - [Creating and Rendering Views](#creating-and-rendering-views)
-    - [Nested View Directories](#nested-view-directories)
-    - [Creating the First Available View](#creating-the-first-available-view)
-    - [Determining if a View Exists](#determining-if-a-view-exists)
+  - [Nested View Directories](#nested-view-directories)
+  - [Creating the First Available View](#creating-the-first-available-view)
+  - [Determining if a View Exists](#determining-if-a-view-exists)
 - [Passing Data to Views](#passing-data-to-views)
-    - [Sharing Data With All Views](#sharing-data-with-all-views)
+  - [Sharing Data With All Views](#sharing-data-with-all-views)
 - [View Composers](#view-composers)
-    - [View Creators](#view-creators)
+  - [View Creators](#view-creators)
 - [Optimizing Views](#optimizing-views)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 Of course, it's not practical to return entire HTML documents strings directly from your routes and controllers. Thankfully, views provide a convenient way to place all of our HTML in separate files.
@@ -45,6 +46,7 @@ Route::get('/', function () {
 > Looking for more information on how to write Blade templates? Check out the full [Blade documentation](./blade) to get started.
 
 <a name="writing-views-in-react-or-vue"></a>
+
 ### Writing Views in React / Vue
 
 Instead of writing their frontend templates in PHP via Blade, many developers have begun to prefer to write their templates using React or Vue. Laravel makes this painless thanks to [Inertia](https://inertiajs.com/), a library that makes it a cinch to tie your React / Vue frontend to your Laravel backend without the typical complexities of building an SPA.
@@ -52,6 +54,7 @@ Instead of writing their frontend templates in PHP via Blade, many developers ha
 Our [React and Vue application starter kits](./starter-kits) give you a great starting point for your next Laravel application powered by Inertia.
 
 <a name="creating-and-rendering-views"></a>
+
 ## Creating and Rendering Views
 
 You may create a view by placing a file with the `.blade.php` extension in your application's `resources/views` directory or by using the `make:view` Artisan command:
@@ -81,6 +84,7 @@ return View::make('greeting', ['name' => 'James']);
 As you can see, the first argument passed to the `view` helper corresponds to the name of the view file in the `resources/views` directory. The second argument is an array of data that should be made available to the view. In this case, we are passing the `name` variable, which is displayed in the view using [Blade syntax](./blade).
 
 <a name="nested-view-directories"></a>
+
 ### Nested View Directories
 
 Views may also be nested within subdirectories of the `resources/views` directory. "Dot" notation may be used to reference nested views. For example, if your view is stored at `resources/views/admin/profile.blade.php`, you may return it from one of your application's routes / controllers like so:
@@ -93,6 +97,7 @@ return view('admin.profile', $data);
 > View directory names should not contain the `.` character.
 
 <a name="creating-the-first-available-view"></a>
+
 ### Creating the First Available View
 
 Using the `View` facade's `first` method, you may create the first view that exists in a given array of views. This may be useful if your application or package allows views to be customized or overwritten:
@@ -104,6 +109,7 @@ return View::first(['custom.admin', 'admin'], $data);
 ```
 
 <a name="determining-if-a-view-exists"></a>
+
 ### Determining if a View Exists
 
 If you need to determine if a view exists, you may use the `View` facade. The `exists` method will return `true` if the view exists:
@@ -117,6 +123,7 @@ if (View::exists('admin.profile')) {
 ```
 
 <a name="passing-data-to-views"></a>
+
 ## Passing Data to Views
 
 As you saw in the previous examples, you may pass an array of data to views to make that data available to the view:
@@ -136,6 +143,7 @@ return view('greeting')
 ```
 
 <a name="sharing-data-with-all-views"></a>
+
 ### Sharing Data With All Views
 
 Occasionally, you may need to share data with all views that are rendered by your application. You may do so using the `View` facade's `share` method. Typically, you should place calls to the `share` method within a service provider's `boot` method. You are free to add them to the `App\Providers\AppServiceProvider` class or generate a separate service provider to house them:
@@ -168,6 +176,7 @@ class AppServiceProvider extends ServiceProvider
 ```
 
 <a name="view-composers"></a>
+
 ## View Composers
 
 View composers are callbacks or class methods that are called when a view is rendered. If you have data that you want to be bound to a view each time that view is rendered, a view composer can help you organize that logic into a single location. View composers may prove particularly useful if the same view is returned by multiple routes or controllers within your application and always needs a particular piece of data.
@@ -248,6 +257,7 @@ class ProfileComposer
 As you can see, all view composers are resolved via the [service container](./container), so you may type-hint any dependencies you need within a composer's constructor.
 
 <a name="attaching-a-composer-to-multiple-views"></a>
+
 #### Attaching a Composer to Multiple Views
 
 You may attach a view composer to multiple views at once by passing an array of views as the first argument to the `composer` method:
@@ -274,6 +284,7 @@ Facades\View::composer('*', function (View $view) {
 ```
 
 <a name="view-creators"></a>
+
 ### View Creators
 
 View "creators" are very similar to view composers; however, they are executed immediately after the view is instantiated instead of waiting until the view is about to render. To register a view creator, use the `creator` method:
@@ -286,6 +297,7 @@ View::creator('profile', ProfileCreator::class);
 ```
 
 <a name="optimizing-views"></a>
+
 ## Optimizing Views
 
 By default, Blade template views are compiled on demand. When a request is executed that renders a view, Laravel will determine if a compiled version of the view exists. If the file exists, Laravel will then determine if the uncompiled view has been modified more recently than the compiled view. If the compiled view either does not exist, or the uncompiled view has been modified, Laravel will recompile the view.

@@ -5,6 +5,7 @@ Welcome to the Laravel blog! Here you'll find the latest news, updates, and insi
 ## Recent Posts
 
 ### [Hello World](/blog/2025-07-31-hello-world)
-*July 31, 2025*
+
+_July 31, 2025_
 
 Some content

@@ -5,23 +5,24 @@ laravelDocs: true
 # Installation
 
 - [Meet Laravel](#meet-laravel)
-    - [Why Laravel?](#why-laravel)
+  - [Why Laravel?](#why-laravel)
 - [Creating a Laravel Application](#creating-a-laravel-project)
-    - [Installing PHP and the Laravel Installer](#installing-php)
-    - [Creating an Application](#creating-an-application)
+  - [Installing PHP and the Laravel Installer](#installing-php)
+  - [Creating an Application](#creating-an-application)
 - [Initial Configuration](#initial-configuration)
-    - [Environment Based Configuration](#environment-based-configuration)
-    - [Databases and Migrations](#databases-and-migrations)
-    - [Directory Configuration](#directory-configuration)
+  - [Environment Based Configuration](#environment-based-configuration)
+  - [Databases and Migrations](#databases-and-migrations)
+  - [Directory Configuration](#directory-configuration)
 - [Installation Using Herd](#installation-using-herd)
-    - [Herd on macOS](#herd-on-macos)
-    - [Herd on Windows](#herd-on-windows)
+  - [Herd on macOS](#herd-on-macos)
+  - [Herd on Windows](#herd-on-windows)
 - [IDE Support](#ide-support)
 - [Next Steps](#next-steps)
-    - [Laravel the Full Stack Framework](#laravel-the-fullstack-framework)
-    - [Laravel the API Backend](#laravel-the-api-backend)
+  - [Laravel the Full Stack Framework](#laravel-the-fullstack-framework)
+  - [Laravel the API Backend](#laravel-the-api-backend)
 
 <a name="meet-laravel"></a>
+
 ## Meet Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. A web framework provides a structure and starting point for creating your application, allowing you to focus on creating something amazing while we sweat the details.
@@ -31,6 +32,7 @@ Laravel strives to provide an amazing developer experience while providing power
 Whether you are new to PHP web frameworks or have years of experience, Laravel is a framework that can grow with you. We'll help you take your first steps as a web developer or give you a boost as you take your expertise to the next level. We can't wait to see what you build.
 
 <a name="why-laravel"></a>
+
 ### Why Laravel?
 
 There are a variety of tools and frameworks available to you when building a web application. However, we believe Laravel is the best choice for building modern, full-stack web applications.
@@ -52,9 +54,11 @@ Need extreme scaling? Platforms like [Laravel Cloud](https://cloud.laravel.com) 
 Laravel combines the best packages in the PHP ecosystem to offer the most robust and developer friendly framework available. In addition, thousands of talented developers from around the world have [contributed to the framework](https://github.com/laravel/framework). Who knows, maybe you'll even become a Laravel contributor.
 
 <a name="creating-a-laravel-project"></a>
+
 ## Creating a Laravel Application
 
 <a name="installing-php"></a>
+
 ### Installing PHP and the Laravel Installer
 
 Before creating your first Laravel application, make sure that your local machine has [PHP](https://php.net), [Composer](https://getcomposer.org), and [the Laravel installer](https://github.com/laravel/installer) installed. In addition, you should install either [Node and NPM](https://nodejs.org) or [Bun](https://bun.sh/) so that you can compile your application's frontend assets.
@@ -86,6 +90,7 @@ composer global require laravel/installer
 > For a fully-featured, graphical PHP installation and management experience, check out [Laravel Herd](#installation-using-herd).
 
 <a name="creating-an-application"></a>
+
 ### Creating an Application
 
 After you have installed PHP, Composer, and the Laravel installer, you're ready to create a new Laravel application. The Laravel installer will prompt you to select your preferred testing framework, database, and starter kit:
@@ -108,6 +113,7 @@ Once you have started the development server, your application will be accessibl
 > If you would like a head start when developing your Laravel application, consider using one of our [starter kits](./starter-kits). Laravel's starter kits provide backend and frontend authentication scaffolding for your new Laravel application.
 
 <a name="initial-configuration"></a>
+
 ## Initial Configuration
 
 All of the configuration files for the Laravel framework are stored in the `config` directory. Each option is documented, so feel free to look through the files and get familiar with the options available to you.
@@ -115,6 +121,7 @@ All of the configuration files for the Laravel framework are stored in the `conf
 Laravel needs almost no additional configuration out of the box. You are free to get started developing! However, you may wish to review the `config/app.php` file and its documentation. It contains several options such as `url` and `locale` that you may wish to change according to your application.
 
 <a name="environment-based-configuration"></a>
+
 ### Environment Based Configuration
 
 Since many of Laravel's configuration option values may vary depending on whether your application is running on your local machine or on a production web server, many important configuration values are defined using the `.env` file that exists at the root of your application.
@@ -125,6 +132,7 @@ Your `.env` file should not be committed to your application's source control, s
 > For more information about the `.env` file and environment based configuration, check out the full [configuration documentation](./configuration#environment-configuration).
 
 <a name="databases-and-migrations"></a>
+
 ### Databases and Migrations
 
 Now that you have created your Laravel application, you probably want to store some data in a database. By default, your application's `.env` configuration file specifies that Laravel will be interacting with an SQLite database.
@@ -152,11 +160,13 @@ php artisan migrate
 > If you are developing on macOS or Windows and need to install MySQL, PostgreSQL, or Redis locally, consider using [Herd Pro](https://herd.laravel.com/#plans) or [DBngin](https://dbngin.com/).
 
 <a name="directory-configuration"></a>
+
 ### Directory Configuration
 
 Laravel should always be served out of the root of the "web directory" configured for your web server. You should not attempt to serve a Laravel application out of a subdirectory of the "web directory". Attempting to do so could expose sensitive files present within your application.
 
 <a name="installation-using-herd"></a>
+
 ## Installation Using Herd
 
 [Laravel Herd](https://herd.laravel.com) is a blazing fast, native Laravel and PHP development environment for macOS and Windows. Herd includes everything you need to get started with Laravel development, including PHP and Nginx.
@@ -167,6 +177,7 @@ Once you install Herd, you're ready to start developing with Laravel. Herd inclu
 > [Herd Pro](https://herd.laravel.com/#plans) augments Herd with additional powerful features, such as the ability to create and manage local MySQL, Postgres, and Redis databases, as well as local mail viewing and log monitoring.
 
 <a name="herd-on-macos"></a>
+
 ### Herd on macOS
 
 If you develop on macOS, you can download the Herd installer from the [Herd website](https://herd.laravel.com). The installer automatically downloads the latest version of PHP and configures your Mac to always run [Nginx](https://www.nginx.com/) in the background.
@@ -187,6 +198,7 @@ Of course, you can always manage your parked directories and other PHP settings 
 You can learn more about Herd by checking out the [Herd documentation](https://herd.laravel.com/docs).
 
 <a name="herd-on-windows"></a>
+
 ### Herd on Windows
 
 You can download the Windows installer for Herd on the [Herd website](https://herd.laravel.com/windows). After the installation finishes, you can start Herd to complete the onboarding process and access the Herd UI for the first time.
@@ -207,6 +219,7 @@ herd open
 You can learn more about Herd by checking out the [Herd documentation for Windows](https://herd.laravel.com/docs/windows).
 
 <a name="ide-support"></a>
+
 ## IDE Support
 
 You are free to use any code editor you wish when developing Laravel applications. If you're looking for lightweight and extensible editors, [VS Code](https://code.visualstudio.com) or [Cursor](https://cursor.com) combined with the official [Laravel VS Code Extension](https://marketplace.visualstudio.com/items?itemName=laravel.vscode-laravel) offers excellent Laravel support with features like syntax highlighting, snippets, artisan command integration, and smart autocompletion for Eloquent models, routes, middleware, assets, config, and Inertia.js.
@@ -216,6 +229,7 @@ You are free to use any code editor you wish when developing Laravel application
 For those seeking a cloud-based development experience, [Firebase Studio](https://firebase.studio/) provides instant access to building with Laravel directly in your browser. With zero setup required, Firebase Studio makes it easy to start building Laravel applications from any device.
 
 <a name="next-steps"></a>
+
 ## Next Steps
 
 Now that you have created your Laravel application, you may be wondering what to learn next. First, we strongly recommend becoming familiar with how Laravel works by reading the following documentation:
@@ -234,6 +248,7 @@ Now that you have created your Laravel application, you may be wondering what to
 How you want to use Laravel will also dictate the next steps on your journey. There are a variety of ways to use Laravel, and we'll explore two primary use cases for the framework below.
 
 <a name="laravel-the-fullstack-framework"></a>
+
 ### Laravel the Full Stack Framework
 
 Laravel may serve as a full stack framework. By "full stack" framework we mean that you are going to use Laravel to route requests to your application and render your frontend via [Blade templates](./blade) or a single-page application hybrid technology like [Inertia](https://inertiajs.com). This is the most common way to use the Laravel framework, and, in our opinion, the most productive way to use Laravel.
@@ -246,6 +261,7 @@ If you are using Laravel as a full stack framework, we also strongly encourage y
 > If you want to get a head start building your application, check out one of our official [application starter kits](./starter-kits).
 
 <a name="laravel-the-api-backend"></a>
+
 ### Laravel the API Backend
 
 Laravel may also serve as an API backend to a JavaScript single-page application or mobile application. For example, you might use Laravel as an API backend for your [Next.js](https://nextjs.org) application. In this context, you may use Laravel to provide [authentication](./sanctum) and data storage / retrieval for your application, while also taking advantage of Laravel's powerful services such as queues, emails, notifications, and more.

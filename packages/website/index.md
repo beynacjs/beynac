@@ -15,7 +15,6 @@ hero:
     - theme: alt
       text: GitHub
       link: https://github.com/beynacjs/beynac
-
 # Uncomment to restore VuePress' home page template feature:
 # features:
 #   - title: Title
@@ -24,7 +23,7 @@ hero:
 #     details: Detail
 ---
 
-_* When we're done building it..._
+_\* When we're done building it..._
 
 Beynac is an early-stage project attempting to port Laravel to TypeScript.
 

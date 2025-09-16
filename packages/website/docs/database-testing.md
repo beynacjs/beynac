@@ -5,17 +5,19 @@ laravelDocs: true
 # Database Testing
 
 - [Introduction](#introduction)
-    - [Resetting the Database After Each Test](#resetting-the-database-after-each-test)
+  - [Resetting the Database After Each Test](#resetting-the-database-after-each-test)
 - [Model Factories](#model-factories)
 - [Running Seeders](#running-seeders)
 - [Available Assertions](#available-assertions)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 Laravel provides a variety of helpful tools and assertions to make it easier to test your database driven applications. In addition, Laravel model factories and seeders make it painless to create test database records using your application's Eloquent models and relationships. We'll discuss all of these powerful features in the following documentation.
 
 <a name="resetting-the-database-after-each-test"></a>
+
 ### Resetting the Database After Each Test
 
 Before proceeding much further, let's discuss how to reset your database after each of your tests so that data from a previous test does not interfere with subsequent tests. Laravel's included `Illuminate\Foundation\Testing\RefreshDatabase` trait will take care of this for you. Simply use the trait on your test class:
@@ -63,6 +65,7 @@ The `Illuminate\Foundation\Testing\RefreshDatabase` trait does not migrate your 
 If you would like to totally reset the database, you may use the `Illuminate\Foundation\Testing\DatabaseMigrations` or `Illuminate\Foundation\Testing\DatabaseTruncation` traits instead. However, both of these options are significantly slower than the `RefreshDatabase` trait.
 
 <a name="model-factories"></a>
+
 ## Model Factories
 
 When testing, you may need to insert a few records into your database before executing your test. Instead of manually specifying the value of each column when you create this test data, Laravel allows you to define a set of default attributes for each of your [Eloquent models](./eloquent) using [model factories](./eloquent-factories).
@@ -91,6 +94,7 @@ public function test_models_can_be_instantiated(): void
 ```
 
 <a name="running-seeders"></a>
+
 ## Running Seeders
 
 If you would like to use [database seeders](./seeding) to populate your database during a feature test, you may invoke the `seed` method. By default, the `seed` method will execute the `DatabaseSeeder`, which should execute all of your other seeders. Alternatively, you pass a specific seeder class name to the `seed` method:
@@ -193,11 +197,13 @@ protected $seeder = OrderStatusSeeder::class;
 ```
 
 <a name="available-assertions"></a>
+
 ## Available Assertions
 
 Laravel provides several database assertions for your [Pest](https://pestphp.com) or [PHPUnit](https://phpunit.de) feature tests. We'll discuss each of these assertions below.
 
 <a name="assert-database-count"></a>
+
 #### assertDatabaseCount
 
 Assert that a table in the database contains the given number of records:
@@ -207,6 +213,7 @@ $this->assertDatabaseCount('users', 5);
 ```
 
 <a name="assert-database-empty"></a>
+
 #### assertDatabaseEmpty
 
 Assert that a table in the database contains no records:
@@ -216,6 +223,7 @@ $this->assertDatabaseEmpty('users');
 ```
 
 <a name="assert-database-has"></a>
+
 #### assertDatabaseHas
 
 Assert that a table in the database contains records matching the given key / value query constraints:
@@ -227,6 +235,7 @@ $this->assertDatabaseHas('users', [
 ```
 
 <a name="assert-database-missing"></a>
+
 #### assertDatabaseMissing
 
 Assert that a table in the database does not contain records matching the given key / value query constraints:
@@ -238,6 +247,7 @@ $this->assertDatabaseMissing('users', [
 ```
 
 <a name="assert-deleted"></a>
+
 #### assertSoftDeleted
 
 The `assertSoftDeleted` method may be used to assert a given Eloquent model has been "soft deleted":
@@ -247,6 +257,7 @@ $this->assertSoftDeleted($user);
 ```
 
 <a name="assert-not-deleted"></a>
+
 #### assertNotSoftDeleted
 
 The `assertNotSoftDeleted` method may be used to assert a given Eloquent model hasn't been "soft deleted":
@@ -256,6 +267,7 @@ $this->assertNotSoftDeleted($user);
 ```
 
 <a name="assert-model-exists"></a>
+
 #### assertModelExists
 
 Assert that a given model or collection of models exist in the database:
@@ -269,6 +281,7 @@ $this->assertModelExists($user);
 ```
 
 <a name="assert-model-missing"></a>
+
 #### assertModelMissing
 
 Assert that a given model or collection of models do not exist in the database:
@@ -284,6 +297,7 @@ $this->assertModelMissing($user);
 ```
 
 <a name="expects-database-query-count"></a>
+
 #### expectsDatabaseQueryCount
 
 The `expectsDatabaseQueryCount` method may be invoked at the beginning of your test to specify the total number of database queries that you expect to be run during the test. If the actual number of executed queries does not exactly match this expectation, the test will fail:

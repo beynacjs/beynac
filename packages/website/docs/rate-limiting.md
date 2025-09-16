@@ -5,12 +5,13 @@ laravelDocs: true
 # Rate Limiting
 
 - [Introduction](#introduction)
-    - [Cache Configuration](#cache-configuration)
+  - [Cache Configuration](#cache-configuration)
 - [Basic Usage](#basic-usage)
-    - [Manually Incrementing Attempts](#manually-incrementing-attempts)
-    - [Clearing Attempts](#clearing-attempts)
+  - [Manually Incrementing Attempts](#manually-incrementing-attempts)
+  - [Clearing Attempts](#clearing-attempts)
 
 <a name="introduction"></a>
+
 ## Introduction
 
 Laravel includes a simple to use rate limiting abstraction which, in conjunction with your application's [cache](cache), provides an easy way to limit any action during a specified window of time.
@@ -19,6 +20,7 @@ Laravel includes a simple to use rate limiting abstraction which, in conjunction
 > If you are interested in rate limiting incoming HTTP requests, please consult the [rate limiter middleware documentation](./routing#rate-limiting).
 
 <a name="cache-configuration"></a>
+
 ### Cache Configuration
 
 Typically, the rate limiter utilizes your default application cache as defined by the `default` key within your application's `cache` configuration file. However, you may specify which cache driver the rate limiter should use by defining a `limiter` key within your application's `cache` configuration file:
@@ -30,6 +32,7 @@ Typically, the rate limiter utilizes your default application cache as defined b
 ```
 
 <a name="basic-usage"></a>
+
 ## Basic Usage
 
 The `Illuminate\Support\Facades\RateLimiter` facade may be used to interact with the rate limiter. The simplest method offered by the rate limiter is the `attempt` method, which rate limits a given callback for a given number of seconds.
@@ -66,6 +69,7 @@ $executed = RateLimiter::attempt(
 ```
 
 <a name="manually-incrementing-attempts"></a>
+
 ### Manually Incrementing Attempts
 
 If you would like to manually interact with the rate limiter, a variety of other methods are available. For example, you may invoke the `tooManyAttempts` method to determine if a given rate limiter key has exceeded its maximum number of allowed attempts per minute:
@@ -101,6 +105,7 @@ RateLimiter::increment('send-message:'.$user->id, amount: 5);
 ```
 
 <a name="determining-limiter-availability"></a>
+
 #### Determining Limiter Availability
 
 When a key has no more attempts left, the `availableIn` method returns the number of seconds remaining until more attempts will be available:
@@ -120,6 +125,7 @@ RateLimiter::increment('send-message:'.$user->id);
 ```
 
 <a name="clearing-attempts"></a>
+
 ### Clearing Attempts
 
 You may reset the number of attempts for a given rate limiter key using the `clear` method. For example, you may reset the number of attempts when a given message is read by the receiver:

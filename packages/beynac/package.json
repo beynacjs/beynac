@@ -1,40 +1,40 @@
 {
-	"name": "beynac",
-	"version": "0.0.1",
-	"description": "A batteries-included full-stack framework for TypeScript",
-	"type": "module",
-	"main": "./dist/index.js",
-	"types": "./dist/index.d.ts",
-	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js"
-		}
-	},
-	"scripts": {
-		"check": "tsc --noEmit",
-		"build": "tsc -p tsconfig.build.json",
-		"clean": "rm -rf dist"
-	},
-	"files": [
-		"README.md",
-		"dist"
-	],
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/BernieSumption/beynac.git"
-	},
-	"bugs": {
-		"url": "https://github.com/BernieSumption/beynac/issues"
-	},
-	"homepage": "https://github.com/BernieSumption/beynac#readme",
-	"author": "Bernie Sumption",
-	"license": "MIT",
-	"devDependencies": {
-		"@types/bun": "latest",
-		"beynac": "workspace:",
-		"bun-types": "latest",
-		"expect-type": "^1.2.2",
-		"typescript": "^5.8.3"
-	}
+  "name": "beynac",
+  "version": "0.0.1",
+  "description": "A batteries-included full-stack framework for TypeScript",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist"
+  },
+  "files": [
+    "README.md",
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BernieSumption/beynac.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BernieSumption/beynac/issues"
+  },
+  "homepage": "https://github.com/BernieSumption/beynac#readme",
+  "author": "Bernie Sumption",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/bun": "latest",
+    "beynac": "workspace:",
+    "bun-types": "latest",
+    "expect-type": "^1.2.2",
+    "typescript": "^5.8.3"
+  }
 }

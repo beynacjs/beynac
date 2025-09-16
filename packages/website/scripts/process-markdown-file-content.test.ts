@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { processMarkdownFileContentFromString } from "./code-block-utils.ts";
 
 test("preserves content when all blocks are manual", () => {
-	const content = `# Test Document
+  const content = `# Test Document
 
 Some text here.
 
@@ -22,12 +22,12 @@ function hello() {
 \`\`\`
 `;
 
-	const result = processMarkdownFileContentFromString(content, "");
-	expect(result).toBe(content);
+  const result = processMarkdownFileContentFromString(content, "");
+  expect(result).toBe(content);
 });
 
 test("updates code block from test source", () => {
-	const testContent = `
+  const testContent = `
 import { test, expect } from "bun:test";
 
 test("sample test", () => {
@@ -45,7 +45,7 @@ test("another test", () => {
 });
 `;
 
-	const markdownContent = `# Test Document
+  const markdownContent = `# Test Document
 
 Here's some code:
 
@@ -62,7 +62,7 @@ And another:
 \`\`\`
 `;
 
-	const expected = `# Test Document
+  const expected = `# Test Document
 
 Here's some code:
 
@@ -81,12 +81,15 @@ console.log(\`Hello, \${name}!\`);
 \`\`\`
 `;
 
-	const result = processMarkdownFileContentFromString(markdownContent, testContent);
-	expect(result).toBe(expected);
+  const result = processMarkdownFileContentFromString(
+    markdownContent,
+    testContent
+  );
+  expect(result).toBe(expected);
 });
 
 test("handles multiple code blocks", () => {
-	const testContent = `
+  const testContent = `
 import { test } from "bun:test";
 
 test("automated block", () => {
@@ -96,7 +99,7 @@ test("automated block", () => {
 });
 `;
 
-	const markdownContent = `# Mixed Content
+  const markdownContent = `# Mixed Content
 
 <!-- source: manual -->
 \`\`\`ts
@@ -115,7 +118,7 @@ const manual = true;
 \`\`\`
 `;
 
-	const expected = `# Mixed Content
+  const expected = `# Mixed Content
 
 <!-- source: manual -->
 \`\`\`ts
@@ -134,13 +137,15 @@ return "This is automated";
 \`\`\`
 `;
 
-	const result = processMarkdownFileContentFromString(markdownContent, testContent);
-	expect(result).toBe(expected);
+  const result = processMarkdownFileContentFromString(
+    markdownContent,
+    testContent
+  );
+  expect(result).toBe(expected);
 });
 
-
 test("handles duplicate code blocks", () => {
-	const testContent = `
+  const testContent = `
 import { test } from "bun:test";
 
 test("automated block", () => {
@@ -150,7 +155,7 @@ test("automated block", () => {
 });
 `;
 
-	const markdownContent = `# Mixed Content
+  const markdownContent = `# Mixed Content
 
 <!-- source: automated block -->
 \`\`\`ts
@@ -163,7 +168,7 @@ test("automated block", () => {
 \`\`\`
 `;
 
-	const expected = `# Mixed Content
+  const expected = `# Mixed Content
 
 <!-- source: automated block -->
 \`\`\`ts
@@ -176,12 +181,15 @@ test("automated block", () => {
 \`\`\`
 `;
 
-	const result = processMarkdownFileContentFromString(markdownContent, testContent);
-	expect(result).toBe(expected);
+  const result = processMarkdownFileContentFromString(
+    markdownContent,
+    testContent
+  );
+  expect(result).toBe(expected);
 });
 
 test("preserves non-code content exactly", () => {
-	const testContent = `
+  const testContent = `
 test("code sample", () => {
   // BEGIN
   const x = 42;
@@ -189,7 +197,7 @@ test("code sample", () => {
 });
 `;
 
-	const markdownContent = `# Heading 1
+  const markdownContent = `# Heading 1
 
 This is a paragraph with **bold** and *italic* text.
 
@@ -219,26 +227,29 @@ More text after the code block.
 | Data 1   | Data 2   |
 `;
 
-	const result = processMarkdownFileContentFromString(markdownContent, testContent);
+  const result = processMarkdownFileContentFromString(
+    markdownContent,
+    testContent
+  );
 
-	// Check that all non-code content is preserved
-	expect(result).toContain("# Heading 1");
-	expect(result).toContain(
-		"This is a paragraph with **bold** and *italic* text.",
-	);
-	expect(result).toContain("- List item 1");
-	expect(result).toContain("> A blockquote");
-	expect(result).toContain("![An image](image.png)");
-	expect(result).toContain("[A link](https://example.com)");
-	expect(result).toContain("| Column 1 | Column 2 |");
+  // Check that all non-code content is preserved
+  expect(result).toContain("# Heading 1");
+  expect(result).toContain(
+    "This is a paragraph with **bold** and *italic* text."
+  );
+  expect(result).toContain("- List item 1");
+  expect(result).toContain("> A blockquote");
+  expect(result).toContain("![An image](image.png)");
+  expect(result).toContain("[A link](https://example.com)");
+  expect(result).toContain("| Column 1 | Column 2 |");
 
-	// Check that code was updated
-	expect(result).toContain("const x = 42;");
-	expect(result).not.toContain("// old");
+  // Check that code was updated
+  expect(result).toContain("const x = 42;");
+  expect(result).not.toContain("// old");
 });
 
 test("handles missing test gracefully", () => {
-	const testContent = `
+  const testContent = `
 test("existing test", () => {
   // BEGIN
   return true;
@@ -246,7 +257,7 @@ test("existing test", () => {
 });
 `;
 
-	const markdownContent = `# Test
+  const markdownContent = `# Test
 
 <!-- source: non-existent test -->
 \`\`\`ts
@@ -254,13 +265,13 @@ code here
 \`\`\`
 `;
 
-	expect(() => {
-		processMarkdownFileContentFromString(markdownContent, testContent);
-	}).toThrow('Test "non-existent test" not found');
+  expect(() => {
+    processMarkdownFileContentFromString(markdownContent, testContent);
+  }).toThrow('Test "non-existent test" not found');
 });
 
 test("preserves code block language specifier", () => {
-	const testContent = `
+  const testContent = `
 test("sample code", () => {
   // BEGIN
   const code = "example";
@@ -268,7 +279,7 @@ test("sample code", () => {
 });
 `;
 
-	const markdownContent = `# Languages
+  const markdownContent = `# Languages
 
 <!-- source: sample code -->
 \`\`\`typescript
@@ -291,20 +302,23 @@ old
 \`\`\`
 `;
 
-	const result = processMarkdownFileContentFromString(markdownContent, testContent);
+  const result = processMarkdownFileContentFromString(
+    markdownContent,
+    testContent
+  );
 
-	expect(result).toContain("\`\`\`typescript");
-	expect(result).toContain("\`\`\`javascript");
-	expect(result).toContain("\`\`\`tsx");
-	expect(result).toContain("\`\`\`jsx");
+  expect(result).toContain("\`\`\`typescript");
+  expect(result).toContain("\`\`\`javascript");
+  expect(result).toContain("\`\`\`tsx");
+  expect(result).toContain("\`\`\`jsx");
 
-	// All should have the same content
-	const codeCount = (result.match(/const code = "example";/g) || []).length;
-	expect(codeCount).toBe(4);
+  // All should have the same content
+  const codeCount = (result.match(/const code = "example";/g) || []).length;
+  expect(codeCount).toBe(4);
 });
 
 test("handles code blocks without source comments", () => {
-	const markdownContent = `# Test
+  const markdownContent = `# Test
 
 \`\`\`ts
 // This has no source comment
@@ -312,20 +326,20 @@ const x = 1;
 \`\`\`
 `;
 
-	// Should not throw, just leave unchanged
-	const result = processMarkdownFileContentFromString(markdownContent, "");
-	expect(result).toBe(markdownContent);
+  // Should not throw, just leave unchanged
+  const result = processMarkdownFileContentFromString(markdownContent, "");
+  expect(result).toBe(markdownContent);
 });
 
 test("throws error when test is missing BEGIN/END markers", () => {
-	const testContent = `
+  const testContent = `
 test("test without markers", () => {
   const x = 1;
   return x;
 });
 `;
 
-	const markdownContent = `# Test
+  const markdownContent = `# Test
 
 <!-- source: test without markers -->
 \`\`\`ts
@@ -333,13 +347,13 @@ code
 \`\`\`
 `;
 
-	expect(() => {
-		processMarkdownFileContentFromString(markdownContent, testContent);
-	}).toThrow("missing BEGIN/END markers");
+  expect(() => {
+    processMarkdownFileContentFromString(markdownContent, testContent);
+  }).toThrow("missing BEGIN/END markers");
 });
 
 test("generates beynac imports automatically", () => {
-	const testContent = `
+  const testContent = `
 import { test } from "bun:test";
 import { Container, inject } from "beynac";
 
@@ -350,7 +364,7 @@ test("use beynac", () => {
 });
 `;
 
-	const markdownContent = `# Test
+  const markdownContent = `# Test
 
 <!-- source: use beynac -->
 \`\`\`ts
@@ -358,7 +372,7 @@ old code
 \`\`\`
 `;
 
-	const expected = `# Test
+  const expected = `# Test
 
 <!-- source: use beynac -->
 \`\`\`ts
@@ -368,12 +382,15 @@ console.log(Container);
 \`\`\`
 `;
 
-	const result = processMarkdownFileContentFromString(markdownContent, testContent);
-	expect(result).toBe(expected);
+  const result = processMarkdownFileContentFromString(
+    markdownContent,
+    testContent
+  );
+  expect(result).toBe(expected);
 });
 
 test("skips beynac imports with no-imports token", () => {
-	const testContent = `
+  const testContent = `
 import { test } from "bun:test";
 import { Container, inject } from "beynac";
 
@@ -385,7 +402,7 @@ test("use beynac", () => {
 });
 `;
 
-	const markdownContent = `# Test
+  const markdownContent = `# Test
 
 <!-- source: use beynac; no-imports -->
 \`\`\`ts
@@ -393,7 +410,7 @@ old code
 \`\`\`
 `;
 
-	const expected = `# Test
+  const expected = `# Test
 
 <!-- source: use beynac; no-imports -->
 \`\`\`ts
@@ -402,12 +419,15 @@ console.log(inject);
 \`\`\`
 `;
 
-	const result = processMarkdownFileContentFromString(markdownContent, testContent);
-	expect(result).toBe(expected);
+  const result = processMarkdownFileContentFromString(
+    markdownContent,
+    testContent
+  );
+  expect(result).toBe(expected);
 });
 
 test("throws error on invalid token", () => {
-	const testContent = `
+  const testContent = `
 test("test", () => {
   // BEGIN
   console.log("test");
@@ -415,7 +435,7 @@ test("test", () => {
 });
 `;
 
-	const markdownContent = `# Test
+  const markdownContent = `# Test
 
 <!-- source: test; invalid-token -->
 \`\`\`ts
@@ -423,13 +443,13 @@ code
 \`\`\`
 `;
 
-	expect(() => {
-		processMarkdownFileContentFromString(markdownContent, testContent);
-	}).toThrow('Invalid token in source comment: "invalid-token"');
+  expect(() => {
+    processMarkdownFileContentFromString(markdownContent, testContent);
+  }).toThrow('Invalid token in source comment: "invalid-token"');
 });
 
 test("handles complex test with async and multiple statements", () => {
-	const testContent = `
+  const testContent = `
 import { test } from "bun:test";
 
 test("complex async test", async () => {
@@ -451,7 +471,7 @@ test("complex async test", async () => {
 });
 `;
 
-	const markdownContent = `# Test
+  const markdownContent = `# Test
 
 <!-- source: complex async test -->
 \`\`\`ts
@@ -459,11 +479,14 @@ test("complex async test", async () => {
 \`\`\`
 `;
 
-	const result = processMarkdownFileContentFromString(markdownContent, testContent);
+  const result = processMarkdownFileContentFromString(
+    markdownContent,
+    testContent
+  );
 
-	// Should contain all the test content properly formatted
-	expect(result).toContain("const data = await fetch");
-	expect(result).toContain('expect(json.status).toBe("ok");');
-	expect(result).toContain("timestamp: Date.now()");
-	expect(result).toContain("return processed;");
+  // Should contain all the test content properly formatted
+  expect(result).toContain("const data = await fetch");
+  expect(result).toContain('expect(json.status).toBe("ok");');
+  expect(result).toContain("timestamp: Date.now()");
+  expect(result).toContain("return processed;");
 });

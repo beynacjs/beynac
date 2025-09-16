@@ -4,15 +4,17 @@
   "main": "index.js",
   "type": "module",
   "scripts": {},
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/BernieSumption/beynac.git"
-	},
-	"bugs": {
-		"url": "https://github.com/BernieSumption/beynac/issues"
-	},
-	"homepage": "https://github.com/BernieSumption/beynac#readme",
-  "keywords": ["beynac"],
-	"author": "Bernie Sumption",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BernieSumption/beynac.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BernieSumption/beynac/issues"
+  },
+  "homepage": "https://github.com/BernieSumption/beynac#readme",
+  "keywords": [
+    "beynac"
+  ],
+  "author": "Bernie Sumption",
   "license": "MIT"
 }

@@ -11,12 +11,8 @@ export type ClassReference<T = unknown> = abstract new () => T;
 export type KeyOrClass<T = unknown> = ClassReference<T> | Key<T>;
 
 export const getKeyName = (key: KeyOrClass): string => {
-	if (typeof key === "function") {
-		return `[${key.name}]`;
-	}
-	// Keys are objects with a toString method
-	if (typeof key === "object" && key !== null && "toString" in key) {
-		return key.toString();
-	}
-	return "[unknown]";
+  if (typeof key === "function") {
+    return `[${key.name}]`;
+  }
+  return key?.toString() ?? "[unknown]";
 };

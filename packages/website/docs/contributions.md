@@ -11,11 +11,12 @@ laravelDocs: true
 - [Compiled Assets](#compiled-assets)
 - [Security Vulnerabilities](#security-vulnerabilities)
 - [Coding Style](#coding-style)
-    - [PHPDoc](#phpdoc)
-    - [StyleCI](#styleci)
+  - [PHPDoc](#phpdoc)
+  - [StyleCI](#styleci)
 - [Code of Conduct](#code-of-conduct)
 
 <a name="bug-reports"></a>
+
 ## Bug Reports
 
 To encourage active collaboration, Laravel strongly encourages pull requests, not just bug reports. Pull requests will only be reviewed when marked as "ready for review" (not in the "draft" state) and all tests for new features are passing. Lingering, non-active pull requests left in the "draft" state will be closed after a few days.
@@ -59,6 +60,7 @@ The Laravel source code is managed on GitHub, and there are repositories for eac
 </div>
 
 <a name="support-questions"></a>
+
 ## Support Questions
 
 Laravel's GitHub issue trackers are not intended to provide Laravel help or support. Instead, use one of the following channels:
@@ -76,6 +78,7 @@ Laravel's GitHub issue trackers are not intended to provide Laravel help or supp
 </div>
 
 <a name="core-development-discussion"></a>
+
 ## Core Development Discussion
 
 You may propose new features or improvements of existing Laravel behavior in the Laravel framework repository's [GitHub discussion board](https://github.com/laravel/framework/discussions). If you propose a new feature, please be willing to implement at least some of the code that would be needed to complete the feature.
@@ -83,6 +86,7 @@ You may propose new features or improvements of existing Laravel behavior in the
 Informal discussion regarding bugs, new features, and implementation of existing features takes place in the `#internals` channel of the [Laravel Discord server](https://discord.gg/laravel). Taylor Otwell, the maintainer of Laravel, is typically present in the channel on weekdays from 8am-5pm (UTC-06:00 or America/Chicago), and sporadically present in the channel at other times.
 
 <a name="which-branch"></a>
+
 ## Which Branch?
 
 **All** bug fixes should be sent to the latest version that supports bug fixes (currently `12.x`). Bug fixes should **never** be sent to the `master` branch unless they fix features that exist only in the upcoming release.
@@ -92,21 +96,25 @@ Informal discussion regarding bugs, new features, and implementation of existing
 **Major** new features or features with breaking changes should always be sent to the `master` branch, which contains the upcoming release.
 
 <a name="compiled-assets"></a>
+
 ## Compiled Assets
 
 If you are submitting a change that will affect a compiled file, such as most of the files in `resources/css` or `resources/js` of the `laravel/laravel` repository, do not commit the compiled files. Due to their large size, they cannot realistically be reviewed by a maintainer. This could be exploited as a way to inject malicious code into Laravel. In order to defensively prevent this, all compiled files will be generated and committed by Laravel maintainers.
 
 <a name="security-vulnerabilities"></a>
+
 ## Security Vulnerabilities
 
 If you discover a security vulnerability within Laravel, please send an email to Taylor Otwell at <a href="mailto:taylor@laravel.com">taylor@laravel.com</a>. All security vulnerabilities will be promptly addressed.
 
 <a name="coding-style"></a>
+
 ## Coding Style
 
 Laravel follows the [PSR-2](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-2-coding-style-guide.md) coding standard and the [PSR-4](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-4-autoloader.md) autoloading standard.
 
 <a name="phpdoc"></a>
+
 ### PHPDoc
 
 Below is an example of a valid Laravel documentation block. Note that the `@param` attribute is followed by two spaces, the argument type, two more spaces, and finally the variable name:
@@ -157,11 +165,13 @@ public function attachments(): array
 ```
 
 <a name="styleci"></a>
+
 ### StyleCI
 
 Don't worry if your code styling isn't perfect! [StyleCI](https://styleci.io/) will automatically merge any style fixes into the Laravel repository after pull requests are merged. This allows us to focus on the content of the contribution and not the code style.
 
 <a name="code-of-conduct"></a>
+
 ## Code of Conduct
 
 The Laravel code of conduct is derived from the Ruby code of conduct. Any violations of the code of conduct may be reported to Taylor Otwell (taylor@laravel.com):
