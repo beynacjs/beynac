@@ -1,3 +1,4 @@
+import { arrayWrap } from "utils";
 import { ContextImpl } from "./context";
 import type { Chunk, Content, Context, JSX } from "./public-types";
 import { RawContent } from "./raw";
@@ -15,7 +16,7 @@ export class MarkupStream implements JSX.Element {
   constructor(
     tag: string | null,
     attributes: Record<string, unknown> | null,
-    children: Array<Content> | null | Promise<Array<Content> | null>,
+    children: Content,
     context?: ContextImpl
   ) {
     this.tag = tag;
@@ -24,12 +25,7 @@ export class MarkupStream implements JSX.Element {
       this.context = context;
     }
 
-    if (children instanceof Promise) {
-      // Just wrap the promise as content - it will be handled during rendering
-      this.content = [children];
-    } else {
-      this.content = children;
-    }
+    this.content = children == null ? null : arrayWrap(children);
   }
 
   renderChunks({ mode = "html" }: RenderOptions = {}): Chunk {
@@ -41,22 +37,17 @@ export class MarkupStream implements JSX.Element {
       fn: (context: Context) => Content,
       currentContext: ContextImpl
     ): Content => {
-      // Call the function with the current context
       const result = fn(currentContext);
 
-      // Check if context was cloned (meaning set was called)
-      const clonedContext = currentContext._takeCloneAndReset();
+      const copyOnWriteClone = currentContext._takeCloneAndReset();
 
-      if (clonedContext) {
-        // Always wrap result in new MarkupStream to propagate the cloned context
-        if (Array.isArray(result)) {
-          return new MarkupStream(null, null, result, clonedContext);
-        } else {
-          return new MarkupStream(null, null, [result], clonedContext);
-        }
-      }
-
-      return result;
+      // if this content function has modified the context, a clone will have
+      // been created. Wrap the result in a new MarkupStream that we can pass to
+      // children when rendering them. This ensures that context values set by a
+      // component are only available to its children
+      return copyOnWriteClone
+        ? new MarkupStream(null, null, result, copyOnWriteClone)
+        : result;
     };
 
     const getNextChunk = (): Chunk => {
@@ -100,17 +91,19 @@ export class MarkupStream implements JSX.Element {
               if (currentFrame.content) {
                 currentFrame.content[currentFrame.index] = resolved;
               }
-              // we've replaced the promise with its resolved
-              // value so we can continue from the same position
+              // we've replaced the promise with its resolved value, and we
+              // don't increment the index so that this value will be processed
+              // next frame
               return getNextChunk();
             }),
           ];
         } else if (typeof node === "function") {
           const result = evaluateContentFunction(node, frame.context);
           frame.content[frame.index] = result;
-          // Don't increment index, process the result on next iteration
+          // we've replaced the content function with its return value, and
+          // we don't increment the index so that this value will be
+          // processed next frame
         } else if (node instanceof MarkupStream) {
-          // Use the MarkupStream's context if it has one, otherwise current
           const childContext = node.context || frame.context;
           pushStackFrame(node.content, node.tag, node.attributes, childContext);
         } else if (Array.isArray(node)) {

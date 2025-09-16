@@ -1,18 +1,30 @@
-const keyDefault: unique symbol = Symbol("keyDefault");
 const keyBrand: unique symbol = Symbol("keyBrand");
 
 /**
  * A token representing an arbitrary type with optional default value
  */
 export type Key<T = unknown> = {
-  readonly [keyDefault]: T;
+  readonly default: T | undefined;
   readonly [keyBrand]?: T;
   toString(): string;
 };
 
-export const isKey = (value: unknown): value is Key => value instanceof KeyImpl;
+class KeyImpl<T> implements Key<T> {
+  #name: string;
+  default: T | undefined;
+  [keyBrand]?: T;
 
-export const getKeyDefault = <T>(key: Key<T>): unknown => key[keyDefault];
+  constructor(name: string, defaultValue?: T) {
+    this.#name = name;
+    this.default = defaultValue;
+  }
+
+  toString(): string {
+    return `[${this.#name}]`;
+  }
+}
+
+export const isKey = (value: unknown): value is Key => value instanceof KeyImpl;
 
 /**
  * Create a token that allows typescript types that don't normally have a
@@ -39,19 +51,4 @@ export function key<T = unknown>(
 ): Key<T> | Key<T | undefined> | Key<unknown> {
   const { name = "anonymous", default: defaultValue } = options;
   return new KeyImpl<T>(name, defaultValue);
-}
-
-class KeyImpl<T> implements Key<T> {
-  #name: string;
-  [keyDefault]: T | undefined;
-  [keyBrand]?: T;
-
-  constructor(name: string, defaultValue?: T) {
-    this.#name = name;
-    this[keyDefault] = defaultValue;
-  }
-
-  toString(): string {
-    return `[${this.#name}]`;
-  }
 }

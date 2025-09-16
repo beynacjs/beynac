@@ -1,4 +1,4 @@
-import type { Key } from "@/keys";
+import type { Key } from "../keys";
 
 /**
  * A constructor function (class reference)

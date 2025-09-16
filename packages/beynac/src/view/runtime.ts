@@ -1,5 +1,5 @@
-import { BeynacError } from "@/error";
-import { arrayWrap, describeType } from "@/utils";
+import { BeynacError } from "../error";
+import { arrayWrap, describeType } from "../utils";
 import { MarkupStream } from "./markup-stream";
 import type { Component, Content, JSX } from "./public-types";
 

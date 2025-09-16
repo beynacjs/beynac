@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
-import { asyncGate } from "@/test-utils";
+import { asyncGate } from "../test-utils";
 import { key } from "../keys";
 import { Container } from "./container";
 import type { KeyOrClass } from "./container-key";
 import { inject, injectOptional } from "./inject";
+import { expectTypeOf } from "expect-type";
 
 let container: Container;
 
@@ -2114,6 +2115,151 @@ describe("Container withScope", () => {
     expect(gate.current("scope2")).toBe(null);
 
     await Promise.all([p1, p2]);
+  });
+});
+
+describe("Container default values", () => {
+  describe("get()", () => {
+    test("returns default when key not bound", () => {
+      const container = new Container();
+      const keyWithDefault = key<string>({
+        name: "test",
+        default: "defaultValue",
+      });
+
+      const result = container.get(keyWithDefault);
+      expect(result).toBe("defaultValue");
+    });
+
+    test("returns bound value over default", () => {
+      const container = new Container();
+      const keyWithDefault = key<string>({
+        name: "test",
+        default: "defaultValue",
+      });
+
+      container.bind(keyWithDefault, { instance: "boundValue" });
+
+      const result = container.get(keyWithDefault);
+      expect(result).toBe("boundValue");
+    });
+
+    test("throws for key without explicit default and no binding", () => {
+      const container = new Container();
+      const keyWithoutDefault = key<string>({ name: "test" });
+
+      // Keys without explicit default should throw
+      expect(() => container.get(keyWithoutDefault)).toThrow(
+        "Can't create an instance of [test] because no value or factory function was supplied"
+      );
+    });
+
+    test("default values work with different types", () => {
+      const container = new Container();
+
+      const numberKey = key({ name: "num", default: 42 });
+      expect(container.get(numberKey)).toBe(42);
+
+      const boolKey = key({ name: "bool", default: true });
+      expect(container.get(boolKey)).toBe(true);
+
+      const objectKey = key<{ name: string }>({
+        name: "obj",
+        default: {
+          name: "default",
+        },
+      });
+      expect(container.get(objectKey)).toEqual({ name: "default" });
+
+      const arrayKey = key<number[]>({ name: "arr", default: [1, 2, 3] });
+      expect(container.get(arrayKey)).toEqual([1, 2, 3]);
+    });
+
+    test("explicit null default does not throw", () => {
+      const container = new Container();
+      const keyWithNullDefault = key({
+        name: "test",
+        default: null,
+      });
+
+      // Explicit null default should return null, not throw
+      const result = container.get(keyWithNullDefault);
+      expect(result).toBe(null);
+    });
+
+    test("explicit undefined default throws (same as no default)", () => {
+      const container = new Container();
+      const keyWithUndefinedDefault = key({
+        name: "test",
+        default: undefined,
+      });
+
+      expect(() => container.get(keyWithUndefinedDefault)).toThrow(
+        "Can't create an instance of [test] because no value or factory function was supplied"
+      );
+    });
+
+    test("inferred type of got value with default does not include null", () => {
+      const container = new Container();
+      const keyWithDefault = key({
+        name: "test",
+        default: "some default",
+      });
+      const value = container.get(keyWithDefault);
+      expectTypeOf(value).toBeString();
+    });
+
+    test("inferred type of got value without default does not include null", () => {
+      const container = new Container();
+      const keyWithoutDefault = key<string>({
+        name: "test",
+      });
+      container.bind(keyWithoutDefault, { instance: "value" });
+      const value = container.get(keyWithoutDefault);
+      expectTypeOf(value).toBeString();
+    });
+  });
+
+  describe("binding checks with defaults", () => {
+    test("key with default is not considered bound", () => {
+      const container = new Container();
+      const keyWithDefault = key<string>({
+        name: "test",
+        default: "defaultValue",
+      });
+
+      expect(container.bound(keyWithDefault)).toBe(false);
+
+      // After getting with default, still not bound
+      container.get(keyWithDefault);
+      expect(container.bound(keyWithDefault)).toBe(false);
+
+      // After explicit binding, it is bound
+      container.bind(keyWithDefault, { instance: "bound" });
+      expect(container.bound(keyWithDefault)).toBe(true);
+    });
+  });
+
+  describe("optional injection with defaults", () => {
+    test("optional inject returns default when available", () => {
+      const container = new Container();
+      const keyWithDefault = key<string>({
+        name: "optional",
+        default: "defaultValue",
+      });
+
+      class OptionalInject {
+        constructor(public defaultVal = injectOptional(keyWithDefault)) {}
+      }
+
+      const instance = container.get(OptionalInject);
+      expect(instance.defaultVal).toBe("defaultValue");
+
+      // After binding, returns the bound value
+      container.bind(keyWithDefault, { instance: "boundValue" });
+      const instance2 = container.get(OptionalInject);
+      expect(instance2.defaultVal).toBe("boundValue");
+    });
   });
 });
 

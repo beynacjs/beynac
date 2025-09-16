@@ -1,8 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { type Key, key } from "@/keys";
+import { type Key, key } from "../keys";
 import { ContextImpl } from "./context";
 import { MarkupStream } from "./markup-stream";
 import type { Context } from "./public-types";
+import { expectTypeOf } from "expect-type";
 
 describe("Context", () => {
   describe("basic operations", () => {
@@ -266,6 +267,119 @@ describe("Context", () => {
       const clone2 = ctx._takeCloneAndReset();
       expect(clone2).not.toBeNull();
       expect(clone2).not.toBe(clone1);
+    });
+  });
+
+  describe("context get with defaults", () => {
+    test("returns default when key not set", () => {
+      const ctx = new ContextImpl();
+      const keyWithDefault = key<string>({
+        name: "test",
+        default: "defaultValue",
+      });
+      const result = ctx.get(keyWithDefault);
+      expect(result).toBe("defaultValue");
+    });
+
+    test("returns set value over default", () => {
+      const ctx = new ContextImpl();
+      const keyWithDefault = key({ name: "test", default: "defaultValue" });
+      ctx.set(keyWithDefault, "setValue");
+      const result = ctx.get(keyWithDefault);
+      expect(result).toBe("setValue");
+    });
+
+    test("returns null for key without default", () => {
+      const ctx = new ContextImpl();
+      const keyWithoutDefault = key<string>({ name: "test" });
+      const result = ctx.get(keyWithoutDefault);
+      expect(result).toBeNull();
+    });
+
+    test("default with null value", () => {
+      const ctx = new ContextImpl();
+      const keyWithNullDefault = key<string | null>({
+        name: "test",
+        default: null,
+      });
+      const result = ctx.get(keyWithNullDefault);
+      expect(result).toBe(null);
+    });
+
+    test("undefined default returns null (same as no default)", () => {
+      const ctx = new ContextImpl();
+      const keyWithUndefinedDefault = key<string | undefined>({
+        name: "test",
+        default: undefined,
+      });
+      // With current keys.ts, undefined default is same as no default - returns null
+      const result = ctx.get(keyWithUndefinedDefault);
+      expect(result).toBe(null);
+    });
+  });
+
+  describe("context defaults in rendering", () => {
+    test("default values propagate through context tree", () => {
+      const themeKey = key({ name: "theme", default: "light" });
+      const fontSizeKey = key({ name: "fontSize", default: 16 });
+
+      const stream = new MarkupStream("div", null, [
+        (ctx) => {
+          // Should get default values
+          const theme = ctx.get(themeKey);
+          const fontSize = ctx.get(fontSizeKey);
+          return `theme:${theme},size:${fontSize}`;
+        },
+      ]);
+
+      expect(stream.render()).toBe("<div>theme:light,size:16</div>");
+    });
+
+    test("overridden defaults in child context", () => {
+      const colorKey = key<string>({ name: "color", default: "blue" });
+
+      const stream = new MarkupStream("div", null, [
+        (ctx) => {
+          const defaultColor = ctx.get(colorKey);
+          ctx.set(colorKey, "red");
+          return [
+            `default:${defaultColor}`,
+            (ctx) => `,override:${ctx.get(colorKey)}`,
+          ];
+        },
+      ]);
+
+      expect(stream.render()).toBe("<div>default:blue,override:red</div>");
+    });
+
+    test("sibling contexts get default values", () => {
+      const countKey = key<number>({ name: "count", default: 0 });
+
+      const stream = new MarkupStream("div", null, [
+        (ctx) => {
+          ctx.set(countKey, 10);
+          return `first:${ctx.get(countKey)}`;
+        },
+        (ctx) => `,second:${ctx.get(countKey)}`, // Should get default 0, not 10
+      ]);
+
+      expect(stream.render()).toBe("<div>first:10,second:0</div>");
+    });
+  });
+
+  describe("type inference", () => {
+    const ctx = new ContextImpl();
+
+    test("String key with default is nullable when got", () => {
+      const keyWithDefault = key<string>({ name: "test", default: "default" });
+      const result1 = ctx.get(keyWithDefault);
+      expectTypeOf(result1).toEqualTypeOf<string | null>();
+    });
+
+    test("compile-time type checking for defaults", () => {
+      const keyWithoutDefault = key<string>({ name: "test2" });
+      const result2 = ctx.get(keyWithoutDefault);
+      expectTypeOf(result2).toEqualTypeOf<string | null>();
     });
   });
 });

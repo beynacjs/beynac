@@ -30,16 +30,7 @@
     "isolatedDeclarations": true,
     "declaration": true,
     "types": ["bun-types"],
-    "baseUrl": "./src",
-    "paths": {
-      "@/*": ["./*"],
-      "@/container": ["./container"],
-      "@/container/*": ["./container/*"],
-      "@/contracts": ["./contracts"],
-      "@/contracts/*": ["./contracts/*"],
-      "@/testing": ["./testing"],
-      "@/testing/*": ["./testing/*"]
-    }
+    "baseUrl": "./src"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

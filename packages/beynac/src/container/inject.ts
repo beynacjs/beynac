@@ -1,5 +1,5 @@
-import { BeynacError } from "@/error";
-import type { Key } from "@/keys";
+import { BeynacError } from "../error";
+import { isKey, type Key } from "../keys";
 import {
   type ClassReference,
   getKeyName,
@@ -67,8 +67,15 @@ export function injectOptional<T>(
   if (!_currentInjectHandler) {
     throw new BeynacError(invalidInjectMessage);
   }
-  const result = _currentInjectHandler(arg, true);
-  return result === NO_VALUE ? null : (result as Exclude<T, undefined>);
+  let result: unknown = _currentInjectHandler(arg, true);
+  if (result === NO_VALUE) {
+    if (isKey(arg)) {
+      result = arg.default;
+    } else {
+      result = null;
+    }
+  }
+  return (result ?? null) as Exclude<T, undefined>;
 }
 
 type InjectHandler = <T>(arg: KeyOrClass<T>, optional: boolean) => T | NoValue;

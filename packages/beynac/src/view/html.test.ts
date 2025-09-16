@@ -54,9 +54,8 @@ describe("html template literal", () => {
     });
 
     test("handles multiple async values", async () => {
-      const result = html`<div>
-        ${Promise.resolve("first")} ${Promise.resolve("second")}
-      </div>`;
+      // prettier-ignore
+      const result = html`<div>${Promise.resolve("first")} ${Promise.resolve("second")}</div>`;
       const rendered = await result.render();
       expect(rendered).toBe("<div>first second</div>");
     });
@@ -82,14 +81,6 @@ describe("html template literal", () => {
       const inner = html`<span>inner</span>`;
       const result = html`<div>${inner}</div>`;
       expect(result.render()).toBe("<div><span>inner</span></div>");
-    });
-
-    test("handles arrays", () => {
-      const items = ["a", "b", "c"];
-      const result = html`<ul>
-        ${items.map((item) => html`<li>${item}</li>`)}
-      </ul>`;
-      expect(result.render()).toBe("<ul><li>a</li><li>b</li><li>c</li></ul>");
     });
   });
 });

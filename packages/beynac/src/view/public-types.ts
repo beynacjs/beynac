@@ -1,6 +1,6 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: we follow react in using any for some types here
 
-import type { Key } from "@/keys";
+import type { Key } from "../keys";
 import type { IntrinsicElements as IntrinsicElementsDefined } from "./intrinsic-element-types";
 import type { MarkupStream } from "./markup-stream";
 import type { RawContent } from "./raw";

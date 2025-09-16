@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import { BeynacError } from "@/error";
-import { getKeyDefault, isKey, type Key } from "@/keys";
-import { ArrayMultiMap, arrayWrap, describeType, SetMultiMap } from "@/utils";
+import { BeynacError } from "../error";
+import { isKey, type Key } from "../keys";
+import { ArrayMultiMap, arrayWrap, describeType, SetMultiMap } from "../utils";
 import { ContextualBindingBuilder } from "./ContextualBindingBuilder";
 import {
   type ClassReference,
@@ -302,7 +302,7 @@ export class Container {
       if (!factory) {
         // Check if key has a default value
         if (isKey(key)) {
-          const defaultValue = getKeyDefault(key);
+          const defaultValue = key.default;
           if (defaultValue !== undefined) {
             return defaultValue as Exclude<T, undefined>;
           }
