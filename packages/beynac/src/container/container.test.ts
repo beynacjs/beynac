@@ -1,10 +1,17 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  test,
+  expectTypeOf,
+} from "bun:test";
 import { asyncGate } from "../test-utils";
 import { key } from "../keys";
 import { Container } from "./container";
 import type { KeyOrClass } from "./container-key";
 import { inject, injectOptional } from "./inject";
-import { expectTypeOf } from "expect-type";
 
 let container: Container;
 

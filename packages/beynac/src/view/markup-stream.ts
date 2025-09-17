@@ -1,17 +1,16 @@
 import { arrayWrap } from "utils";
 import { ContextImpl } from "./context";
-import type { Chunk, Content, Context, JSX } from "./public-types";
+import type { Content, JSX, RenderOptions } from "./public-types";
 import { RawContent } from "./raw";
 
-export type RenderOptions = {
-  mode?: "html" | "xml";
-};
+export type { RenderOptions };
 
 export class MarkupStream implements JSX.Element {
   readonly tag: string | null;
   readonly attributes: Record<string, unknown> | null;
   readonly content: Content[] | null;
   readonly context: ContextImpl | undefined;
+  #contentTreeExpanded = false;
 
   constructor(
     tag: string | null,
@@ -25,99 +24,58 @@ export class MarkupStream implements JSX.Element {
     this.context = context;
   }
 
-  renderChunks({ mode = "html" }: RenderOptions = {}): Chunk {
-    let buffer = "";
-    const nodeStack: StackFrame[] = [];
-    const rootContext = this.context || new ContextImpl();
+  #expandContentTree(parentContext?: ContextImpl): void {
+    if (this.#contentTreeExpanded) return;
+    this.#contentTreeExpanded = true;
+    if (!this.content) return;
 
-    const evaluateContentFunction = (
-      fn: (context: Context) => Content,
-      currentContext: ContextImpl
-    ): Content => {
-      const result = fn(currentContext);
+    const rootContext = this.context || parentContext || new ContextImpl();
 
-      const copyOnWriteClone = currentContext._takeCloneAndReset();
+    const expandNode = (
+      array: Content[],
+      index: number,
+      context: ContextImpl
+    ): void => {
+      const node = array[index];
 
-      // if this content function has modified the context, a clone will have
-      // been created. Wrap the result in a new MarkupStream that we can pass to
-      // children when rendering them. This ensures that context values set by a
-      // component are only available to its children
-      return copyOnWriteClone
-        ? new MarkupStream(null, null, result, copyOnWriteClone)
-        : result;
-    };
-
-    const getNextChunk = (): Chunk => {
-      while (true) {
-        const frame = nodeStack.at(-1);
-
-        if (!frame) return [buffer, null];
-
-        if (!frame.content || frame.index >= frame.content.length) {
-          if (frame.tag) {
-            const needsClosing =
-              mode === "html"
-                ? // in html mode, tags need closing unless they're one of the known empty tags
-                  !emptyTags.has(frame.tag)
-                : // in xml mode, tags need closing if they have content (empty tags will be rendered as <self-closing />)
-                  !!frame.content?.length;
-            if (needsClosing) {
-              buffer += "</";
-              buffer += frame.tag;
-              buffer += ">";
-            }
-          }
-          nodeStack.pop();
-
-          const parentFrame = nodeStack.at(-1);
-          if (parentFrame) {
-            parentFrame.index++;
-          }
-          continue;
-        }
-
-        const node = frame.content[frame.index];
-
-        if (node instanceof Promise) {
-          const currentBuffer = buffer;
-          const currentFrame = frame;
-          buffer = "";
-          return [
-            currentBuffer,
-            node.then((resolved) => {
-              if (currentFrame.content) {
-                currentFrame.content[currentFrame.index] = resolved;
-              }
-              // we've replaced the promise with its resolved value, and we
-              // don't increment the index so that this value will be processed
-              // next frame
-              return getNextChunk();
-            }),
-          ];
-        } else if (typeof node === "function") {
-          const result = evaluateContentFunction(node, frame.context);
-          frame.content[frame.index] = result;
-          // we've replaced the content function with its return value, and
-          // we don't increment the index so that this value will be
-          // processed next frame
-        } else if (node instanceof MarkupStream) {
-          const childContext = node.context || frame.context;
-          pushStackFrame(node.content, node.tag, node.attributes, childContext);
-        } else if (Array.isArray(node)) {
-          pushStackFrame(node, null, null, frame.context);
-        } else {
-          // Primitive value: render as content
-          if (node != null && typeof node !== "boolean") {
-            if (node instanceof RawContent) {
-              buffer += node.toString();
-            } else {
-              buffer += escapeHtml(String(node));
-            }
-          }
-          frame.index++;
+      if (typeof node === "function") {
+        const result = node(context);
+        const clonedContext = context._takeCloneAndReset();
+        array[index] = clonedContext
+          ? new MarkupStream(null, null, result, clonedContext)
+          : result;
+        expandNode(array, index, clonedContext || context);
+      } else if (node instanceof Promise) {
+        node
+          .then((resolved) => {
+            array[index] = resolved;
+            expandNode(array, index, context);
+          })
+          .catch(() => {
+            // TODO define error handling strategy and add appropriate tests
+            array[index] = "";
+          });
+      } else if (node instanceof MarkupStream) {
+        node.#expandContentTree(context);
+      } else if (Array.isArray(node)) {
+        for (let i = 0; i < node.length; i++) {
+          expandNode(node, i, context);
         }
       }
     };
+
+    for (let i = 0; i < this.content.length; i++) {
+      expandNode(this.content, i, rootContext);
+    }
+  }
+
+  async *renderChunks({
+    mode = "html",
+  }: RenderOptions = {}): AsyncGenerator<string> {
+    this.#expandContentTree();
+
+    let buffer = "";
+    const nodeStack: RenderStackFrame[] = [];
 
     const renderOpeningTag = (
       tag: string,
@@ -161,18 +119,13 @@ export class MarkupStream implements JSX.Element {
         }
       }
 
-      if (selfClosing) {
-        buffer += " />";
-      } else {
-        buffer += ">";
-      }
+      buffer += selfClosing ? " />" : ">";
     };
 
     const pushStackFrame = (
       content: Content[] | null,
       tag: string | null,
-      attributes: Record<string, unknown> | null,
-      context: ContextImpl
+      attributes: Record<string, unknown> | null
     ): void => {
       const selfClosing = mode === "xml" && !content?.length;
       if (tag) {
@@ -183,38 +136,92 @@ export class MarkupStream implements JSX.Element {
         content: htmlEmptyTag ? [] : (content ?? []),
         tag,
         index: 0,
-        context,
       });
     };
 
-    pushStackFrame(this.content, this.tag, this.attributes, rootContext);
+    // Start with root
+    pushStackFrame(this.content, this.tag, this.attributes);
 
-    return getNextChunk();
-  }
+    // Process stack
+    while (nodeStack.length > 0) {
+      const frame = nodeStack[nodeStack.length - 1];
 
-  render(options?: RenderOptions): string | Promise<string> {
-    let [content, next] = this.renderChunks(options);
+      if (!frame.content || frame.index >= frame.content.length) {
+        // Render closing tag if needed
+        if (frame.tag) {
+          const needsClosing =
+            mode === "html"
+              ? !emptyTags.has(frame.tag)
+              : !!frame.content?.length;
 
-    if (!next) {
-      return content;
+          if (needsClosing) {
+            buffer += "</";
+            buffer += frame.tag;
+            buffer += ">";
+          }
+        }
+
+        nodeStack.pop();
+        const parentFrame = nodeStack[nodeStack.length - 1];
+        if (parentFrame) {
+          parentFrame.index++;
+        }
+        continue;
+      }
+
+      const node = frame.content[frame.index];
+
+      if (node instanceof Promise) {
+        // Yield current buffer before awaiting
+        if (buffer) {
+          yield buffer;
+          buffer = "";
+        }
+        // Await the promise - the slot will have been updated by expandContentTree
+        await (node as Promise<unknown>);
+        // Don't increment index - reprocess this slot with the resolved value
+      } else if (typeof node === "function") {
+        // This shouldn't happen - functions should be expanded already
+        // But handle it just in case for robustness
+        throw new Error(
+          "Unexpected function during render - expansion may have failed"
+        );
+      } else if (node instanceof MarkupStream) {
+        pushStackFrame(node.content, node.tag, node.attributes);
+      } else if (Array.isArray(node)) {
+        pushStackFrame(node, null, null);
+      } else {
+        // Primitive value: render as content
+        if (node != null && typeof node !== "boolean") {
+          if (node instanceof RawContent) {
+            buffer += node.toString();
+          } else {
+            buffer += escapeHtml(String(node));
+          }
+        }
+        frame.index++;
+      }
     }
 
-    return (async () => {
-      while (next) {
-        const [chunkContent, chunkNext]: Chunk = await next;
-        content += chunkContent;
-        next = chunkNext;
-      }
-      return content;
-    })();
+    // Yield any remaining buffer
+    if (buffer) {
+      yield buffer;
+    }
+  }
+
+  async render(options?: RenderOptions): Promise<string> {
+    let result = "";
+    for await (const chunk of this.renderChunks(options)) {
+      result += chunk;
+    }
+    return result;
   }
 }
 
-type StackFrame = {
+type RenderStackFrame = {
   content: Content[];
   tag: string | null;
   index: number;
-  context: ContextImpl;
 };
 
 const HTML_ESCAPE: Record<string, string> = {

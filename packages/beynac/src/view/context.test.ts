@@ -1,9 +1,8 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test, expectTypeOf } from "bun:test";
 import { type Key, key } from "../keys";
 import { ContextImpl } from "./context";
 import { MarkupStream } from "./markup-stream";
 import type { Context } from "./public-types";
-import { expectTypeOf } from "expect-type";
 import { asyncGate } from "../test-utils/async-gate";
 
 describe("Context", () => {
@@ -43,7 +42,7 @@ describe("Context", () => {
   });
 
   describe("context in rendering", () => {
-    test("context propagates to children", () => {
+    test("context propagates to children", async () => {
       const testKey = key<string>({ name: "test" });
       const stream = new MarkupStream("div", null, [
         (ctx) => {
@@ -53,10 +52,10 @@ describe("Context", () => {
           ]);
         },
       ]);
-      expect(stream.render()).toBe("<div><span>parent</span></div>");
+      expect(await stream.render()).toBe("<div><span>parent</span></div>");
     });
 
-    test("context changes don't affect siblings", () => {
+    test("context changes don't affect siblings", async () => {
       const testKey = key<string>({ name: "test" });
       const stream = new MarkupStream("div", null, [
         (ctx) => {
@@ -65,10 +64,10 @@ describe("Context", () => {
         },
         (ctx) => ctx.get(testKey) || "empty", // Should be "empty"
       ]);
-      expect(stream.render()).toBe("<div>firstempty</div>");
+      expect(await stream.render()).toBe("<div>firstempty</div>");
     });
 
-    test("nested context overrides", () => {
+    test("nested context overrides", async () => {
       const testKey = key<string>({ name: "test" });
       const stream = new MarkupStream("div", null, [
         (ctx) => {
@@ -93,12 +92,12 @@ describe("Context", () => {
           ];
         },
       ]);
-      expect(stream.render()).toBe(
+      expect(await stream.render()).toBe(
         "<div>parent:parent-afterChildSet:child-child:child-afterSetInParent:parent</div>"
       );
     });
 
-    test("context propagates through arrays", () => {
+    test("context propagates through arrays", async () => {
       const testKey = key<number>({ name: "count" });
       const stream = new MarkupStream("div", null, [
         (ctx) => {
@@ -110,10 +109,10 @@ describe("Context", () => {
           ];
         },
       ]);
-      expect(stream.render()).toBe("<div>first:1-second:1</div>");
+      expect(await stream.render()).toBe("<div>first:1-second:1</div>");
     });
 
-    test("context propagates through nested MarkupStreams", () => {
+    test("context propagates through nested MarkupStreams", async () => {
       const testKey = key<string>({ name: "theme" });
       const stream = new MarkupStream("div", null, [
         (ctx) => {
@@ -125,7 +124,7 @@ describe("Context", () => {
           ]);
         },
       ]);
-      expect(stream.render()).toBe(
+      expect(await stream.render()).toBe(
         "<div><section><p>Theme: dark</p></section></div>"
       );
     });
@@ -185,7 +184,7 @@ describe("Context", () => {
       expect(result).toBe("<div>start level1-level2 end</div>");
     });
 
-    test("context isolation between parallel siblings", () => {
+    test("context isolation between parallel siblings", async () => {
       const key1 = key<string>({ name: "key1" });
       const key2 = key<string>({ name: "key2" });
 
@@ -203,10 +202,10 @@ describe("Context", () => {
         (ctx) => `3:${ctx.get(key1) || "null"}-${ctx.get(key2) || "null"}`,
       ]);
 
-      expect(stream.render()).toBe("<div>1:a-b2:a-null3:null-null</div>");
+      expect(await stream.render()).toBe("<div>1:a-b2:a-null3:null-null</div>");
     });
 
-    test("multiple functions with shared context propagation", () => {
+    test("multiple functions with shared context propagation", async () => {
       const counterKey = key<number>({ name: "counter" });
 
       const incrementer = (ctx: Context) => {
@@ -229,7 +228,7 @@ describe("Context", () => {
         ],
       ]);
 
-      expect(stream.render()).toBe("<div>1-011-10</div>");
+      expect(await stream.render()).toBe("<div>1-011-10</div>");
     });
 
     test.skip("async siblings can not pollute each other's context when running concurrently", async () => {
@@ -277,12 +276,12 @@ describe("Context", () => {
   });
 
   describe("edge cases", () => {
-    test("empty context works correctly", () => {
+    test("empty context works correctly", async () => {
       const stream = new MarkupStream("div", null, [(_ctx) => "works"]);
-      expect(stream.render()).toBe("<div>works</div>");
+      expect(await stream.render()).toBe("<div>works</div>");
     });
 
-    test("context with existing values", () => {
+    test("context with existing values", async () => {
       const testKey = key<string>({ name: "preset" });
       const initialValues = new Map<Key, unknown>();
       initialValues.set(testKey, "initial");
@@ -294,7 +293,7 @@ describe("Context", () => {
         [(ctx) => ctx.get(testKey) || "missing"],
         ctx
       );
-      expect(stream.render()).toBe("<div>initial</div>");
+      expect(await stream.render()).toBe("<div>initial</div>");
     });
 
     test("takeCloneAndReset resets clone for siblings", () => {
@@ -363,7 +362,7 @@ describe("Context", () => {
   });
 
   describe("context defaults in rendering", () => {
-    test("default values propagate through context tree", () => {
+    test("default values propagate through context tree", async () => {
       const themeKey = key({ name: "theme", default: "light" });
       const fontSizeKey = key({ name: "fontSize", default: 16 });
 
@@ -376,10 +375,10 @@ describe("Context", () => {
         },
       ]);
 
-      expect(stream.render()).toBe("<div>theme:light,size:16</div>");
+      expect(await stream.render()).toBe("<div>theme:light,size:16</div>");
     });
 
-    test("overridden defaults in child context", () => {
+    test("overridden defaults in child context", async () => {
       const colorKey = key<string>({ name: "color", default: "blue" });
 
       const stream = new MarkupStream("div", null, [
@@ -393,10 +392,12 @@ describe("Context", () => {
         },
       ]);
 
-      expect(stream.render()).toBe("<div>default:blue,override:red</div>");
+      expect(await stream.render()).toBe(
+        "<div>default:blue,override:red</div>"
+      );
     });
 
-    test("sibling contexts get default values", () => {
+    test("sibling contexts get default values", async () => {
       const countKey = key<number>({ name: "count", default: 0 });
 
       const stream = new MarkupStream("div", null, [
@@ -407,7 +408,7 @@ describe("Context", () => {
         (ctx) => `,second:${ctx.get(countKey)}`, // Should get default 0, not 10
       ]);
 
-      expect(stream.render()).toBe("<div>first:10,second:0</div>");
+      expect(await stream.render()).toBe("<div>first:10,second:0</div>");
     });
   });
 

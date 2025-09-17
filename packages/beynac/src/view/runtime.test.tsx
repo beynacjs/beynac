@@ -2,37 +2,37 @@
 // biome-ignore-all lint/complexity/noUselessFragments: we're testing fragments
 import { expect, test } from "bun:test";
 
-test("renders single element with attributes and text child", () => {
-  expect((<span id="foo">hello</span>).render()).toBe(
+test("renders single element with attributes and text child", async () => {
+  expect(await (<span id="foo">hello</span>).render()).toBe(
     '<span id="foo">hello</span>'
   );
 });
 
-test("renders childless non-empty elements", () => {
-  expect((<span id="foo" />).render()).toBe('<span id="foo"></span>');
+test("renders childless non-empty elements", async () => {
+  expect(await (<span id="foo" />).render()).toBe('<span id="foo"></span>');
 });
 
-test("renders empty tags", () => {
-  expect((<input value="yo" />).render()).toBe('<input value="yo">');
+test("renders empty tags", async () => {
+  expect(await (<input value="yo" />).render()).toBe('<input value="yo">');
 });
 
-test("escapes attribute values", () => {
+test("escapes attribute values", async () => {
   expect(
-    (<input value={`I'm a "little" <teapot> short & stout`} />).render()
+    await (<input value={`I'm a "little" <teapot> short & stout`} />).render()
   ).toBe(
     `<input value="I'm a &quot;little&quot; &lt;teapot&gt; short &amp; stout">`
   );
 });
 
-test("shortens boolean attributes", () => {
-  expect((<input type="checkbox" checked />).render()).toBe(
+test("shortens boolean attributes", async () => {
+  expect(await (<input type="checkbox" checked />).render()).toBe(
     `<input type="checkbox" checked>`
   );
 });
 
-test("renders children", () => {
+test("renders children", async () => {
   expect(
-    (
+    await (
       <div>
         <input type="checkbox" checked />
       </div>
@@ -40,9 +40,9 @@ test("renders children", () => {
   ).toBe(`<div><input type="checkbox" checked></div>`);
 });
 
-test("renders fragments", () => {
+test("renders fragments", async () => {
   expect(
-    (
+    await (
       <>
         <div>hello</div>
       </>
@@ -50,12 +50,12 @@ test("renders fragments", () => {
   ).toBe(`<div>hello</div>`);
 });
 
-test("renders components", () => {
+test("renders components", async () => {
   const Component = (props: { value: number }) => (
     <span the-value={props.value} />
   );
   expect(
-    (
+    await (
       <div>
         <Component value={42} />
       </div>
@@ -63,7 +63,7 @@ test("renders components", () => {
   ).toBe(`<div><span the-value="42"></span></div>`);
 });
 
-test("does not evaluate components until rendered", () => {
+test("does not evaluate components until rendered", async () => {
   let evaluated = false;
   const Component = () => {
     evaluated = true;
@@ -71,6 +71,6 @@ test("does not evaluate components until rendered", () => {
   };
   const jsx = <Component />;
   expect(evaluated).toBeFalse();
-  void jsx.render();
+  await jsx.render();
   expect(evaluated).toBeTrue();
 });

@@ -34,7 +34,6 @@
     "@types/bun": "latest",
     "beynac": "workspace:",
     "bun-types": "latest",
-    "expect-type": "^1.2.2",
     "typescript": "^5.8.3"
   }
 }

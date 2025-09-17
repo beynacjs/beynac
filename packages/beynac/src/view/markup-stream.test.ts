@@ -5,39 +5,39 @@ import type { Content } from "./public-types";
 
 describe("MarkupStream", () => {
   describe("basic functionality", () => {
-    test("renders empty content", () => {
+    test("renders empty content", async () => {
       const emptyStream = new MarkupStream(null, null, null);
-      expect(emptyStream.render()).toBe("");
+      expect(await emptyStream.render()).toBe("");
 
       const emptyTag = new MarkupStream("br", null, null);
-      expect(emptyTag.render()).toBe("<br>");
+      expect(await emptyTag.render()).toBe("<br>");
     });
 
-    test("renders text content", () => {
+    test("renders text content", async () => {
       const plainText = new MarkupStream(null, null, ["Hello World"]);
-      expect(plainText.render()).toBe("Hello World");
+      expect(await plainText.render()).toBe("Hello World");
 
       const taggedText = new MarkupStream("div", null, ["Hello"]);
-      expect(taggedText.render()).toBe("<div>Hello</div>");
+      expect(await taggedText.render()).toBe("<div>Hello</div>");
     });
 
-    test("renders tag with attributes", () => {
+    test("renders tag with attributes", async () => {
       const stream = new MarkupStream(
         "div",
         { id: "test", class: "container" },
         ["Content"]
       );
-      expect(stream.render()).toBe(
+      expect(await stream.render()).toBe(
         '<div id="test" class="container">Content</div>'
       );
     });
 
-    test("renders numbers", () => {
+    test("renders numbers", async () => {
       const stream = new MarkupStream(null, null, [42, " is the answer"]);
-      expect(stream.render()).toBe("42 is the answer");
+      expect(await stream.render()).toBe("42 is the answer");
     });
 
-    test("skips null, undefined, and boolean values", () => {
+    test("skips null, undefined, and boolean values", async () => {
       const stream = new MarkupStream(null, null, [
         "start",
         null,
@@ -46,18 +46,18 @@ describe("MarkupStream", () => {
         false,
         "end",
       ]);
-      expect(stream.render()).toBe("startend");
+      expect(await stream.render()).toBe("startend");
     });
 
-    test("renders nested arrays", () => {
+    test("renders nested arrays", async () => {
       const stream = new MarkupStream(null, null, [
         "a",
         ["b", ["c", "d"], "e"],
         "f",
       ]);
-      const [content, promise] = stream.renderChunks();
-      expect(content).toBe("abcdef");
-      expect(promise).toBeNull();
+      const chunks = await Array.fromAsync(stream.renderChunks());
+      // All synchronous content should be in a single chunk
+      expect(chunks).toEqual(["abcdef"]);
     });
 
     test("renders arrays with mixed async content", async () => {
@@ -70,7 +70,7 @@ describe("MarkupStream", () => {
       expect(result).toBe("abcd");
     });
 
-    test("renders empty arrays at various nesting levels", () => {
+    test("renders empty arrays at various nesting levels", async () => {
       const stream = new MarkupStream(null, null, [
         "a",
         [],
@@ -78,17 +78,17 @@ describe("MarkupStream", () => {
         [[], [[]]],
         "d",
       ]);
-      expect(stream.render()).toBe("abcd");
+      expect(await stream.render()).toBe("abcd");
     });
 
-    test("renders arrays with all skippable values", () => {
+    test("renders arrays with all skippable values", async () => {
       const stream = new MarkupStream(null, null, [
         "start",
         [null, undefined, true, false],
         [[null], [undefined, [true, false]]],
         "end",
       ]);
-      expect(stream.render()).toBe("startend");
+      expect(await stream.render()).toBe("startend");
     });
 
     test("renders promises resolving to nested arrays", async () => {
@@ -98,41 +98,38 @@ describe("MarkupStream", () => {
         " after",
       ]);
 
-      const [chunk1, promise1] = stream.renderChunks();
-      expect(chunk1).toBe("before ");
-      expect(promise1).not.toBeNull();
-
-      const [chunk2, promise2] = await promise1!;
-      expect(chunk2).toBe("abc after");
-      expect(promise2).toBeNull();
+      const chunks = await Array.fromAsync(stream.renderChunks());
+      // First chunk: sync content before promise
+      // Second chunk: resolved promise content + remaining sync content
+      expect(chunks).toEqual(["before ", "abc after"]);
     });
 
-    test("renders nested MarkupStreams", () => {
+    test("renders nested MarkupStreams", async () => {
       const inner = new MarkupStream("span", { id: "inner" }, ["inner"]);
       const outer = new MarkupStream("div", { id: "outer" }, [
         "before ",
         inner,
         " after",
       ]);
-      const [content, promise] = outer.renderChunks();
-      expect(content).toBe(
-        '<div id="outer">before <span id="inner">inner</span> after</div>'
-      );
-      expect(promise).toBeNull();
+      const chunks = await Array.fromAsync(outer.renderChunks());
+      // All synchronous nested content in a single chunk
+      expect(chunks).toEqual([
+        '<div id="outer">before <span id="inner">inner</span> after</div>',
+      ]);
     });
   });
 
   describe("attribute handling", () => {
-    test("handles boolean attributes in HTML mode", () => {
+    test("handles boolean attributes in HTML mode", async () => {
       const stream = new MarkupStream(
         "input",
         { disabled: true, hidden: false, checked: true },
         []
       );
-      expect(stream.render()).toBe("<input disabled checked>");
+      expect(await stream.render()).toBe("<input disabled checked>");
     });
 
-    test("skips null, undefined, and function attributes", () => {
+    test("skips null, undefined, and function attributes", async () => {
       const stream = new MarkupStream(
         "div",
         {
@@ -143,12 +140,12 @@ describe("MarkupStream", () => {
         },
         []
       );
-      expect(stream.render()).toBe(
+      expect(await stream.render()).toBe(
         '<div id="test" funcAttr="function foo() {}"></div>'
       );
     });
 
-    test("escapes attribute values", () => {
+    test("escapes attribute values", async () => {
       const stream = new MarkupStream(
         "div",
         {
@@ -157,12 +154,12 @@ describe("MarkupStream", () => {
         },
         []
       );
-      expect(stream.render()).toBe(
+      expect(await stream.render()).toBe(
         `<div title="Test &quot;quotes&quot; &amp; &lt;brackets&gt;" data-value="It's a test"></div>`
       );
     });
 
-    test("escapes attribute values", () => {
+    test("escapes attribute values", async () => {
       const stream = new MarkupStream(
         "div",
         {
@@ -171,16 +168,16 @@ describe("MarkupStream", () => {
         },
         []
       );
-      expect(stream.render()).toBe(
+      expect(await stream.render()).toBe(
         `<div title="Test &quot;quotes&quot; &amp; &lt;brackets&gt;" data-value="It's a test"></div>`
       );
     });
 
-    test("escapes content", () => {
+    test("escapes content", async () => {
       const stream = new MarkupStream("div", null, [
         `I'm a little <teapot> "short" & stout`,
       ]);
-      expect(stream.render()).toBe(
+      expect(await stream.render()).toBe(
         `<div>I'm a little &lt;teapot&gt; &quot;short&quot; &amp; stout</div>`
       );
     });
@@ -194,13 +191,10 @@ describe("MarkupStream", () => {
         " end",
       ]);
 
-      const [chunk1, promise1] = stream.renderChunks();
-      expect(chunk1).toBe("sync ");
-      expect(promise1).not.toBeNull();
-
-      const [chunk2, promise2] = await promise1!;
-      expect(chunk2).toBe("async end");
-      expect(promise2).toBeNull();
+      const chunks = await Array.fromAsync(stream.renderChunks());
+      // First chunk: content before promise
+      // Second chunk: resolved promise + remaining content
+      expect(chunks).toEqual(["sync ", "async end"]);
     });
 
     test("renders async children array", async () => {
@@ -215,13 +209,10 @@ describe("MarkupStream", () => {
       expect(stream.content?.length).toBe(1);
       expect(stream.content?.[0]).toBeInstanceOf(Promise);
 
-      const [chunk1, promise1] = stream.renderChunks();
-      expect(chunk1).toBe("<div>");
-      expect(promise1).not.toBeNull();
-
-      const [chunk2, promise2] = await promise1!;
-      expect(chunk2).toBe("Hello World</div>");
-      expect(promise2).toBeNull();
+      const chunks = await Array.fromAsync(stream.renderChunks());
+      // First chunk: opening tag
+      // Second chunk: resolved content + closing tag
+      expect(chunks).toEqual(["<div>", "Hello World</div>"]);
     });
 
     test("renders async MarkupStream", async () => {
@@ -234,13 +225,13 @@ describe("MarkupStream", () => {
         " after",
       ]);
 
-      const [chunk1, promise1] = stream.renderChunks();
-      expect(chunk1).toBe("<div>before ");
-      expect(promise1).not.toBeNull();
-
-      const [chunk2, promise2] = await promise1!;
-      expect(chunk2).toBe("<span>async content</span> after</div>");
-      expect(promise2).toBeNull();
+      const chunks = await Array.fromAsync(stream.renderChunks());
+      // First chunk: opening tag + content before promise
+      // Second chunk: resolved MarkupStream + remaining content
+      expect(chunks).toEqual([
+        "<div>before ",
+        "<span>async content</span> after</div>",
+      ]);
     });
 
     test("renders nested async content", async () => {
@@ -255,14 +246,13 @@ describe("MarkupStream", () => {
         " end",
       ]);
 
-      const [chunk1, promise1] = outerStream.renderChunks();
-      // Now the span tag is rendered immediately since it's just a regular MarkupStream
-      expect(chunk1).toBe("<div>start <span>");
-      expect(promise1).not.toBeNull();
-
-      const [chunk2, promise2] = await promise1!;
-      expect(chunk2).toBe("inner async</span> end</div>");
-      expect(promise2).toBeNull();
+      const chunks = await Array.fromAsync(outerStream.renderChunks());
+      // First chunk: everything up to the promise inside the span
+      // Second chunk: resolved promise content + remaining
+      expect(chunks).toEqual([
+        "<div>start <span>",
+        "inner async</span> end</div>",
+      ]);
     });
 
     test("handles multiple async items in sequence", async () => {
@@ -307,23 +297,23 @@ describe("MarkupStream", () => {
         " end",
       ]);
 
-      const [chunk1, promise1Chunk] = stream.renderChunks();
-      expect(chunk1).toBe("<div>start ");
-      expect(promise1Chunk).not.toBeNull();
+      // Start collection in background
+      const chunksPromise = (async () => {
+        const chunks: string[] = [];
+        for await (const chunk of stream.renderChunks()) {
+          chunks.push(chunk);
+        }
+        return chunks;
+      })();
 
       await gate.next(); // resolve second
       await gate.next(); // resolve first
 
       expect(order).toEqual(["second", "first"]);
 
-      // Now we should get both in correct order
-      const [chunk2, promise2Chunk] = await promise1Chunk!;
-      expect(chunk2).toBe("first middle ");
-      expect(promise2Chunk).not.toBeNull();
-
-      const [chunk3, promise3Chunk] = await promise2Chunk!;
-      expect(chunk3).toBe("second end</div>");
-      expect(promise3Chunk).toBeNull();
+      // Get the final result
+      const chunks = await chunksPromise;
+      expect(chunks.join("")).toBe("<div>start first middle second end</div>");
     });
 
     test("handles nested streams with out-of-order resolution", async () => {
@@ -347,8 +337,14 @@ describe("MarkupStream", () => {
         " after",
       ]);
 
-      const [chunk1, promise1] = stream.renderChunks();
-      expect(chunk1).toBe("<div>before ");
+      // Start collection in background
+      const chunksPromise = (async () => {
+        const chunks: string[] = [];
+        for await (const chunk of stream.renderChunks()) {
+          chunks.push(chunk);
+        }
+        return chunks;
+      })();
 
       // Resolve inner first (but it's inside outer which isn't resolved yet)
       await gate.next(); // resolveInner
@@ -358,20 +354,16 @@ describe("MarkupStream", () => {
       await gate.next(); // resolveOuter
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      // Should get the outer stream structure
-      const [chunk2, promise2] = await promise1!;
-      expect(chunk2).toBe('<span class="nested">');
-      expect(promise2).not.toBeNull();
-
-      // And then the inner content
-      const [chunk3, promise3] = await promise2!;
-      expect(chunk3).toBe("inner content</span> after</div>");
-      expect(promise3).toBeNull();
+      // Get the final result
+      const chunks = await chunksPromise;
+      expect(chunks.join("")).toBe(
+        '<div>before <span class="nested">inner content</span> after</div>'
+      );
     });
   });
 
   describe("edge cases", () => {
-    test("handles deeply nested structures", () => {
+    test("handles deeply nested structures", async () => {
       const deep = new MarkupStream("i", null, ["deep"]);
       const nested = new MarkupStream("b", null, [deep]);
       const stream = new MarkupStream("div", null, [
@@ -380,14 +372,14 @@ describe("MarkupStream", () => {
         " end",
       ]);
 
-      expect(stream.render()).toBe(
+      expect(await stream.render()).toBe(
         "<div>start <span><b><i>deep</i></b></span> end</div>"
       );
     });
 
-    test("handles empty arrays", () => {
+    test("handles empty arrays", async () => {
       const stream = new MarkupStream("div", null, [[]]);
-      expect(stream.render()).toBe("<div></div>");
+      expect(await stream.render()).toBe("<div></div>");
     });
 
     test("handles promise resolving to null", async () => {
@@ -415,30 +407,30 @@ describe("MarkupStream", () => {
       expect(result).toBe("<div>text42<span>nested</span></div>");
     });
 
-    test("handles falsy number 0", () => {
+    test("handles falsy number 0", async () => {
       const stream = new MarkupStream(null, null, [0, " items"]);
-      expect(stream.render()).toBe("0 items");
+      expect(await stream.render()).toBe("0 items");
     });
 
-    test("handles empty string", () => {
+    test("handles empty string", async () => {
       const stream = new MarkupStream(null, null, ["", "text", ""]);
-      expect(stream.render()).toBe("text");
+      expect(await stream.render()).toBe("text");
     });
   });
 
   describe("HTML mode (default)", () => {
-    test("renders empty tags without closing tag", () => {
+    test("renders empty tags without closing tag", async () => {
       const br = new MarkupStream("br", null, []);
-      expect(br.render()).toBe("<br>");
+      expect(await br.render()).toBe("<br>");
 
       const input = new MarkupStream("input", { type: "text" }, []);
-      expect(input.render()).toBe('<input type="text">');
+      expect(await input.render()).toBe('<input type="text">');
 
       const img = new MarkupStream("img", { src: "test.jpg" }, []);
-      expect(img.render()).toBe('<img src="test.jpg">');
+      expect(await img.render()).toBe('<img src="test.jpg">');
     });
 
-    test("renders boolean attributes correctly", () => {
+    test("renders boolean attributes correctly", async () => {
       const input = new MarkupStream(
         "input",
         {
@@ -449,10 +441,12 @@ describe("MarkupStream", () => {
         },
         []
       );
-      expect(input.render()).toBe('<input type="checkbox" checked readonly>');
+      expect(await input.render()).toBe(
+        '<input type="checkbox" checked readonly>'
+      );
     });
 
-    test("renders non-boolean attributes with boolean values as strings", () => {
+    test("renders non-boolean attributes with boolean values as strings", async () => {
       const div = new MarkupStream(
         "div",
         {
@@ -462,46 +456,48 @@ describe("MarkupStream", () => {
         },
         []
       );
-      expect(div.render()).toBe(
+      expect(await div.render()).toBe(
         '<div id="false" data-active="true" aria-hidden="false"></div>'
       );
     });
 
-    test("renders empty elements with immediate closing", () => {
+    test("renders empty elements with immediate closing", async () => {
       const div = new MarkupStream("div", null, []);
-      expect(div.render()).toBe("<div></div>");
+      expect(await div.render()).toBe("<div></div>");
 
       const span = new MarkupStream("span", { id: "test" }, []);
-      expect(span.render()).toBe('<span id="test"></span>');
+      expect(await span.render()).toBe('<span id="test"></span>');
     });
   });
 
   describe("function content", () => {
-    test("renders function returning string", () => {
+    test("renders function returning string", async () => {
       const stream = new MarkupStream("div", null, [
         "before ",
         () => "function result",
         " after",
       ]);
-      expect(stream.render()).toBe("<div>before function result after</div>");
+      expect(await stream.render()).toBe(
+        "<div>before function result after</div>"
+      );
     });
 
-    test("renders function returning MarkupStream", () => {
+    test("renders function returning MarkupStream", async () => {
       const stream = new MarkupStream("div", null, [
         "text ",
         () => new MarkupStream("span", { id: "lazy" }, ["lazy content"]),
       ]);
-      expect(stream.render()).toBe(
+      expect(await stream.render()).toBe(
         '<div>text <span id="lazy">lazy content</span></div>'
       );
     });
 
-    test("renders function returning array", () => {
+    test("renders function returning array", async () => {
       const stream = new MarkupStream("div", null, [() => ["a", "b", "c"]]);
-      expect(stream.render()).toBe("<div>abc</div>");
+      expect(await stream.render()).toBe("<div>abc</div>");
     });
 
-    test("renders function returning null/undefined/boolean", () => {
+    test("renders function returning null/undefined/boolean", async () => {
       const stream = new MarkupStream("div", null, [
         "start",
         () => null,
@@ -510,14 +506,14 @@ describe("MarkupStream", () => {
         () => false,
         "end",
       ]);
-      expect(stream.render()).toBe("<div>startend</div>");
+      expect(await stream.render()).toBe("<div>startend</div>");
     });
 
-    test("renders nested functions", () => {
+    test("renders nested functions", async () => {
       const stream = new MarkupStream("div", null, [
         () => () => () => "deeply nested",
       ]);
-      expect(stream.render()).toBe("<div>deeply nested</div>");
+      expect(await stream.render()).toBe("<div>deeply nested</div>");
     });
 
     test("renders function returning promise", async () => {
@@ -557,7 +553,7 @@ describe("MarkupStream", () => {
       expect(result).toBe("<div>start very final end</div>");
     });
 
-    test("functions are called lazily during rendering", () => {
+    test("functions are called lazily during rendering", async () => {
       let callCount = 0;
       const trackingFunction = () => {
         callCount++;
@@ -570,12 +566,12 @@ describe("MarkupStream", () => {
       expect(callCount).toBe(0);
 
       // Now render, which should call the function
-      const result = stream.render();
+      const result = await stream.render();
       expect(callCount).toBe(1);
       expect(result).toBe("<div>called 1 time(s)</div>");
     });
 
-    test("multiple functions in sequence", () => {
+    test("multiple functions in sequence", async () => {
       let counter = 0;
       const makeFunction = () => () => `${++counter}`;
 
@@ -587,23 +583,23 @@ describe("MarkupStream", () => {
         makeFunction(),
       ]);
 
-      expect(stream.render()).toBe("<div>1-2-3</div>");
+      expect(await stream.render()).toBe("<div>1-2-3</div>");
     });
   });
 
   describe("XML mode", () => {
-    test("renders empty elements with self-closing tags", () => {
+    test("renders empty elements with self-closing tags", async () => {
       const br = new MarkupStream("br", null, []);
-      expect(br.render({ mode: "xml" })).toBe("<br />");
+      expect(await br.render({ mode: "xml" })).toBe("<br />");
 
       const div = new MarkupStream("div", null, []);
-      expect(div.render({ mode: "xml" })).toBe("<div />");
+      expect(await div.render({ mode: "xml" })).toBe("<div />");
 
       const input = new MarkupStream("input", { type: "text" }, []);
-      expect(input.render({ mode: "xml" })).toBe('<input type="text" />');
+      expect(await input.render({ mode: "xml" })).toBe('<input type="text" />');
     });
 
-    test("renders all attributes with values", () => {
+    test("renders all attributes with values", async () => {
       const input = new MarkupStream(
         "input",
         {
@@ -614,25 +610,27 @@ describe("MarkupStream", () => {
         },
         []
       );
-      expect(input.render({ mode: "xml" })).toBe(
+      expect(await input.render({ mode: "xml" })).toBe(
         '<input type="checkbox" checked="true" disabled="false" readonly="true" />'
       );
     });
 
-    test("renders elements with content normally", () => {
+    test("renders elements with content normally", async () => {
       const div = new MarkupStream("div", null, ["content"]);
-      expect(div.render({ mode: "xml" })).toBe("<div>content</div>");
+      expect(await div.render({ mode: "xml" })).toBe("<div>content</div>");
 
       const span = new MarkupStream("span", { id: "test" }, ["text"]);
-      expect(span.render({ mode: "xml" })).toBe('<span id="test">text</span>');
+      expect(await span.render({ mode: "xml" })).toBe(
+        '<span id="test">text</span>'
+      );
     });
 
-    test("handles nested empty elements", () => {
+    test("handles nested empty elements", async () => {
       const outer = new MarkupStream("outer", null, [
         new MarkupStream("inner", null, []),
         new MarkupStream("br", null, []),
       ]);
-      expect(outer.render({ mode: "xml" })).toBe(
+      expect(await outer.render({ mode: "xml" })).toBe(
         "<outer><inner /><br /></outer>"
       );
     });

@@ -4,9 +4,9 @@ import { raw } from "./raw";
 
 describe("html template literal", () => {
   describe("basic functionality", () => {
-    test("renders simple HTML template", () => {
+    test("renders simple HTML template", async () => {
       const result = html`<div>Hello World</div>`;
-      expect(result.render()).toBe("<div>Hello World</div>");
+      expect(await result.render()).toBe("<div>Hello World</div>");
     });
 
     test("gives type error on invalid interpolation", () => {
@@ -14,35 +14,35 @@ describe("html template literal", () => {
       void html`<div>${Symbol()}</div>`;
     });
 
-    test("interpolates values", () => {
+    test("interpolates values", async () => {
       const name = "Alice";
       const result = html`<div>Hello ${name}</div>`;
-      expect(result.render()).toBe("<div>Hello Alice</div>");
+      expect(await result.render()).toBe("<div>Hello Alice</div>");
     });
 
-    test("handles multiple interpolations", () => {
+    test("handles multiple interpolations", async () => {
       const result = html`<div>${"hello"} ${" "} ${"world"}</div>`;
-      expect(result.render()).toBe("<div>hello   world</div>");
+      expect(await result.render()).toBe("<div>hello   world</div>");
     });
 
-    test("interpolates numbers", () => {
+    test("interpolates numbers", async () => {
       const result = html`<span>Count: ${42}</span>`;
-      expect(result.render()).toBe("<span>Count: 42</span>");
+      expect(await result.render()).toBe("<span>Count: 42</span>");
     });
 
-    test("escapes interpolated strings by default", () => {
+    test("escapes interpolated strings by default", async () => {
       const dangerous = "<script>alert('xss')</script>";
       const result = html`<div>${dangerous}</div>`;
-      expect(result.render()).toBe(
+      expect(await result.render()).toBe(
         "<div>&lt;script&gt;alert('xss')&lt;/script&gt;</div>"
       );
     });
   });
 
   describe("raw content", () => {
-    test("preserves raw content", () => {
+    test("preserves raw content", async () => {
       const result = html`<div>${raw("<b>bold</b>")}</div>`;
-      expect(result.render()).toBe("<div><b>bold</b></div>");
+      expect(await result.render()).toBe("<div><b>bold</b></div>");
     });
   });
 
@@ -62,25 +62,25 @@ describe("html template literal", () => {
   });
 
   describe("edge cases", () => {
-    test("handles null and undefined", () => {
+    test("handles null and undefined", async () => {
       const result = html`<div>${null} ${undefined}</div>`;
-      expect(result.render()).toBe("<div> </div>");
+      expect(await result.render()).toBe("<div> </div>");
     });
 
-    test("skips boolean values", () => {
+    test("skips boolean values", async () => {
       const result = html`<div>${true} ${false}</div>`;
-      expect(result.render()).toBe("<div> </div>");
+      expect(await result.render()).toBe("<div> </div>");
     });
 
-    test("handles empty template", () => {
+    test("handles empty template", async () => {
       const result = html``;
-      expect(result.render()).toBe("");
+      expect(await result.render()).toBe("");
     });
 
-    test("handles nested html templates", () => {
+    test("handles nested html templates", async () => {
       const inner = html`<span>inner</span>`;
       const result = html`<div>${inner}</div>`;
-      expect(result.render()).toBe("<div><span>inner</span></div>");
+      expect(await result.render()).toBe("<div><span>inner</span></div>");
     });
   });
 });

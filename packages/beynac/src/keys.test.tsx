@@ -1,7 +1,6 @@
 /** @jsxRuntime automatic **/
 /** @jsxImportSource . **/
-import { describe, it } from "bun:test";
-import { expectTypeOf } from "expect-type";
+import { describe, it, expectTypeOf } from "bun:test";
 import { type Key, key } from "./keys";
 
 describe("keys", () => {

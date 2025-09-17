@@ -5,6 +5,10 @@ import type { IntrinsicElements as IntrinsicElementsDefined } from "./intrinsic-
 import type { MarkupStream } from "./markup-stream";
 import type { RawContent } from "./raw";
 
+export type RenderOptions = {
+  mode?: "html" | "xml";
+};
+
 export interface Context {
   get<T>(key: Key<T>): T | null;
   set<T>(key: Key<T>, value: T): void;
@@ -22,12 +26,10 @@ export type Content =
   | Content[]
   | ((context: Context) => Content);
 
-export type Chunk = [string, Promise<Chunk> | null];
-
 export namespace JSX {
   export type Element = {
-    render(): string | Promise<string>;
-    renderChunks(): Chunk;
+    render(options?: RenderOptions): Promise<string>;
+    renderChunks(options?: RenderOptions): AsyncGenerator<string>;
   };
 
   export type Children =
