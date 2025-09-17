@@ -2,30 +2,35 @@ import { type Key } from "../keys";
 import type { Context } from "./public-types";
 
 export class ContextImpl implements Context {
-  private values: Map<Key, unknown>;
-  // Copy-on-write clone
-  private clone: ContextImpl | null = null;
+  private localValues: Map<Key, unknown> = new Map();
+  private parent: ContextImpl | null;
+  private modified = false;
 
-  constructor(values?: Map<Key, unknown>) {
-    this.values = values ?? new Map<Key, unknown>();
+  constructor(parent?: ContextImpl) {
+    this.parent = parent ?? null;
   }
 
   get<T>(key: Key<T>): Exclude<T | null, undefined> {
-    if (this.clone) {
-      return this.clone.get(key);
+    if (this.localValues.has(key)) {
+      const result = this.localValues.get(key);
+      return result as Exclude<T | null, undefined>;
     }
-    const result = this.values.get(key) ?? key.default ?? null;
-    return result as Exclude<T | null, undefined>;
+    if (this.parent) {
+      return this.parent.get(key);
+    }
+    return (key.default ?? null) as Exclude<T | null, undefined>;
   }
 
   set<T>(key: Key<T>, value: T): void {
-    this.clone ??= new ContextImpl(new Map(this.values));
-    this.clone.values.set(key, value);
+    this.localValues.set(key, value);
+    this.modified = true;
   }
 
-  _takeCloneAndReset(): ContextImpl | null {
-    const cloned = this.clone;
-    this.clone = null;
-    return cloned;
+  fork(): ContextImpl {
+    return new ContextImpl(this);
+  }
+
+  wasModified(): boolean {
+    return this.modified;
   }
 }

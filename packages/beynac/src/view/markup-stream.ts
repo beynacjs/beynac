@@ -9,27 +9,24 @@ export class MarkupStream implements JSX.Element {
   readonly tag: string | null;
   readonly attributes: Record<string, unknown> | null;
   readonly content: Content[] | null;
-  readonly context: ContextImpl | undefined;
   #contentTreeExpanded = false;
 
   constructor(
     tag: string | null,
     attributes: Record<string, unknown> | null,
-    children: Content,
-    context?: ContextImpl
+    children: Content
   ) {
     this.tag = tag;
     this.attributes = attributes;
     this.content = children == null ? null : arrayWrap(children);
-    this.context = context;
   }
 
-  #expandContentTree(parentContext?: ContextImpl): void {
+  #expandContentTree(context?: ContextImpl): void {
     if (this.#contentTreeExpanded) return;
     this.#contentTreeExpanded = true;
     if (!this.content) return;
 
-    const rootContext = this.context || parentContext || new ContextImpl();
+    const rootContext = context ?? new ContextImpl();
 
     const expandNode = (
       array: Content[],
@@ -39,12 +36,27 @@ export class MarkupStream implements JSX.Element {
       const node = array[index];
 
       if (typeof node === "function") {
-        const result = node(context);
-        const clonedContext = context._takeCloneAndReset();
-        array[index] = clonedContext
-          ? new MarkupStream(null, null, result, clonedContext)
-          : result;
-        expandNode(array, index, clonedContext || context);
+        const childContext = context.fork();
+        const result = node(childContext);
+
+        const handleResult = (resolved: Content): void => {
+          array[index] = resolved;
+          expandNode(
+            array,
+            index,
+            childContext.wasModified() ? childContext : context
+          );
+        };
+
+        if (result instanceof Promise) {
+          array[index] = result;
+          result.then(handleResult).catch(() => {
+            // TODO define error handling strategy and add appropriate tests
+            array[index] = "";
+          });
+        } else {
+          handleResult(result);
+        }
       } else if (node instanceof Promise) {
         node
           .then((resolved) => {
@@ -72,6 +84,13 @@ export class MarkupStream implements JSX.Element {
   async *renderChunks({
     mode = "html",
   }: RenderOptions = {}): AsyncGenerator<string> {
+    // First, we kick off an asynchronous process of expanding the content tree,
+    // recursively descending into arrays and MarkupStreams. This process will
+    // immediately remove all functions form the tree, and eventually remove all
+    // promises. While we await the promises, they are left in the tree, and
+    // eventually they will be replaced with their resolved value. This means
+    // that for rendering, all we need to do is traverse the tree and if we
+    // encounter a promise, await it before continuing.
     this.#expandContentTree();
 
     let buffer = "";
@@ -177,7 +196,9 @@ export class MarkupStream implements JSX.Element {
           yield buffer;
           buffer = "";
         }
-        // Await the promise - the slot will have been updated by expandContentTree
+        // Await the promise. We deliberately don't use the resolved value - the
+        // content tree expansion will have replaced the promise in the tree with
+        // the appropriate value - the promise result might require further expansion.
         await (node as Promise<unknown>);
         // Don't increment index - reprocess this slot with the resolved value
       } else if (typeof node === "function") {

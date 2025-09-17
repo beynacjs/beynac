@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { asyncGate } from "../test-utils/async-gate";
+import { key } from "../keys";
 import { MarkupStream } from "./markup-stream";
-import type { Content } from "./public-types";
+import type { Content, Context } from "./public-types";
 
 describe("MarkupStream", () => {
   describe("basic functionality", () => {
@@ -584,6 +585,229 @@ describe("MarkupStream", () => {
       ]);
 
       expect(await stream.render()).toBe("<div>1-2-3</div>");
+    });
+  });
+
+  describe("context handling", () => {
+    test("context propagates to children", async () => {
+      const testKey = key<string>({ name: "test" });
+      const stream = new MarkupStream("div", null, [
+        (ctx) => {
+          ctx.set(testKey, "parent");
+          return new MarkupStream("span", null, [
+            (ctx) => ctx.get(testKey) || "not found",
+          ]);
+        },
+      ]);
+      expect(await stream.render()).toBe("<div><span>parent</span></div>");
+    });
+
+    test("context changes don't affect siblings", async () => {
+      const testKey = key<string>({ name: "test" });
+      const stream = new MarkupStream("div", null, [
+        (ctx) => {
+          ctx.set(testKey, "first");
+          return "first";
+        },
+        (ctx) => ctx.get(testKey) || "empty", // Should be "empty"
+      ]);
+      expect(await stream.render()).toBe("<div>firstempty</div>");
+    });
+
+    test("nested context overrides", async () => {
+      const testKey = key<string>({ name: "test" });
+      const stream = new MarkupStream("div", null, [
+        (ctx) => {
+          ctx.set(testKey, "parent");
+          const afterSet = ctx.get(testKey); // Should be "parent"
+          return [
+            (ctx) => {
+              const parentValue = ctx.get(testKey);
+              ctx.set(testKey, "child");
+              // Check that parent value is still accessible in same function after child set
+              const stillParent = ctx.get(testKey); // Should be "child" now
+              return [
+                `parent:${parentValue}`,
+                "-",
+                `afterChildSet:${stillParent}`,
+                "-",
+                (ctx) => `child:${ctx.get(testKey)}`,
+              ];
+            },
+            "-",
+            `afterSetInParent:${afterSet}`,
+          ];
+        },
+      ]);
+      expect(await stream.render()).toBe(
+        "<div>parent:parent-afterChildSet:child-child:child-afterSetInParent:parent</div>"
+      );
+    });
+
+    test("context propagates through arrays", async () => {
+      const testKey = key<number>({ name: "count" });
+      const stream = new MarkupStream("div", null, [
+        (ctx) => {
+          ctx.set(testKey, 1);
+          return [
+            "first:",
+            (ctx) => String(ctx.get(testKey)),
+            ["-second:", (ctx) => String(ctx.get(testKey))],
+          ];
+        },
+      ]);
+      expect(await stream.render()).toBe("<div>first:1-second:1</div>");
+    });
+
+    test("context propagates through nested MarkupStreams", async () => {
+      const testKey = key<string>({ name: "theme" });
+      const stream = new MarkupStream("div", null, [
+        (ctx) => {
+          ctx.set(testKey, "dark");
+          return new MarkupStream("section", null, [
+            new MarkupStream("p", null, [
+              (ctx) => `Theme: ${ctx.get(testKey)}`,
+            ]),
+          ]);
+        },
+      ]);
+      expect(await stream.render()).toBe(
+        "<div><section><p>Theme: dark</p></section></div>"
+      );
+    });
+
+    test("context propagates through async functions", async () => {
+      const testKey = key<string>({ name: "async" });
+      const stream = new MarkupStream("div", null, [
+        (ctx) => {
+          ctx.set(testKey, "async-value");
+          return Promise.resolve((ctx) => ctx.get(testKey) || "not found");
+        },
+      ]);
+      const result = await stream.render();
+      expect(result).toBe("<div>async-value</div>");
+    });
+
+    test("complex: function → promise → function → content", async () => {
+      const testKey = key<string>({ name: "complex" });
+      const complexContent = (ctx: Context) => {
+        ctx.set(testKey, "level1");
+        return Promise.resolve((ctx: Context) => {
+          const val = ctx.get(testKey);
+          return `final:${val}`;
+        });
+      };
+
+      const stream = new MarkupStream("div", null, [
+        "before ",
+        complexContent,
+        " after",
+      ]);
+
+      const result = await stream.render();
+      expect(result).toBe("<div>before final:level1 after</div>");
+    });
+
+    test("even more complex: function → promise → function → promise → function", async () => {
+      const testKey = key<string>({ name: "chain" });
+      const veryComplex = (ctx: Context) => {
+        ctx.set(testKey, "level1");
+        return Promise.resolve((ctx: Context) => {
+          const val1 = ctx.get(testKey);
+          ctx.set(testKey, "level2");
+          return Promise.resolve(
+            (ctx: Context) => `${val1}-${ctx.get(testKey)}`
+          );
+        });
+      };
+
+      const stream = new MarkupStream("div", null, [
+        "start ",
+        veryComplex,
+        " end",
+      ]);
+
+      const result = await stream.render();
+      expect(result).toBe("<div>start level1-level2 end</div>");
+    });
+
+    test("context isolation between parallel siblings", async () => {
+      const key1 = key<string>({ name: "key1" });
+      const key2 = key<string>({ name: "key2" });
+
+      const stream = new MarkupStream("div", null, [
+        (ctx) => {
+          ctx.set(key1, "a");
+          return [
+            (ctx) => {
+              ctx.set(key2, "b");
+              return `1:${ctx.get(key1)}-${ctx.get(key2)}`;
+            },
+            (ctx) => `2:${ctx.get(key1) || "null"}-${ctx.get(key2) || "null"}`,
+          ];
+        },
+        (ctx) => `3:${ctx.get(key1) || "null"}-${ctx.get(key2) || "null"}`,
+      ]);
+
+      expect(await stream.render()).toBe("<div>1:a-b2:a-null3:null-null</div>");
+    });
+
+    test("multiple functions with shared context propagation", async () => {
+      const counterKey = key<number>({ name: "counter" });
+
+      const incrementer = (ctx: Context) => {
+        const current = ctx.get(counterKey) || 0;
+        ctx.set(counterKey, current + 1);
+        return String(current + 1);
+      };
+
+      const reader = (ctx: Context) => String(ctx.get(counterKey) || 0);
+
+      const stream = new MarkupStream("div", null, [
+        incrementer,
+        "-",
+        reader, // Should be 0 (sibling doesn't see the change)
+        [
+          (ctx) => {
+            ctx.set(counterKey, 10);
+            return [incrementer, "-", reader]; // incrementer sets to 11, but reader is a sibling so sees 10
+          },
+        ],
+      ]);
+
+      expect(await stream.render()).toBe("<div>1-011-10</div>");
+    });
+
+    test("async siblings can not pollute each other's context when running concurrently", async () => {
+      const gate = asyncGate(["sibling1_start", "sibling2_start", "read"]);
+      const sibling1 = gate.task("sibling1");
+      const sibling2 = gate.task("sibling2");
+
+      const token = key<string>();
+
+      const stream = new MarkupStream(null, null, [
+        [
+          async (ctx) => {
+            await sibling1("sibling1_start");
+            ctx.set(token, "value1");
+            await sibling1("read");
+            return `s1=${ctx.get(token)};`;
+          },
+          async (ctx) => {
+            await sibling2("sibling2_start");
+            ctx.set(token, "value2");
+            await sibling2("read");
+            return `s2=${ctx.get(token)};`;
+          },
+        ],
+      ]);
+      const renderPromise = stream.render();
+
+      await gate.run();
+
+      const result = await renderPromise;
+
+      expect(result).toMatchInlineSnapshot(`"s1=value1;s2=value2;"`);
     });
   });
 
