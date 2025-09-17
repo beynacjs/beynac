@@ -13,7 +13,7 @@ export const jsx: JSXFactory = (
   props: Record<string, unknown> | null
 ): JSX.Element => {
   if (typeof tag === "function") {
-    return tag(props ?? {}) as JSX.Element;
+    return new MarkupStream(null, null, () => tag(props ?? {}) as Content);
   } else if (typeof tag === "string") {
     let children = null;
     if (props != null) {

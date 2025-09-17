@@ -49,3 +49,28 @@ test("renders fragments", () => {
     ).render()
   ).toBe(`<div>hello</div>`);
 });
+
+test("renders components", () => {
+  const Component = (props: { value: number }) => (
+    <span the-value={props.value} />
+  );
+  expect(
+    (
+      <div>
+        <Component value={42} />
+      </div>
+    ).render()
+  ).toBe(`<div><span the-value="42"></span></div>`);
+});
+
+test("does not evaluate components until rendered", () => {
+  let evaluated = false;
+  const Component = () => {
+    evaluated = true;
+    return <result />;
+  };
+  const jsx = <Component />;
+  expect(evaluated).toBeFalse();
+  void jsx.render();
+  expect(evaluated).toBeTrue();
+});

@@ -11,7 +11,7 @@ export class MarkupStream implements JSX.Element {
   readonly tag: string | null;
   readonly attributes: Record<string, unknown> | null;
   readonly content: Content[] | null;
-  readonly context?: ContextImpl;
+  readonly context: ContextImpl | undefined;
 
   constructor(
     tag: string | null,
@@ -21,11 +21,8 @@ export class MarkupStream implements JSX.Element {
   ) {
     this.tag = tag;
     this.attributes = attributes;
-    if (context !== undefined) {
-      this.context = context;
-    }
-
     this.content = children == null ? null : arrayWrap(children);
+    this.context = context;
   }
 
   renderChunks({ mode = "html" }: RenderOptions = {}): Chunk {
