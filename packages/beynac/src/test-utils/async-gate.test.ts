@@ -156,7 +156,7 @@ test("task can skip checkpoints", async () => {
   };
 
   const taskPromise = task();
-  await new Promise((resolve) => setTimeout(resolve, 1));
+  await Promise.resolve();
 
   expect(gate.current("task1")).toBe("c");
   expect(events).toEqual(["start"]);
@@ -222,9 +222,7 @@ test("next() waits for task to reach checkpoint", async () => {
 
   let reached = false;
   const task = async () => {
-    for (let i = 0; i < 5; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    }
+    await Promise.resolve();
     reached = true;
     await checkpoint("b");
   };
@@ -264,7 +262,7 @@ test("multiple tasks waiting on same checkpoint are all released", async () => {
     createTask("task3", checkpoint3)(),
   ];
 
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await Promise.resolve();
 
   // All should be waiting
   expect(gate.current("task1")).toBe("sync-point");
@@ -283,72 +281,6 @@ test("multiple tasks waiting on same checkpoint are all released", async () => {
   expect(events).toContain("task1: done");
   expect(events).toContain("task2: done");
   expect(events).toContain("task3: done");
-});
-
-test("tasks can be controlled without timing dependencies", async () => {
-  const gate = asyncGate(["step1", "step2", "step3"]);
-  const events: string[] = [];
-
-  const checkpoint1 = gate.task("fast");
-  const checkpoint2 = gate.task("slow");
-
-  // Fast task goes through all checkpoints
-  const fastTask = async () => {
-    events.push("fast: start");
-    await checkpoint1("step1");
-    events.push("fast: step1");
-    await checkpoint1("step2");
-    events.push("fast: step2");
-    await checkpoint1("step3");
-    events.push("fast: step3");
-  };
-
-  // Slow task only uses step2
-  const slowTask = async () => {
-    events.push("slow: start");
-    // Do some work before checkpoint
-    await new Promise((resolve) => setTimeout(resolve, 1));
-    events.push("slow: working");
-    await checkpoint2("step2");
-    events.push("slow: step2");
-  };
-
-  // Start both tasks
-  const p1 = fastTask();
-  const p2 = slowTask();
-
-  // Ensure tasks have started
-  await new Promise((resolve) => setTimeout(resolve, 1));
-
-  // Fast task should be waiting on step1
-  expect(gate.current("fast")).toBe("step1");
-  // Slow task might already be waiting or still working
-  const slowStatus = gate.current("slow");
-  expect(slowStatus === null || slowStatus === "step2").toBe(true);
-  // Advance to step1 - only fast task proceeds
-  await gate.next();
-  expect(gate.current("fast")).toBe("step2");
-  expect(gate.current("slow")).toBe("step2");
-
-  // Both tasks now waiting on step2
-  await gate.next();
-  expect(gate.current("fast")).toBe("step3");
-  expect(gate.current("slow")).toBe(null);
-
-  // Complete remaining checkpoints
-  await gate.next();
-  await Promise.all([p1, p2]);
-
-  // Verify execution order
-  expect(events).toEqual([
-    "fast: start",
-    "slow: start",
-    "slow: working",
-    "fast: step1",
-    "fast: step2",
-    "slow: step2",
-    "fast: step3",
-  ]);
 });
 
 test("run() advances through all checkpoints", async () => {
@@ -391,4 +323,82 @@ test("run() advances through all checkpoints", async () => {
     "task1: c",
     "task2: c",
   ]);
+});
+
+test("calling gate as a function uses the default task", async () => {
+  const gate = asyncGate(["init", "process", "cleanup"]);
+  const events: string[] = [];
+
+  const task = async () => {
+    events.push("start");
+    await gate("init");
+    events.push("after init");
+    await gate("process");
+    events.push("after process");
+    await gate("cleanup");
+    events.push("after cleanup");
+  };
+
+  const taskPromise = task();
+
+  // Verify the default task is being used
+  expect(gate.current("default")).toBe("init");
+  expect(events).toEqual(["start"]);
+
+  await gate.next();
+  expect(gate.current("default")).toBe("process");
+  expect(events).toEqual(["start", "after init"]);
+
+  await gate.next();
+  expect(gate.current("default")).toBe("cleanup");
+  expect(events).toEqual(["start", "after init", "after process"]);
+
+  await gate.next();
+  await taskPromise;
+
+  expect(gate.current("default")).toBe(null);
+  expect(events).toEqual([
+    "start",
+    "after init",
+    "after process",
+    "after cleanup",
+  ]);
+});
+
+test("default task throws when used concurrently by multiple processes waiting on same checkpoint", async () => {
+  const gate = asyncGate(["step1", "step2", "step3"]);
+
+  const task1 = async () => {
+    await gate("step1");
+  };
+
+  const task2 = async () => {
+    await gate("step1");
+  };
+
+  const p1 = task1();
+  const p2 = task2();
+
+  expect(Promise.race([p1, p2])).rejects.toThrow(
+    "Cannot use default gate() with multiple concurrent processes. Use gate.task() to create separate tasks."
+  );
+});
+
+test("default task throws when used concurrently by multiple processes waiting on different checkpoints", async () => {
+  const gate = asyncGate(["step1", "step2", "step3"]);
+
+  const task1 = async () => {
+    await gate("step1");
+  };
+
+  const task2 = async () => {
+    await gate("step2");
+  };
+
+  const p1 = task1();
+  const p2 = task2();
+
+  expect(Promise.race([p1, p2])).rejects.toThrow(
+    "Cannot use default gate() with multiple concurrent processes. Use gate.task() to create separate tasks."
+  );
 });

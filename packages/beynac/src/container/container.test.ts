@@ -1937,7 +1937,7 @@ describe("Container withScope", () => {
     async function doWork(message: string) {
       const logger = container.get(Logger);
       logger.logs.push(message);
-      await new Promise((resolve) => setTimeout(resolve, 1));
+      await Promise.resolve();
       return logger;
     }
 
@@ -1989,7 +1989,7 @@ describe("Container withScope", () => {
       const db1 = container.get(Database);
 
       // Do some async work
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await Promise.resolve();
 
       const db2 = container.get(Database);
 
@@ -2033,7 +2033,7 @@ describe("Container withScope", () => {
           // Verify it's the same instance even inside setTimeout callback
           expect(logger2).toBe(logger1);
           resolve();
-        }, 10);
+        }, 0);
       });
 
       await checkpoint("third-access");

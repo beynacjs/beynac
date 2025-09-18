@@ -24,7 +24,8 @@ export type Content =
   | boolean
   | Promise<Content>
   | Content[]
-  | ((context: Context) => Content);
+  | ((context: Context) => Content)
+  | AsyncIterable<Content>;
 
 export namespace JSX {
   export type Element = {

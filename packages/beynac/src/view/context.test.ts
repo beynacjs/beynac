@@ -1,5 +1,5 @@
 import { describe, expect, test, expectTypeOf } from "bun:test";
-import { Key, key } from "../keys";
+import { key } from "../keys";
 import { ContextImpl } from "./context";
 import { Context } from "./public-types";
 import { MarkupStream } from "./markup-stream";

@@ -1,6 +1,7 @@
 type CheckpointFunction = (name: string) => Promise<void>;
 
 type AsyncGate = {
+  (name: string): Promise<void>; // Make the gate itself callable
   task(name: string): CheckpointFunction;
   next(): Promise<void>;
   current(taskName: string): string | null;
@@ -15,19 +16,24 @@ interface TaskState {
 /**
  * Create a new async gate for testing synchronization between async functions.
  *
- * Example:
+ * Example controlling a single async function:
  *   const gate = asyncGate(['init', 'process', 'cleanup']);
- *   const checkpoint = gate.task('myTask');
  *
  *   const task = async () => {
- *     await checkpoint('init');
+ *     await gate('init');
  *     // do work
- *     await checkpoint('process');
+ *     await gate('process');
  *   };
  *
  *   const p = task();
  *   await gate.next(); // advance to 'init'
  *   await gate.next(); // advance to 'process'
+ *
+ * Example coordinating multiple tasks:
+ *   const gate = asyncGate(['step1', 'step2', 'step3']);
+ *   const task1 = gate.task('task1');
+ *   const task2 = gate.task('task2');
+ *   // ... use e.g. `await task1('step1')` and `await task2('step3')` in separate async functions
  */
 export function asyncGate(checkpoints: string[]): AsyncGate {
   if (checkpoints.length === 0) {
@@ -66,6 +72,13 @@ export function asyncGate(checkpoints: string[]): AsyncGate {
 
       // Wait until this checkpoint is current or passed
       while (currentIndex < index) {
+        // Check for concurrent usage of default task
+        if (name === "default" && taskState.resolver !== null) {
+          throw new Error(
+            "Cannot use default gate() with multiple concurrent processes. Use gate.task() to create separate tasks."
+          );
+        }
+
         taskState.waitingOn = checkpointName;
 
         // Notify any waiting next() calls
@@ -135,9 +148,10 @@ export function asyncGate(checkpoints: string[]): AsyncGate {
     // Release them all at once
     tasksToRelease.forEach((resolve) => resolve());
 
-    // Give released tasks a chance to update their state
+    // Wait for released tasks to update their state - setTimeout(0) ensures we
+    // run on the next tick, even if multiple microtasks have to run
     if (tasksToRelease.length > 0) {
-      await new Promise<void>((resolve) => setTimeout(resolve, 1));
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
     }
   };
 
@@ -155,10 +169,24 @@ export function asyncGate(checkpoints: string[]): AsyncGate {
     }
   };
 
-  return {
-    task,
-    next,
-    current,
-    run,
-  };
+  let defaultTask: CheckpointFunction | null = null;
+
+  // Create the callable gate object
+  const gate = Object.assign(
+    async (checkpointName: string): Promise<void> => {
+      // Lazily create the default task
+      if (!defaultTask) {
+        defaultTask = task("default");
+      }
+      return defaultTask(checkpointName);
+    },
+    {
+      task,
+      next,
+      current,
+      run,
+    }
+  ) as AsyncGate;
+
+  return gate;
 }

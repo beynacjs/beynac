@@ -213,7 +213,6 @@ describe("render to string", () => {
 
 		const c = <AsyncComponent />;
 		const rendered = String(await c.toString());
-		console.log(rendered);
 		expect(rendered).toBe(
 			"<h1>Hello from async component<span>child async component</span></h1>",
 		);

@@ -5,10 +5,12 @@ import { RawContent } from "./raw";
 
 export type { RenderOptions };
 
+type ContentItem = Content | Promise<unknown> | ContentItem[];
+
 export class MarkupStream implements JSX.Element {
   readonly tag: string | null;
   readonly attributes: Record<string, unknown> | null;
-  readonly content: Content[] | null;
+  readonly content: ContentItem[] | null;
   #contentTreeExpanded = false;
 
   constructor(
@@ -29,7 +31,7 @@ export class MarkupStream implements JSX.Element {
     const rootContext = context ?? new ContextImpl();
 
     const expandNode = (
-      array: Content[],
+      array: ContentItem[],
       index: number,
       context: ContextImpl
     ): void => {
@@ -51,7 +53,7 @@ export class MarkupStream implements JSX.Element {
         if (result instanceof Promise) {
           array[index] = result;
           result.then(handleResult).catch(() => {
-            // TODO define error handling strategy and add appropriate tests
+            // TODO better promise error handling
             array[index] = "";
           });
         } else {
@@ -60,13 +62,51 @@ export class MarkupStream implements JSX.Element {
       } else if (node instanceof Promise) {
         node
           .then((resolved) => {
-            array[index] = resolved;
+            array[index] = resolved as Content;
             expandNode(array, index, context);
           })
           .catch(() => {
-            // TODO define error handling strategy and add appropriate tests
+            // TODO better promise error handling
             array[index] = "";
           });
+      } else if (isAsyncIterable(node)) {
+        // Replace the async iterable with an array that will hold its results,
+        // growing as necessary. While we are consuming the iterable, the last
+        // item in the array will always be a promise. This ensures that the
+        // rendering phase will wait until we have finished consuming the
+        // iterable before proceeding.
+        const resultArray: ContentItem[] = [];
+        array[index] = resultArray;
+        const iterator = node[Symbol.asyncIterator]();
+
+        const consumeNext = (): void => {
+          const nextPromise = iterator.next();
+          const promiseIndex = resultArray.length;
+
+          const handledPromise = nextPromise.catch(() => ({
+            // TODO better promise error handling
+            value: "",
+            done: true,
+          }));
+          resultArray.push(handledPromise);
+
+          void nextPromise
+            .then(({ value, done }) => {
+              if (!done) {
+                resultArray[promiseIndex] = value;
+                expandNode(resultArray, promiseIndex, context);
+                consumeNext();
+              } else {
+                resultArray[promiseIndex] = null;
+              }
+            })
+            .catch(() => {
+              // TODO better promise error handling
+              resultArray[promiseIndex] = "";
+            });
+        };
+
+        consumeNext();
       } else if (node instanceof MarkupStream) {
         node.#expandContentTree(context);
       } else if (Array.isArray(node)) {
@@ -142,7 +182,7 @@ export class MarkupStream implements JSX.Element {
     };
 
     const pushStackFrame = (
-      content: Content[] | null,
+      content: ContentItem[] | null,
       tag: string | null,
       attributes: Record<string, unknown> | null
     ): void => {
@@ -240,7 +280,7 @@ export class MarkupStream implements JSX.Element {
 }
 
 type RenderStackFrame = {
-  content: Content[];
+  content: ContentItem[];
   tag: string | null;
   index: number;
 };
@@ -301,3 +341,6 @@ const booleanAttributes = new Set([
   "reversed",
   "selected",
 ]);
+
+const isAsyncIterable = (value: unknown): value is AsyncIterable<Content> =>
+  value != null && typeof value === "object" && Symbol.asyncIterator in value;

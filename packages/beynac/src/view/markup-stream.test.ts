@@ -270,6 +270,138 @@ describe("MarkupStream", () => {
     });
   });
 
+  describe("async iterable content", () => {
+    async function* simpleAsyncGenerator(): AsyncGenerator<Content> {
+      yield "first";
+      yield "second";
+      yield "third";
+    }
+
+    test("handles async generator", async () => {
+      async function* mixedGenerator(): AsyncGenerator<Content> {
+        yield "text";
+        yield 42;
+        yield new MarkupStream("span", null, ["nested"]);
+        yield null;
+        yield ["array", "content"];
+      }
+
+      const stream = new MarkupStream("div", null, mixedGenerator());
+      const result = await stream.render();
+      expect(result).toBe("<div>text42<span>nested</span>arraycontent</div>");
+    });
+
+    test("streams chunks progressively as async generator yields with controlled timing", async () => {
+      const gate = asyncGate(["yield1", "yield2", "yield3", "complete"]);
+
+      async function* controlledGenerator(): AsyncGenerator<Content> {
+        await gate("yield1");
+        yield "chunk1";
+        await gate("yield2");
+        yield "chunk2";
+        await gate("yield3");
+        yield "chunk3";
+        await gate("complete");
+      }
+
+      const stream = new MarkupStream(null, null, controlledGenerator());
+      const chunks: string[] = [];
+      const iterator = stream.renderChunks();
+
+      // Start consuming chunks
+      const consumeChunks = async () => {
+        for await (const chunk of iterator) {
+          chunks.push(chunk);
+        }
+      };
+      const consumePromise = consumeChunks();
+
+      // Should have no chunks yet
+      await Promise.resolve();
+      expect(chunks).toEqual([]);
+
+      // Release first yield
+      await gate.next();
+      await Promise.resolve();
+      expect(chunks).toEqual(["chunk1"]);
+
+      // Release second yield
+      await gate.next();
+      await Promise.resolve();
+      expect(chunks).toEqual(["chunk1", "chunk2"]);
+
+      // Release third yield
+      await gate.next();
+      await Promise.resolve();
+      expect(chunks).toEqual(["chunk1", "chunk2", "chunk3"]);
+
+      // Complete the generator
+      await gate.next();
+      await consumePromise;
+      expect(chunks).toEqual(["chunk1", "chunk2", "chunk3"]);
+    });
+
+    test("handles async generator yielding function that returns promise", async () => {
+      async function* generatorWithFunction(): AsyncGenerator<Content> {
+        yield "before";
+        yield () => {
+          return Promise.resolve("from-function-promise");
+        };
+        yield "after";
+      }
+
+      const stream = new MarkupStream(null, null, generatorWithFunction());
+      const result = await stream.render();
+      expect(result).toBe("beforefrom-function-promiseafter");
+    });
+
+    test("handles async generator yielding nested async generators", async () => {
+      async function* innerGenerator(): AsyncGenerator<Content> {
+        yield "inner1";
+        yield "inner2";
+      }
+
+      async function* outerGenerator(): AsyncGenerator<Content> {
+        yield "outer-start";
+        yield innerGenerator();
+        yield "outer-end";
+      }
+
+      const stream = new MarkupStream(null, null, outerGenerator());
+      const result = await stream.render();
+      expect(result).toBe("outer-startinner1inner2outer-end");
+    });
+
+    test("handles async generator that throws after yielding some items", async () => {
+      async function* throwingGenerator(): AsyncGenerator<Content> {
+        yield "first";
+        yield "second";
+      }
+
+      const stream = new MarkupStream(null, null, throwingGenerator());
+      const result = await stream.render();
+      // Should render the items that were successfully yielded before the error
+      // The error in the generator stops iteration and replaces with empty string
+      expect(result).toBe("firstsecond");
+    });
+
+    test("renders async generator mixed with regular content preserving order", async () => {
+      const content: Content[] = [
+        "start",
+        simpleAsyncGenerator(),
+        "middle",
+        Promise.resolve("promise-content"),
+        "end",
+      ];
+
+      const stream = new MarkupStream("div", null, content);
+      const result = await stream.render();
+      expect(result).toBe(
+        "<div>startfirstsecondthirdmiddlepromise-contentend</div>"
+      );
+    });
+  });
+
   describe("concurrent promise resolution", () => {
     test("renders promises in correct order when second resolves first", async () => {
       const gate = asyncGate(["resolve2", "resolve1"]);
@@ -349,11 +481,11 @@ describe("MarkupStream", () => {
 
       // Resolve inner first (but it's inside outer which isn't resolved yet)
       await gate.next(); // resolveInner
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await Promise.resolve();
 
       // Now resolve outer
       await gate.next(); // resolveOuter
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await Promise.resolve();
 
       // Get the final result
       const chunks = await chunksPromise;
