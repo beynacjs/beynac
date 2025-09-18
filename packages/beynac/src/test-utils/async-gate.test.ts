@@ -33,9 +33,8 @@ test("current() returns null when task is not waiting", () => {
 
 test("checkpoint() throws for unknown checkpoint name", async () => {
   const gate = asyncGate(["a", "b", "c"]);
-  const checkpoint = gate.task("task1");
 
-  expect(checkpoint("unknown")).rejects.toThrow("Unknown checkpoint: unknown");
+  expect(gate("unknown")).rejects.toThrow("Unknown checkpoint: unknown");
 });
 
 test("next() throws when no more checkpoints", async () => {
@@ -51,32 +50,30 @@ test("basic checkpoint flow", async () => {
   const gate = asyncGate(["init", "process", "cleanup"]);
   const events: string[] = [];
 
-  const checkpoint = gate.task("task1");
-
   const task = async () => {
     events.push("start");
-    await checkpoint("init");
+    await gate("init");
     events.push("after init");
-    await checkpoint("cleanup");
+    await gate("cleanup");
     events.push("after cleanup");
   };
 
   const taskPromise = task();
 
-  expect(gate.current("task1")).toBe("init");
+  expect(gate.current("default")).toBe("init");
   expect(events).toEqual(["start"]);
 
   await gate.next();
-  expect(gate.current("task1")).toBe("cleanup");
+  expect(gate.current("default")).toBe("cleanup");
   expect(events).toEqual(["start", "after init"]);
 
   await gate.next();
-  expect(gate.current("task1")).toBe("cleanup");
+  expect(gate.current("default")).toBe("cleanup");
 
   await gate.next();
   await taskPromise;
 
-  expect(gate.current("task1")).toBe(null);
+  expect(gate.current("default")).toBe(null);
   expect(events).toEqual(["start", "after init", "after cleanup"]);
 });
 
@@ -147,32 +144,30 @@ test("task can skip checkpoints", async () => {
   const gate = asyncGate(["a", "b", "c", "d"]);
   const events: string[] = [];
 
-  const checkpoint = gate.task("task1");
-
   const task = async () => {
     events.push("start");
-    await checkpoint("c"); // Skip "a" and "b"
+    await gate("c"); // Skip "a" and "b"
     events.push("after c");
   };
 
   const taskPromise = task();
   await Promise.resolve();
 
-  expect(gate.current("task1")).toBe("c");
+  expect(gate.current("default")).toBe("c");
   expect(events).toEqual(["start"]);
 
   // Advance through "a" and "b" - task should still be waiting
   await gate.next(); // to "a"
-  expect(gate.current("task1")).toBe("c");
+  expect(gate.current("default")).toBe("c");
 
   await gate.next(); // to "b"
-  expect(gate.current("task1")).toBe("c");
+  expect(gate.current("default")).toBe("c");
 
   // Advance to "c" - task should proceed
   await gate.next();
   await taskPromise;
 
-  expect(gate.current("task1")).toBe(null);
+  expect(gate.current("default")).toBe(null);
   expect(events).toEqual(["start", "after c"]);
 });
 
@@ -218,13 +213,12 @@ test("complex race condition scenario", async () => {
 
 test("next() waits for task to reach checkpoint", async () => {
   const gate = asyncGate(["a", "b"]);
-  const checkpoint = gate.task("task1");
 
   let reached = false;
   const task = async () => {
     await Promise.resolve();
     reached = true;
-    await checkpoint("b");
+    await gate("b");
   };
 
   // Start task

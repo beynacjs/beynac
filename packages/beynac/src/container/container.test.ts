@@ -1872,12 +1872,7 @@ describe("Container withScope", () => {
   });
 
   test("scoped instances are isolated across concurrent async operations", async () => {
-    const gate = asyncGate([
-      "scope1-start",
-      "scope2-start",
-      "scope1-make",
-      "scope2-make",
-    ]);
+    const gate = asyncGate(["start"]);
     let idCounter = 0;
     class Database {
       id: number;
@@ -1893,16 +1888,14 @@ describe("Container withScope", () => {
     const scope2 = gate.task("scope2");
 
     const task1 = container.withScope(async () => {
-      await scope1("scope1-start");
-      await scope1("scope1-make");
+      await scope1("start");
       const db = container.get(Database);
       results[0] = db;
       return db;
     });
 
     const task2 = container.withScope(async () => {
-      await scope2("scope2-start");
-      await scope2("scope2-make");
+      await scope2("start");
       const db = container.get(Database);
       results[1] = db;
       return db;
@@ -1913,12 +1906,7 @@ describe("Container withScope", () => {
     const p2 = task2;
 
     // Let them start
-    await gate.next(); // scope1-start
-    await gate.next(); // scope2-start
-
-    // Let them make instances
-    await gate.next(); // scope1-make
-    await gate.next(); // scope2-make
+    await gate.run();
 
     await Promise.all([p1, p2]);
 
@@ -2014,15 +2002,13 @@ describe("Container withScope", () => {
     }
     container.bind(Logger, { lifecycle: "scoped" });
 
-    const checkpoint = gate.task("scope");
-
     // Start the scope task
     const scopeTask = container.withScope(async () => {
-      await checkpoint("first-access");
+      await gate("first-access");
       const logger1 = container.get(Logger);
       logger1.logs.push("first");
 
-      await checkpoint("second-access");
+      await gate("second-access");
 
       // Critical test: AsyncLocalStorage context should survive setTimeout
       await new Promise<void>((resolve) => {
@@ -2036,7 +2022,7 @@ describe("Container withScope", () => {
         }, 0);
       });
 
-      await checkpoint("third-access");
+      await gate("third-access");
       const logger3 = container.get(Logger);
       logger3.logs.push("third");
 

@@ -5,10 +5,15 @@ import { RawContent } from "./raw";
 
 export type { RenderOptions };
 
-type ContentItem = Content | Promise<unknown> | ContentItem[];
+type ContentItem =
+  | Content
+  | Promise<unknown>
+  | ContentItem[]
+  | ExpansionErrorInfo;
 
 export class MarkupStream implements JSX.Element {
   readonly tag: string | null;
+  readonly displayName: string | null;
   readonly attributes: Record<string, unknown> | null;
   readonly content: ContentItem[] | null;
   #contentTreeExpanded = false;
@@ -16,11 +21,13 @@ export class MarkupStream implements JSX.Element {
   constructor(
     tag: string | null,
     attributes: Record<string, unknown> | null,
-    children: Content
+    children: Content,
+    displayName?: string | null
   ) {
     this.tag = tag;
     this.attributes = attributes;
     this.content = children == null ? null : arrayWrap(children);
+    this.displayName = displayName ?? tag ?? null;
   }
 
   #expandContentTree(context?: ContextImpl): void {
@@ -39,7 +46,16 @@ export class MarkupStream implements JSX.Element {
 
       if (typeof node === "function") {
         const childContext = context.fork();
-        const result = node(childContext);
+        let result: Content;
+        try {
+          result = node(childContext);
+        } catch (error) {
+          array[index] = new ExpansionErrorInfo(
+            error,
+            "content-function-error"
+          );
+          return;
+        }
 
         const handleResult = (resolved: Content): void => {
           array[index] = resolved;
@@ -52,9 +68,11 @@ export class MarkupStream implements JSX.Element {
 
         if (result instanceof Promise) {
           array[index] = result;
-          result.then(handleResult).catch(() => {
-            // TODO better promise error handling
-            array[index] = "";
+          result.then(handleResult).catch((error) => {
+            array[index] = new ExpansionErrorInfo(
+              error,
+              "content-function-promise-rejection"
+            );
           });
         } else {
           handleResult(result);
@@ -65,9 +83,11 @@ export class MarkupStream implements JSX.Element {
             array[index] = resolved as Content;
             expandNode(array, index, context);
           })
-          .catch(() => {
-            // TODO better promise error handling
-            array[index] = "";
+          .catch((error) => {
+            array[index] = new ExpansionErrorInfo(
+              error,
+              "content-promise-error"
+            );
           });
       } else if (isAsyncIterable(node)) {
         // Replace the async iterable with an array that will hold its results,
@@ -83,12 +103,7 @@ export class MarkupStream implements JSX.Element {
           const nextPromise = iterator.next();
           const promiseIndex = resultArray.length;
 
-          const handledPromise = nextPromise.catch(() => ({
-            // TODO better promise error handling
-            value: "",
-            done: true,
-          }));
-          resultArray.push(handledPromise);
+          resultArray.push(nextPromise);
 
           void nextPromise
             .then(({ value, done }) => {
@@ -97,12 +112,16 @@ export class MarkupStream implements JSX.Element {
                 expandNode(resultArray, promiseIndex, context);
                 consumeNext();
               } else {
+                // if `done` then value is the return value of the generator
+                // function which we do not want to render.
                 resultArray[promiseIndex] = null;
               }
             })
-            .catch(() => {
-              // TODO better promise error handling
-              resultArray[promiseIndex] = "";
+            .catch((error) => {
+              resultArray[promiseIndex] = new ExpansionErrorInfo(
+                error,
+                "async-iterator-error"
+              );
             });
         };
 
@@ -184,6 +203,7 @@ export class MarkupStream implements JSX.Element {
     const pushStackFrame = (
       content: ContentItem[] | null,
       tag: string | null,
+      displayName: string | null,
       attributes: Record<string, unknown> | null
     ): void => {
       const selfClosing = mode === "xml" && !content?.length;
@@ -194,12 +214,13 @@ export class MarkupStream implements JSX.Element {
       nodeStack.push({
         content: htmlEmptyTag ? [] : (content ?? []),
         tag,
+        displayName,
         index: 0,
       });
     };
 
     // Start with root
-    pushStackFrame(this.content, this.tag, this.attributes);
+    pushStackFrame(this.content, this.tag, this.displayName, this.attributes);
 
     // Process stack
     while (nodeStack.length > 0) {
@@ -230,7 +251,17 @@ export class MarkupStream implements JSX.Element {
 
       const node = frame.content[frame.index];
 
-      if (node instanceof Promise) {
+      if (node instanceof ExpansionErrorInfo) {
+        // Build component stack from nodeStack
+        const componentStack: string[] = [];
+        for (const stackFrame of nodeStack) {
+          if (stackFrame.displayName) {
+            componentStack.push(stackFrame.displayName);
+          }
+        }
+
+        throw new RenderingError(node, componentStack);
+      } else if (node instanceof Promise) {
         // Yield current buffer before awaiting
         if (buffer) {
           yield buffer;
@@ -239,7 +270,12 @@ export class MarkupStream implements JSX.Element {
         // Await the promise. We deliberately don't use the resolved value - the
         // content tree expansion will have replaced the promise in the tree with
         // the appropriate value - the promise result might require further expansion.
-        await (node as Promise<unknown>);
+        try {
+          await (node as Promise<unknown>);
+        } catch {
+          // No need to handle this error here. The expansion phase will put the
+          // error into the tree and we will handle it during rendering.
+        }
         // Don't increment index - reprocess this slot with the resolved value
       } else if (typeof node === "function") {
         // This shouldn't happen - functions should be expanded already
@@ -248,9 +284,14 @@ export class MarkupStream implements JSX.Element {
           "Unexpected function during render - expansion may have failed"
         );
       } else if (node instanceof MarkupStream) {
-        pushStackFrame(node.content, node.tag, node.attributes);
+        pushStackFrame(
+          node.content,
+          node.tag,
+          node.displayName,
+          node.attributes
+        );
       } else if (Array.isArray(node)) {
-        pushStackFrame(node, null, null);
+        pushStackFrame(node, null, null, null);
       } else {
         // Primitive value: render as content
         if (node != null && typeof node !== "boolean") {
@@ -282,6 +323,7 @@ export class MarkupStream implements JSX.Element {
 type RenderStackFrame = {
   content: ContentItem[];
   tag: string | null;
+  displayName: string | null;
   index: number;
 };
 
@@ -344,3 +386,34 @@ const booleanAttributes = new Set([
 
 const isAsyncIterable = (value: unknown): value is AsyncIterable<Content> =>
   value != null && typeof value === "object" && Symbol.asyncIterator in value;
+
+type ErrorKind =
+  | "content-function-error"
+  | "content-function-promise-rejection"
+  | "content-promise-error"
+  | "async-iterator-error";
+
+class ExpansionErrorInfo {
+  constructor(
+    public readonly error: unknown,
+    public readonly errorKind: ErrorKind
+  ) {}
+}
+
+export class RenderingError extends Error {
+  public readonly errorKind: ErrorKind;
+  public readonly componentStack: string[];
+
+  constructor(node: ExpansionErrorInfo, componentStack: string[]) {
+    const errorDetail =
+      node.error instanceof Error ? node.error.message : String(node.error);
+    const stackTrace = componentStack.map((name) => `<${name}>`).join(" -> ");
+    const message = `Rendering error: ${errorDetail}; Component stack: ${stackTrace}`;
+
+    super(message);
+    this.name = "RenderingError";
+    this.cause = node.error;
+    this.errorKind = node.errorKind;
+    this.componentStack = componentStack;
+  }
+}

@@ -63,6 +63,39 @@ test("renders components", async () => {
   ).toBe(`<div><span the-value="42"></span></div>`);
 });
 
+test("provides correct stack when a component throws an error", async () => {
+  const Component = () => {
+    throw new Error("Intentional error");
+  };
+  expect(Component.name).toBe("Component");
+  expect(
+    (
+      <div>
+        <Component />
+      </div>
+    ).render()
+  ).rejects.toThrowErrorMatchingInlineSnapshot(
+    `"Rendering error: Intentional error; Component stack: <div> -> <Component>"`
+  );
+});
+
+test("Respects displayName in component stacks", async () => {
+  const Component = () => {
+    throw new Error("Intentional error");
+  };
+  Component.displayName = "MyDisplayName";
+  expect(Component.name).toBe("Component");
+  expect(
+    (
+      <div>
+        <Component />
+      </div>
+    ).render()
+  ).rejects.toThrowErrorMatchingInlineSnapshot(
+    `"Rendering error: Intentional error; Component stack: <div> -> <MyDisplayName>"`
+  );
+});
+
 test("does not evaluate components until rendered", async () => {
   let evaluated = false;
   const Component = () => {

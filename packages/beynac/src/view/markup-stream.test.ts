@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { asyncGate } from "../test-utils/async-gate";
 import { key } from "../keys";
-import { MarkupStream } from "./markup-stream";
+import { MarkupStream, RenderingError } from "./markup-stream";
 import type { Content, Context } from "./public-types";
 
 describe("MarkupStream", () => {
@@ -279,16 +279,20 @@ describe("MarkupStream", () => {
 
     test("handles async generator", async () => {
       async function* mixedGenerator(): AsyncGenerator<Content> {
-        yield "text";
+        yield "text ";
         yield 42;
+        yield " ";
         yield new MarkupStream("span", null, ["nested"]);
+        yield " ";
         yield null;
-        yield ["array", "content"];
+        yield ["array ", "content"];
       }
 
       const stream = new MarkupStream("div", null, mixedGenerator());
       const result = await stream.render();
-      expect(result).toBe("<div>text42<span>nested</span>arraycontent</div>");
+      expect(result).toBe(
+        "<div>text 42 <span>nested</span> array content</div>"
+      );
     });
 
     test("streams chunks progressively as async generator yields with controlled timing", async () => {
@@ -343,38 +347,38 @@ describe("MarkupStream", () => {
 
     test("handles async generator yielding function that returns promise", async () => {
       async function* generatorWithFunction(): AsyncGenerator<Content> {
-        yield "before";
+        yield "before ";
         yield () => {
           return Promise.resolve("from-function-promise");
         };
-        yield "after";
+        yield " after";
       }
 
       const stream = new MarkupStream(null, null, generatorWithFunction());
       const result = await stream.render();
-      expect(result).toBe("beforefrom-function-promiseafter");
+      expect(result).toBe("before from-function-promise after");
     });
 
     test("handles async generator yielding nested async generators", async () => {
       async function* innerGenerator(): AsyncGenerator<Content> {
-        yield "inner1";
+        yield "inner1 ";
         yield "inner2";
       }
 
       async function* outerGenerator(): AsyncGenerator<Content> {
-        yield "outer-start";
+        yield "outer-start ";
         yield innerGenerator();
-        yield "outer-end";
+        yield " outer-end";
       }
 
       const stream = new MarkupStream(null, null, outerGenerator());
       const result = await stream.render();
-      expect(result).toBe("outer-startinner1inner2outer-end");
+      expect(result).toBe("outer-start inner1 inner2 outer-end");
     });
 
     test("handles async generator that throws after yielding some items", async () => {
       async function* throwingGenerator(): AsyncGenerator<Content> {
-        yield "first";
+        yield "first ";
         yield "second";
       }
 
@@ -382,7 +386,7 @@ describe("MarkupStream", () => {
       const result = await stream.render();
       // Should render the items that were successfully yielded before the error
       // The error in the generator stops iteration and replaces with empty string
-      expect(result).toBe("firstsecond");
+      expect(result).toBe("first second");
     });
 
     test("renders async generator mixed with regular content preserving order", async () => {
@@ -989,6 +993,186 @@ describe("MarkupStream", () => {
       expect(await outer.render({ mode: "xml" })).toBe(
         "<outer><inner /><br /></outer>"
       );
+    });
+  });
+
+  describe("error handling", () => {
+    test("content-function-error: handles synchronous error in content function", async () => {
+      const errorMessage = "Synchronous error in content function";
+      const stream = new MarkupStream("div", null, [
+        "before ",
+        () => {
+          throw new Error(errorMessage);
+        },
+        " after",
+      ]);
+
+      try {
+        await stream.render();
+        throw new Error("Expected stream.render() to throw");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RenderingError);
+        const err = error as RenderingError;
+        expect(err.message).toContain(errorMessage);
+        expect(err.cause).toBeInstanceOf(Error);
+        expect((err.cause as Error).message).toBe(errorMessage);
+        expect(err.errorKind).toBe("content-function-error");
+      }
+    });
+
+    test("content-function-promise-rejection: handles promise rejection from content function", async () => {
+      const errorMessage = "Promise rejected in content function";
+      const stream = new MarkupStream("section", null, [
+        "start ",
+        () => Promise.reject(new Error(errorMessage)),
+        " end",
+      ]);
+
+      try {
+        await stream.render();
+        throw new Error("Expected stream.render() to throw");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RenderingError);
+        const err = error as RenderingError;
+        expect(err.message).toContain(errorMessage);
+        expect(err.cause).toBeInstanceOf(Error);
+        expect((err.cause as Error).message).toBe(errorMessage);
+        expect(err.errorKind).toBe("content-function-promise-rejection");
+      }
+    });
+
+    test("content-promise-error: handles standalone promise rejection", async () => {
+      const errorMessage = "Standalone promise rejection";
+      const stream = new MarkupStream("article", null, [
+        "before ",
+        Promise.reject(new Error(errorMessage)),
+        " after",
+      ]);
+
+      try {
+        await stream.render();
+        throw new Error("Expected stream.render() to throw");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RenderingError);
+        const err = error as RenderingError;
+        expect(err.message).toContain(errorMessage);
+        expect(err.cause).toBeInstanceOf(Error);
+        expect((err.cause as Error).message).toBe(errorMessage);
+        expect(err.errorKind).toBe("content-promise-error");
+      }
+    });
+
+    test("async-iterator-error: handles error in async iterator", async () => {
+      const errorMessage = "Async iterator error";
+      async function* failingGenerator(): AsyncGenerator<Content> {
+        yield "first";
+        throw new Error(errorMessage);
+      }
+
+      const stream = new MarkupStream("main", null, [
+        "before ",
+        failingGenerator(),
+        " after",
+      ]);
+
+      try {
+        await stream.render();
+        throw new Error("Expected stream.render() to throw");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RenderingError);
+        const err = error as RenderingError;
+        expect(err.message).toContain(errorMessage);
+        expect(err.cause).toBeInstanceOf(Error);
+        expect((err.cause as Error).message).toBe(errorMessage);
+        expect(err.errorKind).toBe("async-iterator-error");
+      }
+    });
+
+    test("shows nested component stack in error", async () => {
+      const stream = new MarkupStream("outer", { id: "test" }, [
+        new MarkupStream("middle", null, [
+          new MarkupStream("inner", null, [
+            () => {
+              throw new Error("Deep error");
+            },
+          ]),
+        ]),
+      ]);
+
+      try {
+        await stream.render();
+        throw new Error("Expected stream.render() to throw");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RenderingError);
+        const err = error as RenderingError;
+        expect(err.message).toMatchInlineSnapshot(`"Rendering error: Deep error; Component stack: <outer> -> <middle> -> <inner>"`);
+        expect(err.componentStack).toEqual(["outer", "middle", "inner"]);
+      }
+    });
+
+    test("handles Error objects thrown from content functions", async () => {
+      const stream = new MarkupStream("div", null, [
+        () => {
+          throw new Error("string error");
+        },
+      ]);
+
+      try {
+        await stream.render();
+        throw new Error("Expected stream.render() to throw");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RenderingError);
+        const err = error as RenderingError;
+        expect(err.message).toContain("string error");
+        expect(err.cause).toBeInstanceOf(Error);
+        expect((err.cause as Error).message).toBe("string error");
+        expect(err.errorKind).toBe("content-function-error");
+      }
+    });
+
+    test("handles non-Error thrown values", async () => {
+      const stream = new MarkupStream("div", null, [
+        () => {
+          // eslint-disable-next-line @typescript-eslint/only-throw-error -- testing non-Error thrown values
+          throw "plain string error";
+        },
+      ]);
+
+      try {
+        await stream.render();
+        throw new Error("Expected stream.render() to throw");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RenderingError);
+        const err = error as RenderingError;
+        expect(err.message).toContain("plain string error");
+        expect(err.cause).toBe("plain string error");
+        expect(err.errorKind).toBe("content-function-error");
+      }
+    });
+
+    test("errors in nested arrays are caught", async () => {
+      const stream = new MarkupStream("div", null, [
+        "start",
+        [
+          "nested",
+          [
+            () => {
+              throw new Error("Nested array error");
+            },
+          ],
+        ],
+        "end",
+      ]);
+
+      try {
+        await stream.render();
+        throw new Error("Expected stream.render() to throw");
+      } catch (error) {
+        expect(error).toBeInstanceOf(RenderingError);
+        const err = error as RenderingError;
+        expect(err.message).toContain("Nested array error");
+        expect(err.errorKind).toBe("content-function-error");
+      }
     });
   });
 });
