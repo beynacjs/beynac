@@ -37,8 +37,7 @@ const noUnitProperties = new Set([
   "widows",
   "zIndex",
   "zoom",
-  // SVG-related properties
-  "fillOpacity",
+  "fillOpacity", // SVG-related properties
   "floodOpacity",
   "stopOpacity",
   "strokeDasharray",
@@ -46,20 +45,34 @@ const noUnitProperties = new Set([
   "strokeMiterlimit",
   "strokeOpacity",
   "strokeWidth",
+  "MozAnimationIterationCount", // Known Prefixed Properties
+  "MozBoxFlex", // TODO: Remove these since they shouldn't be used in modern code
+  "MozBoxFlexGroup",
+  "MozLineClamp",
+  "msAnimationIterationCount",
+  "msFlex",
+  "msZoom",
+  "msFlexGrow",
+  "msFlexNegative",
+  "msFlexOrder",
+  "msFlexPositive",
+  "msFlexShrink",
+  "msGridColumn",
+  "msGridColumnSpan",
+  "msGridRow",
+  "msGridRowSpan",
+  "WebkitAnimationIterationCount",
+  "WebkitBoxFlex",
+  "WebKitBoxFlexGroup",
+  "WebkitBoxOrdinalGroup",
+  "WebkitColumnCount",
+  "WebkitColumns",
+  "WebkitFlex",
+  "WebkitFlexGrow",
+  "WebkitFlexPositive",
+  "WebkitFlexShrink",
+  "WebkitLineClamp",
 ]);
-
-// Add vendor prefixed versions of no-unit properties
-const prefixes = ["Webkit", "Ms", "Moz", "O"];
-const prefixedNoUnitProperties = new Set(noUnitProperties);
-
-// Generate vendor-prefixed versions
-for (const prop of noUnitProperties) {
-  for (const prefix of prefixes) {
-    prefixedNoUnitProperties.add(
-      prefix + prop[0].toUpperCase() + prop.substring(1)
-    );
-  }
-}
 
 /**
  * Converts a style object to a CSS string.
@@ -71,16 +84,24 @@ export const styleObjectToString = (style: object): string => {
   for (const [k, v] of Object.entries(style)) {
     if (v == null) continue;
 
+    // Special case: if property starts with "ms" and third letter is capital (e.g., "msFlex"),
+    // capitalize the "m" to make it "MsFlex" so it renders as "-ms-flex"
+    let propName = k;
+    if (k.length >= 3 && k.startsWith("ms") && /[A-Z]/.test(k[2])) {
+      propName = "Ms" + k.substring(2);
+    }
+
     // Convert camelCase to kebab-case, except for CSS variables (starting with --)
     const key =
-      k[0] === "-" || !/[A-Z]/.test(k)
-        ? k // CSS variable or already kebab-case
-        : k.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`); // Convert camelCase to kebab-case
+      propName[0] === "-" || !/[A-Z]/.test(propName)
+        ? propName // CSS variable or already kebab-case
+        : propName.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`); // Convert camelCase to kebab-case
 
     // Convert numbers to px for properties that need units
+    // Check the original property name (k) not the transformed one (propName)
     const value =
       typeof v === "number"
-        ? prefixedNoUnitProperties.has(k)
+        ? noUnitProperties.has(k)
           ? `${v}`
           : `${v}px`
         : String(v);

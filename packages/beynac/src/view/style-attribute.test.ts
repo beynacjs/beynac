@@ -94,10 +94,11 @@ describe("styleObjectToString", () => {
       styleObjectToString({
         WebkitTransform: "scale(1.5)",
         MozTransform: "scale(1.5)",
-        MsTransform: "scale(1.5)",
+        OTransform: "scale(1.5)",
+        msTransform: "scale(1.5)",
       })
     ).toBe(
-      "-webkit-transform:scale(1.5);-moz-transform:scale(1.5);-ms-transform:scale(1.5)"
+      "-webkit-transform:scale(1.5);-moz-transform:scale(1.5);-o-transform:scale(1.5);-ms-transform:scale(1.5)"
     );
   });
 
@@ -106,7 +107,7 @@ describe("styleObjectToString", () => {
       styleObjectToString({
         WebkitFlex: 1,
         MozBoxFlex: 2,
-        MsFlexGrow: 3,
+        msFlexGrow: 3,
         WebkitLineClamp: 4,
         WebkitBorderRadius: 5, // Not unitless - should get px
       })

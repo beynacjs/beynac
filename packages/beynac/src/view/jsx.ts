@@ -30,7 +30,11 @@ export const jsx: JSXFactory = (
     if (props != null) {
       ({ children, ...props } = props);
     }
-    return new MarkupStream(tag, props, children == null ? null : arrayWrap(children) as Content[]);
+    return new MarkupStream(
+      tag,
+      props,
+      children == null ? null : (arrayWrap(children) as Content[])
+    );
   } else {
     throw new BeynacError(
       `Expected tag to be a string or component, got ${describeType(tag)}`
