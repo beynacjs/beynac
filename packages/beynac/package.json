@@ -12,7 +12,8 @@
     }
   },
   "scripts": {
-    "check": "tsc --noEmit",
+    "check": "bun run check:tsc",
+    "check:tsc": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf dist"
   },

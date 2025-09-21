@@ -1,5 +1,3 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: we follow react in using any for some types here
-
 import type { Key } from "../keys";
 import type { IntrinsicElements as IntrinsicElementsDefined } from "./intrinsic-element-types";
 import type { MarkupStream } from "./markup-stream";
@@ -28,27 +26,16 @@ export type Content =
   | AsyncIterable<Content>;
 
 export namespace JSX {
-  export type Element = {
-    render(options?: RenderOptions): Promise<string>;
-    renderChunks(options?: RenderOptions): AsyncGenerator<string>;
-  };
+  export type Element = MarkupStream;
 
-  export type Children =
-    | string
-    | Promise<string>
-    | number
-    | Element
-    | null
-    | undefined
-    | boolean
-    | Children[];
+  export type Children = Content;
 
   export interface ElementChildrenAttribute {
     children: Children;
   }
 
   export interface IntrinsicElements extends IntrinsicElementsDefined {
-    [tagName: string]: AnyProps;
+    [tagName: string]: Props;
   }
 
   export interface IntrinsicAttributes {
@@ -56,9 +43,13 @@ export namespace JSX {
   }
 }
 
-type AnyProps = Record<string, unknown>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- we follow react in using any here
+export type Props = Record<string, any>;
 
-export type Component<P = AnyProps> = (props: P) => JSX.Element | null;
+export type Component<P = Props> = {
+  (props: P): JSX.Element | null;
+  displayName?: string | undefined;
+};
 
 export type PropsWithChildren<P = unknown> = P & {
   children?: JSX.Children | undefined;

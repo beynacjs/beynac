@@ -2,6 +2,7 @@ import { arrayWrap } from "utils";
 import { ContextImpl } from "./context";
 import type { Content, JSX, RenderOptions } from "./public-types";
 import { RawContent } from "./raw";
+import { styleObjectToString } from "./style-attribute";
 
 export type { RenderOptions };
 
@@ -191,7 +192,13 @@ export class MarkupStream implements JSX.Element {
             buffer += " ";
             buffer += key;
             buffer += '="';
-            buffer += escapeHtml(String(value));
+            let stringValue;
+            if (key === "style" && typeof value === "object" && value) {
+              stringValue = styleObjectToString(value);
+            } else {
+              stringValue = String(value);
+            }
+            buffer += escapeHtml(stringValue);
             buffer += '"';
           }
         }
@@ -210,7 +217,14 @@ export class MarkupStream implements JSX.Element {
       if (tag) {
         renderOpeningTag(tag, attributes, selfClosing);
       }
-      const htmlEmptyTag = tag && mode === "html" && emptyTags.has(tag);
+      // Check for void elements with children
+      if (tag && mode === "html" && emptyTags.has(tag) && content?.length) {
+        throw new Error(
+          `<${tag}> is a void element and must not have children`
+        );
+      }
+      const htmlEmptyTag =
+        tag && mode === "html" && emptyTags.has(tag) && !content?.length;
       nodeStack.push({
         content: htmlEmptyTag ? [] : (content ?? []),
         tag,

@@ -1,5 +1,4 @@
 /** @jsxImportSource ./ */
-// biome-ignore-all lint/complexity/noUselessFragments: we're testing fragments
 import { expect, test } from "bun:test";
 
 test("renders single element with attributes and text child", async () => {
@@ -14,6 +13,16 @@ test("renders childless non-empty elements", async () => {
 
 test("renders empty tags", async () => {
   expect(await (<input value="yo" />).render()).toBe('<input value="yo">');
+});
+
+test("throws error for void elements with children", async () => {
+  expect((<link>content</link>).render()).rejects.toThrow(
+    "<link> is a void element and must not have children"
+  );
+
+  expect((<input>text</input>).render()).rejects.toThrow(
+    "<input> is a void element and must not have children"
+  );
 });
 
 test("escapes attribute values", async () => {

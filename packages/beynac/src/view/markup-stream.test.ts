@@ -1105,7 +1105,9 @@ describe("MarkupStream", () => {
       } catch (error) {
         expect(error).toBeInstanceOf(RenderingError);
         const err = error as RenderingError;
-        expect(err.message).toMatchInlineSnapshot(`"Rendering error: Deep error; Component stack: <outer> -> <middle> -> <inner>"`);
+        expect(err.message).toMatchInlineSnapshot(
+          `"Rendering error: Deep error; Component stack: <outer> -> <middle> -> <inner>"`
+        );
         expect(err.componentStack).toEqual(["outer", "middle", "inner"]);
       }
     });
