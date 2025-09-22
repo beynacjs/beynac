@@ -23,6 +23,7 @@
         "@types/bun": "latest",
         "beynac": "workspace:",
         "bun-types": "latest",
+        "csstype": "^3.1.3",
         "typescript": "^5.8.3",
       },
     },

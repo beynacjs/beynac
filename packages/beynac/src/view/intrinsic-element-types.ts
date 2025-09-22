@@ -1,5 +1,7 @@
 // TODO
 
+import type * as CSS from "csstype";
+
 type BaseMime =
   | "audio/aac"
   | "video/x-msvideo"
@@ -66,9 +68,9 @@ type StringLiteralUnion<T> = T | (string & Record<never, never>);
  */
 
 export type CrossOrigin = "anonymous" | "use-credentials" | "" | undefined;
-export interface CSSProperties {
-  [propertyKey: string]: unknown;
-}
+export type CSSProperties = CSS.Properties<(string & {}) | number> & {
+  [key: `--${string}`]: string | number;
+};
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vendored code
 type AnyAttributes = { [attributeName: string]: any };
 

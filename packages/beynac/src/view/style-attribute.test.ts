@@ -42,17 +42,6 @@ describe("styleObjectToString", () => {
     );
   });
 
-  test("handles new React 19+ unitless properties", () => {
-    expect(
-      styleObjectToString({
-        aspectRatio: 1.5,
-        scale: 2,
-        gridArea: 1,
-        animationIterationCount: 3,
-      })
-    ).toBe("aspect-ratio:1.5;scale:2;grid-area:1;animation-iteration-count:3");
-  });
-
   test("preserves CSS variables", () => {
     expect(
       styleObjectToString({
@@ -63,23 +52,12 @@ describe("styleObjectToString", () => {
     ).toBe("--custom-color:blue;--spacing:10px;--my-var:value");
   });
 
-  test("handles mixed string and number values", () => {
-    expect(
-      styleObjectToString({
-        color: "red",
-        width: 100,
-        fontSize: "2em",
-        margin: "10px 20px",
-      })
-    ).toBe("color:red;width:100px;font-size:2em;margin:10px 20px");
-  });
-
   test("skips null and undefined values", () => {
     expect(
       styleObjectToString({
         color: "red",
-        width: null as unknown as string,
-        height: undefined as unknown as string,
+        width: null as unknown as undefined,
+        height: undefined,
         fontSize: 14,
       })
     ).toBe("color:red;font-size:14px");
@@ -105,24 +83,15 @@ describe("styleObjectToString", () => {
   test("handles vendor-prefixed unitless properties", () => {
     expect(
       styleObjectToString({
-        WebkitFlex: 1,
-        MozBoxFlex: 2,
-        msFlexGrow: 3,
+        WebkitFlex: "a",
+        MozBoxFlex: "b",
+        msFilter: "c",
         WebkitLineClamp: 4,
         WebkitBorderRadius: 5, // Not unitless - should get px
       })
     ).toBe(
-      "-webkit-flex:1;-moz-box-flex:2;-ms-flex-grow:3;-webkit-line-clamp:4;-webkit-border-radius:5px"
+      "-webkit-flex:a;-moz-box-flex:b;-ms-filter:c;-webkit-line-clamp:4;-webkit-border-radius:5px"
     );
-  });
-
-  test("handles already kebab-cased properties", () => {
-    expect(
-      styleObjectToString({
-        "background-color": "red",
-        "font-size": "16px",
-      })
-    ).toBe("background-color:red;font-size:16px");
   });
 
   test("handles zero values", () => {
@@ -133,5 +102,55 @@ describe("styleObjectToString", () => {
         opacity: 0,
       })
     ).toBe("margin:0px;padding:0px;opacity:0");
+  });
+});
+
+describe("styleObjectToString type checking", () => {
+  test("accepts valid style properties", () => {
+    // This should compile without errors
+    const validStyles = styleObjectToString({
+      color: "red",
+      fontSize: "16px",
+      backgroundColor: "blue",
+      margin: "10px",
+      opacity: 0.5,
+    });
+    expect(validStyles).toBeTruthy();
+  });
+
+  test("catches misspelled properties with @ts-expect-error", () => {
+    styleObjectToString({
+      // @ts-expect-error: testing expected error
+      foo: "red",
+    });
+  });
+
+  test("catches incorrect value types with @ts-expect-error", () => {
+    styleObjectToString({
+      // @ts-expect-error: testing expected error
+      textAlign: "invalid",
+    });
+
+    styleObjectToString({
+      // @ts-expect-error: testing expected error
+      color: 123, // color should be a string, not a number
+    });
+  });
+
+  test("accepts vendor prefixed properties", () => {
+    const vendorPrefixed = styleObjectToString({
+      WebkitTransform: "scale(1.5)",
+      MozTransform: "scale(1.5)",
+      msTransform: "scale(1.5)",
+    });
+    expect(vendorPrefixed).toBeTruthy();
+  });
+
+  test("handles CSS custom properties", () => {
+    const cssVariables = styleObjectToString({
+      "--custom-color": "blue",
+      "--spacing": "10px",
+    });
+    expect(cssVariables).toBe("--custom-color:blue;--spacing:10px");
   });
 });

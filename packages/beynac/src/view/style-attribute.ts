@@ -74,12 +74,14 @@ const noUnitProperties = new Set([
   "WebkitLineClamp",
 ]);
 
+import type { CSSProperties } from "./intrinsic-element-types";
+
 /**
  * Converts a style object to a CSS string.
  * Handles camelCase to kebab-case conversion and adds px units where appropriate.
  * Based on React's style handling implementation.
  */
-export const styleObjectToString = (style: object): string => {
+export const styleObjectToString = (style: CSSProperties): string => {
   let result = "";
   for (const [k, v] of Object.entries(style)) {
     if (v == null) continue;
