@@ -795,7 +795,7 @@ cardButton.addEventListener("click", async (e) => {
     cardElement,
     {
       billing_details: { name: cardHolderName.value },
-    }
+    },
   );
 
   if (error) {

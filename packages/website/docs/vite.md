@@ -420,7 +420,7 @@ createInertiaApp({
   resolve: (name) =>
     resolvePageComponent(
       `./Pages/${name}.vue`,
-      import.meta.glob("./Pages/**/*.vue")
+      import.meta.glob("./Pages/**/*.vue"),
     ),
   setup({ el, App, props, plugin }) {
     createApp({ render: () => h(App, props) })
@@ -668,7 +668,7 @@ Given the code above, prefetching will now begin when you manually dispatch the 
   addEventListener("load", () =>
     setTimeout(() => {
       dispatchEvent(new Event("vite:prefetch"));
-    }, 3000)
+    }, 3000),
   );
 </script>
 ```

@@ -7,7 +7,7 @@ test("asyncGate throws on empty checkpoints array", () => {
 
 test("asyncGate throws on duplicate checkpoints", () => {
   expect(() => asyncGate(["a", "b", "a"])).toThrow(
-    "Checkpoints array contains duplicates"
+    "Checkpoints array contains duplicates",
   );
 });
 
@@ -374,7 +374,7 @@ test("default task throws when used concurrently by multiple processes waiting o
   const p2 = task2();
 
   expect(Promise.race([p1, p2])).rejects.toThrow(
-    "Cannot use default gate() with multiple concurrent processes. Use gate.task() to create separate tasks."
+    "Cannot use default gate() with multiple concurrent processes. Use gate.task() to create separate tasks.",
   );
 });
 
@@ -393,6 +393,6 @@ test("default task throws when used concurrently by multiple processes waiting o
   const p2 = task2();
 
   expect(Promise.race([p1, p2])).rejects.toThrow(
-    "Cannot use default gate() with multiple concurrent processes. Use gate.task() to create separate tasks."
+    "Cannot use default gate() with multiple concurrent processes. Use gate.task() to create separate tasks.",
   );
 });

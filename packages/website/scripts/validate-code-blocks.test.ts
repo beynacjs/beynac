@@ -24,7 +24,7 @@ test("validate code blocks", async () => {
 
     // Process non-manual blocks
     const nonManualBlocks = blocks.filter(
-      (b) => b.source && b.source !== "manual"
+      (b) => b.source && b.source !== "manual",
     );
     if (nonManualBlocks.length === 0) continue;
 
@@ -42,7 +42,7 @@ test("validate code blocks", async () => {
       const testContent = readFileSync(testFilePath, "utf-8");
       const expectedCode = getExpectedCodeForBlockFromContent(
         testContent,
-        block.source
+        block.source,
       );
       const actualCode = block.content.trim();
 

@@ -3,13 +3,13 @@ import type { KeyOrClass } from "./container-key";
 
 type AddCallback<C extends Container> = (
   need: KeyOrClass,
-  factory: FactoryFunction<unknown, C>
+  factory: FactoryFunction<unknown, C>,
 ) => void;
 
 export class ContextualBindingBuilder<C extends Container> {
   constructor(
     private container: C,
-    private add: AddCallback<C>
+    private add: AddCallback<C>,
   ) {}
 
   needs<T>(need: KeyOrClass<T>): ContextualBindingBuilderFinal<T, C> {
@@ -24,7 +24,7 @@ class ContextualBindingBuilderFinal<T, C extends Container> {
   constructor(
     private container: C,
     private add: AddCallback<C>,
-    private need: KeyOrClass
+    private need: KeyOrClass,
   ) {}
 
   /**

@@ -8,7 +8,7 @@ describe("styleObjectToString", () => {
         backgroundColor: "red",
         fontSize: "16px",
         borderTopWidth: "1px",
-      })
+      }),
     ).toBe("background-color:red;font-size:16px;border-top-width:1px");
   });
 
@@ -20,9 +20,9 @@ describe("styleObjectToString", () => {
         fontSize: 14,
         marginTop: 20,
         padding: 10,
-      })
+      }),
     ).toBe(
-      "width:100px;height:50px;font-size:14px;margin-top:20px;padding:10px"
+      "width:100px;height:50px;font-size:14px;margin-top:20px;padding:10px",
     );
   });
 
@@ -36,9 +36,9 @@ describe("styleObjectToString", () => {
         flexGrow: 2,
         flexShrink: 1,
         order: 3,
-      })
+      }),
     ).toBe(
-      "opacity:0.5;z-index:10;font-weight:700;line-height:1.5;flex-grow:2;flex-shrink:1;order:3"
+      "opacity:0.5;z-index:10;font-weight:700;line-height:1.5;flex-grow:2;flex-shrink:1;order:3",
     );
   });
 
@@ -48,7 +48,7 @@ describe("styleObjectToString", () => {
         "--custom-color": "blue",
         "--spacing": 10,
         "--my-var": "value",
-      })
+      }),
     ).toBe("--custom-color:blue;--spacing:10px;--my-var:value");
   });
 
@@ -59,7 +59,7 @@ describe("styleObjectToString", () => {
         width: null as unknown as undefined,
         height: undefined,
         fontSize: 14,
-      })
+      }),
     ).toBe("color:red;font-size:14px");
   });
 
@@ -74,9 +74,9 @@ describe("styleObjectToString", () => {
         MozTransform: "scale(1.5)",
         OTransform: "scale(1.5)",
         msTransform: "scale(1.5)",
-      })
+      }),
     ).toBe(
-      "-webkit-transform:scale(1.5);-moz-transform:scale(1.5);-o-transform:scale(1.5);-ms-transform:scale(1.5)"
+      "-webkit-transform:scale(1.5);-moz-transform:scale(1.5);-o-transform:scale(1.5);-ms-transform:scale(1.5)",
     );
   });
 
@@ -88,9 +88,9 @@ describe("styleObjectToString", () => {
         msFilter: "c",
         WebkitLineClamp: 4,
         WebkitBorderRadius: 5, // Not unitless - should get px
-      })
+      }),
     ).toBe(
-      "-webkit-flex:a;-moz-box-flex:b;-ms-filter:c;-webkit-line-clamp:4;-webkit-border-radius:5px"
+      "-webkit-flex:a;-moz-box-flex:b;-ms-filter:c;-webkit-line-clamp:4;-webkit-border-radius:5px",
     );
   });
 
@@ -100,7 +100,7 @@ describe("styleObjectToString", () => {
         margin: 0,
         padding: 0,
         opacity: 0,
-      })
+      }),
     ).toBe("margin:0px;padding:0px;opacity:0");
   });
 });

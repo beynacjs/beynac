@@ -1131,7 +1131,7 @@ Echo.channel(`orders.${this.order.id}`).listen(
   "OrderShipmentStatusUpdated",
   (e) => {
     console.log(e.order.name);
-  }
+  },
 );
 ```
 
@@ -1156,7 +1156,7 @@ If you would like to stop listening to a given event without [leaving the channe
 
 ```js
 Echo.private(`orders.${this.order.id}`).stopListening(
-  "OrderShipmentStatusUpdated"
+  "OrderShipmentStatusUpdated",
 );
 ```
 
@@ -1242,7 +1242,7 @@ useEcho(
   ["OrderShipmentStatusUpdated", "OrderShipped"],
   (e) => {
     console.log(e.order);
-  }
+  },
 );
 ```
 
@@ -1280,7 +1280,7 @@ const { leaveChannel, leave, stopListening, listen } = useEcho(
   "OrderShipmentStatusUpdated",
   (e) => {
     console.log(e.order);
-  }
+  },
 );
 
 // Stop listening without leaving channel...
@@ -1305,7 +1305,7 @@ const { leaveChannel, leave, stopListening, listen } = useEcho(
   "OrderShipmentStatusUpdated",
   (e) => {
     console.log(e.order);
-  }
+  },
 );
 
 // Stop listening without leaving channel...
@@ -1708,7 +1708,7 @@ useEchoModel<User, "App.Models.User">(
   (e) => {
     console.log(e.model.id);
     console.log(e.model.name);
-  }
+  },
 );
 ```
 

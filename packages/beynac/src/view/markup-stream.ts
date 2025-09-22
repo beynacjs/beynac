@@ -22,7 +22,7 @@ export class MarkupStream {
     tag: string | null,
     attributes: Record<string, unknown> | null,
     children: Content,
-    displayName?: string | null
+    displayName?: string | null,
   ) {
     this.tag = tag;
     this.attributes = attributes;
@@ -57,7 +57,7 @@ type ErrorKind =
 class ExpansionErrorInfo {
   constructor(
     public readonly error: unknown,
-    public readonly errorKind: ErrorKind
+    public readonly errorKind: ErrorKind,
   ) {}
 }
 
@@ -102,7 +102,7 @@ const createFrame = (
   content: FrameItem[],
   tag: string | null = null,
   displayName: string | null = null,
-  attributes: Record<string, unknown> | null = null
+  attributes: Record<string, unknown> | null = null,
 ): Frame => ({
   content,
   tag,
@@ -123,7 +123,7 @@ function expandContentTree(content: Content): Frame | null {
     content: Content,
     dest: FrameItem[],
     destIndex: number,
-    context: ContextImpl
+    context: ContextImpl,
   ): void => {
     if (typeof content === "function") {
       const childContext = context.fork();
@@ -133,7 +133,7 @@ function expandContentTree(content: Content): Frame | null {
       } catch (error) {
         dest[destIndex] = new ExpansionErrorInfo(
           error,
-          "content-function-error"
+          "content-function-error",
         );
         return;
       }
@@ -143,7 +143,7 @@ function expandContentTree(content: Content): Frame | null {
           resolved,
           dest,
           destIndex,
-          childContext.wasModified() ? childContext : context
+          childContext.wasModified() ? childContext : context,
         );
       };
 
@@ -153,7 +153,7 @@ function expandContentTree(content: Content): Frame | null {
         result.then(handleResult).catch((error) => {
           dest[destIndex] = new ExpansionErrorInfo(
             error,
-            "content-function-promise-rejection"
+            "content-function-promise-rejection",
           );
         });
       } else {
@@ -169,7 +169,7 @@ function expandContentTree(content: Content): Frame | null {
         .catch((error) => {
           dest[destIndex] = new ExpansionErrorInfo(
             error,
-            "content-promise-error"
+            "content-promise-error",
           );
         });
     } else if (isAsyncIterable(content)) {
@@ -203,7 +203,7 @@ function expandContentTree(content: Content): Frame | null {
           .catch((error) => {
             iterResult[promiseIndex] = new ExpansionErrorInfo(
               error,
-              "async-iterator-error"
+              "async-iterator-error",
             );
           });
       };
@@ -212,7 +212,7 @@ function expandContentTree(content: Content): Frame | null {
     } else if (content instanceof MarkupStream) {
       const sourceContent = content.content || [];
       const expandedContent: FrameItem[] = new Array<FrameItem>(
-        sourceContent.length
+        sourceContent.length,
       );
       for (let i = 0; i < sourceContent.length; i++) {
         expandContent(sourceContent[i], expandedContent, i, context);
@@ -223,7 +223,7 @@ function expandContentTree(content: Content): Frame | null {
         expandedContent,
         content.tag,
         content.displayName,
-        content.attributes
+        content.attributes,
       );
     } else if (Array.isArray(content)) {
       const nestedDest: FrameItem[] = new Array<FrameItem>(content.length);
@@ -329,7 +329,7 @@ const booleanAttributes = new Set([
  */
 export async function* renderStream(
   content: Content,
-  { mode = "html" }: RenderOptions = {}
+  { mode = "html" }: RenderOptions = {},
 ): AsyncGenerator<string> {
   const rootFrame = expandContentTree(content);
 
@@ -343,7 +343,7 @@ export async function* renderStream(
   const renderOpeningTag = (
     tag: string,
     attributes: Record<string, unknown> | null,
-    selfClosing: boolean
+    selfClosing: boolean,
   ): void => {
     if (!tag) return;
 
@@ -401,11 +401,11 @@ export async function* renderStream(
               throw new RenderingError(
                 new ExpansionErrorInfo(
                   new Error(
-                    `Attribute "${key}" has an invalid value type: ${valueType}`
+                    `Attribute "${key}" has an invalid value type: ${valueType}`,
                   ),
-                  "attribute-type-error"
+                  "attribute-type-error",
                 ),
-                nodeStack
+                nodeStack,
               );
             }
 
@@ -475,7 +475,7 @@ export async function* renderStream(
       // This shouldn't happen - functions should be expanded already
       // But handle it just in case for robustness
       throw new Error(
-        "Unexpected function during render - expansion may have failed"
+        "Unexpected function during render - expansion may have failed",
       );
     } else if (node && typeof node === "object" && !Array.isArray(node)) {
       // This is a pre-built Frame from expansion phase
@@ -493,7 +493,7 @@ export async function* renderStream(
           frameNode.content?.length
         ) {
           throw new Error(
-            `<${frameNode.tag}> is a void element and must not have children`
+            `<${frameNode.tag}> is a void element and must not have children`,
           );
         }
       }
@@ -532,7 +532,7 @@ export async function* renderStream(
  */
 export async function render(
   content: Content,
-  options?: RenderOptions
+  options?: RenderOptions,
 ): Promise<string> {
   let result = "";
   for await (const chunk of renderStream(content, options)) {

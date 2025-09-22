@@ -35,7 +35,7 @@ describe("html template literal", () => {
       const dangerous = "<script>alert('xss')</script>";
       const result = html`<div>${dangerous}</div>`;
       expect(await render(result)).toBe(
-        "<div>&lt;script&gt;alert('xss')&lt;/script&gt;</div>"
+        "<div>&lt;script&gt;alert('xss')&lt;/script&gt;</div>",
       );
     });
   });

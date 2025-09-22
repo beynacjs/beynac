@@ -62,7 +62,7 @@ export function injectOptional<T>(token: ClassReference<T>): T | null;
  * const instance = new MyClass(new MockEmailService());
  */
 export function injectOptional<T>(
-  arg: KeyOrClass<T>
+  arg: KeyOrClass<T>,
 ): Exclude<T, undefined> | null {
   if (!_currentInjectHandler) {
     throw new BeynacError(invalidInjectMessage);

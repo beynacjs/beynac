@@ -43,7 +43,7 @@ describe("Container", () => {
   test("failed resolution of unbound token", () => {
     const string = key({ name: "Test" });
     expect(() => container.get(string)).toThrowErrorMatchingInlineSnapshot(
-      `"Can't create an instance of [Test] because no value or factory function was supplied"`
+      `"Can't create an instance of [Test] because no value or factory function was supplied"`,
     );
   });
 
@@ -84,7 +84,7 @@ describe("Container", () => {
       constructor(public name = inject(nameToken)) {}
     }
     expect(() => new HasNameDependency()).toThrowErrorMatchingInlineSnapshot(
-      `"Dependencies that use inject() must be created by the container. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`
+      `"Dependencies that use inject() must be created by the container. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`,
     );
   });
 
@@ -105,9 +105,9 @@ describe("Container", () => {
     }
     container.bind(HasNameDependency);
     expect(() =>
-      container.get(HasNameDependency)
+      container.get(HasNameDependency),
     ).toThrowErrorMatchingInlineSnapshot(
-      `"Can't create an instance of [name] because no value or factory function was supplied (while building [HasNameDependency])"`
+      `"Can't create an instance of [name] because no value or factory function was supplied (while building [HasNameDependency])"`,
     );
   });
 
@@ -137,9 +137,9 @@ describe("Container", () => {
     const token = key();
     expect(() =>
       //@ts-expect-error testing ts error
-      container.bind(token)
+      container.bind(token),
     ).toThrow(
-      "When binding a type token you must supply a function to create an instance"
+      "When binding a type token you must supply a function to create an instance",
     );
   });
 
@@ -240,7 +240,7 @@ describe("Container", () => {
     const to = key({ name: "to" });
     container.alias({ from, to });
     expect(() => container.get(from)).toThrowErrorMatchingInlineSnapshot(
-      `"Can't create an instance of [to] because no value or factory function was supplied"`
+      `"Can't create an instance of [to] because no value or factory function was supplied"`,
     );
   });
 
@@ -265,7 +265,7 @@ describe("Container", () => {
     container.alias({ from: bar, to: baz });
     container.alias({ from: baz, to: foo });
     expect(() => container.get(quux)).toThrowErrorMatchingInlineSnapshot(
-      `"Circular alias detected: [foo] -> [bar] -> [baz] -> [foo]"`
+      `"Circular alias detected: [foo] -> [bar] -> [baz] -> [foo]"`,
     );
   });
 
@@ -356,14 +356,14 @@ describe("Container", () => {
       // @ts-expect-error asserting error for test
       container.bind(Foo, { factory: new Foo() });
     }).toThrowErrorMatchingInlineSnapshot(
-      `"The factory property must be a function (object provided)"`
+      `"The factory property must be a function (object provided)"`,
     );
 
     expect(() => {
       // @ts-expect-error asserting error for test
       container.bind(Foo, { factory: Foo });
     }).toThrowErrorMatchingInlineSnapshot(
-      `"The factory property must be a callable factory function (class constructor provided)"`
+      `"The factory property must be a callable factory function (class constructor provided)"`,
     );
   });
 
@@ -430,7 +430,7 @@ describe("Container", () => {
     class Dependent {
       constructor(
         public stub = inject(Dependency),
-        public defaultVal = "Bernie"
+        public defaultVal = "Bernie",
       ) {}
     }
 
@@ -455,7 +455,7 @@ describe("Container", () => {
     }
     const Parent = key<I>({ name: "I" });
     expect(() => container.get(Parent)).toThrowErrorMatchingInlineSnapshot(
-      `"Can't create an instance of [I] because no value or factory function was supplied"`
+      `"Can't create an instance of [I] because no value or factory function was supplied"`,
     );
   });
 
@@ -463,7 +463,7 @@ describe("Container", () => {
     class OptionalInject {
       constructor(
         public noDefault = inject(Dep),
-        public defaultVal = injectOptional(Dep)
+        public defaultVal = injectOptional(Dep),
       ) {}
     }
 
@@ -481,7 +481,7 @@ describe("Container", () => {
     class OptionalInject {
       constructor(
         public noDefault = inject(Dep),
-        public defaultVal = injectOptional(Dep)
+        public defaultVal = injectOptional(Dep),
       ) {}
     }
 
@@ -586,7 +586,7 @@ describe("Container", () => {
     expect(() => {
       container.get(A);
     }).toThrowErrorMatchingInlineSnapshot(
-      `"Can't create an instance of [C] because no value or factory function was supplied (while building [A] -> [B])"`
+      `"Can't create an instance of [C] because no value or factory function was supplied (while building [A] -> [B])"`,
     );
   });
 
@@ -612,7 +612,7 @@ describe("Container", () => {
     expect(() => {
       container.alias({ from: token, to: token });
     }).toThrowErrorMatchingInlineSnapshot(
-      `"[tokenName] is aliased to itself."`
+      `"[tokenName] is aliased to itself."`,
     );
     class Foo {}
     expect(() => {
@@ -632,7 +632,7 @@ describe("Container", () => {
     expect(name).toBe("default");
 
     expect(() => new Foo().getDepName()).toThrowErrorMatchingInlineSnapshot(
-      `"Dependencies that use inject() must be created by the container. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`
+      `"Dependencies that use inject() must be created by the container. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`,
     );
   });
 
@@ -651,7 +651,7 @@ describe("Container", () => {
     }
 
     expect(() => container.get(Root)).toThrowErrorMatchingInlineSnapshot(
-      `"Circular dependency detected: [A] -> [B] -> [C] -> [A] (while building [Root] -> [A] -> [B] -> [C])"`
+      `"Circular dependency detected: [A] -> [B] -> [C] -> [A] (while building [Root] -> [A] -> [B] -> [C])"`,
     );
   });
 });
@@ -1792,7 +1792,7 @@ describe("Container withScope", () => {
       lifecycle: "scoped",
     });
     expect(() => container.get(token)).toThrowErrorMatchingInlineSnapshot(
-      `"Cannot create [token] because it is scoped so can only be accessed within a request or job. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`
+      `"Cannot create [token] because it is scoped so can only be accessed within a request or job. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`,
     );
   });
 
@@ -1800,7 +1800,7 @@ describe("Container withScope", () => {
     class Foo {}
     container.bind(Foo, { lifecycle: "scoped" });
     expect(() => container.get(Foo)).toThrowErrorMatchingInlineSnapshot(
-      `"Cannot create [Foo] because it is scoped so can only be accessed within a request or job. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`
+      `"Cannot create [Foo] because it is scoped so can only be accessed within a request or job. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`,
     );
   });
 
@@ -2143,7 +2143,7 @@ describe("Container default values", () => {
 
       // Keys without explicit default should throw
       expect(() => container.get(keyWithoutDefault)).toThrow(
-        "Can't create an instance of [test] because no value or factory function was supplied"
+        "Can't create an instance of [test] because no value or factory function was supplied",
       );
     });
 
@@ -2188,7 +2188,7 @@ describe("Container default values", () => {
       });
 
       expect(() => container.get(keyWithUndefinedDefault)).toThrow(
-        "Can't create an instance of [test] because no value or factory function was supplied"
+        "Can't create an instance of [test] because no value or factory function was supplied",
       );
     });
 

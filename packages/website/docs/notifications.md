@@ -1196,7 +1196,7 @@ useEchoNotification(
   (notification) => {
     console.log(notification.type);
   },
-  "App.Notifications.InvoicePaid"
+  "App.Notifications.InvoicePaid",
 );
 ```
 
@@ -1209,7 +1209,7 @@ useEchoNotification(
   (notification) => {
     console.log(notification.type);
   },
-  "App.Notifications.InvoicePaid"
+  "App.Notifications.InvoicePaid",
 );
 </script>
 ```
@@ -1231,7 +1231,7 @@ useEchoNotification<InvoicePaidNotification>(
     console.log(notification.created_at);
     console.log(notification.type);
   },
-  "App.Notifications.InvoicePaid"
+  "App.Notifications.InvoicePaid",
 );
 ```
 

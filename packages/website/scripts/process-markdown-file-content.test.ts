@@ -83,7 +83,7 @@ console.log(\`Hello, \${name}!\`);
 
   const result = processMarkdownFileContentFromString(
     markdownContent,
-    testContent
+    testContent,
   );
   expect(result).toBe(expected);
 });
@@ -139,7 +139,7 @@ return "This is automated";
 
   const result = processMarkdownFileContentFromString(
     markdownContent,
-    testContent
+    testContent,
   );
   expect(result).toBe(expected);
 });
@@ -183,7 +183,7 @@ test("automated block", () => {
 
   const result = processMarkdownFileContentFromString(
     markdownContent,
-    testContent
+    testContent,
   );
   expect(result).toBe(expected);
 });
@@ -229,13 +229,13 @@ More text after the code block.
 
   const result = processMarkdownFileContentFromString(
     markdownContent,
-    testContent
+    testContent,
   );
 
   // Check that all non-code content is preserved
   expect(result).toContain("# Heading 1");
   expect(result).toContain(
-    "This is a paragraph with **bold** and *italic* text."
+    "This is a paragraph with **bold** and *italic* text.",
   );
   expect(result).toContain("- List item 1");
   expect(result).toContain("> A blockquote");
@@ -304,7 +304,7 @@ old
 
   const result = processMarkdownFileContentFromString(
     markdownContent,
-    testContent
+    testContent,
   );
 
   expect(result).toContain("\`\`\`typescript");
@@ -384,7 +384,7 @@ console.log(Container);
 
   const result = processMarkdownFileContentFromString(
     markdownContent,
-    testContent
+    testContent,
   );
   expect(result).toBe(expected);
 });
@@ -421,7 +421,7 @@ console.log(inject);
 
   const result = processMarkdownFileContentFromString(
     markdownContent,
-    testContent
+    testContent,
   );
   expect(result).toBe(expected);
 });
@@ -481,7 +481,7 @@ test("complex async test", async () => {
 
   const result = processMarkdownFileContentFromString(
     markdownContent,
-    testContent
+    testContent,
   );
 
   // Should contain all the test content properly formatted

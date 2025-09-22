@@ -75,7 +75,7 @@ export function asyncGate(checkpoints: string[]): AsyncGate {
         // Check for concurrent usage of default task
         if (name === "default" && taskState.resolver !== null) {
           throw new Error(
-            "Cannot use default gate() with multiple concurrent processes. Use gate.task() to create separate tasks."
+            "Cannot use default gate() with multiple concurrent processes. Use gate.task() to create separate tasks.",
           );
         }
 
@@ -111,7 +111,7 @@ export function asyncGate(checkpoints: string[]): AsyncGate {
     if (currentIndex < checkpoints.length - 1 && tasks.size > 0) {
       // Check if we need to wait for any task to reach this checkpoint
       const isAnyTaskWaitingHere = Array.from(tasks.values()).some(
-        (taskState) => taskState.waitingOn === currentCheckpoint
+        (taskState) => taskState.waitingOn === currentCheckpoint,
       );
 
       if (!isAnyTaskWaitingHere) {
@@ -124,7 +124,7 @@ export function asyncGate(checkpoints: string[]): AsyncGate {
             }
             // Task is waiting on this exact checkpoint
             return taskState.waitingOn === currentCheckpoint;
-          }
+          },
         );
 
         if (willAnyTaskReachHere) {
@@ -185,7 +185,7 @@ export function asyncGate(checkpoints: string[]): AsyncGate {
       next,
       current,
       run,
-    }
+    },
   ) as AsyncGate;
 
   return gate;

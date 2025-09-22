@@ -34,7 +34,7 @@ describe("classAttribute", () => {
       expect(classAttribute("")).toBe("");
       expect(classAttribute("foo", "bar")).toBe("foo bar");
       expect(classAttribute(truthy && "foo", falsy && "bar", "baz")).toBe(
-        "foo baz"
+        "foo baz",
       );
       expect(classAttribute(falsy && "foo", "bar", "baz", "")).toBe("bar baz");
     });
@@ -82,7 +82,7 @@ describe("classAttribute", () => {
       expect(classAttribute({}, {})).toBe("");
       expect(classAttribute({ foo: 1 }, { bar: 2 })).toBe("foo bar");
       expect(classAttribute({ foo: 1 }, null, { baz: 1, bat: 0 })).toBe(
-        "foo baz"
+        "foo baz",
       );
       expect(
         classAttribute(
@@ -90,8 +90,8 @@ describe("classAttribute", () => {
           {},
           {},
           { bar: "a" },
-          { baz: null, bat: Infinity }
-        )
+          { baz: null, bat: Infinity },
+        ),
       ).toBe("foo bar bat");
     });
   });
@@ -107,7 +107,7 @@ describe("classAttribute", () => {
       const zero = 0;
       const one = 1;
       expect(classAttribute(["foo", zero && "bar", one && "baz"])).toBe(
-        "foo baz"
+        "foo baz",
       );
     });
 
@@ -116,7 +116,7 @@ describe("classAttribute", () => {
       expect(classAttribute([[["foo"]]])).toBe("foo");
       expect(classAttribute([true, [["foo"]]])).toBe("foo");
       expect(classAttribute(["foo", ["bar", ["", [["baz"]]]]])).toBe(
-        "foo bar baz"
+        "foo bar baz",
       );
     });
 
@@ -124,7 +124,7 @@ describe("classAttribute", () => {
       expect(classAttribute([], [])).toBe("");
       expect(classAttribute(["foo"], ["bar"])).toBe("foo bar");
       expect(classAttribute(["foo"], null, ["baz", ""], true, "", [])).toBe(
-        "foo baz"
+        "foo baz",
       );
     });
 
@@ -133,7 +133,7 @@ describe("classAttribute", () => {
       expect(classAttribute({ pop: true })).toBe("pop");
       expect(classAttribute({ push: true })).toBe("push");
       expect(classAttribute("hello", { world: 1, push: true })).toBe(
-        "hello world push"
+        "hello world push",
       );
     });
   });
@@ -143,7 +143,7 @@ describe("classAttribute", () => {
       const foo = (() => {}) as unknown as string;
       expect(classAttribute(foo, "hello")).toBe("hello");
       expect(classAttribute(foo, "hello", [[foo], "world"])).toBe(
-        "hello world"
+        "hello world",
       );
     });
   });
@@ -158,8 +158,8 @@ describe("classAttribute", () => {
           undefined,
           null,
           0,
-          1
-        )
+          1,
+        ),
       ).toBe("foo bar qux quux 1");
     });
 
@@ -171,7 +171,7 @@ describe("classAttribute", () => {
             { bar: [2, { baz: { qux: [3, { quux: 4 }] } }] },
             { quuz: [] },
           ],
-        })
+        }),
       ).toBe("foo");
     });
   });

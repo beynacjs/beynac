@@ -31,7 +31,7 @@ describe("basic functionality", () => {
       "Content",
     ]);
     expect(await render(stream)).toBe(
-      '<div id="test" class="container">Content</div>'
+      '<div id="test" class="container">Content</div>',
     );
   });
 
@@ -127,7 +127,7 @@ describe("attribute handling", () => {
     const stream = new MarkupStream(
       "input",
       { disabled: true, hidden: false, checked: true },
-      []
+      [],
     );
     expect(await render(stream)).toBe("<input disabled checked>");
   });
@@ -140,7 +140,7 @@ describe("attribute handling", () => {
         nullAttr: null,
         undefinedAttr: undefined,
       },
-      []
+      [],
     );
     expect(await render(stream)).toBe('<div id="test"></div>');
   });
@@ -151,10 +151,10 @@ describe("attribute handling", () => {
       {
         funcAttr: function foo() {},
       },
-      []
+      [],
     );
     expect(render(stream)).rejects.toThrowErrorMatchingInlineSnapshot(
-      `"Rendering error: Attribute "funcAttr" has an invalid value type: Function; Component stack: <div>"`
+      `"Rendering error: Attribute "funcAttr" has an invalid value type: Function; Component stack: <div>"`,
     );
   });
 
@@ -165,10 +165,10 @@ describe("attribute handling", () => {
         title: 'Test "quotes" & <brackets>',
         "data-value": "It's a test",
       },
-      []
+      [],
     );
     expect(await render(stream)).toBe(
-      `<div title="Test &quot;quotes&quot; &amp; &lt;brackets&gt;" data-value="It's a test"></div>`
+      `<div title="Test &quot;quotes&quot; &amp; &lt;brackets&gt;" data-value="It's a test"></div>`,
     );
   });
 
@@ -179,10 +179,10 @@ describe("attribute handling", () => {
         title: 'Test "quotes" & <brackets>',
         "data-value": "It's a test",
       },
-      []
+      [],
     );
     expect(await render(stream)).toBe(
-      `<div title="Test &quot;quotes&quot; &amp; &lt;brackets&gt;" data-value="It's a test"></div>`
+      `<div title="Test &quot;quotes&quot; &amp; &lt;brackets&gt;" data-value="It's a test"></div>`,
     );
   });
 
@@ -191,7 +191,7 @@ describe("attribute handling", () => {
       `I'm a little <teapot> "short" & stout`,
     ]);
     expect(await render(stream)).toBe(
-      `<div>I'm a little &lt;teapot&gt; &quot;short&quot; &amp; stout</div>`
+      `<div>I'm a little &lt;teapot&gt; &quot;short&quot; &amp; stout</div>`,
     );
   });
 });
@@ -214,7 +214,7 @@ describe("async functionality", () => {
     const stream = new MarkupStream(
       "div",
       null,
-      Promise.resolve(["Hello ", "World"])
+      Promise.resolve(["Hello ", "World"]),
     );
 
     // The promise is now wrapped as content
@@ -230,7 +230,7 @@ describe("async functionality", () => {
 
   test("renders async MarkupStream", async () => {
     const asyncInner = Promise.resolve(
-      new MarkupStream("span", null, ["async content"])
+      new MarkupStream("span", null, ["async content"]),
     );
     const stream = new MarkupStream("div", null, [
       "before ",
@@ -251,7 +251,7 @@ describe("async functionality", () => {
     const innerStream = new MarkupStream(
       "span",
       null,
-      Promise.resolve(["inner async"])
+      Promise.resolve(["inner async"]),
     );
     const outerStream = new MarkupStream("div", null, [
       "start ",
@@ -411,7 +411,7 @@ describe("async iterable content", () => {
     const stream = new MarkupStream("div", null, content);
     const result = await render(stream);
     expect(result).toBe(
-      "<div>startfirstsecondthirdmiddlepromise-contentend</div>"
+      "<div>startfirstsecondthirdmiddlepromise-contentend</div>",
     );
   });
 });
@@ -504,7 +504,7 @@ describe("concurrent promise resolution", () => {
     // Get the final result
     const chunks = await chunksPromise;
     expect(chunks.join("")).toBe(
-      '<div>before <span class="nested">inner content</span> after</div>'
+      '<div>before <span class="nested">inner content</span> after</div>',
     );
   });
 });
@@ -520,7 +520,7 @@ describe("edge cases", () => {
     ]);
 
     expect(await render(stream)).toBe(
-      "<div>start <span><b><i>deep</i></b></span> end</div>"
+      "<div>start <span><b><i>deep</i></b></span> end</div>",
     );
   });
 
@@ -586,10 +586,10 @@ describe("HTML mode (default)", () => {
         disabled: false,
         readonly: true,
       },
-      []
+      [],
     );
     expect(await render(input)).toBe(
-      '<input type="checkbox" checked readonly>'
+      '<input type="checkbox" checked readonly>',
     );
   });
 
@@ -601,10 +601,10 @@ describe("HTML mode (default)", () => {
         "data-active": true,
         "aria-hidden": false,
       },
-      []
+      [],
     );
     expect(await render(div)).toBe(
-      '<div id="false" data-active="true" aria-hidden="false"></div>'
+      '<div id="false" data-active="true" aria-hidden="false"></div>',
     );
   });
 
@@ -625,7 +625,7 @@ describe("function content", () => {
       " after",
     ]);
     expect(await render(stream)).toBe(
-      "<div>before function result after</div>"
+      "<div>before function result after</div>",
     );
   });
 
@@ -635,7 +635,7 @@ describe("function content", () => {
       () => new MarkupStream("span", { id: "lazy" }, ["lazy content"]),
     ]);
     expect(await render(stream)).toBe(
-      '<div>text <span id="lazy">lazy content</span></div>'
+      '<div>text <span id="lazy">lazy content</span></div>',
     );
   });
 
@@ -807,7 +807,7 @@ describe("context handling", () => {
       },
     ]);
     expect(await render(stream)).toBe(
-      "<div>parent:parent-afterChildSet:child-child:child-afterSetInParent:parent</div>"
+      "<div>parent:parent-afterChildSet:child-child:child-afterSetInParent:parent</div>",
     );
   });
 
@@ -837,7 +837,7 @@ describe("context handling", () => {
       },
     ]);
     expect(await render(stream)).toBe(
-      "<div><section><p>Theme: dark</p></section></div>"
+      "<div><section><p>Theme: dark</p></section></div>",
     );
   });
 
@@ -995,10 +995,10 @@ describe("XML mode", () => {
         disabled: false,
         readonly: true,
       },
-      []
+      [],
     );
     expect(await render(input, { mode: "xml" })).toBe(
-      '<input type="checkbox" checked="true" disabled="false" readonly="true" />'
+      '<input type="checkbox" checked="true" disabled="false" readonly="true" />',
     );
   });
 
@@ -1008,7 +1008,7 @@ describe("XML mode", () => {
 
     const span = new MarkupStream("span", { id: "test" }, ["text"]);
     expect(await render(span, { mode: "xml" })).toBe(
-      '<span id="test">text</span>'
+      '<span id="test">text</span>',
     );
   });
 
@@ -1018,7 +1018,7 @@ describe("XML mode", () => {
       new MarkupStream("br", null, []),
     ]);
     expect(await render(outer, { mode: "xml" })).toBe(
-      "<outer><inner /><br /></outer>"
+      "<outer><inner /><br /></outer>",
     );
   });
 });
@@ -1133,7 +1133,7 @@ describe("error handling", () => {
       expect(error).toBeInstanceOf(RenderingError);
       const err = error as RenderingError;
       expect(err.message).toMatchInlineSnapshot(
-        `"Rendering error: Deep error; Component stack: <outer> -> <middle> -> <inner>"`
+        `"Rendering error: Deep error; Component stack: <outer> -> <middle> -> <inner>"`,
       );
       expect(err.componentStack).toEqual(["outer", "middle", "inner"]);
     }

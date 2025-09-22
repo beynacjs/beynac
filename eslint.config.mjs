@@ -71,5 +71,5 @@ export default tseslint.config(
       "@typescript-eslint/restrict-template-expressions": "off",
     },
   },
-  prettier
+  prettier,
 );

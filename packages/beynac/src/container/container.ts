@@ -89,14 +89,14 @@ type AnyBindArgs<T, C extends Container> = {
 
 type ExtenderCallback<T = unknown, C extends Container = Container> = (
   instance: T,
-  container: C
+  container: C,
 ) => T;
 
 export type InstanceCallback<T> = (instance: T, container: Container) => void;
 
 export type TypeCallback<T> = (
   key: KeyOrClass<T>,
-  container: Container
+  container: Container,
 ) => void;
 
 /**
@@ -153,7 +153,7 @@ export class Container {
   public bind<T, C extends Container>(
     this: C,
     key: Key<T>,
-    args: BindKeyArgs<T, C>
+    args: BindKeyArgs<T, C>,
   ): void;
 
   /**
@@ -179,13 +179,13 @@ export class Container {
   public bind<T, C extends Container>(
     this: C,
     key: ClassReference<T>,
-    args?: BindClassArgs<T, C>
+    args?: BindClassArgs<T, C>,
   ): void;
 
   public bind<T, C extends Container>(
     this: C,
     key: KeyOrClass<T>,
-    { factory, instance, lifecycle, ifNotBound }: AnyBindArgs<T, C> = {}
+    { factory, instance, lifecycle, ifNotBound }: AnyBindArgs<T, C> = {},
   ): void {
     lifecycle ??= instance ? "singleton" : "transient";
 
@@ -198,7 +198,7 @@ export class Container {
     if (instance) {
       if (lifecycle !== "singleton") {
         throw this.#containerError(
-          `Error binding ${getKeyName(key)}: an instance can only be provided for singletons, set lifecycle to "singleton" or omit the lifecycle parameter.`
+          `Error binding ${getKeyName(key)}: an instance can only be provided for singletons, set lifecycle to "singleton" or omit the lifecycle parameter.`,
         );
       }
       // Apply any extenders that were registered before the instance
@@ -211,19 +211,19 @@ export class Container {
           factory = () => new (key as new () => T)();
         } else {
           throw this.#containerError(
-            "When binding a type token you must supply a function to create an instance"
+            "When binding a type token you must supply a function to create an instance",
           );
         }
       }
     } else {
       if (typeof factory !== "function") {
         throw this.#containerError(
-          `The factory property must be a function (${describeType(factory)} provided)`
+          `The factory property must be a function (${describeType(factory)} provided)`,
         );
       }
       if (looksLikeClassConstructor(factory)) {
         throw this.#containerError(
-          `The factory property must be a callable factory function (class constructor provided)`
+          `The factory property must be a callable factory function (class constructor provided)`,
         );
       }
     }
@@ -252,7 +252,7 @@ export class Container {
 
     if (this.#buildStack.has(key)) {
       throw this.#containerError(
-        `Circular dependency detected: ${formatKeyCycle(this.#buildStack, key)}`
+        `Circular dependency detected: ${formatKeyCycle(this.#buildStack, key)}`,
       );
     }
 
@@ -263,7 +263,7 @@ export class Container {
       _setInjectHandler(
         <TArg>(dependency: KeyOrClass<TArg>, optional: boolean) => {
           return this.#getInjected(key, dependency, optional);
-        }
+        },
       );
 
       let factory: AnyFactory | undefined;
@@ -277,7 +277,7 @@ export class Container {
           if (!scopeInstances) {
             throw this.#containerError(
               `Cannot create ${getKeyName(key)} because it is scoped so can only be accessed within a request or job. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms`,
-              { omitTopOfBuildStack: true }
+              { omitTopOfBuildStack: true },
             );
           }
 
@@ -311,7 +311,7 @@ export class Container {
         const name = getKeyName(key);
         throw this.#containerError(
           `Can't create an instance of ${name} because no value or factory function was supplied`,
-          { omitTopOfBuildStack: true }
+          { omitTopOfBuildStack: true },
         );
       }
 
@@ -374,7 +374,7 @@ export class Container {
 
   #getContextualOverride(
     context: KeyOrClass,
-    dependency: KeyOrClass
+    dependency: KeyOrClass,
   ): FactoryFunction<unknown, Container> | null {
     const ctxBinding = this.#getConcreteBinding(context);
     const depBinding = this.#getConcreteBinding(dependency);
@@ -413,7 +413,7 @@ export class Container {
   #getInjected<T>(
     context: KeyOrClass | undefined,
     dependency: KeyOrClass<T>,
-    optional: boolean
+    optional: boolean,
   ): T | NoValue {
     if (context) {
       // if we're calling a method on an object, we need to check for
@@ -433,14 +433,14 @@ export class Container {
   }
 
   #getConcreteBinding<T>(
-    key: KeyOrClass<T>
+    key: KeyOrClass<T>,
   ): ConcreteBinding | ImplicitBinding {
     const stack = new Set<KeyOrClass>();
     let binding = this.#getActualBinding(key);
     while (binding?.type === "alias") {
       if (stack.has(key)) {
         throw this.#containerError(
-          `Circular alias detected: ${formatKeyCycle(stack, key)}`
+          `Circular alias detected: ${formatKeyCycle(stack, key)}`,
         );
       }
       stack.add(key);
@@ -541,7 +541,7 @@ export class Container {
    */
   public onRebinding<T>(
     key: KeyOrClass<T>,
-    callback: (instance: T, container: Container) => void
+    callback: (instance: T, container: Container) => void,
   ): void {
     this.#reboundCallbacks.add(key, callback as InstanceCallback<unknown>);
   }
@@ -561,7 +561,7 @@ export class Container {
   public extend<T, C extends Container>(
     this: C,
     key: KeyOrClass<T>,
-    callback: ExtenderCallback<Exclude<T, undefined>, C>
+    callback: ExtenderCallback<Exclude<T, undefined>, C>,
   ): void {
     const binding = this.#getConcreteBinding(key);
     binding.extenders ??= [];
@@ -572,7 +572,7 @@ export class Container {
     if (binding.type === "concrete" && binding.instance !== undefined) {
       binding.instance = callback(
         binding.instance as Exclude<T, undefined>,
-        this
+        this,
       );
       this.#rebound(key);
     } else if (this.resolved(key)) {
@@ -626,7 +626,7 @@ export class Container {
    */
   public when<C extends Container>(
     this: C,
-    dependent: KeyOrClass | KeyOrClass[]
+    dependent: KeyOrClass | KeyOrClass[],
   ): ContextualBindingBuilder<C> {
     return new ContextualBindingBuilder<C>(this, (need, factory) => {
       for (const cls of arrayWrap(dependent)) {
@@ -635,7 +635,7 @@ export class Container {
         binding.contextualOverrides ??= new Map();
         binding.contextualOverrides.set(
           need,
-          factory as FactoryFunction<unknown, Container>
+          factory as FactoryFunction<unknown, Container>,
         );
       }
     });
@@ -643,7 +643,7 @@ export class Container {
 
   #containerError(
     message: string,
-    args: { omitTopOfBuildStack?: boolean } = {}
+    args: { omitTopOfBuildStack?: boolean } = {},
   ): ContainerError {
     const stackArray = Array.from(this.#buildStack);
     return new ContainerError(message, {
@@ -725,7 +725,7 @@ export class Container {
    */
   public call<T extends object, K extends keyof T>(
     object: T,
-    methodName: T[K] extends () => unknown ? K : never
+    methodName: T[K] extends () => unknown ? K : never,
   ): T[K] extends () => infer R ? R : never {
     const dependent = (Object.getPrototypeOf(object) as object).constructor as
       | KeyOrClass
@@ -736,7 +736,7 @@ export class Container {
       _setInjectHandler(
         <TArg>(dependency: KeyOrClass<TArg>, optional: boolean) => {
           return this.#getInjected(dependent, dependency, optional) as TArg;
-        }
+        },
       );
       const o = object as Record<string, () => unknown>;
       const m = methodName as string;
@@ -757,7 +757,7 @@ export class Container {
    */
   public tag<T>(
     keys: KeyOrClass<T> | KeyOrClass<T>[],
-    tags: Key<T> | Key<T>[]
+    tags: Key<T> | Key<T>[],
   ): void {
     this.#tags.addAll(tags, keys);
   }
@@ -825,7 +825,7 @@ class ContainerError extends BeynacError {
 }
 
 const getPropertiesThatSurviveRebinding = (
-  binding: Binding | undefined
+  binding: Binding | undefined,
 ): CommonBindingProperties => {
   const common: CommonBindingProperties = {};
   if (binding) {

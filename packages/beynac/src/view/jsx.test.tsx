@@ -5,7 +5,7 @@ import { Content } from "./public-types";
 
 test("renders single element with attributes and text child", async () => {
   expect(await render(<span id="foo">hello</span>)).toBe(
-    '<span id="foo">hello</span>'
+    '<span id="foo">hello</span>',
   );
 });
 
@@ -30,31 +30,31 @@ test("supports undefined props", async () => {
 
 test("throws error for void elements with children", async () => {
   expect(render(<link>content</link>)).rejects.toThrow(
-    "<link> is a void element and must not have children"
+    "<link> is a void element and must not have children",
   );
 
   expect(render(<input>text</input>)).rejects.toThrow(
-    "<input> is a void element and must not have children"
+    "<input> is a void element and must not have children",
   );
 });
 
 test("escapes attribute values", async () => {
   expect(
-    await render(<input value={`I'm a "little" <teapot> short & stout`} />)
+    await render(<input value={`I'm a "little" <teapot> short & stout`} />),
   ).toBe(
-    `<input value="I'm a &quot;little&quot; &lt;teapot&gt; short &amp; stout">`
+    `<input value="I'm a &quot;little&quot; &lt;teapot&gt; short &amp; stout">`,
   );
 });
 
 test("shortens boolean attributes", async () => {
   expect(await render(<input type="checkbox" checked />)).toBe(
-    `<input type="checkbox" checked>`
+    `<input type="checkbox" checked>`,
   );
 });
 
 test("omits boolean attributes with false value", async () => {
   expect(await render(<input type="checkbox" checked={false} />)).toBe(
-    `<input type="checkbox">`
+    `<input type="checkbox">`,
   );
 });
 
@@ -65,7 +65,7 @@ test("default prop value for multiple select", async () => {
     </select>
   );
   expect(await render(template)).toBe(
-    "<select multiple><option>test</option></select>"
+    "<select multiple><option>test</option></select>",
   );
 });
 
@@ -78,8 +78,8 @@ test("renders children", async () => {
     await render(
       <div>
         <input type="checkbox" checked />
-      </div>
-    )
+      </div>,
+    ),
   ).toBe(`<div><input type="checkbox" checked></div>`);
 });
 
@@ -88,8 +88,8 @@ test("renders fragments", async () => {
     await render(
       <>
         <div>hello</div>
-      </>
-    )
+      </>,
+    ),
   ).toBe(`<div>hello</div>`);
 });
 
@@ -101,8 +101,8 @@ test("renders components", async () => {
     await render(
       <div>
         <Component value={42} />
-      </div>
-    )
+      </div>,
+    ),
   ).toBe(`<div><span the-value="42"></span></div>`);
 });
 
@@ -136,10 +136,10 @@ test("provides correct stack when a component throws an error", async () => {
     render(
       <div>
         <Component />
-      </div>
-    )
+      </div>,
+    ),
   ).rejects.toThrowErrorMatchingInlineSnapshot(
-    `"Rendering error: Intentional error; Component stack: <div> -> <Component>"`
+    `"Rendering error: Intentional error; Component stack: <div> -> <Component>"`,
   );
 });
 
@@ -153,10 +153,10 @@ test("Respects displayName in component stacks", async () => {
     render(
       <div>
         <Component />
-      </div>
-    )
+      </div>,
+    ),
   ).rejects.toThrowErrorMatchingInlineSnapshot(
-    `"Rendering error: Intentional error; Component stack: <div> -> <MyDisplayName>"`
+    `"Rendering error: Intentional error; Component stack: <div> -> <MyDisplayName>"`,
   );
 });
 
@@ -181,10 +181,10 @@ test("renders style attribute from object", async () => {
         height: undefined,
         fontSize: 14,
       }}
-    />
+    />,
   );
   expect(result).toBe(
-    '<div style="color:red;background-color:blue;font-size:14px"></div>'
+    '<div style="color:red;background-color:blue;font-size:14px"></div>',
   );
 });
 
@@ -224,7 +224,7 @@ test("omits style attribute on no object styles", async () => {
       style={{
         height: undefined,
       }}
-    />
+    />,
   );
   expect(result).toBe("<div></div>");
 });
@@ -246,30 +246,30 @@ test("invalid attribute values throw during rendering", async () => {
     render(
       <div>
         <span foo={Promise.resolve("hello")}></span>
-      </div>
-    )
+      </div>,
+    ),
   ).rejects.toThrowErrorMatchingInlineSnapshot(
-    `"Rendering error: Attribute "foo" has an invalid value type: Promise; Component stack: <div> -> <span>"`
+    `"Rendering error: Attribute "foo" has an invalid value type: Promise; Component stack: <div> -> <span>"`,
   );
 
   expect(
     render(
       <div>
         <span bar={Symbol("test")}></span>
-      </div>
-    )
+      </div>,
+    ),
   ).rejects.toThrowErrorMatchingInlineSnapshot(
-    `"Rendering error: Attribute "bar" has an invalid value type: Symbol; Component stack: <div> -> <span>"`
+    `"Rendering error: Attribute "bar" has an invalid value type: Symbol; Component stack: <div> -> <span>"`,
   );
 
   expect(
     render(
       <div>
         <span baz={() => "test"}></span>
-      </div>
-    )
+      </div>,
+    ),
   ).rejects.toThrowErrorMatchingInlineSnapshot(
-    `"Rendering error: Attribute "baz" has an invalid value type: Function; Component stack: <div> -> <span>"`
+    `"Rendering error: Attribute "baz" has an invalid value type: Function; Component stack: <div> -> <span>"`,
   );
 });
 
@@ -281,7 +281,7 @@ test("renders class attribute from object", async () => {
         baz: true,
         bar: false,
       }}
-    />
+    />,
   );
   expect(result).toBe('<div class="foo baz"></div>');
 });
@@ -299,7 +299,7 @@ test("renders class attribute from array", async () => {
           hello: false,
         },
       ]}
-    />
+    />,
   );
   expect(result).toBe('<div class="foo baz quux"></div>');
 });
@@ -334,7 +334,7 @@ test("Functions as children", async () => {
 
   const template = <ListOfTenThings />;
   expect(await render(template)).toBe(
-    "<div><div>This is item 0 in the list</div><div>This is item 1 in the list</div><div>This is item 2 in the list</div><div>This is item 3 in the list</div><div>This is item 4 in the list</div><div>This is item 5 in the list</div><div>This is item 6 in the list</div><div>This is item 7 in the list</div><div>This is item 8 in the list</div><div>This is item 9 in the list</div></div>"
+    "<div><div>This is item 0 in the list</div><div>This is item 1 in the list</div><div>This is item 2 in the list</div><div>This is item 3 in the list</div><div>This is item 4 in the list</div><div>This is item 5 in the list</div><div>This is item 6 in the list</div><div>This is item 7 in the list</div><div>This is item 8 in the list</div><div>This is item 9 in the list</div></div>",
   );
 });
 
@@ -364,6 +364,6 @@ test("renders svg", async () => {
     </svg>
   );
   expect(await render(template)).toBe(
-    '<svg viewBox="0 0 100 100"><circle cx="0" cy="0" r="10" fill="rebeccapurple"></circle></svg>'
+    '<svg viewBox="0 0 100 100"><circle cx="0" cy="0" r="10" fill="rebeccapurple"></circle></svg>',
   );
 });

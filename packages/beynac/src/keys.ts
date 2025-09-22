@@ -47,7 +47,7 @@ export function key(options?: { name?: string }): Key<unknown>;
 export function key<T>(options?: { name?: string }): Key<T | undefined>;
 export function key<T>(options: { name?: string; default: T }): Key<T>;
 export function key<T = unknown>(
-  options: { name?: string; default?: T } = {}
+  options: { name?: string; default?: T } = {},
 ): Key<T> | Key<T | undefined> | Key<unknown> {
   const { name = "anonymous", default: defaultValue } = options;
   return new KeyImpl<T>(name, defaultValue);

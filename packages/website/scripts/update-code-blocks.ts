@@ -34,7 +34,7 @@ async function main() {
         // Process the content
         const updatedContent = processMarkdownFileContent(
           originalContent,
-          testFilePath
+          testFilePath,
         );
 
         // Check if content changed
