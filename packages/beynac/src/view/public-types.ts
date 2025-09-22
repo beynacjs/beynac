@@ -10,21 +10,21 @@ export interface Context {
   set<T>(key: Key<T>, value: T): void;
 }
 
-export type Content =
+export type JSXNode =
   | string
   | number
   | bigint
   | boolean
-  | Content[]
+  | JSXNode[]
   | object
   | null
   | undefined
-  | ((context: Context) => Content | Promise<Content>);
+  | ((context: Context) => JSXNode | Promise<JSXNode>);
 
 export namespace JSX {
-  export type Element = Content;
+  export type Element = JSXNode;
 
-  export type Children = Content;
+  export type Children = JSXNode;
 
   export interface ElementChildrenAttribute {
     children: Children;

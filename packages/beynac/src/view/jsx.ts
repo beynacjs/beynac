@@ -1,7 +1,7 @@
 import { BeynacError } from "../error";
 import { arrayWrap, describeType } from "../utils";
 import { MarkupStream } from "./markup-stream";
-import type { Component, Content, JSX } from "./public-types";
+import type { Component, JSX, JSXNode } from "./public-types";
 
 type JSXFactory = (
   tag: string | Component,
@@ -36,7 +36,7 @@ export const jsx: JSXFactory = (
     return new MarkupStream(
       tag,
       props,
-      children == null ? null : (arrayWrap(children) as Content[]),
+      children == null ? null : (arrayWrap(children) as JSXNode[]),
     );
   } else {
     throw new BeynacError(
@@ -51,5 +51,5 @@ export const Fragment = (
   props: Record<string, unknown> | null,
 ): JSX.Element => {
   const children = props?.children ?? null;
-  return new MarkupStream(null, null, arrayWrap(children) as Content[]);
+  return new MarkupStream(null, null, arrayWrap(children) as JSXNode[]);
 };

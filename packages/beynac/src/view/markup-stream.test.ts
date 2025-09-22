@@ -7,7 +7,7 @@ import {
   render,
   renderStream,
 } from "./markup-stream";
-import type { Content, Context } from "./public-types";
+import type { Context, JSXNode } from "./public-types";
 
 describe("basic functionality", () => {
   test("renders empty content", async () => {
@@ -66,7 +66,7 @@ describe("basic functionality", () => {
   test("renders arrays with mixed async content", async () => {
     const stream = new MarkupStream(null, null, [
       ["a", Promise.resolve("b")],
-      [Promise.resolve(["c", "d"] as Content[])],
+      [Promise.resolve(["c", "d"] as JSXNode[])],
     ]);
 
     const result = await render(stream);
@@ -97,7 +97,7 @@ describe("basic functionality", () => {
   test("renders promises resolving to nested arrays", async () => {
     const stream = new MarkupStream(null, null, [
       "before ",
-      Promise.resolve(["a", ["b", "c"]] as Content[]),
+      Promise.resolve(["a", ["b", "c"]] as JSXNode[]),
       " after",
     ]);
 
@@ -283,14 +283,14 @@ describe("async functionality", () => {
 });
 
 describe("async iterable content", () => {
-  async function* simpleAsyncGenerator(): AsyncGenerator<Content> {
+  async function* simpleAsyncGenerator(): AsyncGenerator<JSXNode> {
     yield "first";
     yield "second";
     yield "third";
   }
 
   test("handles async generator", async () => {
-    async function* mixedGenerator(): AsyncGenerator<Content> {
+    async function* mixedGenerator(): AsyncGenerator<JSXNode> {
       yield "text ";
       yield 42;
       yield " ";
@@ -308,7 +308,7 @@ describe("async iterable content", () => {
   test("streams chunks progressively as async generator yields with controlled timing", async () => {
     const gate = asyncGate(["yield1", "yield2", "yield3", "complete"]);
 
-    async function* controlledGenerator(): AsyncGenerator<Content> {
+    async function* controlledGenerator(): AsyncGenerator<JSXNode> {
       await gate("yield1");
       yield "chunk1";
       await gate("yield2");
@@ -356,7 +356,7 @@ describe("async iterable content", () => {
   });
 
   test("handles async generator yielding function that returns promise", async () => {
-    async function* generatorWithFunction(): AsyncGenerator<Content> {
+    async function* generatorWithFunction(): AsyncGenerator<JSXNode> {
       yield "before ";
       yield () => {
         return Promise.resolve("from-function-promise");
@@ -370,12 +370,12 @@ describe("async iterable content", () => {
   });
 
   test("handles async generator yielding nested async generators", async () => {
-    async function* innerGenerator(): AsyncGenerator<Content> {
+    async function* innerGenerator(): AsyncGenerator<JSXNode> {
       yield "inner1 ";
       yield "inner2";
     }
 
-    async function* outerGenerator(): AsyncGenerator<Content> {
+    async function* outerGenerator(): AsyncGenerator<JSXNode> {
       yield "outer-start ";
       yield innerGenerator();
       yield " outer-end";
@@ -387,7 +387,7 @@ describe("async iterable content", () => {
   });
 
   test("handles async generator that throws after yielding some items", async () => {
-    async function* throwingGenerator(): AsyncGenerator<Content> {
+    async function* throwingGenerator(): AsyncGenerator<JSXNode> {
       yield "first ";
       yield "second";
     }
@@ -400,7 +400,7 @@ describe("async iterable content", () => {
   });
 
   test("renders async generator mixed with regular content preserving order", async () => {
-    const content: Content[] = [
+    const content: JSXNode[] = [
       "start",
       simpleAsyncGenerator(),
       "middle",
@@ -547,7 +547,7 @@ describe("edge cases", () => {
         42,
         null,
         new MarkupStream("span", null, ["nested"]),
-      ] as Content[]),
+      ] as JSXNode[]),
     ]);
 
     const result = await render(stream);
@@ -1091,7 +1091,7 @@ describe("error handling", () => {
 
   test("async-iterator-error: handles error in async iterator", async () => {
     const errorMessage = "Async iterator error";
-    async function* failingGenerator(): AsyncGenerator<Content> {
+    async function* failingGenerator(): AsyncGenerator<JSXNode> {
       yield "first";
       throw new Error(errorMessage);
     }

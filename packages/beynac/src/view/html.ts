@@ -1,12 +1,12 @@
 import { MarkupStream } from "./markup-stream";
-import type { Content } from "./public-types";
+import type { JSXNode } from "./public-types";
 import { RawContent } from "./raw";
 
 export function html(
   strings: TemplateStringsArray,
-  ...values: Content[]
+  ...values: JSXNode[]
 ): MarkupStream {
-  const content: Content[] = [];
+  const content: JSXNode[] = [];
 
   for (let i = 0; i < strings.length; i++) {
     if (strings[i]) {

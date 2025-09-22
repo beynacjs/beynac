@@ -2,7 +2,7 @@ import { arrayWrap } from "../utils";
 import { classAttribute, type ClassAttributeValue } from "./class-attribute";
 import { ContextImpl } from "./context";
 import { CSSProperties } from "./intrinsic-element-types";
-import type { Content, RenderOptions } from "./public-types";
+import type { JSXNode, RenderOptions } from "./public-types";
 import { RawContent } from "./raw";
 import { styleObjectToString } from "./style-attribute";
 
@@ -16,12 +16,12 @@ export class MarkupStream {
   readonly tag: string | null;
   readonly displayName: string | null;
   readonly attributes: Record<string, unknown> | null;
-  readonly content: Content[] | null;
+  readonly content: JSXNode[] | null;
 
   constructor(
     tag: string | null,
     attributes: Record<string, unknown> | null,
-    children: Content,
+    children: JSXNode,
     displayName?: string | null,
   ) {
     this.tag = tag;
@@ -91,7 +91,7 @@ export class RenderingError extends Error {
   }
 }
 
-const isAsyncIterable = (value: unknown): value is AsyncIterable<Content> =>
+const isAsyncIterable = (value: unknown): value is AsyncIterable<JSXNode> =>
   value != null && typeof value === "object" && Symbol.asyncIterator in value;
 
 /**
@@ -111,7 +111,7 @@ const createFrame = (
   index: 0,
 });
 
-function expandContentTree(content: Content): Frame | null {
+function expandContentTree(content: JSXNode): Frame | null {
   if (content == null) return null;
 
   const wrapped = arrayWrap(content);
@@ -120,16 +120,16 @@ function expandContentTree(content: Content): Frame | null {
   const rootContext = new ContextImpl();
 
   const expandContent = (
-    content: Content,
+    content: JSXNode,
     dest: FrameItem[],
     destIndex: number,
     context: ContextImpl,
   ): void => {
     if (typeof content === "function") {
       const childContext = context.fork();
-      let result: Content;
+      let result: JSXNode;
       try {
-        result = content(childContext) as Content;
+        result = content(childContext) as JSXNode;
       } catch (error) {
         dest[destIndex] = new ExpansionErrorInfo(
           error,
@@ -138,7 +138,7 @@ function expandContentTree(content: Content): Frame | null {
         return;
       }
 
-      const handleResult = (resolved: Content): void => {
+      const handleResult = (resolved: JSXNode): void => {
         expandContent(
           resolved,
           dest,
@@ -163,7 +163,7 @@ function expandContentTree(content: Content): Frame | null {
       // Place the promise in the array so render phase can wait on it
       dest[destIndex] = content;
       content
-        .then((resolved: Content) => {
+        .then((resolved: JSXNode) => {
           expandContent(resolved, dest, destIndex, context);
         })
         .catch((error) => {
@@ -228,7 +228,7 @@ function expandContentTree(content: Content): Frame | null {
     } else if (Array.isArray(content)) {
       const nestedDest: FrameItem[] = new Array<FrameItem>(content.length);
       for (let i = 0; i < content.length; i++) {
-        expandContent(content[i] as Content, nestedDest, i, context);
+        expandContent(content[i] as JSXNode, nestedDest, i, context);
       }
       // Wrap array in a Frame object
       dest[destIndex] = createFrame(nestedDest);
@@ -328,7 +328,7 @@ const booleanAttributes = new Set([
  * ```
  */
 export async function* renderStream(
-  content: Content,
+  content: JSXNode,
   { mode = "html" }: RenderOptions = {},
 ): AsyncGenerator<string> {
   const rootFrame = expandContentTree(content);
@@ -531,7 +531,7 @@ export async function* renderStream(
  * ```
  */
 export async function render(
-  content: Content,
+  content: JSXNode,
   options?: RenderOptions,
 ): Promise<string> {
   let result = "";

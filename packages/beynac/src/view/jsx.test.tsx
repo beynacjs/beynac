@@ -1,7 +1,7 @@
 /** @jsxImportSource ./ */
 import { expect, test } from "bun:test";
 import { render } from "./markup-stream";
-import { Content } from "./public-types";
+import { JSXNode } from "./public-types";
 
 test("renders single element with attributes and text child", async () => {
   expect(await render(<span id="foo">hello</span>)).toBe(
@@ -315,7 +315,7 @@ test("passing an invalid value to class attribute causes type error", async () =
 test("Functions as children", async () => {
   function Repeat(props: {
     numTimes: number;
-    children: (index: number) => Content;
+    children: (index: number) => JSXNode;
   }) {
     const items = [];
     for (let i = 0; i < props.numTimes; i++) {
