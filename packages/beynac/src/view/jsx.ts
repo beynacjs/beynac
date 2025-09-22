@@ -6,12 +6,20 @@ import type { Component, Content, JSX } from "./public-types";
 type JSXFactory = (
   tag: string | Component,
   props: Record<string, unknown> | null,
+  key?: unknown,
 ) => JSX.Element;
+
+const notProvided = Symbol();
 
 export const jsx: JSXFactory = (
   tag: string | Component,
   props: Record<string, unknown> | null,
+  key: unknown = notProvided,
 ): JSX.Element => {
+  if (key !== notProvided) {
+    props ??= {};
+    props.key = key;
+  }
   if (typeof tag === "function") {
     let displayName: string | undefined;
     if ("displayName" in tag && typeof tag.displayName === "string") {

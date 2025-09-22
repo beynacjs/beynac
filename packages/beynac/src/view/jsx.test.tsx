@@ -324,17 +324,13 @@ test("Functions as children", async () => {
     return <div>{items}</div>;
   }
 
-  function ListOfTenThings() {
-    return (
-      <Repeat numTimes={10}>
-        {(index) => <div key={index}>This is item {index} in the list</div>}
-      </Repeat>
-    );
+  function ListOfFiveThings() {
+    return <Repeat numTimes={5}>{(index) => <i>{index}</i>}</Repeat>;
   }
 
-  const template = <ListOfTenThings />;
-  expect(await render(template)).toBe(
-    "<div><div>This is item 0 in the list</div><div>This is item 1 in the list</div><div>This is item 2 in the list</div><div>This is item 3 in the list</div><div>This is item 4 in the list</div><div>This is item 5 in the list</div><div>This is item 6 in the list</div><div>This is item 7 in the list</div><div>This is item 8 in the list</div><div>This is item 9 in the list</div></div>",
+  const template = <ListOfFiveThings />;
+  expect(await render(template)).toMatchInlineSnapshot(
+    `"<div><i>0</i><i>1</i><i>2</i><i>3</i><i>4</i></div>"`,
   );
 });
 
@@ -366,4 +362,9 @@ test("renders svg", async () => {
   expect(await render(template)).toBe(
     '<svg viewBox="0 0 100 100"><circle cx="0" cy="0" r="10" fill="rebeccapurple"></circle></svg>',
   );
+});
+
+test("treats key as a regular ol' prop", async () => {
+  const template = <div key="foo" />;
+  expect(await render(template)).toBe('<div key="foo"></div>');
 });
