@@ -363,15 +363,16 @@ export async function* renderStream(
           }
         } else {
           // XML mode or non-boolean attributes in HTML
-          buffer += " ";
-          buffer += key;
-          buffer += '="';
           let stringValue;
           if (key === "style" && typeof value === "object" && value) {
             stringValue = styleObjectToString(value as CSSProperties);
+            if (!stringValue) continue;
           } else {
             stringValue = String(value);
           }
+          buffer += " ";
+          buffer += key;
+          buffer += '="';
           buffer += escapeHtml(stringValue);
           buffer += '"';
         }

@@ -1,6 +1,6 @@
 // TODO
 
-import type * as CSS from "csstype";
+import type * as CSS from "../vendor/csstype";
 
 type BaseMime =
   | "audio/aac"

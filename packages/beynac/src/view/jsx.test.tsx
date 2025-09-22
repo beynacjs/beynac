@@ -117,3 +117,82 @@ test("does not evaluate components until rendered", async () => {
   await render(jsx);
   expect(evaluated).toBeTrue();
 });
+
+test("renders style attribute from object", async () => {
+  const result = await render(
+    <div
+      style={{
+        color: "red",
+        backgroundColor: "blue",
+        height: undefined,
+        fontSize: 14,
+      }}
+    />
+  );
+  expect(result).toBe(
+    '<div style="color:red;background-color:blue;font-size:14px"></div>'
+  );
+});
+
+test("passing an array or other invalid value to style causes type error", async () => {
+  // @ts-expect-error testing invalid usage
+  await render(<div style={[]} />);
+  // @ts-expect-error testing invalid usage
+  await render(<div style={4} />);
+  // @ts-expect-error testing invalid usage
+  await render(<div style={Symbol()} />);
+});
+
+/**
+ * 
+ * 
+ 
+   test("catches incorrect value types with @ts-expect-error", () => {
+     styleObjectToString({
+       // @ts-expect-error: testing expected error
+       textAlign: "invalid",
+     });
+ 
+     styleObjectToString({
+       // @ts-expect-error: testing expected error
+       color: 123, // color should be a string, not a number
+     });
+   });
+ */
+
+test("passing invalid style values in object causes type error", async () => {
+  void (<div style={{ textAlign: "center" }} />);
+  void (
+    <div
+      style={{
+        // @ts-expect-error testing invalid usage
+        textAlign: "invalid",
+      }}
+    />
+  );
+  void (<div style={{ flex: 4 }} />);
+  void (
+    <div
+      style={{
+        // @ts-expect-error testing invalid usage
+        color: 4,
+      }}
+    />
+  );
+});
+
+test("omits style attribute on no object styles", async () => {
+  const result = await render(
+    <div
+      style={{
+        height: undefined,
+      }}
+    />
+  );
+  expect(result).toBe("<div></div>");
+});
+
+test("does not omit empty string style attribute", async () => {
+  const result = await render(<span style="" />);
+  expect(result).toBe('<span style=""></span>');
+});
