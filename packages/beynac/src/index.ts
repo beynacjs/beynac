@@ -1,13 +1,13 @@
 export type { KeyOrClass } from "./container/container-key";
 
 export {
-  type ClassReference,
   Container,
-  type FactoryFunction,
-  type InstanceCallback,
+  Lifecycle,
   inject,
   injectOptional,
-  Lifecycle,
+  type ClassReference,
+  type FactoryFunction,
+  type InstanceCallback,
 } from "./container/index";
 
 export { BeynacError } from "./error";

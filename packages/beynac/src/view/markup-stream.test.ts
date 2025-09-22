@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { asyncGate } from "../test-utils/async-gate";
 import { key } from "../keys";
+import { asyncGate } from "../test-utils/async-gate";
 import {
   MarkupStream,
   RenderingError,

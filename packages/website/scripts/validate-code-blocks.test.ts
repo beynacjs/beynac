@@ -3,8 +3,8 @@ import { existsSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 import {
   findMarkdownFiles,
-  parseMarkdownFile,
   getExpectedCodeForBlockFromContent,
+  parseMarkdownFile,
 } from "./code-block-utils.ts";
 
 const docsPath = join(dirname(import.meta.path), "..", "docs");

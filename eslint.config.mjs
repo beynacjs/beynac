@@ -1,7 +1,7 @@
 import eslint from "@eslint/js";
-import tseslint from "typescript-eslint";
 import prettier from "eslint-config-prettier";
 import eslintComments from "eslint-plugin-eslint-comments";
+import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {

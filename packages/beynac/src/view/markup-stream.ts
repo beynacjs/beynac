@@ -1,10 +1,10 @@
-import { ContextImpl } from "./context";
 import { arrayWrap } from "../utils";
+import { classAttribute, type ClassAttributeValue } from "./class-attribute";
+import { ContextImpl } from "./context";
+import { CSSProperties } from "./intrinsic-element-types";
 import type { Content, RenderOptions } from "./public-types";
 import { RawContent } from "./raw";
 import { styleObjectToString } from "./style-attribute";
-import { classAttribute, type ClassAttributeValue } from "./class-attribute";
-import { CSSProperties } from "./intrinsic-element-types";
 
 export type { RenderOptions } from "./public-types";
 

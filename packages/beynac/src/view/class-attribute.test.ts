@@ -4,7 +4,7 @@
  * Licensed under MIT License
  */
 
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { classAttribute } from "./class-attribute";
 
 describe("classAttribute", () => {

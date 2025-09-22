@@ -3,12 +3,12 @@ import {
   beforeEach,
   describe,
   expect,
+  expectTypeOf,
   mock,
   test,
-  expectTypeOf,
 } from "bun:test";
-import { asyncGate } from "../test-utils";
 import { key } from "../keys";
+import { asyncGate } from "../test-utils";
 import { Container } from "./container";
 import type { KeyOrClass } from "./container-key";
 import { inject, injectOptional } from "./inject";

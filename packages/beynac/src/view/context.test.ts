@@ -1,8 +1,8 @@
-import { describe, expect, test, expectTypeOf } from "bun:test";
+import { describe, expect, expectTypeOf, test } from "bun:test";
 import { key } from "../keys";
 import { ContextImpl } from "./context";
-import { Context } from "./public-types";
 import { MarkupStream, render } from "./markup-stream";
+import { Context } from "./public-types";
 
 describe("Context", () => {
   describe("basic operations", () => {
