@@ -2,6 +2,7 @@ import { arrayWrap } from "../utils";
 import { classAttribute, type ClassAttributeValue } from "./class-attribute";
 import { ContextImpl } from "./context";
 import { CSSProperties } from "./intrinsic-element-types";
+import { onceMapKey } from "./once";
 import type { JSXNode, RenderOptions } from "./public-types";
 import { RawContent } from "./raw";
 import { styleObjectToString } from "./style-attribute";
@@ -118,6 +119,7 @@ function expandContentTree(content: JSXNode): Frame | null {
   const sourceArray = [...wrapped];
   const destArray: FrameItem[] = new Array<FrameItem>(sourceArray.length);
   const rootContext = new ContextImpl();
+  rootContext.set(onceMapKey, new Map());
 
   const expandContent = (
     content: JSXNode,

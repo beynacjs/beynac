@@ -43,10 +43,10 @@ export const isKey = (value: unknown): value is Key => value instanceof KeyImpl;
  *
  * @param options - Object with optional name and default value
  */
-export function key(options?: { name?: string }): Key<unknown>;
-export function key<T>(options?: { name?: string }): Key<T | undefined>;
-export function key<T>(options: { name?: string; default: T }): Key<T>;
-export function key<T = unknown>(
+export function createKey(options?: { name?: string }): Key<unknown>;
+export function createKey<T>(options?: { name?: string }): Key<T | undefined>;
+export function createKey<T>(options: { name?: string; default: T }): Key<T>;
+export function createKey<T = unknown>(
   options: { name?: string; default?: T } = {},
 ): Key<T> | Key<T | undefined> | Key<unknown> {
   const { name = "anonymous", default: defaultValue } = options;

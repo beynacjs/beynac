@@ -45,6 +45,7 @@ export type Props = Record<string, any>;
 export type Component<P = Props> = {
   (props: P, context: Context): JSX.Element | null;
   displayName?: string | undefined;
+  defaultKeyFromSourcePosition?: boolean;
 };
 
 export type PropsWithChildren<P = unknown> = P & {

@@ -1,58 +1,58 @@
 /** @jsxRuntime automatic **/
 /** @jsxImportSource . **/
 import { describe, expectTypeOf, it } from "bun:test";
-import { type Key, key } from "./keys";
+import { type Key, createKey } from "./keys";
 
 describe("keys", () => {
   it("key() with no arguments infers Key<unknown>", () => {
-    const k = key();
+    const k = createKey();
     expectTypeOf(k).toEqualTypeOf<Key<unknown>>();
   });
 
   it("key() with just name infers Key<unknown>", () => {
-    const k = key({ name: "myKey" });
+    const k = createKey({ name: "myKey" });
     expectTypeOf(k).toEqualTypeOf<Key<unknown>>();
   });
 
   it("key() with default value infers type from default", () => {
-    const k1 = key({ default: 4 });
+    const k1 = createKey({ default: 4 });
     expectTypeOf(k1).toEqualTypeOf<Key<number>>();
 
-    const k2 = key({ name: "myKey", default: "hello" });
+    const k2 = createKey({ name: "myKey", default: "hello" });
     expectTypeOf(k2).toEqualTypeOf<Key<string>>();
 
-    const k3 = key({ default: true });
+    const k3 = createKey({ default: true });
     expectTypeOf(k3).toEqualTypeOf<Key<boolean>>();
 
-    const k4 = key({ default: null });
+    const k4 = createKey({ default: null });
     expectTypeOf(k4).toEqualTypeOf<Key<null>>();
   });
 
   it("key<T>() with no default infers Key<T | undefined>", () => {
-    const k1 = key<string>();
+    const k1 = createKey<string>();
     expectTypeOf(k1).toEqualTypeOf<Key<string | undefined>>();
 
-    const k2 = key<string>({ name: "myKey" });
+    const k2 = createKey<string>({ name: "myKey" });
     expectTypeOf(k2).toEqualTypeOf<Key<string | undefined>>();
 
-    const k3 = key<number | null>();
+    const k3 = createKey<number | null>();
     expectTypeOf(k3).toEqualTypeOf<Key<number | null | undefined>>();
   });
 
   it("key<T>() with matching default infers Key<T>", () => {
-    const k1 = key<string>({ default: "hello" });
+    const k1 = createKey<string>({ default: "hello" });
     expectTypeOf(k1).toEqualTypeOf<Key<string>>();
 
-    const k2 = key<number>({ name: "port", default: 3000 });
+    const k2 = createKey<number>({ name: "port", default: 3000 });
     expectTypeOf(k2).toEqualTypeOf<Key<number>>();
   });
 
   it("key<T>() with mismatched default causes type error", () => {
     // @ts-expect-error - default value must match type parameter
-    const _k1 = key<string>({ default: 42 });
+    const _k1 = createKey<string>({ default: 42 });
 
     // @ts-expect-error - default value must match type parameter
-    const _k2 = key<boolean>({ default: "not a boolean" });
+    const _k2 = createKey<boolean>({ default: "not a boolean" });
   });
 
   it("complex types work correctly", () => {
@@ -61,32 +61,32 @@ describe("keys", () => {
       age: number;
     }
 
-    const k1 = key<User>();
+    const k1 = createKey<User>();
     expectTypeOf(k1).toEqualTypeOf<Key<User | undefined>>();
 
-    const k2 = key<User>({ default: { name: "Alice", age: 30 } });
+    const k2 = createKey<User>({ default: { name: "Alice", age: 30 } });
     expectTypeOf(k2).toEqualTypeOf<Key<User>>();
 
-    const k3 = key({ default: { name: "Bob", age: 25 } });
+    const k3 = createKey({ default: { name: "Bob", age: 25 } });
     expectTypeOf(k3).toEqualTypeOf<Key<{ name: string; age: number }>>();
   });
 
   it("union types work correctly", () => {
-    const k1 = key<string | number>();
+    const k1 = createKey<string | number>();
     expectTypeOf(k1).toEqualTypeOf<Key<string | number | undefined>>();
 
-    const k2 = key<string | number>({ default: "hello" });
+    const k2 = createKey<string | number>({ default: "hello" });
     expectTypeOf(k2).toEqualTypeOf<Key<string | number>>();
 
-    const k3 = key<string | number>({ default: 42 });
+    const k3 = createKey<string | number>({ default: 42 });
     expectTypeOf(k3).toEqualTypeOf<Key<string | number>>();
   });
 
   it("nullable types work correctly", () => {
-    const k1 = key<string | null>({ default: null });
+    const k1 = createKey<string | null>({ default: null });
     expectTypeOf(k1).toEqualTypeOf<Key<string | null>>();
 
-    const k2 = key<string | null>();
+    const k2 = createKey<string | null>();
     expectTypeOf(k2).toEqualTypeOf<Key<string | null | undefined>>();
   });
 });

@@ -1,6 +1,6 @@
 /** @jsxImportSource ./ */
 import { expect, test } from "bun:test";
-import { key } from "../keys";
+import { createKey } from "../keys";
 import { render } from "./markup-stream";
 import { Component, JSXNode } from "./public-types";
 
@@ -113,7 +113,7 @@ test("renders components", async () => {
 });
 
 test("passes context to components", async () => {
-  const k = key<number>();
+  const k = createKey<number>();
   const C: Component = (_, context) => <span>{context.get(k)}</span>;
 
   expect(
