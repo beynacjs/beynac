@@ -43,7 +43,7 @@ export namespace JSX {
 export type Props = Record<string, any>;
 
 export type Component<P = Props> = {
-  (props: P): JSX.Element | null;
+  (props: P, context: Context): JSX.Element | null;
   displayName?: string | undefined;
 };
 

@@ -1,7 +1,8 @@
 /** @jsxImportSource ./ */
 import { expect, test } from "bun:test";
+import { key } from "../keys";
 import { render } from "./markup-stream";
-import { JSXNode } from "./public-types";
+import { Component, JSXNode } from "./public-types";
 
 test("renders single element with attributes and text child", async () => {
   expect(await render(<span id="foo">hello</span>)).toBe(
@@ -109,6 +110,18 @@ test("renders components", async () => {
       </div>,
     ),
   ).toBe(`<div><span the-value="42"></span></div>`);
+});
+
+test("passes context to components", async () => {
+  const k = key<number>();
+  const C: Component = (_, context) => <span>{context.get(k)}</span>;
+
+  expect(
+    await render((ctx) => {
+      ctx.set(k, 42);
+      return <C value={ctx.get(k)} />;
+    }),
+  ).toBe(`<span>42</span>`);
 });
 
 test("renders async component", async () => {
