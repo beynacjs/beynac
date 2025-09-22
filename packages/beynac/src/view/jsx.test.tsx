@@ -58,6 +58,11 @@ test("omits boolean attributes with false value", async () => {
   );
 });
 
+test("renders bigints", async () => {
+  const template = <span hello={42n}>{511n}</span>;
+  expect(await render(template)).toBe('<span hello="42">511</span>');
+});
+
 test("default prop value for multiple select", async () => {
   const template = (
     <select multiple>
