@@ -135,19 +135,29 @@ describe("MarkupStream", () => {
       expect(await render(stream)).toBe("<input disabled checked>");
     });
 
-    test("skips null, undefined, and function attributes", async () => {
+    test("skips null and undefined attributes", async () => {
       const stream = new MarkupStream(
         "div",
         {
           id: "test",
           nullAttr: null,
           undefinedAttr: undefined,
+        },
+        []
+      );
+      expect(await render(stream)).toBe('<div id="test"></div>');
+    });
+
+    test("throws error for function attributes", async () => {
+      const stream = new MarkupStream(
+        "div",
+        {
           funcAttr: function foo() {},
         },
         []
       );
-      expect(await render(stream)).toBe(
-        '<div id="test" funcAttr="function foo() {}"></div>'
+      expect(render(stream)).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"Rendering error: Attribute "funcAttr" has an invalid value type: Function; Component stack: <div>"`
       );
     });
 

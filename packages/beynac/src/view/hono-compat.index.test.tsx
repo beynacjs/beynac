@@ -360,6 +360,31 @@ describe("Hono compatibility tests - render to string", () => {
     });
   });
 
+  describe("class attribute", () => {
+    it("should not render class attribute for empty object", async () => {
+      const template = <span class={{}}>Hello</span>;
+      expect(await render(template)).toBe("<span>Hello</span>");
+    });
+    it("should give type error on invalid attribute value", async () => {
+      // @ts-expect-error -- testing expected error
+      void (<span class={Promise.resolve("hello")}></span>);
+      // @ts-expect-error -- testing expected error
+      void (<span class={Symbol()}></span>);
+    });
+    it("should handle object with truthy values", async () => {
+      const template = <span class={{ foo: true, bar: 1 }}>Hello</span>;
+      expect(await render(template)).toBe('<span class="foo bar">Hello</span>');
+    });
+    it("should handle array values", async () => {
+      const template = <span class={["foo", "bar"]}>Hello</span>;
+      expect(await render(template)).toBe('<span class="foo bar">Hello</span>');
+    });
+    it("should not convert string values", async () => {
+      const template = <span class="foo bar">Hello</span>;
+      expect(await render(template)).toBe('<span class="foo bar">Hello</span>');
+    });
+  });
+
   describe("head", () => {
     it("Simple head elements should be rendered as is", async () => {
       const template = (

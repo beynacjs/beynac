@@ -3,6 +3,7 @@ import { arrayWrap } from "../utils";
 import type { Content, RenderOptions } from "./public-types";
 import { RawContent } from "./raw";
 import { styleObjectToString } from "./style-attribute";
+import { classAttribute, type ClassAttributeValue } from "./class-attribute";
 import { CSSProperties } from "./intrinsic-element-types";
 
 export type { RenderOptions } from "./public-types";
@@ -50,7 +51,8 @@ type ErrorKind =
   | "content-function-error"
   | "content-function-promise-rejection"
   | "content-promise-error"
-  | "async-iterator-error";
+  | "async-iterator-error"
+  | "attribute-type-error";
 
 class ExpansionErrorInfo {
   constructor(
@@ -67,7 +69,15 @@ export class RenderingError extends Error {
   public readonly errorKind: ErrorKind;
   public readonly componentStack: string[];
 
-  constructor(node: ExpansionErrorInfo, componentStack: string[]) {
+  constructor(node: ExpansionErrorInfo, nodeStack: Frame[]) {
+    // Build component stack from nodeStack
+    const componentStack: string[] = [];
+    for (const stackFrame of nodeStack) {
+      if (stackFrame.displayName) {
+        componentStack.push(stackFrame.displayName);
+      }
+    }
+
     const errorDetail =
       node.error instanceof Error ? node.error.message : String(node.error);
     const stackTrace = componentStack.map((name) => `<${name}>`).join(" -> ");
@@ -367,7 +377,38 @@ export async function* renderStream(
           if (key === "style" && typeof value === "object" && value) {
             stringValue = styleObjectToString(value as CSSProperties);
             if (!stringValue) continue;
+          } else if (
+            key === "class" &&
+            (typeof value === "object" || Array.isArray(value))
+          ) {
+            stringValue = classAttribute(value as ClassAttributeValue);
+            if (!stringValue) continue;
           } else {
+            // Runtime validation for attribute values that can't be serialized to HTML
+            // TypeScript can't prevent these at compile time due to index signature limitations
+            if (
+              value instanceof Promise ||
+              typeof value === "symbol" ||
+              typeof value === "function"
+            ) {
+              const valueType =
+                value instanceof Promise
+                  ? "Promise"
+                  : typeof value === "symbol"
+                    ? "Symbol"
+                    : "Function";
+
+              throw new RenderingError(
+                new ExpansionErrorInfo(
+                  new Error(
+                    `Attribute "${key}" has an invalid value type: ${valueType}`
+                  ),
+                  "attribute-type-error"
+                ),
+                nodeStack
+              );
+            }
+
             stringValue = String(value);
           }
           buffer += " ";
@@ -413,15 +454,7 @@ export async function* renderStream(
     const node = frame.content[frame.index];
 
     if (node instanceof ExpansionErrorInfo) {
-      // Build component stack from nodeStack
-      const componentStack: string[] = [];
-      for (const stackFrame of nodeStack) {
-        if (stackFrame.displayName) {
-          componentStack.push(stackFrame.displayName);
-        }
-      }
-
-      throw new RenderingError(node, componentStack);
+      throw new RenderingError(node, nodeStack);
     } else if (node instanceof Promise) {
       // Yield current buffer before awaiting
       if (buffer) {
@@ -447,6 +480,8 @@ export async function* renderStream(
     } else if (node && typeof node === "object" && !Array.isArray(node)) {
       // This is a pre-built Frame from expansion phase
       const frameNode = node;
+      // Push frame onto stack before rendering (needed for error context)
+      nodeStack.push(frameNode);
       // Render opening tag if present
       if (frameNode.tag) {
         const selfClosing = mode === "xml" && !frameNode.content?.length;
@@ -462,8 +497,6 @@ export async function* renderStream(
           );
         }
       }
-      // Push pre-built frame directly onto stack
-      nodeStack.push(frameNode);
     } else if (typeof node === "string") {
       // String content: already escaped or raw from expansion phase
       buffer += node;

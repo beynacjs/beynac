@@ -1,6 +1,7 @@
 // TODO
 
 import type * as CSS from "../vendor/csstype";
+import { ClassAttributeValue } from "./class-attribute";
 
 type BaseMime =
   | "audio/aac"
@@ -72,8 +73,9 @@ export type CSSProperties = CSS.Properties<(string & {}) | number> & {
   [key: `--${string}`]: string | number;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- vendored code
-type AnyAttributes = { [attributeName: string]: any };
+type AnyAttributes = {
+  [attributeName: string]: unknown;
+};
 
 interface JSXAttributes {
   dangerouslySetInnerHTML?: {
@@ -92,7 +94,7 @@ export interface HTMLAttributes extends JSXAttributes, AnyAttributes {
     | "characters"
     | undefined;
   autofocus?: boolean | undefined;
-  class?: string | Promise<string> | undefined;
+  class?: string | ClassAttributeValue | undefined;
   contenteditable?: boolean | "inherit" | undefined;
   contextmenu?: string | undefined;
   dir?: string | undefined;

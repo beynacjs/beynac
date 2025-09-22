@@ -136,29 +136,12 @@ test("renders style attribute from object", async () => {
 
 test("passing an array or other invalid value to style causes type error", async () => {
   // @ts-expect-error testing invalid usage
-  await render(<div style={[]} />);
+  void (<div style={[]} />);
   // @ts-expect-error testing invalid usage
-  await render(<div style={4} />);
+  void (<div style={4} />);
   // @ts-expect-error testing invalid usage
-  await render(<div style={Symbol()} />);
+  void (<div style={Symbol()} />);
 });
-
-/**
- * 
- * 
- 
-   test("catches incorrect value types with @ts-expect-error", () => {
-     styleObjectToString({
-       // @ts-expect-error: testing expected error
-       textAlign: "invalid",
-     });
- 
-     styleObjectToString({
-       // @ts-expect-error: testing expected error
-       color: 123, // color should be a string, not a number
-     });
-   });
- */
 
 test("passing invalid style values in object causes type error", async () => {
   void (<div style={{ textAlign: "center" }} />);
@@ -195,4 +178,81 @@ test("omits style attribute on no object styles", async () => {
 test("does not omit empty string style attribute", async () => {
   const result = await render(<span style="" />);
   expect(result).toBe('<span style=""></span>');
+});
+
+test("should give type error on invalid attribute value for known attribute", async () => {
+  // @ts-expect-error -- testing expected error
+  void (<span id={Promise.resolve("hello")}></span>);
+  // @ts-expect-error -- testing expected error
+  void (<span id={Symbol()}></span>);
+});
+
+test("invalid attribute values throw during rendering", async () => {
+  expect(
+    render(
+      <div>
+        <span foo={Promise.resolve("hello")}></span>
+      </div>
+    )
+  ).rejects.toThrowErrorMatchingInlineSnapshot(
+    `"Rendering error: Attribute "foo" has an invalid value type: Promise; Component stack: <div> -> <span>"`
+  );
+
+  expect(
+    render(
+      <div>
+        <span bar={Symbol("test")}></span>
+      </div>
+    )
+  ).rejects.toThrowErrorMatchingInlineSnapshot(
+    `"Rendering error: Attribute "bar" has an invalid value type: Symbol; Component stack: <div> -> <span>"`
+  );
+
+  expect(
+    render(
+      <div>
+        <span baz={() => "test"}></span>
+      </div>
+    )
+  ).rejects.toThrowErrorMatchingInlineSnapshot(
+    `"Rendering error: Attribute "baz" has an invalid value type: Function; Component stack: <div> -> <span>"`
+  );
+});
+
+test("renders class attribute from object", async () => {
+  const result = await render(
+    <div
+      class={{
+        foo: true,
+        baz: true,
+        bar: false,
+      }}
+    />
+  );
+  expect(result).toBe('<div class="foo baz"></div>');
+});
+
+test("renders class attribute from array", async () => {
+  const result = await render(
+    <div
+      class={[
+        "foo",
+        false,
+        "baz",
+        0,
+        {
+          quux: true,
+          hello: false,
+        },
+      ]}
+    />
+  );
+  expect(result).toBe('<div class="foo baz quux"></div>');
+});
+
+test("passing an invalid value to class attribute causes type error", async () => {
+  // @ts-expect-error testing invalid usage
+  void (<div class={Symbol()} />);
+  // @ts-expect-error testing invalid usage
+  void (<div class={() => null} />);
 });

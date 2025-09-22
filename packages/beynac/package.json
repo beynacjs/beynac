@@ -14,7 +14,7 @@
   "scripts": {
     "check": "bun run check:tsc",
     "check:tsc": "tsc --noEmit",
-    "prebuild": "cp node_modules/csstype/index.d.ts src/vendor/csstype.d.ts",
+    "prebuild": "mkdir -p src/vendor && cp node_modules/csstype/index.d.ts src/vendor/csstype.d.ts",
     "build": "tsc -p tsconfig.build.json",
     "postbuild": "mkdir -p dist/vendor && cp src/vendor/csstype.d.ts dist/vendor/",
     "clean": "rm -rf dist"
