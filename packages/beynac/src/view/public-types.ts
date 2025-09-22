@@ -1,7 +1,5 @@
 import type { Key } from "../keys";
 import type { IntrinsicElements as IntrinsicElementsDefined } from "./intrinsic-element-types";
-import type { MarkupStream } from "./markup-stream";
-import type { RawContent } from "./raw";
 
 export type RenderOptions = {
   mode?: "html" | "xml";
@@ -15,15 +13,13 @@ export interface Context {
 export type Content =
   | string
   | number
-  | RawContent
-  | MarkupStream
+  | bigint
+  | boolean
+  | Content[]
+  | object
   | null
   | undefined
-  | boolean
-  | Promise<Content>
-  | Content[]
-  | ((context: Context) => Content)
-  | AsyncIterable<Content>;
+  | ((context: Context) => Content | Promise<Content>);
 
 export namespace JSX {
   export type Element = Content;

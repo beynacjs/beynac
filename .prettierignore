@@ -13,7 +13,6 @@ packages/website/public/api/
 laravel/
 
 # Temporary files
-packages/beynac/src/tmp-hono-view/
 port-progress.ts
 
 # Lock files

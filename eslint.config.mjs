@@ -8,7 +8,6 @@ export default tseslint.config(
     ignores: [
       "**/node_modules/**",
       "**/dist/**",
-      "packages/beynac/src/tmp-hono-view/**",
       "laravel/**",
       "packages/website/**",
       "packages/create-beynac/**",

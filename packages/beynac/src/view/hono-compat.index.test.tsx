@@ -4,8 +4,11 @@
 
 import { describe, expect, it, test } from "bun:test";
 import type { Component, Content, PropsWithChildren } from "./public-types";
-import { Fragment } from "./jsx";
 import { render } from "./markup-stream";
+
+export const testAsyncContent = async (): Promise<Content> => {
+  return "test";
+};
 
 describe("Hono compatibility tests - render to string", () => {
   it("Nested array", async () => {
@@ -35,12 +38,12 @@ describe("Hono compatibility tests - render to string", () => {
   });
 
   it("Should render async component", async () => {
-    const ChildAsyncComponent = async () => {
+    const ChildAsyncComponent = async (): Promise<Content> => {
       await new Promise((resolve) => setTimeout(resolve, 10));
       return <span>child async component</span>;
     };
 
-    const AsyncComponent = async () => {
+    const AsyncComponent = async (): Promise<Content> => {
       await new Promise((resolve) => setTimeout(resolve, 10));
       return (
         <h1>
@@ -386,10 +389,10 @@ describe("Fragment", () => {
 
   it("Should render children - with `Fragment`", async () => {
     const template = (
-      <Fragment>
+      <>
         <p>1</p>
         <p>2</p>
-      </Fragment>
+      </>
     );
     expect(await render(template)).toBe("<p>1</p><p>2</p>");
   });
@@ -405,9 +408,9 @@ describe("Fragment", () => {
 
   it("Should render a child - with `Fragment`", async () => {
     const template = (
-      <Fragment>
+      <>
         <p>1</p>
-      </Fragment>
+      </>
     );
     expect(await render(template)).toBe("<p>1</p>");
   });

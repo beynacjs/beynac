@@ -4,5 +4,6 @@
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
   },
-  "cSpell.words": ["Beynac", "jsxs", "laravel", "unitless", "vendored"]
+  "cSpell.words": ["Beynac", "jsxs", "laravel", "unitless", "vendored"],
+  "typescript.tsdk": "node_modules/typescript/lib"
 }
