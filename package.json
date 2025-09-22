@@ -6,6 +6,7 @@
   ],
   "scripts": {
     "check": "bun run check:test && bun run check:lint && bun run check:projects",
+    "check:test": "bun test packages/*/src",
     "check:projects": "bun run --filter='*' check",
     "check:tsc": "bun run --filter='*' check:tsc",
     "check:lint": "eslint .",

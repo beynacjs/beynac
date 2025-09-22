@@ -71,6 +71,7 @@ export type CrossOrigin = "anonymous" | "use-credentials" | "" | undefined;
 export type CSSProperties = CSS.Properties<(string & {}) | number> & {
   [key: `--${string}`]: string | number;
 };
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- vendored code
 type AnyAttributes = { [attributeName: string]: any };
 

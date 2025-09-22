@@ -2,7 +2,7 @@ import { describe, expect, test, expectTypeOf } from "bun:test";
 import { key } from "../keys";
 import { ContextImpl } from "./context";
 import { Context } from "./public-types";
-import { MarkupStream } from "./markup-stream";
+import { MarkupStream, render } from "./markup-stream";
 
 describe("Context", () => {
   describe("basic operations", () => {
@@ -237,7 +237,7 @@ describe("Context", () => {
         ];
       });
 
-      const result = await stream.render();
+      const result = await render(stream);
       expect(result).toBe("2a3a"); // Proves both nested functions executed
     });
 
@@ -296,7 +296,7 @@ describe("Context", () => {
         ];
       });
 
-      const result = await stream.render();
+      const result = await render(stream);
       expect(result).toBe("2a3a4a"); // Proves all three nested functions executed
     });
   });

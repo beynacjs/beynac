@@ -19,12 +19,7 @@ export const jsx: JSXFactory = (
     } else if (tag.name) {
       displayName = tag.name;
     }
-    return new MarkupStream(
-      null,
-      null,
-      () => tag(props ?? {}) as Content,
-      displayName
-    );
+    return new MarkupStream(null, null, () => tag(props ?? {}), displayName);
   } else if (typeof tag === "string") {
     let children = null;
     if (props != null) {

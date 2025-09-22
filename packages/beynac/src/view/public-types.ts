@@ -26,7 +26,7 @@ export type Content =
   | AsyncIterable<Content>;
 
 export namespace JSX {
-  export type Element = MarkupStream;
+  export type Element = Content;
 
   export type Children = Content;
 

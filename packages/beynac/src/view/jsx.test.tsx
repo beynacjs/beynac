@@ -1,61 +1,62 @@
 /** @jsxImportSource ./ */
 import { expect, test } from "bun:test";
+import { render } from "./markup-stream";
 
 test("renders single element with attributes and text child", async () => {
-  expect(await (<span id="foo">hello</span>).render()).toBe(
+  expect(await render(<span id="foo">hello</span>)).toBe(
     '<span id="foo">hello</span>'
   );
 });
 
 test("renders childless non-empty elements", async () => {
-  expect(await (<span id="foo" />).render()).toBe('<span id="foo"></span>');
+  expect(await render(<span id="foo" />)).toBe('<span id="foo"></span>');
 });
 
 test("renders empty tags", async () => {
-  expect(await (<input value="yo" />).render()).toBe('<input value="yo">');
+  expect(await render(<input value="yo" />)).toBe('<input value="yo">');
 });
 
 test("throws error for void elements with children", async () => {
-  expect((<link>content</link>).render()).rejects.toThrow(
+  expect(render(<link>content</link>)).rejects.toThrow(
     "<link> is a void element and must not have children"
   );
 
-  expect((<input>text</input>).render()).rejects.toThrow(
+  expect(render(<input>text</input>)).rejects.toThrow(
     "<input> is a void element and must not have children"
   );
 });
 
 test("escapes attribute values", async () => {
   expect(
-    await (<input value={`I'm a "little" <teapot> short & stout`} />).render()
+    await render(<input value={`I'm a "little" <teapot> short & stout`} />)
   ).toBe(
     `<input value="I'm a &quot;little&quot; &lt;teapot&gt; short &amp; stout">`
   );
 });
 
 test("shortens boolean attributes", async () => {
-  expect(await (<input type="checkbox" checked />).render()).toBe(
+  expect(await render(<input type="checkbox" checked />)).toBe(
     `<input type="checkbox" checked>`
   );
 });
 
 test("renders children", async () => {
   expect(
-    await (
+    await render(
       <div>
         <input type="checkbox" checked />
       </div>
-    ).render()
+    )
   ).toBe(`<div><input type="checkbox" checked></div>`);
 });
 
 test("renders fragments", async () => {
   expect(
-    await (
+    await render(
       <>
         <div>hello</div>
       </>
-    ).render()
+    )
   ).toBe(`<div>hello</div>`);
 });
 
@@ -64,11 +65,11 @@ test("renders components", async () => {
     <span the-value={props.value} />
   );
   expect(
-    await (
+    await render(
       <div>
         <Component value={42} />
       </div>
-    ).render()
+    )
   ).toBe(`<div><span the-value="42"></span></div>`);
 });
 
@@ -78,11 +79,11 @@ test("provides correct stack when a component throws an error", async () => {
   };
   expect(Component.name).toBe("Component");
   expect(
-    (
+    render(
       <div>
         <Component />
       </div>
-    ).render()
+    )
   ).rejects.toThrowErrorMatchingInlineSnapshot(
     `"Rendering error: Intentional error; Component stack: <div> -> <Component>"`
   );
@@ -95,11 +96,11 @@ test("Respects displayName in component stacks", async () => {
   Component.displayName = "MyDisplayName";
   expect(Component.name).toBe("Component");
   expect(
-    (
+    render(
       <div>
         <Component />
       </div>
-    ).render()
+    )
   ).rejects.toThrowErrorMatchingInlineSnapshot(
     `"Rendering error: Intentional error; Component stack: <div> -> <MyDisplayName>"`
   );
@@ -113,6 +114,6 @@ test("does not evaluate components until rendered", async () => {
   };
   const jsx = <Component />;
   expect(evaluated).toBeFalse();
-  await jsx.render();
+  await render(jsx);
   expect(evaluated).toBeTrue();
 });

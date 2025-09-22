@@ -3,6 +3,7 @@
 // They may need modifications to work with the Beynac JSX implementation
 
 import { describe, expect, it } from "bun:test";
+import { render } from "./markup-stream";
 
 describe("Hono compatibility tests - intrinsic element", () => {
   describe("document metadata", () => {
@@ -18,7 +19,7 @@ describe("Hono compatibility tests - intrinsic element", () => {
             </body>
           </html>
         );
-        expect(await template.render()).toBe(
+        expect(await render(template)).toBe(
           '<html lang="en"><head><title>Hello</title></head><body><h1>World</h1></body></html>'
         );
       });
@@ -36,7 +37,7 @@ describe("Hono compatibility tests - intrinsic element", () => {
             </body>
           </html>
         );
-        expect(await template.render()).toBe(
+        expect(await render(template)).toBe(
           '<html lang="en"><head><link rel="stylesheet" href="style.css" data-precedence="default"></head><body><h1>World</h1></body></html>'
         );
       });
@@ -54,7 +55,7 @@ describe("Hono compatibility tests - intrinsic element", () => {
             </body>
           </html>
         );
-        expect(await template.render()).toBe(
+        expect(await render(template)).toBe(
           '<html lang="en"><head><link rel="stylesheet" href="style1.css" data-precedence="default"><link rel="stylesheet" href="style3.css" data-precedence="default"><link rel="stylesheet" href="style2.css" data-precedence="high"></head><body><h1>World</h1></body></html>'
         );
       });
@@ -72,7 +73,7 @@ describe("Hono compatibility tests - intrinsic element", () => {
             </body>
           </html>
         );
-        expect(await template.render()).toBe(
+        expect(await render(template)).toBe(
           '<html lang="en"><head><link rel="stylesheet" href="style1.css" data-precedence="default"><link rel="stylesheet" href="style2.css" data-precedence="high"></head><body><h1>World</h1></body></html>'
         );
       });
@@ -87,7 +88,7 @@ describe("Hono compatibility tests - intrinsic element", () => {
             </body>
           </html>
         );
-        expect(await template.render()).toBe(
+        expect(await render(template)).toBe(
           '<html lang="en"><body><link rel="stylesheet" href="style1.css" precedence="default"><link rel="stylesheet" href="style2.css" precedence="high"><h1>World</h1></body></html>'
         );
       });
@@ -109,7 +110,7 @@ describe("Hono compatibility tests - intrinsic element", () => {
             </body>
           </html>
         );
-        expect(await template.render()).toBe(
+        expect(await render(template)).toBe(
           '<html lang="en"><head><link rel="stylesheet" href="style1.css" data-precedence="default"></head><body><link rel="stylesheet" href="style2.css" precedence="default" disabled><h1>World</h1></body></html>'
         );
       });
@@ -127,7 +128,7 @@ describe("Hono compatibility tests - intrinsic element", () => {
             </body>
           </html>
         );
-        expect(await template.render()).toBe(
+        expect(await render(template)).toBe(
           '<html lang="en"><head><script src="script.js"></script></head><body><h1>World</h1></body></html>'
         );
       });
@@ -142,7 +143,7 @@ describe("Hono compatibility tests - intrinsic element", () => {
             </body>
           </html>
         );
-        expect(await template.render()).toBe(
+        expect(await render(template)).toBe(
           '<html lang="en"><head></head><body><script src="script.js" async></script><h1>World</h1></body></html>'
         );
       });
@@ -157,7 +158,7 @@ describe("Hono compatibility tests - intrinsic element", () => {
             </body>
           </html>
         );
-        expect(await template.render()).toBe(
+        expect(await render(template)).toBe(
           '<html lang="en"><head></head><body><script src="script.js" async></script><h1>World</h1></body></html>'
         );
       });
@@ -172,7 +173,7 @@ describe("Hono compatibility tests - intrinsic element", () => {
             </body>
           </html>
         );
-        expect(await template.render()).toBe(
+        expect(await render(template)).toBe(
           '<html lang="en"><head></head><body><script src="script.js"></script><h1>World</h1></body></html>'
         );
       });
@@ -190,7 +191,7 @@ describe("Hono compatibility tests - intrinsic element", () => {
             </body>
           </html>
         );
-        expect(await template.render()).toBe(
+        expect(await render(template)).toBe(
           '<html lang="en"><head><meta name="description" content="Hello"></head><body><h1>World</h1></body></html>'
         );
       });
@@ -207,7 +208,7 @@ describe("Hono compatibility tests - intrinsic element", () => {
             </body>
           </html>
         );
-        expect(await template.render()).toBe(
+        expect(await render(template)).toBe(
           '<html lang="en"><head><meta name="description" content="Hello"><meta name="description" content="World"></head><body><h1>World</h1></body></html>'
         );
       });
@@ -224,7 +225,7 @@ describe("Hono compatibility tests - intrinsic element", () => {
             </body>
           </html>
         );
-        expect(await template.render()).toBe(
+        expect(await render(template)).toBe(
           '<html lang="en"><head><meta name="description" content="Hello"></head><body><h1>World</h1></body></html>'
         );
       });
@@ -238,7 +239,7 @@ describe("Hono compatibility tests - intrinsic element", () => {
             </body>
           </html>
         );
-        expect(await template.render()).toBe(
+        expect(await render(template)).toBe(
           '<html lang="en"><body><meta name="description" content="Hello"><h1>World</h1></body></html>'
         );
       });

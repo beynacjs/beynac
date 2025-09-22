@@ -5,6 +5,7 @@
 import { describe, expect, it, test } from "bun:test";
 import type { Component, Content, PropsWithChildren } from "./public-types";
 import { Fragment } from "./jsx";
+import { render } from "./markup-stream";
 
 describe("Hono compatibility tests - render to string", () => {
   it("Nested array", async () => {
@@ -15,22 +16,22 @@ describe("Hono compatibility tests - render to string", () => {
         )}
       </p>
     );
-    expect(await template.render()).toBe("<p><span>a</span><span>b</span></p>");
+    expect(await render(template)).toBe("<p><span>a</span><span>b</span></p>");
   });
 
   it("Empty elements are rendered without closing tag", async () => {
     const template = <input />;
-    expect(await template.render()).toBe("<input>");
+    expect(await render(template)).toBe("<input>");
   });
 
   it("Props value is null", async () => {
     const template = <span data-hello={null}>Hello</span>;
-    expect(await template.render()).toBe("<span>Hello</span>");
+    expect(await render(template)).toBe("<span>Hello</span>");
   });
 
   it("Props value is undefined", async () => {
     const template = <span data-hello={undefined}>Hello</span>;
-    expect(await template.render()).toBe("<span>Hello</span>");
+    expect(await render(template)).toBe("<span>Hello</span>");
   });
 
   it("Should render async component", async () => {
@@ -50,7 +51,7 @@ describe("Hono compatibility tests - render to string", () => {
     };
 
     const c = <AsyncComponent />;
-    const rendered = await c.render();
+    const rendered = await render(c);
     expect(rendered).toBe(
       "<h1>Hello from async component<span>child async component</span></h1>"
     );
@@ -62,18 +63,18 @@ describe("Hono compatibility tests - render to string", () => {
       const template = (
         <span dangerouslySetInnerHTML={{ __html: '" is allowed here' }}></span>
       );
-      expect(await template.render()).toBe('<span>" is allowed here</span>');
+      expect(await render(template)).toBe('<span>" is allowed here</span>');
     });
 
     it.skip("Should get an error if both dangerouslySetInnerHTML and children are specified", async () => {
       // This feature may not be implemented in Beynac
       expect(
         async () =>
-          await (
+          await render(
             <span dangerouslySetInnerHTML={{ __html: '" is allowed here' }}>
               Hello
             </span>
-          ).render()
+          )
       ).toThrow(Error);
     });
   });
@@ -81,12 +82,12 @@ describe("Hono compatibility tests - render to string", () => {
   // https://en.reactjs.org/docs/jsx-in-depth.html#booleans-null-and-undefined-are-ignored
   describe("Booleans, Null, and Undefined Are Ignored", () => {
     it.each([true, false, undefined, null])("%s", async (item) => {
-      expect(await (<span>{item}</span>).render()).toBe("<span></span>");
+      expect(await render(<span>{item}</span>)).toBe("<span></span>");
     });
 
     it("falsy value", async () => {
       const template = <span>{0}</span>;
-      expect(await template.render()).toBe("<span>0</span>");
+      expect(await render(template)).toBe("<span>0</span>");
     });
   });
 
@@ -94,7 +95,7 @@ describe("Hono compatibility tests - render to string", () => {
   describe('Props Default to "True"', () => {
     it("default prop value", async () => {
       const template = <span data-hello>Hello</span>;
-      expect(await template.render()).toBe(
+      expect(await render(template)).toBe(
         '<span data-hello="true">Hello</span>'
       );
     });
@@ -104,47 +105,47 @@ describe("Hono compatibility tests - render to string", () => {
   describe("Boolean attribute", () => {
     it("default prop value for checked", async () => {
       const template = <input type="checkbox" checked />;
-      expect(await template.render()).toBe('<input type="checkbox" checked>');
+      expect(await render(template)).toBe('<input type="checkbox" checked>');
     });
 
     it("default prop value for checked={true}", async () => {
       const template = <input type="checkbox" checked={true} />;
-      expect(await template.render()).toBe('<input type="checkbox" checked>');
+      expect(await render(template)).toBe('<input type="checkbox" checked>');
     });
 
     it("no prop for checked={false}", async () => {
       const template = <input type="checkbox" checked={false} />;
-      expect(await template.render()).toBe('<input type="checkbox">');
+      expect(await render(template)).toBe('<input type="checkbox">');
     });
 
     it("default prop value for disabled", async () => {
       const template = <input type="checkbox" disabled />;
-      expect(await template.render()).toBe('<input type="checkbox" disabled>');
+      expect(await render(template)).toBe('<input type="checkbox" disabled>');
     });
 
     it("default prop value for disabled={true}", async () => {
       const template = <input type="checkbox" disabled={true} />;
-      expect(await template.render()).toBe('<input type="checkbox" disabled>');
+      expect(await render(template)).toBe('<input type="checkbox" disabled>');
     });
 
     it("no prop for disabled={false}", async () => {
       const template = <input type="checkbox" disabled={false} />;
-      expect(await template.render()).toBe('<input type="checkbox">');
+      expect(await render(template)).toBe('<input type="checkbox">');
     });
 
     it("default prop value for readonly", async () => {
       const template = <input type="checkbox" readonly />;
-      expect(await template.render()).toBe('<input type="checkbox" readonly>');
+      expect(await render(template)).toBe('<input type="checkbox" readonly>');
     });
 
     it("default prop value for readonly={true}", async () => {
       const template = <input type="checkbox" readonly={true} />;
-      expect(await template.render()).toBe('<input type="checkbox" readonly>');
+      expect(await render(template)).toBe('<input type="checkbox" readonly>');
     });
 
     it("no prop for readonly={false}", async () => {
       const template = <input type="checkbox" readonly={false} />;
-      expect(await template.render()).toBe('<input type="checkbox">');
+      expect(await render(template)).toBe('<input type="checkbox">');
     });
 
     it("default prop value for selected", async () => {
@@ -153,7 +154,7 @@ describe("Hono compatibility tests - render to string", () => {
           Test
         </option>
       );
-      expect(await template.render()).toBe(
+      expect(await render(template)).toBe(
         '<option value="test" selected>Test</option>'
       );
     });
@@ -164,7 +165,7 @@ describe("Hono compatibility tests - render to string", () => {
           Test
         </option>
       );
-      expect(await template.render()).toBe(
+      expect(await render(template)).toBe(
         '<option value="test" selected>Test</option>'
       );
     });
@@ -175,9 +176,7 @@ describe("Hono compatibility tests - render to string", () => {
           Test
         </option>
       );
-      expect(await template.render()).toBe(
-        '<option value="test">Test</option>'
-      );
+      expect(await render(template)).toBe('<option value="test">Test</option>');
     });
 
     it("default prop value for multiple select", async () => {
@@ -186,7 +185,7 @@ describe("Hono compatibility tests - render to string", () => {
           <option>test</option>
         </select>
       );
-      expect(await template.render()).toBe(
+      expect(await render(template)).toBe(
         "<select multiple><option>test</option></select>"
       );
     });
@@ -197,7 +196,7 @@ describe("Hono compatibility tests - render to string", () => {
           <option>test</option>
         </select>
       );
-      expect(await template.render()).toBe(
+      expect(await render(template)).toBe(
         "<select multiple><option>test</option></select>"
       );
     });
@@ -208,14 +207,14 @@ describe("Hono compatibility tests - render to string", () => {
           <option>test</option>
         </select>
       );
-      expect(await template.render()).toBe(
+      expect(await render(template)).toBe(
         "<select><option>test</option></select>"
       );
     });
 
     it('should render "false" value properly for other non-defined keys', async () => {
       const template = <input type="checkbox" testkey={false} />;
-      expect(await template.render()).toBe(
+      expect(await render(template)).toBe(
         '<input type="checkbox" testkey="false">'
       );
     });
@@ -226,7 +225,7 @@ describe("Hono compatibility tests - render to string", () => {
           <source src="movie.mp4" type="video/mp4" />
         </video>
       );
-      expect(await template.render()).toBe(
+      expect(await render(template)).toBe(
         '<video controls autoplay><source src="movie.mp4" type="video/mp4"></video>'
       );
     });
@@ -235,22 +234,22 @@ describe("Hono compatibility tests - render to string", () => {
   describe("download attribute", () => {
     it("<a download={true}></a> should be rendered as <a download></a>", async () => {
       const template = <a download={true}></a>;
-      expect(await template.render()).toBe("<a download></a>");
+      expect(await render(template)).toBe("<a download></a>");
     });
 
     it("<a download={false}></a> should be rendered as <a></a>", async () => {
       const template = <a download={false}></a>;
-      expect(await template.render()).toBe("<a></a>");
+      expect(await render(template)).toBe("<a></a>");
     });
 
     it("<a download></a> should be rendered as <a download></a>", async () => {
       const template = <a download></a>;
-      expect(await template.render()).toBe("<a download></a>");
+      expect(await render(template)).toBe("<a download></a>");
     });
 
     it('<a download="test"></a> should be rendered as <a download="test"></a>', async () => {
       const template = <a download="test"></a>;
-      expect(await template.render()).toBe('<a download="test"></a>');
+      expect(await render(template)).toBe('<a download="test"></a>');
     });
   });
 
@@ -259,7 +258,7 @@ describe("Hono compatibility tests - render to string", () => {
     it("Function", async () => {
       function Repeat(props: {
         numTimes: number;
-        children: (index: string) => Content;
+        children: (index: number) => Content;
       }) {
         const items = [];
         for (let i = 0; i < props.numTimes; i++) {
@@ -277,7 +276,7 @@ describe("Hono compatibility tests - render to string", () => {
       }
 
       const template = <ListOfTenThings />;
-      expect(await template.render()).toBe(
+      expect(await render(template)).toBe(
         "<div><div>This is item 0 in the list</div><div>This is item 1 in the list</div><div>This is item 2 in the list</div><div>This is item 3 in the list</div><div>This is item 4 in the list</div><div>This is item 5 in the list</div><div>This is item 6 in the list</div><div>This is item 7 in the list</div><div>This is item 8 in the list</div><div>This is item 9 in the list</div></div>"
       );
     });
@@ -305,7 +304,7 @@ describe("Hono compatibility tests - render to string", () => {
         </Layout>
       );
 
-      expect(await Top.render()).toBe(
+      expect(await render(Top)).toBe(
         "<html><head><title>Home page</title></head><body><h1>Hono</h1><p>Hono is great</p></body></html>"
       );
     });
@@ -316,7 +315,7 @@ describe("Hono compatibility tests - render to string", () => {
           return item;
         }) as Component;
         const template = <Component />;
-        expect(await template.render()).toBe("");
+        expect(await render(template)).toBe("");
       });
 
       it("falsy value", async () => {
@@ -324,7 +323,7 @@ describe("Hono compatibility tests - render to string", () => {
           return 0;
         }) as unknown as Component;
         const template = <Component />;
-        expect(await template.render()).toBe("0");
+        expect(await render(template)).toBe("0");
       });
     });
   });
@@ -342,21 +341,19 @@ describe("Hono compatibility tests - render to string", () => {
           Hello
         </h1>
       );
-      expect(await template.render()).toBe(
+      expect(await render(template)).toBe(
         '<h1 style="color:red;font-size:small;font-family:Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace">Hello</h1>'
       );
     });
     it("should not convert the strings", async () => {
       const template = <h1 style="color:red;font-size:small">Hello</h1>;
-      expect(await template.render()).toBe(
+      expect(await render(template)).toBe(
         '<h1 style="color:red;font-size:small">Hello</h1>'
       );
     });
     it("should render variable without any name conversion", async () => {
       const template = <h1 style={{ "--myVar": 1 }}>Hello</h1>;
-      expect(await template.render()).toBe(
-        '<h1 style="--myVar:1px">Hello</h1>'
-      );
+      expect(await render(template)).toBe('<h1 style="--myVar:1px">Hello</h1>');
     });
   });
 
@@ -369,7 +366,7 @@ describe("Hono compatibility tests - render to string", () => {
           <script src="script.js"></script>
         </head>
       );
-      expect(await template.render()).toBe(
+      expect(await render(template)).toBe(
         '<head><title>Hono!</title><meta name="description" content="A description"><script src="script.js"></script></head>'
       );
     });
@@ -384,7 +381,7 @@ describe("Fragment", () => {
         <p>2</p>
       </>
     );
-    expect(await template.render()).toBe("<p>1</p><p>2</p>");
+    expect(await render(template)).toBe("<p>1</p><p>2</p>");
   });
 
   it("Should render children - with `Fragment`", async () => {
@@ -394,7 +391,7 @@ describe("Fragment", () => {
         <p>2</p>
       </Fragment>
     );
-    expect(await template.render()).toBe("<p>1</p><p>2</p>");
+    expect(await render(template)).toBe("<p>1</p><p>2</p>");
   });
 
   it("Should render a child", async () => {
@@ -403,7 +400,7 @@ describe("Fragment", () => {
         <p>1</p>
       </>
     );
-    expect(await template.render()).toBe("<p>1</p>");
+    expect(await render(template)).toBe("<p>1</p>");
   });
 
   it("Should render a child - with `Fragment`", async () => {
@@ -412,17 +409,17 @@ describe("Fragment", () => {
         <p>1</p>
       </Fragment>
     );
-    expect(await template.render()).toBe("<p>1</p>");
+    expect(await render(template)).toBe("<p>1</p>");
   });
 
   it("Should render nothing for empty Fragment", async () => {
     const template = <></>;
-    expect(await template.render()).toBe("");
+    expect(await render(template)).toBe("");
   });
 
   it("Should render nothing for undefined", async () => {
     const template = <>{undefined}</>;
-    expect(await template.render()).toBe("");
+    expect(await render(template)).toBe("");
   });
 });
 
@@ -440,7 +437,7 @@ describe("SVG", () => {
         />
       </svg>
     );
-    expect(await template.render()).toBe(
+    expect(await render(template)).toBe(
       '<svg><circle cx="50" cy="50" r="40" stroke="black" stroke-width="3" fill="red"></circle></svg>'
     );
   });
@@ -456,7 +453,7 @@ describe("SVG", () => {
         </svg>
       </>
     );
-    expect(await template.render()).toBe(
+    expect(await render(template)).toBe(
       "<head><title>Document Title</title></head><svg><title>SVG Title</title></svg>"
     );
   });
@@ -475,9 +472,7 @@ describe("SVG", () => {
             <g {...{ [key]: "test" }} />
           </svg>
         );
-        expect(await template.render()).toBe(
-          `<svg><g ${key}="test"></g></svg>`
-        );
+        expect(await render(template)).toBe(`<svg><g ${key}="test"></g></svg>`);
       });
     });
 
@@ -492,9 +487,7 @@ describe("SVG", () => {
             <g {...{ [key]: "test" }} />
           </svg>
         );
-        expect(await template.render()).toBe(
-          `<svg><g ${key}="test"></g></svg>`
-        );
+        expect(await render(template)).toBe(`<svg><g ${key}="test"></g></svg>`);
       });
     });
   });

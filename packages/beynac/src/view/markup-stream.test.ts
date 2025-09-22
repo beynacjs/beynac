@@ -1,25 +1,30 @@
 import { describe, expect, test } from "bun:test";
 import { asyncGate } from "../test-utils/async-gate";
 import { key } from "../keys";
-import { MarkupStream, RenderingError } from "./markup-stream";
+import {
+  MarkupStream,
+  RenderingError,
+  render,
+  renderStream,
+} from "./markup-stream";
 import type { Content, Context } from "./public-types";
 
 describe("MarkupStream", () => {
   describe("basic functionality", () => {
     test("renders empty content", async () => {
       const emptyStream = new MarkupStream(null, null, null);
-      expect(await emptyStream.render()).toBe("");
+      expect(await render(emptyStream)).toBe("");
 
       const emptyTag = new MarkupStream("br", null, null);
-      expect(await emptyTag.render()).toBe("<br>");
+      expect(await render(emptyTag)).toBe("<br>");
     });
 
     test("renders text content", async () => {
       const plainText = new MarkupStream(null, null, ["Hello World"]);
-      expect(await plainText.render()).toBe("Hello World");
+      expect(await render(plainText)).toBe("Hello World");
 
       const taggedText = new MarkupStream("div", null, ["Hello"]);
-      expect(await taggedText.render()).toBe("<div>Hello</div>");
+      expect(await render(taggedText)).toBe("<div>Hello</div>");
     });
 
     test("renders tag with attributes", async () => {
@@ -28,14 +33,14 @@ describe("MarkupStream", () => {
         { id: "test", class: "container" },
         ["Content"]
       );
-      expect(await stream.render()).toBe(
+      expect(await render(stream)).toBe(
         '<div id="test" class="container">Content</div>'
       );
     });
 
     test("renders numbers", async () => {
       const stream = new MarkupStream(null, null, [42, " is the answer"]);
-      expect(await stream.render()).toBe("42 is the answer");
+      expect(await render(stream)).toBe("42 is the answer");
     });
 
     test("skips null, undefined, and boolean values", async () => {
@@ -47,7 +52,7 @@ describe("MarkupStream", () => {
         false,
         "end",
       ]);
-      expect(await stream.render()).toBe("startend");
+      expect(await render(stream)).toBe("startend");
     });
 
     test("renders nested arrays", async () => {
@@ -56,7 +61,7 @@ describe("MarkupStream", () => {
         ["b", ["c", "d"], "e"],
         "f",
       ]);
-      const chunks = await Array.fromAsync(stream.renderChunks());
+      const chunks = await Array.fromAsync(renderStream(stream));
       // All synchronous content should be in a single chunk
       expect(chunks).toEqual(["abcdef"]);
     });
@@ -67,7 +72,7 @@ describe("MarkupStream", () => {
         [Promise.resolve(["c", "d"] as Content[])],
       ]);
 
-      const result = await stream.render();
+      const result = await render(stream);
       expect(result).toBe("abcd");
     });
 
@@ -79,7 +84,7 @@ describe("MarkupStream", () => {
         [[], [[]]],
         "d",
       ]);
-      expect(await stream.render()).toBe("abcd");
+      expect(await render(stream)).toBe("abcd");
     });
 
     test("renders arrays with all skippable values", async () => {
@@ -89,7 +94,7 @@ describe("MarkupStream", () => {
         [[null], [undefined, [true, false]]],
         "end",
       ]);
-      expect(await stream.render()).toBe("startend");
+      expect(await render(stream)).toBe("startend");
     });
 
     test("renders promises resolving to nested arrays", async () => {
@@ -99,7 +104,7 @@ describe("MarkupStream", () => {
         " after",
       ]);
 
-      const chunks = await Array.fromAsync(stream.renderChunks());
+      const chunks = await Array.fromAsync(renderStream(stream));
       // First chunk: sync content before promise
       // Second chunk: resolved promise content + remaining sync content
       expect(chunks).toEqual(["before ", "abc after"]);
@@ -112,7 +117,7 @@ describe("MarkupStream", () => {
         inner,
         " after",
       ]);
-      const chunks = await Array.fromAsync(outer.renderChunks());
+      const chunks = await Array.fromAsync(renderStream(outer));
       // All synchronous nested content in a single chunk
       expect(chunks).toEqual([
         '<div id="outer">before <span id="inner">inner</span> after</div>',
@@ -127,7 +132,7 @@ describe("MarkupStream", () => {
         { disabled: true, hidden: false, checked: true },
         []
       );
-      expect(await stream.render()).toBe("<input disabled checked>");
+      expect(await render(stream)).toBe("<input disabled checked>");
     });
 
     test("skips null, undefined, and function attributes", async () => {
@@ -141,7 +146,7 @@ describe("MarkupStream", () => {
         },
         []
       );
-      expect(await stream.render()).toBe(
+      expect(await render(stream)).toBe(
         '<div id="test" funcAttr="function foo() {}"></div>'
       );
     });
@@ -155,7 +160,7 @@ describe("MarkupStream", () => {
         },
         []
       );
-      expect(await stream.render()).toBe(
+      expect(await render(stream)).toBe(
         `<div title="Test &quot;quotes&quot; &amp; &lt;brackets&gt;" data-value="It's a test"></div>`
       );
     });
@@ -169,7 +174,7 @@ describe("MarkupStream", () => {
         },
         []
       );
-      expect(await stream.render()).toBe(
+      expect(await render(stream)).toBe(
         `<div title="Test &quot;quotes&quot; &amp; &lt;brackets&gt;" data-value="It's a test"></div>`
       );
     });
@@ -178,7 +183,7 @@ describe("MarkupStream", () => {
       const stream = new MarkupStream("div", null, [
         `I'm a little <teapot> "short" & stout`,
       ]);
-      expect(await stream.render()).toBe(
+      expect(await render(stream)).toBe(
         `<div>I'm a little &lt;teapot&gt; &quot;short&quot; &amp; stout</div>`
       );
     });
@@ -192,7 +197,7 @@ describe("MarkupStream", () => {
         " end",
       ]);
 
-      const chunks = await Array.fromAsync(stream.renderChunks());
+      const chunks = await Array.fromAsync(renderStream(stream));
       // First chunk: content before promise
       // Second chunk: resolved promise + remaining content
       expect(chunks).toEqual(["sync ", "async end"]);
@@ -210,7 +215,7 @@ describe("MarkupStream", () => {
       expect(stream.content?.length).toBe(1);
       expect(stream.content?.[0]).toBeInstanceOf(Promise);
 
-      const chunks = await Array.fromAsync(stream.renderChunks());
+      const chunks = await Array.fromAsync(renderStream(stream));
       // First chunk: opening tag
       // Second chunk: resolved content + closing tag
       expect(chunks).toEqual(["<div>", "Hello World</div>"]);
@@ -226,7 +231,7 @@ describe("MarkupStream", () => {
         " after",
       ]);
 
-      const chunks = await Array.fromAsync(stream.renderChunks());
+      const chunks = await Array.fromAsync(renderStream(stream));
       // First chunk: opening tag + content before promise
       // Second chunk: resolved MarkupStream + remaining content
       expect(chunks).toEqual([
@@ -247,7 +252,7 @@ describe("MarkupStream", () => {
         " end",
       ]);
 
-      const chunks = await Array.fromAsync(outerStream.renderChunks());
+      const chunks = await Array.fromAsync(renderStream(outerStream));
       // First chunk: everything up to the promise inside the span
       // Second chunk: resolved promise content + remaining
       expect(chunks).toEqual([
@@ -265,7 +270,7 @@ describe("MarkupStream", () => {
         "e",
       ]);
 
-      const result = await stream.render();
+      const result = await render(stream);
       expect(result).toBe("abcde");
     });
   });
@@ -289,7 +294,7 @@ describe("MarkupStream", () => {
       }
 
       const stream = new MarkupStream("div", null, mixedGenerator());
-      const result = await stream.render();
+      const result = await render(stream);
       expect(result).toBe(
         "<div>text 42 <span>nested</span> array content</div>"
       );
@@ -310,7 +315,7 @@ describe("MarkupStream", () => {
 
       const stream = new MarkupStream(null, null, controlledGenerator());
       const chunks: string[] = [];
-      const iterator = stream.renderChunks();
+      const iterator = renderStream(stream);
 
       // Start consuming chunks
       const consumeChunks = async () => {
@@ -355,7 +360,7 @@ describe("MarkupStream", () => {
       }
 
       const stream = new MarkupStream(null, null, generatorWithFunction());
-      const result = await stream.render();
+      const result = await render(stream);
       expect(result).toBe("before from-function-promise after");
     });
 
@@ -372,7 +377,7 @@ describe("MarkupStream", () => {
       }
 
       const stream = new MarkupStream(null, null, outerGenerator());
-      const result = await stream.render();
+      const result = await render(stream);
       expect(result).toBe("outer-start inner1 inner2 outer-end");
     });
 
@@ -383,7 +388,7 @@ describe("MarkupStream", () => {
       }
 
       const stream = new MarkupStream(null, null, throwingGenerator());
-      const result = await stream.render();
+      const result = await render(stream);
       // Should render the items that were successfully yielded before the error
       // The error in the generator stops iteration and replaces with empty string
       expect(result).toBe("first second");
@@ -399,7 +404,7 @@ describe("MarkupStream", () => {
       ];
 
       const stream = new MarkupStream("div", null, content);
-      const result = await stream.render();
+      const result = await render(stream);
       expect(result).toBe(
         "<div>startfirstsecondthirdmiddlepromise-contentend</div>"
       );
@@ -437,7 +442,7 @@ describe("MarkupStream", () => {
       // Start collection in background
       const chunksPromise = (async () => {
         const chunks: string[] = [];
-        for await (const chunk of stream.renderChunks()) {
+        for await (const chunk of renderStream(stream)) {
           chunks.push(chunk);
         }
         return chunks;
@@ -477,7 +482,7 @@ describe("MarkupStream", () => {
       // Start collection in background
       const chunksPromise = (async () => {
         const chunks: string[] = [];
-        for await (const chunk of stream.renderChunks()) {
+        for await (const chunk of renderStream(stream)) {
           chunks.push(chunk);
         }
         return chunks;
@@ -509,14 +514,14 @@ describe("MarkupStream", () => {
         " end",
       ]);
 
-      expect(await stream.render()).toBe(
+      expect(await render(stream)).toBe(
         "<div>start <span><b><i>deep</i></b></span> end</div>"
       );
     });
 
     test("handles empty arrays", async () => {
       const stream = new MarkupStream("div", null, [[]]);
-      expect(await stream.render()).toBe("<div></div>");
+      expect(await render(stream)).toBe("<div></div>");
     });
 
     test("handles promise resolving to null", async () => {
@@ -526,7 +531,7 @@ describe("MarkupStream", () => {
         " after",
       ]);
 
-      const result = await stream.render();
+      const result = await render(stream);
       expect(result).toBe("<div>before  after</div>");
     });
 
@@ -540,31 +545,31 @@ describe("MarkupStream", () => {
         ] as Content[]),
       ]);
 
-      const result = await stream.render();
+      const result = await render(stream);
       expect(result).toBe("<div>text42<span>nested</span></div>");
     });
 
     test("handles falsy number 0", async () => {
       const stream = new MarkupStream(null, null, [0, " items"]);
-      expect(await stream.render()).toBe("0 items");
+      expect(await render(stream)).toBe("0 items");
     });
 
     test("handles empty string", async () => {
       const stream = new MarkupStream(null, null, ["", "text", ""]);
-      expect(await stream.render()).toBe("text");
+      expect(await render(stream)).toBe("text");
     });
   });
 
   describe("HTML mode (default)", () => {
     test("renders empty tags without closing tag", async () => {
       const br = new MarkupStream("br", null, []);
-      expect(await br.render()).toBe("<br>");
+      expect(await render(br)).toBe("<br>");
 
       const input = new MarkupStream("input", { type: "text" }, []);
-      expect(await input.render()).toBe('<input type="text">');
+      expect(await render(input)).toBe('<input type="text">');
 
       const img = new MarkupStream("img", { src: "test.jpg" }, []);
-      expect(await img.render()).toBe('<img src="test.jpg">');
+      expect(await render(img)).toBe('<img src="test.jpg">');
     });
 
     test("renders boolean attributes correctly", async () => {
@@ -578,7 +583,7 @@ describe("MarkupStream", () => {
         },
         []
       );
-      expect(await input.render()).toBe(
+      expect(await render(input)).toBe(
         '<input type="checkbox" checked readonly>'
       );
     });
@@ -593,17 +598,17 @@ describe("MarkupStream", () => {
         },
         []
       );
-      expect(await div.render()).toBe(
+      expect(await render(div)).toBe(
         '<div id="false" data-active="true" aria-hidden="false"></div>'
       );
     });
 
     test("renders empty elements with immediate closing", async () => {
       const div = new MarkupStream("div", null, []);
-      expect(await div.render()).toBe("<div></div>");
+      expect(await render(div)).toBe("<div></div>");
 
       const span = new MarkupStream("span", { id: "test" }, []);
-      expect(await span.render()).toBe('<span id="test"></span>');
+      expect(await render(span)).toBe('<span id="test"></span>');
     });
   });
 
@@ -614,7 +619,7 @@ describe("MarkupStream", () => {
         () => "function result",
         " after",
       ]);
-      expect(await stream.render()).toBe(
+      expect(await render(stream)).toBe(
         "<div>before function result after</div>"
       );
     });
@@ -624,14 +629,14 @@ describe("MarkupStream", () => {
         "text ",
         () => new MarkupStream("span", { id: "lazy" }, ["lazy content"]),
       ]);
-      expect(await stream.render()).toBe(
+      expect(await render(stream)).toBe(
         '<div>text <span id="lazy">lazy content</span></div>'
       );
     });
 
     test("renders function returning array", async () => {
       const stream = new MarkupStream("div", null, [() => ["a", "b", "c"]]);
-      expect(await stream.render()).toBe("<div>abc</div>");
+      expect(await render(stream)).toBe("<div>abc</div>");
     });
 
     test("renders function returning null/undefined/boolean", async () => {
@@ -643,14 +648,14 @@ describe("MarkupStream", () => {
         () => false,
         "end",
       ]);
-      expect(await stream.render()).toBe("<div>startend</div>");
+      expect(await render(stream)).toBe("<div>startend</div>");
     });
 
     test("renders nested functions", async () => {
       const stream = new MarkupStream("div", null, [
         () => () => () => "deeply nested",
       ]);
-      expect(await stream.render()).toBe("<div>deeply nested</div>");
+      expect(await render(stream)).toBe("<div>deeply nested</div>");
     });
 
     test("renders function returning promise", async () => {
@@ -659,7 +664,7 @@ describe("MarkupStream", () => {
         () => Promise.resolve("async from function"),
         " after",
       ]);
-      const result = await stream.render();
+      const result = await render(stream);
       expect(result).toBe("<div>before async from function after</div>");
     });
 
@@ -672,7 +677,7 @@ describe("MarkupStream", () => {
         " after",
       ]);
 
-      const result = await stream.render();
+      const result = await render(stream);
       expect(result).toBe("<div>before final content after</div>");
     });
 
@@ -686,7 +691,7 @@ describe("MarkupStream", () => {
         " end",
       ]);
 
-      const result = await stream.render();
+      const result = await render(stream);
       expect(result).toBe("<div>start very final end</div>");
     });
 
@@ -703,7 +708,7 @@ describe("MarkupStream", () => {
       expect(callCount).toBe(0);
 
       // Now render, which should call the function
-      const result = await stream.render();
+      const result = await render(stream);
       expect(callCount).toBe(1);
       expect(result).toBe("<div>called 1 time(s)</div>");
     });
@@ -720,7 +725,28 @@ describe("MarkupStream", () => {
         makeFunction(),
       ]);
 
-      expect(await stream.render()).toBe("<div>1-2-3</div>");
+      expect(await render(stream)).toBe("<div>1-2-3</div>");
+    });
+
+    test("content function is called twice when stream is rendered twice", async () => {
+      let callCount = 0;
+      const trackingFunction = () => {
+        callCount++;
+        return `called ${callCount} time(s)`;
+      };
+
+      const stream = new MarkupStream("div", null, [trackingFunction]);
+
+      // Function shouldn't be called yet
+      expect(callCount).toBe(0);
+
+      const result1 = await render(stream);
+      expect(callCount).toBe(1);
+      expect(result1).toBe("<div>called 1 time(s)</div>");
+
+      const result2 = await render(stream);
+      expect(callCount).toBe(2);
+      expect(result2).toBe("<div>called 2 time(s)</div>");
     });
   });
 
@@ -735,7 +761,7 @@ describe("MarkupStream", () => {
           ]);
         },
       ]);
-      expect(await stream.render()).toBe("<div><span>parent</span></div>");
+      expect(await render(stream)).toBe("<div><span>parent</span></div>");
     });
 
     test("context changes don't affect siblings", async () => {
@@ -747,7 +773,7 @@ describe("MarkupStream", () => {
         },
         (ctx) => ctx.get(testKey) || "empty", // Should be "empty"
       ]);
-      expect(await stream.render()).toBe("<div>firstempty</div>");
+      expect(await render(stream)).toBe("<div>firstempty</div>");
     });
 
     test("nested context overrides", async () => {
@@ -775,7 +801,7 @@ describe("MarkupStream", () => {
           ];
         },
       ]);
-      expect(await stream.render()).toBe(
+      expect(await render(stream)).toBe(
         "<div>parent:parent-afterChildSet:child-child:child-afterSetInParent:parent</div>"
       );
     });
@@ -792,7 +818,7 @@ describe("MarkupStream", () => {
           ];
         },
       ]);
-      expect(await stream.render()).toBe("<div>first:1-second:1</div>");
+      expect(await render(stream)).toBe("<div>first:1-second:1</div>");
     });
 
     test("context propagates through nested MarkupStreams", async () => {
@@ -807,7 +833,7 @@ describe("MarkupStream", () => {
           ]);
         },
       ]);
-      expect(await stream.render()).toBe(
+      expect(await render(stream)).toBe(
         "<div><section><p>Theme: dark</p></section></div>"
       );
     });
@@ -820,7 +846,7 @@ describe("MarkupStream", () => {
           return Promise.resolve((ctx) => ctx.get(testKey) || "not found");
         },
       ]);
-      const result = await stream.render();
+      const result = await render(stream);
       expect(result).toBe("<div>async-value</div>");
     });
 
@@ -840,7 +866,7 @@ describe("MarkupStream", () => {
         " after",
       ]);
 
-      const result = await stream.render();
+      const result = await render(stream);
       expect(result).toBe("<div>before final:level1 after</div>");
     });
 
@@ -863,7 +889,7 @@ describe("MarkupStream", () => {
         " end",
       ]);
 
-      const result = await stream.render();
+      const result = await render(stream);
       expect(result).toBe("<div>start level1-level2 end</div>");
     });
 
@@ -885,7 +911,7 @@ describe("MarkupStream", () => {
         (ctx) => `3:${ctx.get(key1) || "null"}-${ctx.get(key2) || "null"}`,
       ]);
 
-      expect(await stream.render()).toBe("<div>1:a-b2:a-null3:null-null</div>");
+      expect(await render(stream)).toBe("<div>1:a-b2:a-null3:null-null</div>");
     });
 
     test("multiple functions with shared context propagation", async () => {
@@ -911,7 +937,7 @@ describe("MarkupStream", () => {
         ],
       ]);
 
-      expect(await stream.render()).toBe("<div>1-011-10</div>");
+      expect(await render(stream)).toBe("<div>1-011-10</div>");
     });
 
     test("async siblings can not pollute each other's context when running concurrently", async () => {
@@ -937,7 +963,7 @@ describe("MarkupStream", () => {
           },
         ],
       ]);
-      const renderPromise = stream.render();
+      const renderPromise = render(stream);
 
       await gate.run();
 
@@ -950,13 +976,15 @@ describe("MarkupStream", () => {
   describe("XML mode", () => {
     test("renders empty elements with self-closing tags", async () => {
       const br = new MarkupStream("br", null, []);
-      expect(await br.render({ mode: "xml" })).toBe("<br />");
+      expect(await render(br, { mode: "xml" })).toBe("<br />");
 
       const div = new MarkupStream("div", null, []);
-      expect(await div.render({ mode: "xml" })).toBe("<div />");
+      expect(await render(div, { mode: "xml" })).toBe("<div />");
 
       const input = new MarkupStream("input", { type: "text" }, []);
-      expect(await input.render({ mode: "xml" })).toBe('<input type="text" />');
+      expect(await render(input, { mode: "xml" })).toBe(
+        '<input type="text" />'
+      );
     });
 
     test("renders all attributes with values", async () => {
@@ -970,17 +998,17 @@ describe("MarkupStream", () => {
         },
         []
       );
-      expect(await input.render({ mode: "xml" })).toBe(
+      expect(await render(input, { mode: "xml" })).toBe(
         '<input type="checkbox" checked="true" disabled="false" readonly="true" />'
       );
     });
 
     test("renders elements with content normally", async () => {
       const div = new MarkupStream("div", null, ["content"]);
-      expect(await div.render({ mode: "xml" })).toBe("<div>content</div>");
+      expect(await render(div, { mode: "xml" })).toBe("<div>content</div>");
 
       const span = new MarkupStream("span", { id: "test" }, ["text"]);
-      expect(await span.render({ mode: "xml" })).toBe(
+      expect(await render(span, { mode: "xml" })).toBe(
         '<span id="test">text</span>'
       );
     });
@@ -990,7 +1018,7 @@ describe("MarkupStream", () => {
         new MarkupStream("inner", null, []),
         new MarkupStream("br", null, []),
       ]);
-      expect(await outer.render({ mode: "xml" })).toBe(
+      expect(await render(outer, { mode: "xml" })).toBe(
         "<outer><inner /><br /></outer>"
       );
     });
@@ -1008,8 +1036,8 @@ describe("MarkupStream", () => {
       ]);
 
       try {
-        await stream.render();
-        throw new Error("Expected stream.render() to throw");
+        await render(stream);
+        throw new Error("Expected render(stream) to throw");
       } catch (error) {
         expect(error).toBeInstanceOf(RenderingError);
         const err = error as RenderingError;
@@ -1029,8 +1057,8 @@ describe("MarkupStream", () => {
       ]);
 
       try {
-        await stream.render();
-        throw new Error("Expected stream.render() to throw");
+        await render(stream);
+        throw new Error("Expected render(stream) to throw");
       } catch (error) {
         expect(error).toBeInstanceOf(RenderingError);
         const err = error as RenderingError;
@@ -1050,8 +1078,8 @@ describe("MarkupStream", () => {
       ]);
 
       try {
-        await stream.render();
-        throw new Error("Expected stream.render() to throw");
+        await render(stream);
+        throw new Error("Expected render(stream) to throw");
       } catch (error) {
         expect(error).toBeInstanceOf(RenderingError);
         const err = error as RenderingError;
@@ -1076,8 +1104,8 @@ describe("MarkupStream", () => {
       ]);
 
       try {
-        await stream.render();
-        throw new Error("Expected stream.render() to throw");
+        await render(stream);
+        throw new Error("Expected render(stream) to throw");
       } catch (error) {
         expect(error).toBeInstanceOf(RenderingError);
         const err = error as RenderingError;
@@ -1100,8 +1128,8 @@ describe("MarkupStream", () => {
       ]);
 
       try {
-        await stream.render();
-        throw new Error("Expected stream.render() to throw");
+        await render(stream);
+        throw new Error("Expected render(stream) to throw");
       } catch (error) {
         expect(error).toBeInstanceOf(RenderingError);
         const err = error as RenderingError;
@@ -1120,8 +1148,8 @@ describe("MarkupStream", () => {
       ]);
 
       try {
-        await stream.render();
-        throw new Error("Expected stream.render() to throw");
+        await render(stream);
+        throw new Error("Expected render(stream) to throw");
       } catch (error) {
         expect(error).toBeInstanceOf(RenderingError);
         const err = error as RenderingError;
@@ -1141,8 +1169,8 @@ describe("MarkupStream", () => {
       ]);
 
       try {
-        await stream.render();
-        throw new Error("Expected stream.render() to throw");
+        await render(stream);
+        throw new Error("Expected render(stream) to throw");
       } catch (error) {
         expect(error).toBeInstanceOf(RenderingError);
         const err = error as RenderingError;
@@ -1167,14 +1195,50 @@ describe("MarkupStream", () => {
       ]);
 
       try {
-        await stream.render();
-        throw new Error("Expected stream.render() to throw");
+        await render(stream);
+        throw new Error("Expected render(stream) to throw");
       } catch (error) {
         expect(error).toBeInstanceOf(RenderingError);
         const err = error as RenderingError;
         expect(err.message).toContain("Nested array error");
         expect(err.errorKind).toBe("content-function-error");
       }
+    });
+
+    test("async components execute in parallel during expansion phase", async () => {
+      const delays: number[] = [];
+      const startTime = Date.now();
+
+      const AsyncComponent1 = async () => {
+        delays.push(Date.now() - startTime);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return "component1";
+      };
+
+      const AsyncComponent2 = async () => {
+        delays.push(Date.now() - startTime);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return "component2";
+      };
+
+      const stream = new MarkupStream("div", null, [
+        new MarkupStream("span", null, AsyncComponent1),
+        new MarkupStream("span", null, AsyncComponent2),
+      ]);
+
+      const result = await render(stream);
+      expect(result).toBe(
+        "<div><span>component1</span><span>component2</span></div>"
+      );
+
+      // Both components should start almost immediately (within a few ms)
+      expect(delays.length).toBe(2);
+      expect(delays[0]).toBeLessThan(10);
+      expect(delays[1]).toBeLessThan(10);
+
+      // Total time should be ~50ms (parallel) not ~100ms (sequential)
+      const totalTime = Date.now() - startTime;
+      expect(totalTime).toBeLessThan(75);
     });
   });
 });
