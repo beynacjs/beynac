@@ -1,6 +1,7 @@
 /** @jsxImportSource ./ */
 import { expect, test } from "bun:test";
 import { render } from "./markup-stream";
+import { Content } from "./public-types";
 
 test("renders single element with attributes and text child", async () => {
   expect(await render(<span id="foo">hello</span>)).toBe(
@@ -13,7 +14,18 @@ test("renders childless non-empty elements", async () => {
 });
 
 test("renders empty tags", async () => {
+  expect(await render(<input />)).toBe("<input>");
   expect(await render(<input value="yo" />)).toBe('<input value="yo">');
+});
+
+test("supports null props", async () => {
+  const template = <span data-hello={null}>Hello</span>;
+  expect(await render(template)).toBe("<span>Hello</span>");
+});
+
+test("supports undefined props", async () => {
+  const template = <span data-hello={undefined}>Hello</span>;
+  expect(await render(template)).toBe("<span>Hello</span>");
 });
 
 test("throws error for void elements with children", async () => {
@@ -38,6 +50,27 @@ test("shortens boolean attributes", async () => {
   expect(await render(<input type="checkbox" checked />)).toBe(
     `<input type="checkbox" checked>`
   );
+});
+
+test("omits boolean attributes with false value", async () => {
+  expect(await render(<input type="checkbox" checked={false} />)).toBe(
+    `<input type="checkbox">`
+  );
+});
+
+test("default prop value for multiple select", async () => {
+  const template = (
+    <select multiple>
+      <option>test</option>
+    </select>
+  );
+  expect(await render(template)).toBe(
+    "<select multiple><option>test</option></select>"
+  );
+});
+
+test("does not shorten arbitrary boolean attributes", async () => {
+  expect(await render(<input data-foo />)).toBe(`<input data-foo="true">`);
 });
 
 test("renders children", async () => {
@@ -71,6 +104,27 @@ test("renders components", async () => {
       </div>
     )
   ).toBe(`<div><span the-value="42"></span></div>`);
+});
+
+test("renders async component", async () => {
+  const Child = async () => {
+    await Promise.resolve();
+    return <span>child</span>;
+  };
+
+  const Parent = async () => {
+    await Promise.resolve();
+    return (
+      <div>
+        parent
+        <Child />
+      </div>
+    );
+  };
+
+  const c = <Parent />;
+  const rendered = await render(c);
+  expect(rendered).toBe("<div>parent<span>child</span></div>");
 });
 
 test("provides correct stack when a component throws an error", async () => {
@@ -255,4 +309,61 @@ test("passing an invalid value to class attribute causes type error", async () =
   void (<div class={Symbol()} />);
   // @ts-expect-error testing invalid usage
   void (<div class={() => null} />);
+});
+
+// https://en.reactjs.org/docs/jsx-in-depth.html#functions-as-children
+test("Functions as children", async () => {
+  function Repeat(props: {
+    numTimes: number;
+    children: (index: number) => Content;
+  }) {
+    const items = [];
+    for (let i = 0; i < props.numTimes; i++) {
+      items.push(props.children(i));
+    }
+    return <div>{items}</div>;
+  }
+
+  function ListOfTenThings() {
+    return (
+      <Repeat numTimes={10}>
+        {(index) => <div key={index}>This is item {index} in the list</div>}
+      </Repeat>
+    );
+  }
+
+  const template = <ListOfTenThings />;
+  expect(await render(template)).toBe(
+    "<div><div>This is item 0 in the list</div><div>This is item 1 in the list</div><div>This is item 2 in the list</div><div>This is item 3 in the list</div><div>This is item 4 in the list</div><div>This is item 5 in the list</div><div>This is item 6 in the list</div><div>This is item 7 in the list</div><div>This is item 8 in the list</div><div>This is item 9 in the list</div></div>"
+  );
+});
+
+test("should render fragment children", async () => {
+  const template = (
+    <>
+      <div>hello</div>
+    </>
+  );
+  expect(await render(template)).toBe("<div>hello</div>");
+});
+
+test("should empty fragment", async () => {
+  const template = <></>;
+  expect(await render(template)).toBe("");
+});
+
+test("should fragment with undefined children", async () => {
+  const template = <>{undefined}</>;
+  expect(await render(template)).toBe("");
+});
+
+test("renders svg", async () => {
+  const template = (
+    <svg viewBox="0 0 100 100">
+      <circle cx="0" cy="0" r="10" fill="rebeccapurple" />
+    </svg>
+  );
+  expect(await render(template)).toBe(
+    '<svg viewBox="0 0 100 100"><circle cx="0" cy="0" r="10" fill="rebeccapurple"></circle></svg>'
+  );
 });

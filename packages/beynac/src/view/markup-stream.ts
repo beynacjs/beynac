@@ -129,7 +129,7 @@ function expandContentTree(content: Content): Frame | null {
       const childContext = context.fork();
       let result: Content;
       try {
-        result = content(childContext);
+        result = content(childContext) as Content;
       } catch (error) {
         dest[destIndex] = new ExpansionErrorInfo(
           error,
@@ -163,7 +163,7 @@ function expandContentTree(content: Content): Frame | null {
       // Place the promise in the array so render phase can wait on it
       dest[destIndex] = content;
       content
-        .then((resolved) => {
+        .then((resolved: Content) => {
           expandContent(resolved, dest, destIndex, context);
         })
         .catch((error) => {
@@ -228,7 +228,7 @@ function expandContentTree(content: Content): Frame | null {
     } else if (Array.isArray(content)) {
       const nestedDest: FrameItem[] = new Array<FrameItem>(content.length);
       for (let i = 0; i < content.length; i++) {
-        expandContent(content[i], nestedDest, i, context);
+        expandContent(content[i] as Content, nestedDest, i, context);
       }
       // Wrap array in a Frame object
       dest[destIndex] = createFrame(nestedDest);
