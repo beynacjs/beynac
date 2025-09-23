@@ -1,4 +1,11 @@
-// TODO
+/**
+ * This types file is extracted from the Hono project, original here:
+ * https://github.com/honojs/hono/blob/main/src/jsx/intrinsic-elements.ts
+ * Copyright (c) 2021 - present, Yusuke Wada and Hono contributors
+ *
+ * That code was based on React. https://github.com/facebook/react MIT License
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ */
 
 import type * as CSS from "../vendor/csstype";
 import { ClassAttributeValue } from "./class-attribute";
@@ -55,18 +62,7 @@ type BaseMime =
   | "model/gltf+json"
   | "model/gltf-binary";
 
-/**
- * String literal types with auto-completion
- * @see https://github.com/Microsoft/TypeScript/issues/29729
- */
 type StringLiteralUnion<T> = T | (string & Record<never, never>);
-
-/**
- * This code is based on React.
- * https://github.com/facebook/react
- * MIT License
- * Copyright (c) Meta Platforms, Inc. and affiliates.
- */
 
 export type CrossOrigin = "anonymous" | "use-credentials" | "" | undefined;
 export type CSSProperties = CSS.Properties<(string & {}) | number> & {
