@@ -184,3 +184,47 @@ test("Once accepts number and symbol keys", async () => {
   );
   expect(result).toBe("<div>Number keySymbol key</div>");
 });
+
+test("Once respects document order with async content", async () => {
+  let fastSecondHasRun = false;
+
+  const SlowFirst: Component = async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+    if (!fastSecondHasRun) {
+      throw new Error("SlowFirst isn't as slow as expected!");
+    }
+    return <Once key="async">Slow but first</Once>;
+  };
+
+  const FastSecond: Component = async () => {
+    await Promise.resolve();
+    fastSecondHasRun = true;
+    return <Once key="async">Fast but second</Once>;
+  };
+
+  const result = await render(
+    <div>
+      <SlowFirst />
+      <FastSecond />
+    </div>,
+  );
+
+  expect(result).toBe("<div>Slow but first</div>");
+});
+
+test("Once respects document order with mixed sync and async content", async () => {
+  const AsyncComponent: Component = async () => {
+    await Promise.resolve();
+    return <Once key="mixed">From async</Once>;
+  };
+
+  const result = await render(
+    <div>
+      <AsyncComponent />
+      <Once key="mixed">From sync</Once>
+    </div>,
+  );
+
+  expect(result).toBe("<div>From async</div>");
+});

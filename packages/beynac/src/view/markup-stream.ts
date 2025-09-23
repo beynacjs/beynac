@@ -2,7 +2,7 @@ import { arrayWrap } from "../utils";
 import { classAttribute, type ClassAttributeValue } from "./class-attribute";
 import { ContextImpl } from "./context";
 import { CSSProperties } from "./intrinsic-element-types";
-import { onceMapKey } from "./once";
+import { OnceMarker } from "./once";
 import type { JSXNode, RenderOptions } from "./public-types";
 import { RawContent } from "./raw";
 import { styleObjectToString } from "./style-attribute";
@@ -37,6 +37,7 @@ type FrameItem =
   | Promise<unknown>
   | ExpansionErrorInfo
   | Frame
+  | OnceMarker
   | null
   | undefined;
 
@@ -112,6 +113,132 @@ const createFrame = (
   index: 0,
 });
 
+const expandContent = (
+  content: JSXNode,
+  dest: FrameItem[],
+  destIndex: number,
+  context: ContextImpl,
+): void => {
+  if (typeof content === "function") {
+    const childContext = context.fork();
+    let result: JSXNode;
+    try {
+      result = content(childContext) as JSXNode;
+    } catch (error) {
+      dest[destIndex] = new ExpansionErrorInfo(error, "content-function-error");
+      return;
+    }
+
+    const handleResult = (resolved: JSXNode): void => {
+      expandContent(
+        resolved,
+        dest,
+        destIndex,
+        childContext.wasModified() ? childContext : context,
+      );
+    };
+
+    if (result instanceof Promise) {
+      // Place the promise in the array so render phase can wait on it
+      dest[destIndex] = result;
+      result.then(handleResult).catch((error) => {
+        dest[destIndex] = new ExpansionErrorInfo(
+          error,
+          "content-function-promise-rejection",
+        );
+      });
+    } else {
+      handleResult(result);
+    }
+  } else if (content instanceof Promise) {
+    // Place the promise in the array so render phase can wait on it
+    dest[destIndex] = content;
+    content
+      .then((resolved: JSXNode) => {
+        expandContent(resolved, dest, destIndex, context);
+      })
+      .catch((error) => {
+        dest[destIndex] = new ExpansionErrorInfo(
+          error,
+          "content-promise-error",
+        );
+      });
+  } else if (isAsyncIterable(content)) {
+    // Replace the async iterable with an array that will hold its results,
+    // growing as necessary. While we are consuming the iterable, the last
+    // item in the array will always be a promise. This ensures that the
+    // rendering phase will wait until we have finished consuming the
+    // iterable before proceeding.
+    const iterResult: FrameItem[] = [];
+    // Wrap in a Frame object
+    dest[destIndex] = createFrame(iterResult);
+    const iterator = content[Symbol.asyncIterator]();
+
+    const consumeNext = (): void => {
+      const nextPromise = iterator.next();
+      const promiseIndex = iterResult.length;
+
+      iterResult.push(nextPromise);
+
+      void nextPromise
+        .then(({ value, done }) => {
+          if (!done) {
+            expandContent(value, iterResult, promiseIndex, context);
+            consumeNext();
+          } else {
+            // if `done` then value is the return value of the generator
+            // function which we do not want to render.
+            iterResult[promiseIndex] = null;
+          }
+        })
+        .catch((error) => {
+          iterResult[promiseIndex] = new ExpansionErrorInfo(
+            error,
+            "async-iterator-error",
+          );
+        });
+    };
+
+    consumeNext();
+  } else if (content instanceof OnceMarker) {
+    dest[destIndex] = content;
+  } else if (content instanceof MarkupStream) {
+    const sourceContent = content.content || [];
+    const expandedContent: FrameItem[] = new Array<FrameItem>(
+      sourceContent.length,
+    );
+    for (let i = 0; i < sourceContent.length; i++) {
+      expandContent(sourceContent[i], expandedContent, i, context);
+    }
+
+    // Replace with pre-built Frame
+    dest[destIndex] = createFrame(
+      expandedContent,
+      content.tag,
+      content.displayName,
+      content.attributes,
+    );
+  } else if (Array.isArray(content)) {
+    const nestedDest: FrameItem[] = new Array<FrameItem>(content.length);
+    for (let i = 0; i < content.length; i++) {
+      expandContent(content[i] as JSXNode, nestedDest, i, context);
+    }
+    // Wrap array in a Frame object
+    dest[destIndex] = createFrame(nestedDest);
+  } else {
+    // Primitive value: convert to string or null
+    if (content != null && typeof content !== "boolean") {
+      if (content instanceof RawContent) {
+        dest[destIndex] = content.toString();
+      } else {
+        dest[destIndex] = escapeHtml(String(content));
+      }
+    } else {
+      dest[destIndex] = null;
+    }
+  }
+};
+
 function expandContentTree(content: JSXNode): Frame | null {
   if (content == null) return null;
 
@@ -119,134 +246,6 @@ function expandContentTree(content: JSXNode): Frame | null {
   const sourceArray = [...wrapped];
   const destArray: FrameItem[] = new Array<FrameItem>(sourceArray.length);
   const rootContext = new ContextImpl();
-  rootContext.set(onceMapKey, new Map());
-
-  const expandContent = (
-    content: JSXNode,
-    dest: FrameItem[],
-    destIndex: number,
-    context: ContextImpl,
-  ): void => {
-    if (typeof content === "function") {
-      const childContext = context.fork();
-      let result: JSXNode;
-      try {
-        result = content(childContext) as JSXNode;
-      } catch (error) {
-        dest[destIndex] = new ExpansionErrorInfo(
-          error,
-          "content-function-error",
-        );
-        return;
-      }
-
-      const handleResult = (resolved: JSXNode): void => {
-        expandContent(
-          resolved,
-          dest,
-          destIndex,
-          childContext.wasModified() ? childContext : context,
-        );
-      };
-
-      if (result instanceof Promise) {
-        // Place the promise in the array so render phase can wait on it
-        dest[destIndex] = result;
-        result.then(handleResult).catch((error) => {
-          dest[destIndex] = new ExpansionErrorInfo(
-            error,
-            "content-function-promise-rejection",
-          );
-        });
-      } else {
-        handleResult(result);
-      }
-    } else if (content instanceof Promise) {
-      // Place the promise in the array so render phase can wait on it
-      dest[destIndex] = content;
-      content
-        .then((resolved: JSXNode) => {
-          expandContent(resolved, dest, destIndex, context);
-        })
-        .catch((error) => {
-          dest[destIndex] = new ExpansionErrorInfo(
-            error,
-            "content-promise-error",
-          );
-        });
-    } else if (isAsyncIterable(content)) {
-      // Replace the async iterable with an array that will hold its results,
-      // growing as necessary. While we are consuming the iterable, the last
-      // item in the array will always be a promise. This ensures that the
-      // rendering phase will wait until we have finished consuming the
-      // iterable before proceeding.
-      const iterResult: FrameItem[] = [];
-      // Wrap in a Frame object
-      dest[destIndex] = createFrame(iterResult);
-      const iterator = content[Symbol.asyncIterator]();
-
-      const consumeNext = (): void => {
-        const nextPromise = iterator.next();
-        const promiseIndex = iterResult.length;
-
-        iterResult.push(nextPromise);
-
-        void nextPromise
-          .then(({ value, done }) => {
-            if (!done) {
-              expandContent(value, iterResult, promiseIndex, context);
-              consumeNext();
-            } else {
-              // if `done` then value is the return value of the generator
-              // function which we do not want to render.
-              iterResult[promiseIndex] = null;
-            }
-          })
-          .catch((error) => {
-            iterResult[promiseIndex] = new ExpansionErrorInfo(
-              error,
-              "async-iterator-error",
-            );
-          });
-      };
-
-      consumeNext();
-    } else if (content instanceof MarkupStream) {
-      const sourceContent = content.content || [];
-      const expandedContent: FrameItem[] = new Array<FrameItem>(
-        sourceContent.length,
-      );
-      for (let i = 0; i < sourceContent.length; i++) {
-        expandContent(sourceContent[i], expandedContent, i, context);
-      }
-
-      // Replace with pre-built Frame
-      dest[destIndex] = createFrame(
-        expandedContent,
-        content.tag,
-        content.displayName,
-        content.attributes,
-      );
-    } else if (Array.isArray(content)) {
-      const nestedDest: FrameItem[] = new Array<FrameItem>(content.length);
-      for (let i = 0; i < content.length; i++) {
-        expandContent(content[i] as JSXNode, nestedDest, i, context);
-      }
-      // Wrap array in a Frame object
-      dest[destIndex] = createFrame(nestedDest);
-    } else {
-      // Primitive value: convert to string or null
-      if (content != null && typeof content !== "boolean") {
-        if (content instanceof RawContent) {
-          dest[destIndex] = content.toString();
-        } else {
-          dest[destIndex] = escapeHtml(String(content));
-        }
-      } else {
-        dest[destIndex] = null;
-      }
-    }
-  };
 
   for (let i = 0; i < sourceArray.length; i++) {
     expandContent(sourceArray[i], destArray, i, rootContext);
@@ -341,6 +340,7 @@ export async function* renderStream(
 
   let buffer = "";
   const nodeStack: Frame[] = [];
+  const onceMap = new Map<string | number | symbol | bigint, true>();
 
   const renderOpeningTag = (
     tag: string,
@@ -457,6 +457,19 @@ export async function* renderStream(
 
     if (node instanceof ExpansionErrorInfo) {
       throw new RenderingError(node, nodeStack);
+    } else if (node instanceof OnceMarker) {
+      // Handle OnceMarker - check if this key has been rendered
+      if (!onceMap.has(node.key)) {
+        // First time seeing this key - mark it and expand the children
+        onceMap.set(node.key, true);
+        // We need to expand the children in place
+        const contextImpl = node.context;
+        expandContent(node.children, frame.content, frame.index, contextImpl);
+      } else {
+        // Already seen this key - skip it
+        frame.content[frame.index] = null;
+        frame.index++;
+      }
     } else if (node instanceof Promise) {
       // Yield current buffer before awaiting
       if (buffer) {
@@ -480,6 +493,11 @@ export async function* renderStream(
         "Unexpected function during render - expansion may have failed",
       );
     } else if (node && typeof node === "object" && !Array.isArray(node)) {
+      // Check if it's an OnceMarker first (must be before Frame check since OnceMarker is also an object)
+      if (node instanceof OnceMarker) {
+        // This case should have been handled above - but just in case
+        throw new Error("OnceMarker encountered in wrong location");
+      }
       // This is a pre-built Frame from expansion phase
       const frameNode = node;
       // Push frame onto stack before rendering (needed for error context)
