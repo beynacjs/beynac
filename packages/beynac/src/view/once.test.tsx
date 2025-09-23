@@ -1,6 +1,5 @@
 /** @jsxImportSource ./ */
 import { expect, test } from "bun:test";
-import { html } from "./html";
 import { render } from "./markup-stream";
 import { Once } from "./once";
 import type { Component } from "./public-types";
@@ -15,7 +14,7 @@ test("Once renders content the first time a key is encountered", async () => {
   expect(result).toBe("<div>FirstSecond</div>");
 });
 
-test("Once returns null when the same key is encountered again", async () => {
+test("Once renders nothing when the same key is encountered again", async () => {
   const result = await render(
     <div>
       <Once key="same">First appearance</Once>
@@ -43,16 +42,15 @@ test("Once works with complex children", async () => {
   const result = await render(
     <div>
       <Once key="complex">
-        <span>
-          <strong>Bold</strong> text
-        </span>
+        <strong>Bold</strong>
+        <i>Italic</i>
       </Once>
       <Once key="complex">
         <span>This should not appear</span>
       </Once>
     </div>,
   );
-  expect(result).toBe("<div><span><strong>Bold</strong> text</span></div>");
+  expect(result).toBe("<div><strong>Bold</strong><i>Italic</i></div>");
 });
 
 test("Once works within components", async () => {
@@ -80,29 +78,13 @@ test("Once works within components", async () => {
 test("Once with null or undefined children", async () => {
   const result = await render(
     <div>
-      <Once key="null">{null}</Once>
-      <Once key="undefined">{undefined}</Once>
-      <Once key="false">{false}</Once>
+      <Once key="1">{null}</Once>
+      <Once key="2">{undefined}</Once>
+      <Once key="3">{false}</Once>
       Text after
     </div>,
   );
   expect(result).toBe("<div>Text after</div>");
-});
-
-test("Once with arrays of children", async () => {
-  const result = await render(
-    <div>
-      <Once key="array">
-        {["Item 1", " ", "Item 2"].map((item) => (
-          <span>{item}</span>
-        ))}
-      </Once>
-      <Once key="array">Should not appear</Once>
-    </div>,
-  );
-  expect(result).toBe(
-    "<div><span>Item 1</span><span> </span><span>Item 2</span></div>",
-  );
 });
 
 test("Once persists state across nested components", async () => {
@@ -131,37 +113,6 @@ test("Once persists state across nested components", async () => {
   expect(result).toBe("<div>From A<span>A</span><span>B</span></div>");
 });
 
-test("Once uses source position as key when key prop is not provided", async () => {
-  const result = await render(
-    <div>
-      <Once>First occurrence without key</Once>
-      <Once>Second occurrence without key on different line</Once>
-    </div>,
-  );
-  // Both should render because they're on different lines
-  expect(result).toBe(
-    "<div>First occurrence without keySecond occurrence without key on different line</div>",
-  );
-});
-
-test("Once deduplicates when same source position in loop", async () => {
-  const items = [1, 2, 3];
-  const result = await render(
-    <div>
-      {items.map(() => (
-        <Once>Same position in loop</Once>
-      ))}
-    </div>,
-  );
-  // Should only render once because all iterations have the same source position
-  expect(result).toBe("<div>Same position in loop</div>");
-});
-
-test("Once deduplicates when different source positions on same line", async () => {
-  const result = await render(html`${(<Once>A</Once>)}${(<Once>B</Once>)}`);
-  expect(result).toBe("AB");
-});
-
 test("Once works across multiple renders", async () => {
   const Component1: Component = () => (
     <div>
@@ -181,4 +132,55 @@ test("Once works across multiple renders", async () => {
   expect(await render(jsx)).toBe(
     "<div><style>body { margin: 0; }</style><h1>Page 1</h1></div>",
   );
+});
+
+test("Once.createComponent() creates a component with no key prop", async () => {
+  const MyOnce = Once.createComponent("my-unique-key");
+
+  // @ts-expect-error key prop is not allowed
+  void (<MyOnce key={"ignored-key"} />);
+
+  const result = await render(
+    <div>
+      <MyOnce>First</MyOnce>
+      <MyOnce>Second</MyOnce>
+    </div>,
+  );
+  expect(result).toBe("<div>First</div>");
+});
+
+test("Once.createComponent() with no argument generates unique symbol", async () => {
+  const OnceA = Once.createComponent();
+  const OnceB = Once.createComponent();
+
+  const result = await render(
+    <div>
+      <OnceA>From A</OnceA>
+      <OnceB>From B</OnceB>
+      <OnceA>From A again</OnceA>
+      <OnceB>From B again</OnceB>
+    </div>,
+  );
+  expect(result).toBe("<div>From AFrom B</div>");
+});
+
+test("Once.createComponent() sets displayName", async () => {
+  const OnceWithKey = Once.createComponent("test-key");
+  expect(OnceWithKey.displayName).toBe("Once(test-key)");
+
+  const OnceWithSymbol = Once.createComponent();
+  expect(OnceWithSymbol.displayName).toMatch(/^Once\(once-\d+\)$/);
+});
+
+test("Once accepts number and symbol keys", async () => {
+  const symbolKey = Symbol("test");
+  const result = await render(
+    <div>
+      <Once key={1}>Number key</Once>
+      <Once key={symbolKey}>Symbol key</Once>
+      <Once key={1}>Duplicate number</Once>
+      <Once key={symbolKey}>Duplicate symbol</Once>
+    </div>,
+  );
+  expect(result).toBe("<div>Number keySymbol key</div>");
 });

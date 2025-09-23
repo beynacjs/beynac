@@ -34,9 +34,7 @@ export namespace JSX {
     [tagName: string]: Props;
   }
 
-  export interface IntrinsicAttributes {
-    key?: string | number | bigint | null | undefined;
-  }
+  export interface IntrinsicAttributes {}
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- we follow react in using any here
@@ -45,7 +43,6 @@ export type Props = Record<string, any>;
 export type Component<P = Props> = {
   (props: P, context: Context): JSX.Element | null;
   displayName?: string | undefined;
-  defaultKeyFromSourcePosition?: boolean;
 };
 
 export type PropsWithChildren<P = unknown> = P & {

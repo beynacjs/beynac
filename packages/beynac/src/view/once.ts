@@ -1,21 +1,22 @@
 import { createKey, type Key } from "../keys";
 import type { Component, PropsWithChildren } from "./public-types";
 
-const onceMapKey: Key<Map<string, true> | undefined> = createKey<
-  Map<string, true>
+type OnceKey = string | number | symbol | bigint;
+
+const onceMapKey: Key<Map<OnceKey, true> | undefined> = createKey<
+  Map<OnceKey, true>
 >({
   name: "OnceMap",
 });
 
-export const Once: Component<PropsWithChildren<{ key?: string }>> = (
-  { children, key },
-  ctx,
-) => {
-  const onceMap = ctx.get(onceMapKey)!;
+type OnceProps = PropsWithChildren<{ key: OnceKey }>;
 
-  if (!key) {
-    throw new Error("Once component requires a key prop");
-  }
+type OnceComponent = Component<OnceProps> & {
+  createComponent: (key?: OnceKey) => Component<PropsWithChildren>;
+};
+
+const OnceImpl: Component<OnceProps> = ({ children, key }, ctx) => {
+  const onceMap = ctx.get(onceMapKey)!;
 
   if (onceMap.has(key)) {
     return null;
@@ -24,6 +25,23 @@ export const Once: Component<PropsWithChildren<{ key?: string }>> = (
   onceMap.set(key, true);
   return children;
 };
-Once.defaultKeyFromSourcePosition = true;
+
+let anonOnceCounter = 0;
+
+const createComponent = (
+  key: OnceKey = Symbol(`once-${++anonOnceCounter}`),
+) => {
+  const component: Component<PropsWithChildren> = ({ children }, ctx) => {
+    return OnceImpl({ children, key }, ctx);
+  };
+  const name =
+    (typeof key === "symbol" ? key.description : String(key)) || "anonymous";
+  component.displayName = `Once(${name})`;
+  return component;
+};
+
+export const Once: OnceComponent = Object.assign(OnceImpl, {
+  createComponent,
+});
 
 export { onceMapKey };
