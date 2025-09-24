@@ -41,25 +41,17 @@ type FrameItem =
   | null
   | undefined;
 
-class Frame {
-  content: FrameItem[];
-  tag: string | null;
-  displayName: string | null;
-  attributes: Record<string, unknown> | null;
-  index: number;
+export class Frame {
+  index = 0;
   isStackQueue?: boolean;
   stack?: StackQueue;
 
   constructor(
-    content: FrameItem[],
-    tag: string | null = null,
-    displayName: string | null = null,
-    attributes: Record<string, unknown> | null = null,
+    public content: FrameItem[],
+    public tag: string | null = null,
+    public displayName: string | null = null,
+    public attributes: Record<string, unknown> | null = null,
   ) {
-    this.content = content;
-    this.tag = tag;
-    this.displayName = displayName;
-    this.attributes = attributes;
     this.index = 0;
   }
 }
@@ -109,7 +101,6 @@ export class RenderingError extends Error {
 
 const isAsyncIterable = (value: unknown): value is AsyncIterable<JSXNode> =>
   value != null && typeof value === "object" && Symbol.asyncIterator in value;
-
 
 const expandContent = (
   content: JSXNode,
@@ -283,7 +274,12 @@ async function startPushPhase(rootFrame: Frame, stackRenderContext: StackContext
           // First traverse into this frame to handle any nested Stack.Push nodes
           await handleFrame(frameItem);
           // Then push the frame's content to the queue - create a new frame without the stack property
-          const contentFrame = new Frame(frameItem.content, frameItem.tag, frameItem.displayName, frameItem.attributes);
+          const contentFrame = new Frame(
+            frameItem.content,
+            frameItem.tag,
+            frameItem.displayName,
+            frameItem.attributes,
+          );
           frameItem.stack.push(contentFrame);
         } else {
           // Continue traversing into regular frames
@@ -526,11 +522,10 @@ export async function* renderStream(
       // Handle StackQueue - consume it as an AsyncIterable
       const items: FrameItem[] = [];
       for await (const item of node) {
-        items.push(item as FrameItem);
+        items.push(item);
       }
       // Replace the StackQueue with the collected items
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises -- Promises in content are handled in render loop
-      frame.content.splice(frame.index, 1, ...items);
+      void frame.content.splice(frame.index, 1, ...items);
       // Don't increment index - we want to process the first inserted item
     } else if (node instanceof Frame) {
       // This is a pre-built Frame from expansion phase

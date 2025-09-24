@@ -1,4 +1,5 @@
 import { createKey, type Key } from "../keys";
+import type { Frame } from "./markup-stream";
 import type { Component, JSXNode, PropsWithChildren } from "./public-types";
 
 type CreateStackArgs = { displayName?: string };
@@ -71,9 +72,9 @@ export const stackRenderContextKey: Key<StackContext | undefined> = createKey<St
  * StackQueue provides an async iterable interface for streaming content.
  * Items can be pushed from the push phase and consumed from the render phase.
  */
-export class StackQueue implements AsyncIterable<unknown> {
-  #queue: unknown[] = [];
-  #waiter: ((value: unknown) => void) | null = null;
+export class StackQueue implements AsyncIterable<Frame> {
+  #queue: Frame[] = [];
+  #waiter: ((value: Frame | null) => void) | null = null;
   #completed = false;
   #used = false;
   #displayName: string;
@@ -82,7 +83,7 @@ export class StackQueue implements AsyncIterable<unknown> {
     this.#displayName = displayName;
   }
 
-  push(item: unknown): void {
+  push(item: Frame): void {
     if (this.#completed) {
       throw new Error("Cannot push to completed StackQueue");
     }
@@ -98,12 +99,12 @@ export class StackQueue implements AsyncIterable<unknown> {
   complete(): void {
     this.#completed = true;
     if (this.#waiter) {
-      this.#waiter(undefined);
+      this.#waiter(null);
       this.#waiter = null;
     }
   }
 
-  async *[Symbol.asyncIterator](): AsyncIterator<unknown> {
+  async *[Symbol.asyncIterator](): AsyncIterator<Frame> {
     if (this.#used) {
       throw new Error(
         `${this.#displayName}.Out can only be used once per render - probably you have multiple <${this.#displayName}.Out> components in the same document`,
@@ -124,9 +125,13 @@ export class StackQueue implements AsyncIterable<unknown> {
             `Internal error: multiple concurrent consumers of ${this.#displayName}.Out StackQueue`,
           );
         }
-        yield await new Promise<unknown>((resolve) => {
+        const result = await new Promise<Frame | null>((resolve) => {
           this.#waiter = resolve;
         });
+        if (result === null) {
+          return;
+        }
+        yield result;
       }
     }
   }
