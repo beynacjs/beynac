@@ -5,7 +5,7 @@ import { CSSProperties } from "./intrinsic-element-types";
 import { OnceMarker } from "./once";
 import type { JSXNode, RenderOptions } from "./public-types";
 import { RawContent } from "./raw";
-import { StackContext, StackPushMarker, StackQueue, stackRenderContextKey } from "./stack";
+import { isStackPushNode, StackContext, StackQueue, stackRenderContextKey } from "./stack";
 import { styleObjectToString } from "./style-attribute";
 
 /**
@@ -37,18 +37,32 @@ type FrameItem =
   | ExpansionErrorInfo
   | Frame
   | OnceMarker
-  | StackPushMarker
+  | StackQueue
   | null
   | undefined;
 
-type Frame = {
+class Frame {
   content: FrameItem[];
   tag: string | null;
   displayName: string | null;
   attributes: Record<string, unknown> | null;
   index: number;
   isStackQueue?: boolean;
-};
+  stack?: StackQueue;
+
+  constructor(
+    content: FrameItem[],
+    tag: string | null = null,
+    displayName: string | null = null,
+    attributes: Record<string, unknown> | null = null,
+  ) {
+    this.content = content;
+    this.tag = tag;
+    this.displayName = displayName;
+    this.attributes = attributes;
+    this.index = 0;
+  }
+}
 
 type ErrorKind =
   | "content-function-error"
@@ -96,22 +110,6 @@ export class RenderingError extends Error {
 const isAsyncIterable = (value: unknown): value is AsyncIterable<JSXNode> =>
   value != null && typeof value === "object" && Symbol.asyncIterator in value;
 
-/**
- * Creates a Frame object with the provided content and optional metadata.
- * Frames are the building blocks of the render tree.
- */
-const createFrame = (
-  content: FrameItem[],
-  tag: string | null = null,
-  displayName: string | null = null,
-  attributes: Record<string, unknown> | null = null,
-): Frame => ({
-  content,
-  tag,
-  displayName,
-  attributes,
-  index: 0,
-});
 
 const expandContent = (
   content: JSXNode,
@@ -153,14 +151,19 @@ const expandContent = (
         dest[destIndex] = new ExpansionErrorInfo(error, "content-promise-error");
       });
   } else if (isAsyncIterable(content)) {
+    // Check if this is a StackQueue - don't expand it, pass through for render phase
+    if (content instanceof StackQueue) {
+      dest[destIndex] = content;
+      return;
+    }
     // Replace the async iterable with an array that will hold its results,
     // growing as necessary. While we are consuming the iterable, the last
     // item in the array will always be a promise. This ensures that the
     // rendering phase will wait until we have finished consuming the
     // iterable before proceeding.
     const iterResult: FrameItem[] = [];
-    const frame = createFrame(iterResult);
-    frame.isStackQueue = content instanceof StackQueue;
+    const frame = new Frame(iterResult);
+    frame.isStackQueue = false;
     dest[destIndex] = frame;
     const iterator = content[Symbol.asyncIterator]();
 
@@ -189,9 +192,6 @@ const expandContent = (
     consumeNext();
   } else if (content instanceof OnceMarker) {
     dest[destIndex] = content;
-  } else if (content instanceof StackPushMarker) {
-    // Preserve StackPushMarker - don't expand
-    dest[destIndex] = content;
   } else if (content instanceof MarkupStream) {
     const sourceContent = content.content || [];
     const expandedContent: FrameItem[] = new Array<FrameItem>(sourceContent.length);
@@ -199,7 +199,7 @@ const expandContent = (
       expandContent(sourceContent[i], expandedContent, i, context);
     }
 
-    dest[destIndex] = createFrame(
+    dest[destIndex] = new Frame(
       expandedContent,
       content.tag,
       content.displayName,
@@ -210,7 +210,12 @@ const expandContent = (
     for (let i = 0; i < content.length; i++) {
       expandContent(content[i] as JSXNode, nestedDest, i, context);
     }
-    dest[destIndex] = createFrame(nestedDest);
+    const frame = new Frame(nestedDest);
+    // Check if this is a StackPushNode and transfer the stack property
+    if (isStackPushNode(content)) {
+      frame.stack = content.stack;
+    }
+    dest[destIndex] = frame;
   } else {
     // Primitive value: convert to string or null
     if (content != null && typeof content !== "boolean") {
@@ -233,7 +238,7 @@ function startExpandPhase(content: JSXNode, rootContext: ContextImpl): Frame | n
     expandContent(sourceArray[i], destArray, i, rootContext);
   }
 
-  return createFrame(destArray);
+  return new Frame(destArray);
 }
 
 const HTML_ESCAPE: Record<string, string> = {
@@ -271,12 +276,19 @@ async function startPushPhase(rootFrame: Frame, stackRenderContext: StackContext
         // Re-examine this slot after resolution, it may be replaced with another promise
         i--;
         continue;
-      } else if (item instanceof StackPushMarker) {
-        // This is a Stack.Push component - process it
-        const stackQueue = stackRenderContext.getQueue(item.stackIdentity);
-        stackQueue.push(item.children);
-      } else if (item && typeof item === "object" && "content" in item) {
-        await handleFrame(item);
+      } else if (item instanceof Frame) {
+        const frameItem = item;
+        // Check if this frame has a stack property (from StackPushNode)
+        if (frameItem.stack) {
+          // First traverse into this frame to handle any nested Stack.Push nodes
+          await handleFrame(frameItem);
+          // Then push the frame's content to the queue - create a new frame without the stack property
+          const contentFrame = new Frame(frameItem.content, frameItem.tag, frameItem.displayName, frameItem.attributes);
+          frameItem.stack.push(contentFrame);
+        } else {
+          // Continue traversing into regular frames
+          await handleFrame(frameItem);
+        }
       }
     }
   }
@@ -490,20 +502,6 @@ export async function* renderStream(
         frame.content[frame.index] = null;
         frame.index++;
       }
-    } else if (node instanceof StackPushMarker) {
-      for (let i = nodeStack.length - 1; i >= 0; i--) {
-        // Check if this StackPushMarker came from a stack's content
-        // This happens when someone incorrectly nests stacks like <OuterStack><InnerStack>...</InnerStack></OuterStack>
-        // We need to check if any parent frame is from a Stack's queue
-        if (nodeStack[i].isStackQueue) {
-          throw new Error(
-            "Cannot nest Stack components: a StackPush component cannot be pushed onto another stack. " +
-              "Stack components must be used separately, not nested within each other.",
-          );
-        }
-      }
-      // Otherwise, StackPushMarker is handled by push phase - skip in render phase
-      frame.index++;
     } else if (node instanceof Promise) {
       // Yield current buffer before awaiting
       if (buffer) {
@@ -524,14 +522,26 @@ export async function* renderStream(
       // This shouldn't happen - functions should be expanded already
       // But handle it just in case for robustness
       throw new Error("Unexpected function during render - expansion may have failed");
-    } else if (node && typeof node === "object" && !Array.isArray(node)) {
-      // Check if it's an OnceMarker first (must be before Frame check since OnceMarker is also an object)
-      if (node instanceof OnceMarker) {
-        // This case should have been handled above - but just in case
-        throw new Error("OnceMarker encountered in wrong location");
+    } else if (node instanceof StackQueue) {
+      // Handle StackQueue - consume it as an AsyncIterable
+      const items: FrameItem[] = [];
+      for await (const item of node) {
+        items.push(item as FrameItem);
       }
+      // Replace the StackQueue with the collected items
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises -- Promises in content are handled in render loop
+      frame.content.splice(frame.index, 1, ...items);
+      // Don't increment index - we want to process the first inserted item
+    } else if (node instanceof Frame) {
       // This is a pre-built Frame from expansion phase
       const frameNode = node;
+
+      // Check if this is a stack push frame - if so, skip it (already handled in push phase)
+      if (frameNode.stack) {
+        frame.index++;
+        continue;
+      }
+
       // Push frame onto stack before rendering (needed for error context)
       nodeStack.push(frameNode);
       // Render opening tag if present

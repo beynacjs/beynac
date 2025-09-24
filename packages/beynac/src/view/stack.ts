@@ -1,5 +1,4 @@
 import { createKey, type Key } from "../keys";
-import type { ContextImpl } from "./context";
 import type { Component, JSXNode, PropsWithChildren } from "./public-types";
 
 type CreateStackArgs = { displayName?: string };
@@ -67,21 +66,14 @@ export const stackRenderContextKey: Key<StackContext | undefined> = createKey<St
   displayName: "StackRenderContext",
 });
 
-export class StackPushMarker {
-  constructor(
-    public readonly stackIdentity: symbol,
-    public readonly children: JSXNode,
-    public readonly context: ContextImpl,
-  ) {}
-}
 
 /**
  * StackQueue provides an async iterable interface for streaming content.
  * Items can be pushed from the push phase and consumed from the render phase.
  */
-export class StackQueue implements AsyncIterable<JSXNode> {
-  #queue: JSXNode[] = [];
-  #waiter: ((value: JSXNode | null) => void) | null = null;
+export class StackQueue implements AsyncIterable<unknown> {
+  #queue: unknown[] = [];
+  #waiter: ((value: unknown) => void) | null = null;
   #completed = false;
   #used = false;
   #displayName: string;
@@ -90,7 +82,7 @@ export class StackQueue implements AsyncIterable<JSXNode> {
     this.#displayName = displayName;
   }
 
-  push(item: JSXNode): void {
+  push(item: unknown): void {
     if (this.#completed) {
       throw new Error("Cannot push to completed StackQueue");
     }
@@ -106,12 +98,12 @@ export class StackQueue implements AsyncIterable<JSXNode> {
   complete(): void {
     this.#completed = true;
     if (this.#waiter) {
-      this.#waiter(null);
+      this.#waiter(undefined);
       this.#waiter = null;
     }
   }
 
-  async *[Symbol.asyncIterator](): AsyncIterator<JSXNode> {
+  async *[Symbol.asyncIterator](): AsyncIterator<unknown> {
     if (this.#used) {
       throw new Error(
         `${this.#displayName}.Out can only be used once per render - probably you have multiple <${this.#displayName}.Out> components in the same document`,
@@ -132,7 +124,7 @@ export class StackQueue implements AsyncIterable<JSXNode> {
             `Internal error: multiple concurrent consumers of ${this.#displayName}.Out StackQueue`,
           );
         }
-        yield await new Promise<JSXNode | null>((resolve) => {
+        yield await new Promise<unknown>((resolve) => {
           this.#waiter = resolve;
         });
       }
