@@ -5,9 +5,8 @@ import { CSSProperties } from "./intrinsic-element-types";
 import { OnceMarker } from "./once";
 import type { JSXNode, RenderOptions } from "./public-types";
 import { RawContent } from "./raw";
+import { StackContext, StackPushMarker, StackQueue, stackRenderContextKey } from "./stack";
 import { styleObjectToString } from "./style-attribute";
-
-export type { RenderOptions } from "./public-types";
 
 /**
  * A MarkupStream represents an HTML/XML element with optional tag, attributes, and children.
@@ -38,6 +37,7 @@ type FrameItem =
   | ExpansionErrorInfo
   | Frame
   | OnceMarker
+  | StackPushMarker
   | null
   | undefined;
 
@@ -47,6 +47,7 @@ type Frame = {
   displayName: string | null;
   attributes: Record<string, unknown> | null;
   index: number;
+  isStackQueue?: boolean;
 };
 
 type ErrorKind =
@@ -80,8 +81,7 @@ export class RenderingError extends Error {
       }
     }
 
-    const errorDetail =
-      node.error instanceof Error ? node.error.message : String(node.error);
+    const errorDetail = node.error instanceof Error ? node.error.message : String(node.error);
     const stackTrace = componentStack.map((name) => `<${name}>`).join(" -> ");
     const message = `Rendering error: ${errorDetail}; Component stack: ${stackTrace}`;
 
@@ -130,22 +130,14 @@ const expandContent = (
     }
 
     const handleResult = (resolved: JSXNode): void => {
-      expandContent(
-        resolved,
-        dest,
-        destIndex,
-        childContext.wasModified() ? childContext : context,
-      );
+      expandContent(resolved, dest, destIndex, childContext.wasModified() ? childContext : context);
     };
 
     if (result instanceof Promise) {
       // Place the promise in the array so render phase can wait on it
       dest[destIndex] = result;
       result.then(handleResult).catch((error) => {
-        dest[destIndex] = new ExpansionErrorInfo(
-          error,
-          "content-function-promise-rejection",
-        );
+        dest[destIndex] = new ExpansionErrorInfo(error, "content-function-promise-rejection");
       });
     } else {
       handleResult(result);
@@ -158,10 +150,7 @@ const expandContent = (
         expandContent(resolved, dest, destIndex, context);
       })
       .catch((error) => {
-        dest[destIndex] = new ExpansionErrorInfo(
-          error,
-          "content-promise-error",
-        );
+        dest[destIndex] = new ExpansionErrorInfo(error, "content-promise-error");
       });
   } else if (isAsyncIterable(content)) {
     // Replace the async iterable with an array that will hold its results,
@@ -170,8 +159,9 @@ const expandContent = (
     // rendering phase will wait until we have finished consuming the
     // iterable before proceeding.
     const iterResult: FrameItem[] = [];
-    // Wrap in a Frame object
-    dest[destIndex] = createFrame(iterResult);
+    const frame = createFrame(iterResult);
+    frame.isStackQueue = content instanceof StackQueue;
+    dest[destIndex] = frame;
     const iterator = content[Symbol.asyncIterator]();
 
     const consumeNext = (): void => {
@@ -192,26 +182,23 @@ const expandContent = (
           }
         })
         .catch((error) => {
-          iterResult[promiseIndex] = new ExpansionErrorInfo(
-            error,
-            "async-iterator-error",
-          );
+          iterResult[promiseIndex] = new ExpansionErrorInfo(error, "async-iterator-error");
         });
     };
 
     consumeNext();
   } else if (content instanceof OnceMarker) {
     dest[destIndex] = content;
+  } else if (content instanceof StackPushMarker) {
+    // Preserve StackPushMarker - don't expand
+    dest[destIndex] = content;
   } else if (content instanceof MarkupStream) {
     const sourceContent = content.content || [];
-    const expandedContent: FrameItem[] = new Array<FrameItem>(
-      sourceContent.length,
-    );
+    const expandedContent: FrameItem[] = new Array<FrameItem>(sourceContent.length);
     for (let i = 0; i < sourceContent.length; i++) {
       expandContent(sourceContent[i], expandedContent, i, context);
     }
 
-    // Replace with pre-built Frame
     dest[destIndex] = createFrame(
       expandedContent,
       content.tag,
@@ -223,7 +210,6 @@ const expandContent = (
     for (let i = 0; i < content.length; i++) {
       expandContent(content[i] as JSXNode, nestedDest, i, context);
     }
-    // Wrap array in a Frame object
     dest[destIndex] = createFrame(nestedDest);
   } else {
     // Primitive value: convert to string or null
@@ -239,19 +225,14 @@ const expandContent = (
   }
 };
 
-function expandContentTree(content: JSXNode): Frame | null {
-  if (content == null) return null;
-
-  const wrapped = arrayWrap(content);
-  const sourceArray = [...wrapped];
-  const destArray: FrameItem[] = new Array<FrameItem>(sourceArray.length);
-  const rootContext = new ContextImpl();
+function startExpandPhase(content: JSXNode, rootContext: ContextImpl): Frame | null {
+  const sourceArray = arrayWrap(content);
+  const destArray = new Array<FrameItem>(sourceArray.length);
 
   for (let i = 0; i < sourceArray.length; i++) {
     expandContent(sourceArray[i], destArray, i, rootContext);
   }
 
-  // Return a root Frame containing the expanded content
   return createFrame(destArray);
 }
 
@@ -262,8 +243,48 @@ const HTML_ESCAPE: Record<string, string> = {
   '"': "&quot;",
 };
 
-const escapeHtml = (str: string) =>
-  str.replace(/[&<>"]/g, (ch) => HTML_ESCAPE[ch]);
+const escapeHtml = (str: string) => str.replace(/[&<>"]/g, (ch) => HTML_ESCAPE[ch]);
+
+/**
+ * Start the push phase that traverses the tree in document order, processing StackPushMarker nodes.
+ * This runs in parallel with the render phase to ensure content is available for streaming.
+ */
+async function startPushPhase(rootFrame: Frame, stackRenderContext: StackContext): Promise<void> {
+  async function handleFrame(frame: Frame): Promise<void> {
+    if (!frame.content) return;
+
+    // NOTE: must use a for loop with index as frame can grow while we're iterating
+    for (let i = 0; i < frame.content.length; i++) {
+      const item = frame.content[i];
+
+      if (item instanceof Promise) {
+        if (frame.isStackQueue) {
+          // This is a Stack.Out component that will not complete until the end
+          // of the push phase, so we can't wait on it or we'd deadlock.
+          continue;
+        }
+        try {
+          await item;
+        } catch {
+          // Error will be handled in render phase
+        }
+        // Re-examine this slot after resolution, it may be replaced with another promise
+        i--;
+        continue;
+      } else if (item instanceof StackPushMarker) {
+        // This is a Stack.Push component - process it
+        const stackQueue = stackRenderContext.getQueue(item.stackIdentity);
+        stackQueue.push(item.children);
+      } else if (item && typeof item === "object" && "content" in item) {
+        await handleFrame(item);
+      }
+    }
+  }
+
+  await handleFrame(rootFrame);
+
+  stackRenderContext.completeAll();
+}
 
 const emptyTags = new Set([
   "area",
@@ -332,11 +353,16 @@ export async function* renderStream(
   content: JSXNode,
   { mode = "html" }: RenderOptions = {},
 ): AsyncGenerator<string> {
-  const rootFrame = expandContentTree(content);
+  const rootContext = new ContextImpl();
 
-  if (!rootFrame) {
-    return;
-  }
+  const stackRenderContext = new StackContext();
+  rootContext.set(stackRenderContextKey, stackRenderContext);
+
+  const rootFrame = startExpandPhase(content, rootContext);
+
+  if (!rootFrame) return;
+
+  const pushPromise = startPushPhase(rootFrame, stackRenderContext);
 
   let buffer = "";
   const nodeStack: Frame[] = [];
@@ -379,10 +405,7 @@ export async function* renderStream(
           if (key === "style" && typeof value === "object" && value) {
             stringValue = styleObjectToString(value as CSSProperties);
             if (!stringValue) continue;
-          } else if (
-            key === "class" &&
-            (typeof value === "object" || Array.isArray(value))
-          ) {
+          } else if (key === "class" && (typeof value === "object" || Array.isArray(value))) {
             stringValue = classAttribute(value as ClassAttributeValue);
             if (!stringValue) continue;
           } else {
@@ -402,9 +425,7 @@ export async function* renderStream(
 
               throw new RenderingError(
                 new ExpansionErrorInfo(
-                  new Error(
-                    `Attribute "${key}" has an invalid value type: ${valueType}`,
-                  ),
+                  new Error(`Attribute "${key}" has an invalid value type: ${valueType}`),
                   "attribute-type-error",
                 ),
                 nodeStack,
@@ -435,8 +456,7 @@ export async function* renderStream(
     if (!frame.content || frame.index >= frame.content.length) {
       // Render closing tag if needed
       if (frame.tag) {
-        const needsClosing =
-          mode === "html" ? !emptyTags.has(frame.tag) : !!frame.content?.length;
+        const needsClosing = mode === "html" ? !emptyTags.has(frame.tag) : !!frame.content?.length;
 
         if (needsClosing) {
           buffer += "</";
@@ -470,6 +490,20 @@ export async function* renderStream(
         frame.content[frame.index] = null;
         frame.index++;
       }
+    } else if (node instanceof StackPushMarker) {
+      for (let i = nodeStack.length - 1; i >= 0; i--) {
+        // Check if this StackPushMarker came from a stack's content
+        // This happens when someone incorrectly nests stacks like <OuterStack><InnerStack>...</InnerStack></OuterStack>
+        // We need to check if any parent frame is from a Stack's queue
+        if (nodeStack[i].isStackQueue) {
+          throw new Error(
+            "Cannot nest Stack components: a StackPush component cannot be pushed onto another stack. " +
+              "Stack components must be used separately, not nested within each other.",
+          );
+        }
+      }
+      // Otherwise, StackPushMarker is handled by push phase - skip in render phase
+      frame.index++;
     } else if (node instanceof Promise) {
       // Yield current buffer before awaiting
       if (buffer) {
@@ -489,9 +523,7 @@ export async function* renderStream(
     } else if (typeof node === "function") {
       // This shouldn't happen - functions should be expanded already
       // But handle it just in case for robustness
-      throw new Error(
-        "Unexpected function during render - expansion may have failed",
-      );
+      throw new Error("Unexpected function during render - expansion may have failed");
     } else if (node && typeof node === "object" && !Array.isArray(node)) {
       // Check if it's an OnceMarker first (must be before Frame check since OnceMarker is also an object)
       if (node instanceof OnceMarker) {
@@ -507,14 +539,8 @@ export async function* renderStream(
         const selfClosing = mode === "xml" && !frameNode.content?.length;
         renderOpeningTag(frameNode.tag, frameNode.attributes, selfClosing);
         // Check for void elements with children
-        if (
-          mode === "html" &&
-          emptyTags.has(frameNode.tag) &&
-          frameNode.content?.length
-        ) {
-          throw new Error(
-            `<${frameNode.tag}> is a void element and must not have children`,
-          );
+        if (mode === "html" && emptyTags.has(frameNode.tag) && frameNode.content?.length) {
+          throw new Error(`<${frameNode.tag}> is a void element and must not have children`);
         }
       }
     } else if (typeof node === "string") {
@@ -534,6 +560,9 @@ export async function* renderStream(
   if (buffer) {
     yield buffer;
   }
+
+  // Wait for push phase to complete (it will signal stacks)
+  await pushPromise;
 }
 
 /**
@@ -550,10 +579,7 @@ export async function* renderStream(
  * console.log(html); // "<div>Hello World</div>"
  * ```
  */
-export async function render(
-  content: JSXNode,
-  options?: RenderOptions,
-): Promise<string> {
+export async function render(content: JSXNode, options?: RenderOptions): Promise<string> {
   let result = "";
   for await (const chunk of renderStream(content, options)) {
     result += chunk;

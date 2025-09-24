@@ -39,11 +39,12 @@ test("Once works with different keys", async () => {
 });
 
 test("Once works with complex children", async () => {
+  const Component = async () => <i>Italic</i>;
   const result = await render(
     <div>
       <Once key="complex">
         <strong>Bold</strong>
-        <i>Italic</i>
+        <Component />
       </Once>
       <Once key="complex">
         <span>This should not appear</span>
@@ -125,13 +126,9 @@ test("Once works across multiple renders", async () => {
 
   const jsx = <Component1 />;
 
-  expect(await render(jsx)).toBe(
-    "<div><style>body { margin: 0; }</style><h1>Page 1</h1></div>",
-  );
+  expect(await render(jsx)).toBe("<div><style>body { margin: 0; }</style><h1>Page 1</h1></div>");
 
-  expect(await render(jsx)).toBe(
-    "<div><style>body { margin: 0; }</style><h1>Page 1</h1></div>",
-  );
+  expect(await render(jsx)).toBe("<div><style>body { margin: 0; }</style><h1>Page 1</h1></div>");
 });
 
 test("Once.createComponent() creates a component with no key prop", async () => {

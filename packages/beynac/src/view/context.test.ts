@@ -8,21 +8,21 @@ describe("Context", () => {
   describe("basic operations", () => {
     test("get returns null for non-existent key", () => {
       const ctx = new ContextImpl();
-      const testKey = createKey<string>({ name: "test" });
+      const testKey = createKey<string>({ displayName: "test" });
       expect(ctx.get(testKey)).toBeNull();
     });
 
     test("set and get work correctly", () => {
       const ctx = new ContextImpl();
-      const testKey = createKey<string>({ name: "test" });
+      const testKey = createKey<string>({ displayName: "test" });
       ctx.set(testKey, "value");
       expect(ctx.get(testKey)).toBe("value");
     });
 
     test("get returns from local values after set is called", () => {
       const ctx = new ContextImpl();
-      const key1 = createKey<string>({ name: "first" });
-      const key2 = createKey<string>({ name: "second" });
+      const key1 = createKey<string>({ displayName: "first" });
+      const key2 = createKey<string>({ displayName: "second" });
 
       // Set initial value
       ctx.set(key1, "initial");
@@ -43,7 +43,7 @@ describe("Context", () => {
   describe("fork behavior", () => {
     test("fork creates independent child contexts", () => {
       const ctx = new ContextImpl();
-      const testKey = createKey<string>({ name: "test" });
+      const testKey = createKey<string>({ displayName: "test" });
 
       // Parent sets a value
       ctx.set(testKey, "parent");
@@ -67,8 +67,8 @@ describe("Context", () => {
 
     test("fork inherits parent values", () => {
       const parent = new ContextImpl();
-      const key1 = createKey<string>({ name: "key1" });
-      const key2 = createKey<number>({ name: "key2" });
+      const key1 = createKey<string>({ displayName: "key1" });
+      const key2 = createKey<number>({ displayName: "key2" });
 
       parent.set(key1, "value1");
       parent.set(key2, 42);
@@ -81,7 +81,7 @@ describe("Context", () => {
 
     test("child values override parent values", () => {
       const parent = new ContextImpl();
-      const testKey = createKey<string>({ name: "test" });
+      const testKey = createKey<string>({ displayName: "test" });
 
       parent.set(testKey, "parent");
 
@@ -95,7 +95,7 @@ describe("Context", () => {
 
     test("wasModified tracks modifications", () => {
       const ctx = new ContextImpl();
-      const testKey = createKey<string>({ name: "test" });
+      const testKey = createKey<string>({ displayName: "test" });
 
       expect(ctx.wasModified()).toBe(false);
 
@@ -114,7 +114,7 @@ describe("Context", () => {
     test("returns default when key not set", () => {
       const ctx = new ContextImpl();
       const keyWithDefault = createKey<string>({
-        name: "test",
+        displayName: "test",
         default: "defaultValue",
       });
       const result = ctx.get(keyWithDefault);
@@ -124,7 +124,7 @@ describe("Context", () => {
     test("returns set value over default", () => {
       const ctx = new ContextImpl();
       const keyWithDefault = createKey({
-        name: "test",
+        displayName: "test",
         default: "defaultValue",
       });
       ctx.set(keyWithDefault, "setValue");
@@ -134,7 +134,7 @@ describe("Context", () => {
 
     test("returns null for key without default", () => {
       const ctx = new ContextImpl();
-      const keyWithoutDefault = createKey<string>({ name: "test" });
+      const keyWithoutDefault = createKey<string>({ displayName: "test" });
       const result = ctx.get(keyWithoutDefault);
       expect(result).toBeNull();
     });
@@ -142,7 +142,7 @@ describe("Context", () => {
     test("default with null value", () => {
       const ctx = new ContextImpl();
       const keyWithNullDefault = createKey<string | null>({
-        name: "test",
+        displayName: "test",
         default: null,
       });
       const result = ctx.get(keyWithNullDefault);
@@ -152,7 +152,7 @@ describe("Context", () => {
     test("undefined default returns null (same as no default)", () => {
       const ctx = new ContextImpl();
       const keyWithUndefinedDefault = createKey<string | undefined>({
-        name: "test",
+        displayName: "test",
         default: undefined,
       });
       // With current keys.ts, undefined default is same as no default - returns null
@@ -165,7 +165,7 @@ describe("Context", () => {
       const child = parent.fork();
 
       const keyWithDefault = createKey({
-        name: "test",
+        displayName: "test",
         default: "defaultValue",
       });
 
@@ -187,7 +187,7 @@ describe("Context", () => {
 
     test("String key with default is nullable when got", () => {
       const keyWithDefault = createKey<string>({
-        name: "test",
+        displayName: "test",
         default: "default",
       });
       const result1 = ctx.get(keyWithDefault);
@@ -195,7 +195,7 @@ describe("Context", () => {
     });
 
     test("compile-time type checking for defaults", () => {
-      const keyWithoutDefault = createKey<string>({ name: "test2" });
+      const keyWithoutDefault = createKey<string>({ displayName: "test2" });
       const result2 = ctx.get(keyWithoutDefault);
       expectTypeOf(result2).toEqualTypeOf<string | null>();
     });
@@ -211,7 +211,7 @@ describe("Context", () => {
     };
 
     test("only creates new context levels when functions modify context", async () => {
-      const key1 = createKey<string>({ name: "key1" });
+      const key1 = createKey<string>({ displayName: "key1" });
 
       const stream = new MarkupStream(null, null, (ctx1) => {
         // Function 1: modifies
@@ -251,7 +251,7 @@ describe("Context", () => {
     });
 
     test("context level optimization with async functions", async () => {
-      const key1 = createKey<string>({ name: "async-key1" });
+      const key1 = createKey<string>({ displayName: "async-key1" });
 
       const stream = new MarkupStream(null, null, async (ctx1) => {
         // Function 1: async, modifies after await

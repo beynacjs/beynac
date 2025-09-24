@@ -757,7 +757,7 @@ describe("function content", () => {
 
 describe("context handling", () => {
   test("context propagates to children", async () => {
-    const testKey = createKey<string>({ name: "test" });
+    const testKey = createKey<string>({ displayName: "test" });
     const stream = new MarkupStream("div", null, [
       (ctx) => {
         ctx.set(testKey, "parent");
@@ -770,7 +770,7 @@ describe("context handling", () => {
   });
 
   test("context changes don't affect siblings", async () => {
-    const testKey = createKey<string>({ name: "test" });
+    const testKey = createKey<string>({ displayName: "test" });
     const stream = new MarkupStream("div", null, [
       (ctx) => {
         ctx.set(testKey, "first");
@@ -782,7 +782,7 @@ describe("context handling", () => {
   });
 
   test("nested context overrides", async () => {
-    const testKey = createKey<string>({ name: "test" });
+    const testKey = createKey<string>({ displayName: "test" });
     const stream = new MarkupStream("div", null, [
       (ctx) => {
         ctx.set(testKey, "parent");
@@ -812,7 +812,7 @@ describe("context handling", () => {
   });
 
   test("context propagates through arrays", async () => {
-    const testKey = createKey<number>({ name: "count" });
+    const testKey = createKey<number>({ displayName: "count" });
     const stream = new MarkupStream("div", null, [
       (ctx) => {
         ctx.set(testKey, 1);
@@ -827,7 +827,7 @@ describe("context handling", () => {
   });
 
   test("context propagates through nested MarkupStreams", async () => {
-    const testKey = createKey<string>({ name: "theme" });
+    const testKey = createKey<string>({ displayName: "theme" });
     const stream = new MarkupStream("div", null, [
       (ctx) => {
         ctx.set(testKey, "dark");
@@ -842,7 +842,7 @@ describe("context handling", () => {
   });
 
   test("context propagates through async functions", async () => {
-    const testKey = createKey<string>({ name: "async" });
+    const testKey = createKey<string>({ displayName: "async" });
     const stream = new MarkupStream("div", null, [
       (ctx) => {
         ctx.set(testKey, "async-value");
@@ -854,7 +854,7 @@ describe("context handling", () => {
   });
 
   test("complex: function → promise → function → content", async () => {
-    const testKey = createKey<string>({ name: "complex" });
+    const testKey = createKey<string>({ displayName: "complex" });
     const complexContent = (ctx: Context) => {
       ctx.set(testKey, "level1");
       return Promise.resolve((ctx: Context) => {
@@ -874,7 +874,7 @@ describe("context handling", () => {
   });
 
   test("even more complex: function → promise → function → promise → function", async () => {
-    const testKey = createKey<string>({ name: "chain" });
+    const testKey = createKey<string>({ displayName: "chain" });
     const veryComplex = (ctx: Context) => {
       ctx.set(testKey, "level1");
       return Promise.resolve((ctx: Context) => {
@@ -895,8 +895,8 @@ describe("context handling", () => {
   });
 
   test("context isolation between parallel siblings", async () => {
-    const key1 = createKey<string>({ name: "key1" });
-    const key2 = createKey<string>({ name: "key2" });
+    const key1 = createKey<string>({ displayName: "key1" });
+    const key2 = createKey<string>({ displayName: "key2" });
 
     const stream = new MarkupStream("div", null, [
       (ctx) => {
@@ -916,7 +916,7 @@ describe("context handling", () => {
   });
 
   test("multiple functions with shared context propagation", async () => {
-    const counterKey = createKey<number>({ name: "counter" });
+    const counterKey = createKey<number>({ displayName: "counter" });
 
     const incrementer = (ctx: Context) => {
       const current = ctx.get(counterKey) || 0;

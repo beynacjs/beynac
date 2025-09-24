@@ -1,10 +1,6 @@
 import { createKey, type Key } from "../keys";
 import type { ContextImpl } from "./context";
-import type {
-  Component,
-  JSXNode,
-  PropsWithChildren,
-} from "./public-types";
+import type { Component, JSXNode, PropsWithChildren } from "./public-types";
 
 type OnceKey = string | number | symbol | bigint;
 
@@ -19,7 +15,7 @@ export class OnceMarker {
 const onceMapKey: Key<Map<OnceKey, true> | undefined> = createKey<
   Map<OnceKey, true>
 >({
-  name: "OnceMap",
+  displayName: "OnceMap",
 });
 
 type OnceProps = PropsWithChildren<{ key: OnceKey }>;

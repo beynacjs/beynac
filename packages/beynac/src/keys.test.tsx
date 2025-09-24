@@ -10,7 +10,7 @@ describe("keys", () => {
   });
 
   it("key() with just name infers Key<unknown>", () => {
-    const k = createKey({ name: "myKey" });
+    const k = createKey({ displayName: "myKey" });
     expectTypeOf(k).toEqualTypeOf<Key<unknown>>();
   });
 
@@ -18,7 +18,7 @@ describe("keys", () => {
     const k1 = createKey({ default: 4 });
     expectTypeOf(k1).toEqualTypeOf<Key<number>>();
 
-    const k2 = createKey({ name: "myKey", default: "hello" });
+    const k2 = createKey({ displayName: "myKey", default: "hello" });
     expectTypeOf(k2).toEqualTypeOf<Key<string>>();
 
     const k3 = createKey({ default: true });
@@ -32,7 +32,7 @@ describe("keys", () => {
     const k1 = createKey<string>();
     expectTypeOf(k1).toEqualTypeOf<Key<string | undefined>>();
 
-    const k2 = createKey<string>({ name: "myKey" });
+    const k2 = createKey<string>({ displayName: "myKey" });
     expectTypeOf(k2).toEqualTypeOf<Key<string | undefined>>();
 
     const k3 = createKey<number | null>();
@@ -43,7 +43,7 @@ describe("keys", () => {
     const k1 = createKey<string>({ default: "hello" });
     expectTypeOf(k1).toEqualTypeOf<Key<string>>();
 
-    const k2 = createKey<number>({ name: "port", default: 3000 });
+    const k2 = createKey<number>({ displayName: "port", default: 3000 });
     expectTypeOf(k2).toEqualTypeOf<Key<number>>();
   });
 
