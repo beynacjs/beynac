@@ -342,25 +342,26 @@ test("StackOut pushed onto a stack - edge case", async () => {
   expect(result).toBe("<div>content</div>");
 });
 
-test("StackPush pushed onto a stack throws error", async () => {
+test("StackPush pushed onto a stack works correctly", async () => {
   const OuterStack = createStack();
   const InnerStack = createStack();
 
-  // Pushing a StackPush component onto another stack should throw an error
-  // This is not a supported pattern and we want to fail loudly
-  expect(
-    render(
-      <div>
-        <OuterStack.Push>
-          {async () => {
-            return <InnerStack.Push>nested content</InnerStack.Push>;
-          }}
-        </OuterStack.Push>
-        <OuterStack.Out />
-        <InnerStack.Out />
-      </div>,
-    ),
-  ).rejects.toThrow(/Cannot nest Stack components/);
+  // Nested stacks should now work correctly
+  const result = await render(
+    <div>
+      <OuterStack.Push>
+        {async () => {
+          return <InnerStack.Push>nested content</InnerStack.Push>;
+        }}
+      </OuterStack.Push>
+      <OuterStack.Out />
+      <InnerStack.Out />
+    </div>,
+  );
+
+  // The inner stack content should appear at InnerStack.Out
+  // The outer stack should be empty (it contained only a Stack.Push which was processed)
+  expect(result).toBe("<div>nested content</div>");
 });
 
 test("Stacks maintain independent state and can render concurrently", async () => {

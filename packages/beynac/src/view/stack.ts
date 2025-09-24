@@ -27,7 +27,9 @@ export function createStack({ displayName = "Stack" }: CreateStackArgs = {}): {
   const stackIdentity = Symbol(displayName);
 
   const Push: Component<PropsWithChildren> = ({ children }, ctx) => {
-    return new StackPushMarker(stackIdentity, children, ctx as ContextImpl);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- always present, added at root of render phase
+    const queue = ctx.get(stackRenderContextKey)!.getQueue(stackIdentity);
+    return toStackPushNode(children, queue);
   };
 
   Push.displayName = `${displayName}.Push`;
@@ -137,3 +139,11 @@ export class StackQueue implements AsyncIterable<JSXNode> {
     }
   }
 }
+
+type StackPushNode = JSXNode[] & { stack: StackQueue };
+
+export const isStackPushNode = (node: JSXNode): node is StackPushNode =>
+  Array.isArray(node) && "stack" in node && node.stack instanceof StackQueue;
+
+const toStackPushNode = (node: JSXNode, stack: StackQueue): StackPushNode =>
+  Object.assign([node], { stack });
