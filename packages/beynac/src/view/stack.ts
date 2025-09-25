@@ -40,9 +40,9 @@ export function createStack({ displayName = "Stack" }: CreateStackArgs = {}): {
 export type StackPushNode = JSXNode[] & { stackPush: symbol };
 
 export const isStackPushNode = (node: JSXNode): node is StackPushNode =>
-  Array.isArray(node) && "stackPush" in node && typeof node.stackPush === "symbol";
+  typeof (node as StackPushNode)?.stackPush === "symbol";
 
 export type StackOutNode = JSXNode[] & { stackOut: symbol };
 
 export const isStackOutNode = (node: JSXNode): node is StackOutNode =>
-  Array.isArray(node) && "stackOut" in node && typeof node.stackOut === "symbol";
+  typeof (node as StackOutNode)?.stackOut === "symbol";

@@ -94,11 +94,10 @@ class StreamBuffer {
   // Stack handling state
   private activeRedirect: symbol | null = null; // Currently active redirect
   private parentRedirects: symbol[] = []; // Stack of parent redirects for nesting
-  private stackBuffers: Map<symbol, string> = new Map(); // Buffered content per stack
-  private stackOutPositions: Map<symbol, string> = new Map(); // Markers for where Stack.Out appears
+  private stackBuffers: Map<symbol, Array<string | string[]>> = new Map(); // Buffered content per stack
   private redirectsEmitted = new Set<symbol>(); // Track if Stack.Out used (for error)
   private hasRedirectEmit = false; // True after first Stack.Out encountered
-  private deferredChunks: string[] = []; // Chunks to yield at end when hasStackOut is true
+  private deferredChunks: Array<string | string[]> = []; // Chunks to yield at end when hasStackOut is true
 
   add(content: string): void {
     this.buffer += content;
@@ -113,9 +112,11 @@ class StreamBuffer {
 
     // Route the chunk based on current state
     if (this.activeRedirect) {
-      // Append to the active stack buffer
-      const existing = this.stackBuffers.get(this.activeRedirect) || "";
-      this.stackBuffers.set(this.activeRedirect, existing + chunk);
+      // Push to the active stack buffer array
+      const bufferArray = this.stackBuffers.get(this.activeRedirect);
+      if (bufferArray) {
+        bufferArray.push(chunk);
+      }
     } else if (this.hasRedirectEmit) {
       // In deferred mode, store chunks for later
       this.deferredChunks.push(chunk);
@@ -133,32 +134,28 @@ class StreamBuffer {
   complete(): void {
     this.yield();
 
-    // First, replace markers in stack buffers themselves (for nested stacks)
-    for (const [bufferSymbol, bufferContent] of this.stackBuffers) {
-      let processedContent = bufferContent;
-      for (const [stackSymbol, marker] of this.stackOutPositions) {
-        const stackContent = this.stackBuffers.get(stackSymbol) || "";
-        processedContent = processedContent.replace(marker, stackContent);
+    // Helper function to recursively flatten arrays
+    const flattenItem = (item: string | string[]): void => {
+      if (typeof item === "string") {
+        // Regular string chunk
+        if (this.resolver) {
+          this.resolver({ done: false, chunk: item });
+          this.resolver = null;
+        } else {
+          this.pending.push(item);
+        }
+      } else if (Array.isArray(item)) {
+        // Array of chunks - recursively flatten
+        for (const subItem of item) {
+          flattenItem(subItem);
+        }
       }
-      this.stackBuffers.set(bufferSymbol, processedContent);
-    }
+    };
 
     // Flush all deferred chunks if we were in deferred mode
     if (this.hasRedirectEmit) {
-      for (const chunk of this.deferredChunks) {
-        // Replace stack markers with actual content
-        let processedChunk = chunk;
-        for (const [stackSymbol, marker] of this.stackOutPositions) {
-          const stackContent = this.stackBuffers.get(stackSymbol) || "";
-          processedChunk = processedChunk.replace(marker, stackContent);
-        }
-
-        if (this.resolver) {
-          this.resolver({ done: false, chunk: processedChunk });
-          this.resolver = null;
-        } else {
-          this.pending.push(processedChunk);
-        }
+      for (const item of this.deferredChunks) {
+        flattenItem(item);
       }
     }
 
@@ -189,9 +186,9 @@ class StreamBuffer {
       this.parentRedirects.push(this.activeRedirect);
     }
     this.activeRedirect = stackSymbol;
-    // Initialize stack buffer if needed
+    // Initialize stack buffer array if needed
     if (!this.stackBuffers.has(stackSymbol)) {
-      this.stackBuffers.set(stackSymbol, "");
+      this.stackBuffers.set(stackSymbol, []);
     }
   }
 
@@ -210,20 +207,31 @@ class StreamBuffer {
     }
     this.redirectsEmitted.add(stackSymbol);
 
-    // Enable deferred mode on first Stack.Out
-    if (!this.hasRedirectEmit) {
-      this.hasRedirectEmit = true;
-      // Flush any pending content to deferred chunks
-      if (this.buffer) {
-        this.deferredChunks.push(this.buffer);
-        this.buffer = "";
-      }
+    // Yield current buffer first
+    this.yield();
+
+    // Get or create the stack buffer array for this symbol
+    let stackArray = this.stackBuffers.get(stackSymbol);
+    if (!stackArray) {
+      stackArray = [];
+      this.stackBuffers.set(stackSymbol, stackArray);
     }
 
-    // Create a unique marker for this Stack.Out position
-    const marker = `__STACK_OUT_${Math.random().toString(36).slice(2)}_${stackSymbol.description || ""}__`;
-    this.stackOutPositions.set(stackSymbol, marker);
-    this.add(marker);
+    // Push the array reference to the appropriate destination
+    if (this.activeRedirect) {
+      // We're inside another stack redirect, add to that stack's buffer
+      const parentBuffer = this.stackBuffers.get(this.activeRedirect);
+      if (parentBuffer) {
+        parentBuffer.push(stackArray);
+      }
+    } else {
+      // Enable deferred mode on first top-level Stack.Out
+      if (!this.hasRedirectEmit) {
+        this.hasRedirectEmit = true;
+      }
+      // Add to deferred chunks
+      this.deferredChunks.push(stackArray);
+    }
   }
 
   async *stream(): AsyncGenerator<string> {
@@ -321,23 +329,23 @@ async function renderNode(
   componentStack: string[],
 ): Promise<void> {
   if (node == null || typeof node === "boolean") return;
-  if (typeof node === "string" || typeof node === "number") {
-    buf.add(escapeHtml(String(node)));
-  } else if (node instanceof RawContent) {
+  if (node instanceof RawContent) {
     buf.add(node.toString());
-  } else if (isStackPushNode(node)) {
-    // Handle Stack.Push: redirect content to stack buffer
-    buf.beginStackRedirect(node.stackPush);
-    for (const item of node) {
-      await renderNode(item, buf, context, mode, componentStack);
-    }
-    buf.endStackRedirect();
-  } else if (isStackOutNode(node)) {
-    // Handle Stack.Out: render buffered stack content
-    buf.handleStackOut(node.stackOut);
   } else if (Array.isArray(node)) {
-    for (const item of node) {
-      await renderNode(item as JSXNode, buf, context, mode, componentStack);
+    if (isStackPushNode(node)) {
+      // Handle Stack.Push: redirect content to stack buffer
+      buf.beginStackRedirect(node.stackPush);
+      for (const item of node) {
+        await renderNode(item, buf, context, mode, componentStack);
+      }
+      buf.endStackRedirect();
+    } else if (isStackOutNode(node)) {
+      // Handle Stack.Out: render buffered stack content
+      buf.handleStackOut(node.stackOut);
+    } else {
+      for (const item of node) {
+        await renderNode(item as JSXNode, buf, context, mode, componentStack);
+      }
     }
   } else if (typeof node === "function") {
     try {
@@ -375,6 +383,8 @@ async function renderNode(
     }
   } else if (node instanceof MarkupStream) {
     await renderMarkupStream(node, buf, context, mode, componentStack);
+  } else {
+    buf.add(escapeHtml(String(node)));
   }
 }
 
