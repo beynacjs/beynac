@@ -4,6 +4,7 @@ import { ContextImpl } from "./context";
 import { CSSProperties } from "./intrinsic-element-types";
 import type { JSXNode, RenderOptions } from "./public-types";
 import { RawContent } from "./raw";
+import { isStackOutNode, isStackPushNode } from "./stack";
 import { styleObjectToString } from "./style-attribute";
 
 /**
@@ -90,26 +91,81 @@ class StreamBuffer {
   private completed = false;
   private errorValue: Error | null = null;
 
+  // Stack handling state
+  private stackRedirects: symbol[] = []; // Stack of active redirects
+  private stackBuffers: Map<symbol, string> = new Map(); // Buffered content per stack
+  private stackOutPositions: Map<symbol, string> = new Map(); // Markers for where Stack.Out appears
+  private stackOutUsage: Map<symbol, boolean> = new Map(); // Track if Stack.Out used (for error)
+  private hasStackOut = false; // True after first Stack.Out encountered
+  private deferredChunks: string[] = []; // Chunks to yield at end when hasStackOut is true
+
   add(content: string): void {
-    this.buffer += content;
+    if (this.stackRedirects.length > 0) {
+      // Redirect to the current stack buffer
+      const currentStack = this.stackRedirects[this.stackRedirects.length - 1];
+      const existing = this.stackBuffers.get(currentStack) || "";
+      this.stackBuffers.set(currentStack, existing + content);
+    } else {
+      this.buffer += content;
+    }
   }
 
   yield(): void {
-    if (this.buffer) {
-      const chunk = this.buffer;
-      this.buffer = "";
+    if (this.hasStackOut) {
+      // In deferred mode, store chunks for later
+      if (this.buffer) {
+        this.deferredChunks.push(this.buffer);
+        this.buffer = "";
+      }
+    } else if (this.stackRedirects.length === 0) {
+      // Normal yield only when not redirecting
+      if (this.buffer) {
+        const chunk = this.buffer;
+        this.buffer = "";
 
-      if (this.resolver) {
-        this.resolver({ done: false, chunk });
-        this.resolver = null;
-      } else {
-        this.pending.push(chunk);
+        if (this.resolver) {
+          this.resolver({ done: false, chunk });
+          this.resolver = null;
+        } else {
+          this.pending.push(chunk);
+        }
       }
     }
+    // When redirecting, don't yield (content goes to stack buffer)
   }
 
   complete(): void {
     this.yield();
+
+    // First, replace markers in stack buffers themselves (for nested stacks)
+    for (const [bufferSymbol, bufferContent] of this.stackBuffers) {
+      let processedContent = bufferContent;
+      for (const [stackSymbol, marker] of this.stackOutPositions) {
+        const stackContent = this.stackBuffers.get(stackSymbol) || "";
+        processedContent = processedContent.replace(marker, stackContent);
+      }
+      this.stackBuffers.set(bufferSymbol, processedContent);
+    }
+
+    // Flush all deferred chunks if we were in deferred mode
+    if (this.hasStackOut) {
+      for (const chunk of this.deferredChunks) {
+        // Replace stack markers with actual content
+        let processedChunk = chunk;
+        for (const [stackSymbol, marker] of this.stackOutPositions) {
+          const stackContent = this.stackBuffers.get(stackSymbol) || "";
+          processedChunk = processedChunk.replace(marker, stackContent);
+        }
+
+        if (this.resolver) {
+          this.resolver({ done: false, chunk: processedChunk });
+          this.resolver = null;
+        } else {
+          this.pending.push(processedChunk);
+        }
+      }
+    }
+
     this.completed = true;
 
     if (this.resolver) {
@@ -126,6 +182,49 @@ class StreamBuffer {
       this.resolver({ done: true });
       this.resolver = null;
     }
+  }
+
+  beginStackRedirect(stackSymbol: symbol): void {
+    // Yield current buffer if not already redirecting
+    if (this.stackRedirects.length === 0) {
+      this.yield();
+    }
+    this.stackRedirects.push(stackSymbol);
+    // Initialize stack buffer if needed
+    if (!this.stackBuffers.has(stackSymbol)) {
+      this.stackBuffers.set(stackSymbol, "");
+    }
+  }
+
+  endStackRedirect(): void {
+    this.stackRedirects.pop();
+    // If we're back to normal mode, we might need to yield
+    if (this.stackRedirects.length === 0 && !this.hasStackOut) {
+      this.yield();
+    }
+  }
+
+  handleStackOut(stackSymbol: symbol): void {
+    // Check if already used
+    if (this.stackOutUsage.get(stackSymbol)) {
+      throw new Error("Stack.Out can only be used once per render");
+    }
+    this.stackOutUsage.set(stackSymbol, true);
+
+    // Enable deferred mode on first Stack.Out
+    if (!this.hasStackOut) {
+      this.hasStackOut = true;
+      // Flush any pending content to deferred chunks
+      if (this.buffer) {
+        this.deferredChunks.push(this.buffer);
+        this.buffer = "";
+      }
+    }
+
+    // Create a unique marker for this Stack.Out position
+    const marker = `__STACK_OUT_${Math.random().toString(36).slice(2)}_${stackSymbol.description || ""}__`;
+    this.stackOutPositions.set(stackSymbol, marker);
+    this.add(marker);
   }
 
   async *stream(): AsyncGenerator<string> {
@@ -227,6 +326,16 @@ async function renderNode(
     buf.add(escapeHtml(String(node)));
   } else if (node instanceof RawContent) {
     buf.add(node.toString());
+  } else if (isStackPushNode(node)) {
+    // Handle Stack.Push: redirect content to stack buffer
+    buf.beginStackRedirect(node.stackPush);
+    for (const item of node) {
+      await renderNode(item as JSXNode, buf, context, mode, componentStack);
+    }
+    buf.endStackRedirect();
+  } else if (isStackOutNode(node)) {
+    // Handle Stack.Out: render buffered stack content
+    buf.handleStackOut(node.stackOut);
   } else if (Array.isArray(node)) {
     for (const item of node) {
       await renderNode(item as JSXNode, buf, context, mode, componentStack);
