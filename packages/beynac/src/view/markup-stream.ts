@@ -30,16 +30,63 @@ export class MarkupStream {
 }
 
 /**
- * StreamBuffer manages buffering and streaming of rendered HTML content.
- * Provides an async iterable interface for consuming rendered chunks.
+ * Renders content to a complete HTML/XML string.
+ * This is a convenience wrapper around renderStream that collects all chunks.
+ *
+ * @param content - The content tree to render, e.g. <jsx>...</jsx> or html`...`
+ * @param options.mode - Whether to render as "html" (default) or "xml"
+ *
+ * @example
+ * ```ts
+ * const html = await render(<div>Hello World</div>);
+ * console.log(html); // "<div>Hello World</div>"
+ * ```
  */
+export async function render(content: JSXNode, options?: RenderOptions): Promise<string> {
+  let result = "";
+  for await (const chunk of renderStream(content, options)) {
+    result += chunk;
+  }
+  return result;
+}
+
+/**
+ * Renders content to an async generator that yields HTML/XML strings.
+ * This enables streaming responses where content is sent to the client as it's generated.
+ *
+ * @param content - The content tree to render, e.g. <jsx>...</jsx> or html`...`
+ * @param options.mode - Whether to render as "html" (default) or "xml"
+ * @yields HTML/XML string chunks as they're generated
+ *
+ * @example
+ * ```ts
+ * for await (const chunk of renderStream(<div>Hello</div>)) {
+ *   response.write(chunk);
+ * }
+ * ```
+ */
+export function renderStream(
+  content: JSXNode,
+  { mode = "html" }: RenderOptions = {},
+): AsyncGenerator<string> {
+  const buf = new StreamBuffer();
+  const rootContext = new ContextImpl();
+
+  renderNode(content, buf, rootContext, mode).then(
+    () => buf.complete(),
+    () => buf.complete(),
+  );
+
+  return buf.stream();
+}
+
 class StreamBuffer {
   private buffer: string = "";
   private pending: string[] = [];
   private resolver: ((value: { done: boolean; chunk?: string }) => void) | null = null;
   private completed = false;
 
-  append(content: string): void {
+  add(content: string): void {
     this.buffer += content;
   }
 
@@ -58,10 +105,9 @@ class StreamBuffer {
   }
 
   complete(): void {
-    this.yield(); // Flush any remaining buffer
+    this.yield();
     this.completed = true;
 
-    // Signal completion to waiting consumer
     if (this.resolver) {
       this.resolver({ done: true });
       this.resolver = null;
@@ -149,231 +195,125 @@ const booleanAttributes = new Set([
   "selected",
 ]);
 
-/**
- * Renders content to an async generator that yields HTML/XML strings.
- * This enables streaming responses where content is sent to the client as it's generated.
- *
- * @param content - The content tree to render (can include components, strings, arrays, etc.)
- * @param options - Rendering options
- * @param options.mode - Whether to render as "html" (default) or "xml"
- * @yields HTML/XML string chunks as they're generated
- *
- * @example
- * ```ts
- * for await (const chunk of renderStream(<div>Hello</div>)) {
- *   response.write(chunk);
- * }
- * ```
- */
-export function renderStream(
-  content: JSXNode,
-  { mode = "html" }: RenderOptions = {},
-): AsyncGenerator<string> {
-  const buffer = new StreamBuffer();
-  const rootContext = new ContextImpl();
-
-  // Start the rendering process asynchronously
-  renderNode(content, buffer, rootContext, mode).then(
-    () => buffer.complete(),
-    () => buffer.complete(), // Also complete on error
-  );
-
-  return buffer.stream();
-}
-
-/**
- * Recursively renders a JSX node and its children to the StreamBuffer.
- * Handles components, promises, arrays, and primitive values.
- */
 async function renderNode(
   node: JSXNode,
-  buffer: StreamBuffer,
+  buf: StreamBuffer,
   context: ContextImpl,
   mode: "html" | "xml",
 ): Promise<void> {
-  if (node == null || typeof node === "boolean") {
-    // Skip null, undefined, and booleans
-    return;
-  }
-
+  if (node == null || typeof node === "boolean") return;
   if (typeof node === "string" || typeof node === "number") {
-    // Escape and append primitive values
-    buffer.append(escapeHtml(String(node)));
-    return;
-  }
-
-  if (node instanceof RawContent) {
-    // Raw content is not escaped
-    buffer.append(node.toString());
-    return;
-  }
-
-  if (Array.isArray(node)) {
-    // Render each item in the array
+    buf.add(escapeHtml(String(node)));
+  } else if (node instanceof RawContent) {
+    buf.add(node.toString());
+  } else if (Array.isArray(node)) {
     for (const item of node) {
-      await renderNode(item as JSXNode, buffer, context, mode);
+      await renderNode(item as JSXNode, buf, context, mode);
     }
-    return;
-  }
-
-  if (typeof node === "function") {
-    // Call component function with forked context
+  } else if (typeof node === "function") {
     const childContext = context.fork();
     const result = node(childContext) as JSXNode;
     const contextToUse = childContext.wasModified() ? childContext : context;
-    await renderNode(result, buffer, contextToUse, mode);
-    return;
-  }
-
-  if (node instanceof Promise) {
-    // Yield buffer before awaiting promise
-    buffer.yield();
+    await renderNode(result, buf, contextToUse, mode);
+  } else if (node instanceof Promise) {
+    buf.yield();
     const resolved = (await node) as JSXNode;
-    await renderNode(resolved, buffer, context, mode);
-    return;
+    await renderNode(resolved, buf, context, mode);
+  } else if (node instanceof MarkupStream) {
+    await renderMarkupStream(node, buf, context, mode);
   }
-
-  if (node instanceof MarkupStream) {
-    // Render HTML element
-    await renderElement(node, buffer, context, mode);
-    return;
-  }
-
-  // Skip any other types (AsyncIterable, Once, Stack, etc.)
 }
 
-/**
- * Renders a MarkupStream element with its tag, attributes, and children.
- */
-async function renderElement(
-  element: MarkupStream,
-  buffer: StreamBuffer,
+async function renderMarkupStream(
+  { tag, attributes, content }: MarkupStream,
+  buf: StreamBuffer,
   context: ContextImpl,
   mode: "html" | "xml",
 ): Promise<void> {
-  const { tag, attributes, content } = element;
-
-  if (!tag) {
-    // Fragment: just render children
-    if (content) {
-      for (const child of content) {
-        await renderNode(child, buffer, context, mode);
-      }
-    }
-    return;
-  }
-
-  // Render opening tag
-  buffer.append("<");
-  buffer.append(tag);
-
-  // Render attributes
-  if (attributes) {
-    renderAttributes(attributes, buffer, mode);
-  }
-
-  // Check if this is a void element in HTML mode
-  const isVoidElement = mode === "html" && emptyTags.has(tag);
   const hasChildren = content && content.length > 0;
 
-  if (isVoidElement) {
-    // Void elements are self-closing in HTML
-    buffer.append(">");
-    if (hasChildren) {
+  if (tag) {
+    const isVoidElement = mode === "html" && emptyTags.has(tag);
+    if (isVoidElement && hasChildren) {
       throw new Error(`<${tag}> is a void element and must not have children`);
     }
-    return;
+
+    const selfClosing = !isVoidElement && mode === "xml" && !hasChildren;
+    renderOpeningTag(tag, attributes, buf, mode, selfClosing);
+
+    if (isVoidElement || selfClosing) {
+      return;
+    }
   }
 
-  if (mode === "xml" && !hasChildren) {
-    // Self-closing in XML mode when no children
-    buffer.append(" />");
-    return;
-  }
-
-  // Close opening tag
-  buffer.append(">");
-
-  // Render children
   if (content) {
     for (const child of content) {
-      await renderNode(child, buffer, context, mode);
+      await renderNode(child, buf, context, mode);
     }
   }
 
-  // Render closing tag
-  buffer.append("</");
-  buffer.append(tag);
-  buffer.append(">");
+  if (tag) {
+    renderClosingTag(tag, buf);
+  }
 }
 
-/**
- * Renders attributes to the buffer.
- */
-function renderAttributes(
-  attributes: Record<string, unknown>,
-  buffer: StreamBuffer,
+function renderOpeningTag(
+  tag: string,
+  attributes: Record<string, unknown> | null,
+  buf: StreamBuffer,
   mode: "html" | "xml",
+  selfClosing: boolean,
 ): void {
-  for (const [key, value] of Object.entries(attributes)) {
-    if (value == null) {
-      continue;
-    }
+  buf.add("<");
+  buf.add(tag);
 
-    if (mode === "html" && booleanAttributes.has(key)) {
-      // HTML mode: boolean attributes
-      if (value === true) {
-        buffer.append(" ");
-        buffer.append(key);
-      } else if (value !== false) {
-        // Non-boolean value for a boolean attribute
-        buffer.append(" ");
-        buffer.append(key);
-        buffer.append('="');
-        buffer.append(escapeHtml(String(value)));
-        buffer.append('"');
+  if (attributes) {
+    for (const [key, value] of Object.entries(attributes)) {
+      if (value == null) {
+        continue;
       }
-    } else {
-      // Regular attributes
-      let stringValue: string;
 
-      if (key === "style" && typeof value === "object" && value) {
-        stringValue = styleObjectToString(value as CSSProperties);
-        if (!stringValue) continue;
-      } else if (key === "class" && (typeof value === "object" || Array.isArray(value))) {
-        stringValue = classAttribute(value as ClassAttributeValue);
-        if (!stringValue) continue;
+      if (mode === "html" && booleanAttributes.has(key)) {
+        if (value === true) {
+          buf.add(" ");
+          buf.add(key);
+        } else if (value !== false) {
+          buf.add(" ");
+          buf.add(key);
+          buf.add('="');
+          buf.add(escapeHtml(String(value)));
+          buf.add('"');
+        }
       } else {
-        stringValue = String(value);
-      }
+        let stringValue: string;
 
-      buffer.append(" ");
-      buffer.append(key);
-      buffer.append('="');
-      buffer.append(escapeHtml(stringValue));
-      buffer.append('"');
+        if (key === "style" && typeof value === "object" && value) {
+          stringValue = styleObjectToString(value as CSSProperties);
+          if (!stringValue) continue;
+        } else if (key === "class" && (typeof value === "object" || Array.isArray(value))) {
+          stringValue = classAttribute(value as ClassAttributeValue);
+          if (!stringValue) continue;
+        } else {
+          stringValue = String(value);
+        }
+
+        buf.add(" ");
+        buf.add(key);
+        buf.add('="');
+        buf.add(escapeHtml(stringValue));
+        buf.add('"');
+      }
     }
   }
+
+  buf.add(selfClosing ? " />" : ">");
 }
 
 /**
- * Renders content to a complete HTML/XML string.
- * This is a convenience wrapper around renderStream that collects all chunks.
- *
- * @param content - The content tree to render
- * @param options - Rendering options (same as renderStream)
- * @returns A promise that resolves to the complete rendered HTML/XML string
- *
- * @example
- * ```ts
- * const html = await render(<div>Hello World</div>);
- * console.log(html); // "<div>Hello World</div>"
- * ```
+ * Renders a closing tag to the buf.
  */
-export async function render(content: JSXNode, options?: RenderOptions): Promise<string> {
-  let result = "";
-  for await (const chunk of renderStream(content, options)) {
-    result += chunk;
-  }
-  return result;
+function renderClosingTag(tag: string, buf: StreamBuffer): void {
+  buf.add("</");
+  buf.add(tag);
+  buf.add(">");
 }
