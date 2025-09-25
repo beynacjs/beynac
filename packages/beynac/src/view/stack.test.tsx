@@ -1,5 +1,6 @@
 /** @jsxImportSource ./ */
 import { expect, test } from "bun:test";
+import { createKey } from "../keys";
 import { render } from "./markup-stream";
 import { Once } from "./once";
 import type { Component } from "./public-types";
@@ -363,6 +364,34 @@ test("StackPush pushed onto a stack works correctly", async () => {
   // The inner stack content should appear at InnerStack.Out
   // The outer stack should be empty (it contained only a Stack.Push which was processed)
   expect(result).toBe("<div>nested content</div>");
+});
+
+test("Stack.Push preserves context from pre-execution", async () => {
+  const MyStack = createStack();
+  const TestKey = createKey<string>();
+
+  const result = await render(
+    <div>
+      {(ctx) => {
+        // Outer function modifies context
+        ctx.set(TestKey, "value-from-outer");
+
+        // Return a Stack.Push containing another function
+        return (
+          <MyStack.Push>
+            {(innerCtx) => {
+              // Inner function should see the modified context
+              const value = innerCtx.get(TestKey);
+              return `[${value || "no-value"}]`;
+            }}
+          </MyStack.Push>
+        );
+      }}
+      <MyStack.Out />
+    </div>,
+  );
+
+  expect(result).toBe("<div>[value-from-outer]</div>");
 });
 
 test("Stacks maintain independent state and can render concurrently", async () => {
