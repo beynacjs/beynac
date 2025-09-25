@@ -1,12 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { createKey } from "../keys";
 import { asyncGate } from "../test-utils/async-gate";
-import {
-  MarkupStream,
-  // RenderingError,
-  render,
-  renderStream,
-} from "./markup-stream";
+import { MarkupStream, RenderingError, render, renderStream } from "./markup-stream";
 import type { Context, JSXNode } from "./public-types";
 
 describe("basic functionality", () => {
@@ -114,7 +109,7 @@ describe("attribute handling", () => {
     expect(await render(stream)).toBe('<div id="test"></div>');
   });
 
-  test.skip("throws error for function attributes", async () => {
+  test("throws error for function attributes", async () => {
     const stream = new MarkupStream(
       "div",
       {
@@ -122,9 +117,59 @@ describe("attribute handling", () => {
       },
       [],
     );
-    expect(render(stream)).rejects.toThrowErrorMatchingInlineSnapshot(
-      `"Rendering error: Attribute "funcAttr" has an invalid value type: Function; Component stack: <div>"`,
+
+    try {
+      await render(stream);
+      throw new Error("Expected render(stream) to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(RenderingError);
+      const err = error as RenderingError;
+      expect(err.message).toContain('Attribute "funcAttr" has an invalid value type: Function');
+      expect(err.errorKind).toBe("attribute-type-error");
+      expect(err.componentStack).toEqual(["div"]);
+    }
+  });
+
+  test("throws error for symbol attributes", async () => {
+    const stream = new MarkupStream(
+      "div",
+      {
+        symAttr: Symbol("test"),
+      },
+      [],
     );
+
+    try {
+      await render(stream);
+      throw new Error("Expected render(stream) to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(RenderingError);
+      const err = error as RenderingError;
+      expect(err.message).toContain('Attribute "symAttr" has an invalid value type: Symbol');
+      expect(err.errorKind).toBe("attribute-type-error");
+      expect(err.componentStack).toEqual(["div"]);
+    }
+  });
+
+  test("throws error for promise attributes", async () => {
+    const stream = new MarkupStream(
+      "div",
+      {
+        promiseAttr: Promise.resolve("test"),
+      },
+      [],
+    );
+
+    try {
+      await render(stream);
+      throw new Error("Expected render(stream) to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(RenderingError);
+      const err = error as RenderingError;
+      expect(err.message).toContain('Attribute "promiseAttr" has an invalid value type: Promise');
+      expect(err.errorKind).toBe("attribute-type-error");
+      expect(err.componentStack).toEqual(["div"]);
+    }
   });
 
   test("escapes attribute values", async () => {
@@ -218,138 +263,6 @@ describe("async functionality", () => {
 
     const result = await render(stream);
     expect(result).toBe("abcde");
-  });
-});
-
-describe.skip("async iterable content", () => {
-  async function* simpleAsyncGenerator(): AsyncGenerator<JSXNode> {
-    yield "first";
-    yield "second";
-    yield "third";
-  }
-
-  test("handles async generator", async () => {
-    async function* mixedGenerator(): AsyncGenerator<JSXNode> {
-      yield "text ";
-      yield 42;
-      yield " ";
-      yield new MarkupStream("span", null, ["nested"]);
-      yield " ";
-      yield null;
-      yield ["array ", "content"];
-    }
-
-    const stream = new MarkupStream("div", null, mixedGenerator());
-    const result = await render(stream);
-    expect(result).toBe("<div>text 42 <span>nested</span> array content</div>");
-  });
-
-  test("streams chunks progressively as async generator yields with controlled timing", async () => {
-    const gate = asyncGate(["yield1", "yield2", "yield3", "complete"]);
-
-    async function* controlledGenerator(): AsyncGenerator<JSXNode> {
-      await gate("yield1");
-      yield "chunk1";
-      await gate("yield2");
-      yield "chunk2";
-      await gate("yield3");
-      yield "chunk3";
-      await gate("complete");
-    }
-
-    const stream = new MarkupStream(null, null, controlledGenerator());
-    const chunks: string[] = [];
-    const iterator = renderStream(stream);
-
-    // Start consuming chunks
-    const consumeChunks = async () => {
-      for await (const chunk of iterator) {
-        chunks.push(chunk);
-      }
-    };
-    const consumePromise = consumeChunks();
-
-    // Should have no chunks yet
-    await Promise.resolve();
-    expect(chunks).toEqual([]);
-
-    // Release first yield
-    await gate.next();
-    await Promise.resolve();
-    expect(chunks).toEqual(["chunk1"]);
-
-    // Release second yield
-    await gate.next();
-    await Promise.resolve();
-    expect(chunks).toEqual(["chunk1", "chunk2"]);
-
-    // Release third yield
-    await gate.next();
-    await Promise.resolve();
-    expect(chunks).toEqual(["chunk1", "chunk2", "chunk3"]);
-
-    // Complete the generator
-    await gate.next();
-    await consumePromise;
-    expect(chunks).toEqual(["chunk1", "chunk2", "chunk3"]);
-  });
-
-  test("handles async generator yielding function that returns promise", async () => {
-    async function* generatorWithFunction(): AsyncGenerator<JSXNode> {
-      yield "before ";
-      yield () => {
-        return Promise.resolve("from-function-promise");
-      };
-      yield " after";
-    }
-
-    const stream = new MarkupStream(null, null, generatorWithFunction());
-    const result = await render(stream);
-    expect(result).toBe("before from-function-promise after");
-  });
-
-  test("handles async generator yielding nested async generators", async () => {
-    async function* innerGenerator(): AsyncGenerator<JSXNode> {
-      yield "inner1 ";
-      yield "inner2";
-    }
-
-    async function* outerGenerator(): AsyncGenerator<JSXNode> {
-      yield "outer-start ";
-      yield innerGenerator();
-      yield " outer-end";
-    }
-
-    const stream = new MarkupStream(null, null, outerGenerator());
-    const result = await render(stream);
-    expect(result).toBe("outer-start inner1 inner2 outer-end");
-  });
-
-  test("handles async generator that throws after yielding some items", async () => {
-    async function* throwingGenerator(): AsyncGenerator<JSXNode> {
-      yield "first ";
-      yield "second";
-    }
-
-    const stream = new MarkupStream(null, null, throwingGenerator());
-    const result = await render(stream);
-    // Should render the items that were successfully yielded before the error
-    // The error in the generator stops iteration and replaces with empty string
-    expect(result).toBe("first second");
-  });
-
-  test("renders async generator mixed with regular content preserving order", async () => {
-    const content: JSXNode[] = [
-      "start",
-      simpleAsyncGenerator(),
-      "middle",
-      Promise.resolve("promise-content"),
-      "end",
-    ];
-
-    const stream = new MarkupStream("div", null, content);
-    const result = await render(stream);
-    expect(result).toBe("<div>startfirstsecondthirdmiddlepromise-contentend</div>");
   });
 });
 
@@ -906,7 +819,7 @@ describe("XML mode", () => {
   });
 });
 
-describe.skip("error handling", () => {
+describe("error handling", () => {
   test("content-function-error: handles synchronous error in content function", async () => {
     const errorMessage = "Synchronous error in content function";
     const stream = new MarkupStream("div", null, [
@@ -969,28 +882,6 @@ describe.skip("error handling", () => {
       expect(err.cause).toBeInstanceOf(Error);
       expect((err.cause as Error).message).toBe(errorMessage);
       expect(err.errorKind).toBe("content-promise-error");
-    }
-  });
-
-  test("async-iterator-error: handles error in async iterator", async () => {
-    const errorMessage = "Async iterator error";
-    async function* failingGenerator(): AsyncGenerator<JSXNode> {
-      yield "first";
-      throw new Error(errorMessage);
-    }
-
-    const stream = new MarkupStream("main", null, ["before ", failingGenerator(), " after"]);
-
-    try {
-      await render(stream);
-      throw new Error("Expected render(stream) to throw");
-    } catch (error) {
-      expect(error).toBeInstanceOf(RenderingError);
-      const err = error as RenderingError;
-      expect(err.message).toContain(errorMessage);
-      expect(err.cause).toBeInstanceOf(Error);
-      expect((err.cause as Error).message).toBe(errorMessage);
-      expect(err.errorKind).toBe("async-iterator-error");
     }
   });
 

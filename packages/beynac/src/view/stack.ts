@@ -1,5 +1,3 @@
-import { createKey, type Key } from "../keys";
-import type { Frame } from "./markup-stream";
 import type { Component, JSXNode, PropsWithChildren } from "./public-types";
 
 type CreateStackArgs = { displayName?: string };
@@ -22,124 +20,29 @@ type CreateStackArgs = { displayName?: string };
  */
 export function createStack({ displayName = "Stack" }: CreateStackArgs = {}): {
   Push: Component<PropsWithChildren>;
-  Out: Component<PropsWithChildren>;
+  Out: Component;
 } {
   const stackIdentity = Symbol(displayName);
 
-  const Push: Component<PropsWithChildren> = ({ children }, ctx) => {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- always present, added at root of render phase
-    const queue = ctx.get(stackRenderContextKey)!.getQueue(stackIdentity);
-    return toStackPushNode(children, queue);
+  const Push: Component<PropsWithChildren> = ({ children }): StackPushNode => {
+    return Object.assign([children], { stackPush: stackIdentity });
   };
-
   Push.displayName = `${displayName}.Push`;
 
-  const Out: Component<PropsWithChildren> = (_, ctx) => {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- always present, added at root of render phase
-    return ctx.get(stackRenderContextKey)!.getQueue(stackIdentity);
+  const Out: Component<PropsWithChildren> = () => {
+    return Object.assign([], { stackOut: stackIdentity });
   };
   Out.displayName = `${displayName}.Out`;
 
   return { Push, Out };
 }
 
-export class StackContext {
-  #queues: Map<symbol, StackQueue> = new Map();
-
-  getQueue(symbol: symbol): StackQueue {
-    let queue = this.#queues.get(symbol);
-    if (!queue) {
-      queue = new StackQueue(symbol.description || "Stack");
-      this.#queues.set(symbol, queue);
-    }
-    return queue;
-  }
-
-  completeAll(): void {
-    for (const queue of this.#queues.values()) {
-      queue.complete();
-    }
-  }
-}
-
-// Context key for tracking stack queues in current render
-export const stackRenderContextKey: Key<StackContext | undefined> = createKey<StackContext>({
-  displayName: "StackRenderContext",
-});
-
-/**
- * StackQueue provides an async iterable interface for streaming content.
- * Items can be pushed from the push phase and consumed from the render phase.
- */
-export class StackQueue implements AsyncIterable<Frame> {
-  #queue: Frame[] = [];
-  #waiter: ((value: Frame | null) => void) | null = null;
-  #completed = false;
-  #used = false;
-  #displayName: string;
-
-  constructor(displayName: string) {
-    this.#displayName = displayName;
-  }
-
-  push(item: Frame): void {
-    if (this.#completed) {
-      throw new Error("Cannot push to completed StackQueue");
-    }
-
-    if (this.#waiter) {
-      this.#waiter(item);
-      this.#waiter = null;
-    } else {
-      this.#queue.push(item);
-    }
-  }
-
-  complete(): void {
-    this.#completed = true;
-    if (this.#waiter) {
-      this.#waiter(null);
-      this.#waiter = null;
-    }
-  }
-
-  async *[Symbol.asyncIterator](): AsyncIterator<Frame> {
-    if (this.#used) {
-      throw new Error(
-        `${this.#displayName}.Out can only be used once per render - probably you have multiple <${this.#displayName}.Out> components in the same document`,
-      );
-    }
-    this.#used = true;
-    while (true) {
-      if (this.#queue.length > 0) {
-        const item = this.#queue.shift();
-        if (item !== undefined) {
-          yield item;
-        }
-      } else if (this.#completed) {
-        return;
-      } else {
-        if (this.#waiter !== null) {
-          throw new Error(
-            `Internal error: multiple concurrent consumers of ${this.#displayName}.Out StackQueue`,
-          );
-        }
-        const result = await new Promise<Frame | null>((resolve) => {
-          this.#waiter = resolve;
-        });
-        if (result === null) {
-          return;
-        }
-        yield result;
-      }
-    }
-  }
-}
-
-type StackPushNode = JSXNode[] & { stack: StackQueue };
+export type StackPushNode = JSXNode[] & { stackPush: symbol };
 
 export const isStackPushNode = (node: JSXNode): node is StackPushNode =>
-  Array.isArray(node) && "stack" in node && node.stack instanceof StackQueue;
+  Array.isArray(node) && "stackPush" in node && typeof node.stackPush === "symbol";
 
-const toStackPushNode = (node: JSXNode, stack: StackQueue): StackPushNode =>
-  Object.assign([node], { stack });
+export type StackOutNode = JSXNode[] & { stackOut: symbol };
+
+export const isStackOutNode = (node: JSXNode): node is StackOutNode =>
+  Array.isArray(node) && "stackOut" in node && typeof node.stackOut === "symbol";

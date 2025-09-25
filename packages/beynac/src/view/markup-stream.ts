@@ -71,10 +71,13 @@ export function renderStream(
 ): AsyncGenerator<string> {
   const buf = new StreamBuffer();
   const rootContext = new ContextImpl();
+  const componentStack: string[] = [];
 
-  renderNode(content, buf, rootContext, mode).then(
+  renderNode(content, buf, rootContext, mode, componentStack).then(
     () => buf.complete(),
-    () => buf.complete(),
+    (error) => {
+      buf.error(error as Error);
+    },
   );
 
   return buf.stream();
@@ -85,6 +88,7 @@ class StreamBuffer {
   private pending: string[] = [];
   private resolver: ((value: { done: boolean; chunk?: string }) => void) | null = null;
   private completed = false;
+  private errorValue: Error | null = null;
 
   add(content: string): void {
     this.buffer += content;
@@ -114,12 +118,25 @@ class StreamBuffer {
     }
   }
 
+  error(err: Error): void {
+    this.errorValue = err;
+    this.completed = true;
+
+    if (this.resolver) {
+      this.resolver({ done: true });
+      this.resolver = null;
+    }
+  }
+
   async *stream(): AsyncGenerator<string> {
     while (true) {
       if (this.pending.length > 0) {
         const chunk = this.pending.shift();
         if (chunk) yield chunk;
       } else if (this.completed) {
+        if (this.errorValue) {
+          throw this.errorValue;
+        }
         return;
       } else {
         if (this.resolver !== null) {
@@ -129,6 +146,9 @@ class StreamBuffer {
           this.resolver = resolve;
         });
         if (result.done) {
+          if (this.errorValue) {
+            throw this.errorValue;
+          }
           return;
         }
         if (result.chunk) {
@@ -200,6 +220,7 @@ async function renderNode(
   buf: StreamBuffer,
   context: ContextImpl,
   mode: "html" | "xml",
+  componentStack: string[],
 ): Promise<void> {
   if (node == null || typeof node === "boolean") return;
   if (typeof node === "string" || typeof node === "number") {
@@ -208,38 +229,79 @@ async function renderNode(
     buf.add(node.toString());
   } else if (Array.isArray(node)) {
     for (const item of node) {
-      await renderNode(item as JSXNode, buf, context, mode);
+      await renderNode(item as JSXNode, buf, context, mode, componentStack);
     }
   } else if (typeof node === "function") {
-    const childContext = context.fork();
-    const result = node(childContext) as JSXNode;
-    const contextToUse = childContext.wasModified() ? childContext : context;
-    await renderNode(result, buf, contextToUse, mode);
+    try {
+      const childContext = context.fork();
+      const result = node(childContext) as JSXNode;
+      const contextToUse = childContext.wasModified() ? childContext : context;
+
+      if (result instanceof Promise) {
+        buf.yield();
+        try {
+          const resolved = (await result) as JSXNode;
+          await renderNode(resolved, buf, contextToUse, mode, componentStack);
+        } catch (error) {
+          throw new RenderingError("content-function-promise-rejection", componentStack, error);
+        }
+      } else {
+        await renderNode(result, buf, contextToUse, mode, componentStack);
+      }
+    } catch (error) {
+      if (error instanceof RenderingError) {
+        throw error;
+      }
+      throw new RenderingError("content-function-error", componentStack, error);
+    }
   } else if (node instanceof Promise) {
     buf.yield();
-    const resolved = (await node) as JSXNode;
-    await renderNode(resolved, buf, context, mode);
+    try {
+      const resolved = (await node) as JSXNode;
+      await renderNode(resolved, buf, context, mode, componentStack);
+    } catch (error) {
+      if (error instanceof RenderingError) {
+        throw error;
+      }
+      throw new RenderingError("content-promise-error", componentStack, error);
+    }
   } else if (node instanceof MarkupStream) {
-    await renderMarkupStream(node, buf, context, mode);
+    await renderMarkupStream(node, buf, context, mode, componentStack);
   }
 }
 
 async function renderMarkupStream(
-  { tag, attributes, content }: MarkupStream,
+  element: MarkupStream,
   buf: StreamBuffer,
   context: ContextImpl,
   mode: "html" | "xml",
+  componentStack: string[],
 ): Promise<void> {
+  const { tag, attributes, content, displayName } = element;
   const hasChildren = content && content.length > 0;
+
+  // Push displayName to component stack if present
+  const newStack = displayName ? [...componentStack, displayName] : componentStack;
 
   if (tag) {
     const isVoidElement = mode === "html" && emptyTags.has(tag);
     if (isVoidElement && hasChildren) {
-      throw new Error(`<${tag}> is a void element and must not have children`);
+      throw new RenderingError(
+        "attribute-type-error",
+        newStack,
+        new Error(`<${tag}> is a void element and must not have children`),
+      );
     }
 
     const selfClosing = !isVoidElement && mode === "xml" && !hasChildren;
-    renderOpeningTag(tag, attributes, buf, mode, selfClosing);
+    try {
+      renderOpeningTag(tag, attributes, buf, mode, selfClosing, newStack);
+    } catch (error) {
+      if (error instanceof RenderingError) {
+        throw error;
+      }
+      throw new RenderingError("attribute-type-error", newStack, error);
+    }
 
     if (isVoidElement || selfClosing) {
       return;
@@ -248,7 +310,7 @@ async function renderMarkupStream(
 
   if (content) {
     for (const child of content) {
-      await renderNode(child, buf, context, mode);
+      await renderNode(child, buf, context, mode, newStack);
     }
   }
 
@@ -263,6 +325,7 @@ function renderOpeningTag(
   buf: StreamBuffer,
   mode: "html" | "xml",
   selfClosing: boolean,
+  componentStack: string[],
 ): void {
   buf.add("<");
   buf.add(tag);
@@ -285,6 +348,21 @@ function renderOpeningTag(
           buf.add('"');
         }
       } else {
+        // Validate attribute types that can't be serialized
+        if (value instanceof Promise || typeof value === "symbol" || typeof value === "function") {
+          const valueType =
+            value instanceof Promise
+              ? "Promise"
+              : typeof value === "symbol"
+                ? "Symbol"
+                : "Function";
+          throw new RenderingError(
+            "attribute-type-error",
+            componentStack,
+            new Error(`Attribute "${key}" has an invalid value type: ${valueType}`),
+          );
+        }
+
         let stringValue: string;
 
         if (key === "style" && typeof value === "object" && value) {
@@ -316,4 +394,33 @@ function renderClosingTag(tag: string, buf: StreamBuffer): void {
   buf.add("</");
   buf.add(tag);
   buf.add(">");
+}
+
+type ErrorKind =
+  | "content-function-error"
+  | "content-function-promise-rejection"
+  | "content-promise-error"
+  | "attribute-type-error";
+
+/**
+ * Error thrown during rendering when an error occurs during content expansion or rendering.
+ * Includes a component stack trace for debugging.
+ */
+export class RenderingError extends Error {
+  public readonly errorKind: ErrorKind;
+  public readonly componentStack: string[];
+
+  constructor(errorKind: ErrorKind, componentStack: string[], cause: unknown) {
+    const errorDetail = cause instanceof Error ? cause.message : String(cause);
+    const stackTrace = componentStack.map((name) => `<${name}>`).join(" -> ");
+    const message = stackTrace
+      ? `Rendering error: ${errorDetail}; Component stack: ${stackTrace}`
+      : `Rendering error: ${errorDetail}`;
+
+    super(message);
+    this.name = "RenderingError";
+    this.errorKind = errorKind;
+    this.componentStack = componentStack;
+    this.cause = cause;
+  }
 }
