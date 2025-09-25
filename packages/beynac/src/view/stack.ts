@@ -1,5 +1,5 @@
-import { SPECIAL_NODE } from "./markup-stream";
 import type { Component, JSXNode, PropsWithChildren } from "./public-types";
+import { SPECIAL_NODE } from "./special-node";
 
 type CreateStackArgs = { displayName?: string };
 

@@ -5,6 +5,7 @@ import { CSSProperties } from "./intrinsic-element-types";
 import { isOnceNode, type OnceKey } from "./once";
 import type { JSXNode, RenderOptions } from "./public-types";
 import { RawContent } from "./raw";
+import { isSpecialNode } from "./special-node";
 import { isStackOutNode, isStackPushNode } from "./stack";
 import { styleObjectToString } from "./style-attribute";
 
@@ -74,8 +75,236 @@ export function renderStream(
   const buf = new StreamBuffer();
   const rootContext = new ContextImpl();
   const componentStack: string[] = [];
+  const onceKeys = new Set<OnceKey>(); // Track used Once keys
 
-  renderNode(content, buf, rootContext, mode, componentStack).then(
+  // Define rendering functions as closures that capture buf, mode, and onceKeys
+  async function renderNode(node: JSXNode, context: ContextImpl, stack: string[]): Promise<void> {
+    switch (typeof node) {
+      case "symbol":
+        buf.add(escapeHtml(String(node)));
+        return;
+      case "string":
+        buf.add(escapeHtml(node));
+        return;
+      case "number":
+      case "bigint":
+        buf.add(String(node));
+        return;
+      case "boolean":
+      case "undefined":
+        return;
+      case "object":
+        if (node === null) return;
+        if (isSpecialNode(node)) {
+          if (node instanceof RawContent) {
+            buf.add(node.toString());
+            return;
+          }
+          if (isStackPushNode(node)) {
+            // Handle Stack.Push: redirect content to stack buffer
+            buf.beginStackRedirect(node.stackPush);
+            for (const item of node) {
+              await renderNode(item, context, stack);
+            }
+            buf.endStackRedirect();
+            return;
+          }
+          if (isStackOutNode(node)) {
+            // Handle Stack.Out: render buffered stack content
+            buf.handleStackOut(node.stackOut);
+            return;
+          }
+          if (isOnceNode(node)) {
+            // Handle Once: render content only if key hasn't been seen
+            if (!onceKeys.has(node.onceKey)) {
+              onceKeys.add(node.onceKey);
+              for (const item of node) {
+                await renderNode(item, context, stack);
+              }
+            }
+            return;
+          }
+          throw new Error("Unrecognised special node");
+        }
+        if (Array.isArray(node)) {
+          for (const item of node) {
+            await renderNode(item as JSXNode, context, stack);
+          }
+          return;
+        }
+        if (node instanceof MarkupStream) {
+          await renderMarkupStream(node, context, stack);
+          return;
+        }
+        if (node instanceof Promise) {
+          buf.yield();
+          try {
+            const resolved = (await node) as JSXNode;
+            await renderNode(resolved, context, stack);
+          } catch (error) {
+            if (error instanceof RenderingError) {
+              throw error;
+            }
+            throw new RenderingError("content-promise-error", stack, error);
+          }
+          return;
+        }
+
+        buf.add(escapeHtml(String(node)));
+        return;
+
+      case "function":
+        try {
+          const childContext = context.fork();
+          const result = node(childContext) as JSXNode;
+          const contextToUse = childContext.wasModified() ? childContext : context;
+
+          if (result instanceof Promise) {
+            buf.yield();
+            try {
+              const resolved = (await result) as JSXNode;
+              await renderNode(resolved, contextToUse, stack);
+            } catch (error) {
+              throw new RenderingError("content-function-promise-rejection", stack, error);
+            }
+          } else {
+            await renderNode(result, contextToUse, stack);
+          }
+        } catch (error) {
+          if (error instanceof RenderingError) {
+            throw error;
+          }
+          throw new RenderingError("content-function-error", stack, error);
+        }
+        return;
+    }
+  }
+
+  async function renderMarkupStream(
+    element: MarkupStream,
+    context: ContextImpl,
+    stack: string[],
+  ): Promise<void> {
+    const { tag, attributes, content, displayName } = element;
+    const hasChildren = content && content.length > 0;
+
+    // Push displayName to component stack if present
+    const newStack = displayName ? [...stack, displayName] : stack;
+
+    if (tag) {
+      const isVoidElement = mode === "html" && emptyTags.has(tag);
+      if (isVoidElement && hasChildren) {
+        throw new RenderingError(
+          "attribute-type-error",
+          newStack,
+          new Error(`<${tag}> is a void element and must not have children`),
+        );
+      }
+
+      const selfClosing = !isVoidElement && mode === "xml" && !hasChildren;
+      try {
+        renderOpeningTag(tag, attributes, selfClosing, newStack);
+      } catch (error) {
+        if (error instanceof RenderingError) {
+          throw error;
+        }
+        throw new RenderingError("attribute-type-error", newStack, error);
+      }
+
+      if (isVoidElement || selfClosing) {
+        return;
+      }
+    }
+
+    if (content) {
+      for (const child of content) {
+        await renderNode(child, context, newStack);
+      }
+    }
+
+    if (tag) {
+      renderClosingTag(tag);
+    }
+  }
+
+  function renderOpeningTag(
+    tag: string,
+    attributes: Record<string, unknown> | null,
+    selfClosing: boolean,
+    stack: string[],
+  ): void {
+    buf.add("<");
+    buf.add(tag);
+
+    if (attributes) {
+      for (const [key, value] of Object.entries(attributes)) {
+        if (value == null) {
+          continue;
+        }
+
+        if (mode === "html" && booleanAttributes.has(key)) {
+          if (value === true) {
+            buf.add(" ");
+            buf.add(key);
+          } else if (value !== false) {
+            buf.add(" ");
+            buf.add(key);
+            buf.add('="');
+            buf.add(escapeHtml(String(value)));
+            buf.add('"');
+          }
+        } else {
+          // Validate attribute types that can't be serialized
+          if (
+            value instanceof Promise ||
+            typeof value === "symbol" ||
+            typeof value === "function"
+          ) {
+            const valueType =
+              value instanceof Promise
+                ? "Promise"
+                : typeof value === "symbol"
+                  ? "Symbol"
+                  : "Function";
+            throw new RenderingError(
+              "attribute-type-error",
+              stack,
+              new Error(`Attribute "${key}" has an invalid value type: ${valueType}`),
+            );
+          }
+
+          let stringValue: string;
+
+          if (key === "style" && typeof value === "object" && value) {
+            stringValue = styleObjectToString(value as CSSProperties);
+            if (!stringValue) continue;
+          } else if (key === "class" && (typeof value === "object" || Array.isArray(value))) {
+            stringValue = classAttribute(value as ClassAttributeValue);
+            if (!stringValue) continue;
+          } else {
+            stringValue = String(value);
+          }
+
+          buf.add(" ");
+          buf.add(key);
+          buf.add('="');
+          buf.add(escapeHtml(stringValue));
+          buf.add('"');
+        }
+      }
+    }
+
+    buf.add(selfClosing ? " />" : ">");
+  }
+
+  function renderClosingTag(tag: string): void {
+    buf.add("</");
+    buf.add(tag);
+    buf.add(">");
+  }
+
+  // Start the rendering
+  renderNode(content, rootContext, componentStack).then(
     () => buf.complete(),
     (error) => {
       buf.error(error as Error);
@@ -99,9 +328,6 @@ class StreamBuffer {
   private redirectsEmitted = new Set<symbol>(); // Track if Stack.Out used (for error)
   private hasRedirectEmit = false; // True after first Stack.Out encountered
   private deferredChunks: Array<string | string[]> = []; // Chunks to yield at end when hasStackOut is true
-
-  // Once handling state
-  private onceKeys = new Set<string | number | symbol | bigint>(); // Track used Once keys
 
   add(content: string): void {
     this.buffer += content;
@@ -250,14 +476,6 @@ class StreamBuffer {
       this.pending.push(chunk);
     }
   }
-
-  hasSeenOnceKey(key: OnceKey): boolean {
-    return this.onceKeys.has(key);
-  }
-
-  markOnceKey(key: OnceKey): void {
-    this.onceKeys.add(key);
-  }
 }
 
 const HTML_ESCAPE: Record<string, string> = {
@@ -315,214 +533,6 @@ const booleanAttributes = new Set([
   "reversed",
   "selected",
 ]);
-
-export const SPECIAL_NODE: unique symbol = Symbol("special-node");
-
-const isSpecialNode = (node: unknown): boolean =>
-  (node as { [SPECIAL_NODE]?: boolean })?.[SPECIAL_NODE] === true;
-
-async function renderNode(
-  node: JSXNode,
-  buf: StreamBuffer,
-  context: ContextImpl,
-  mode: "html" | "xml",
-  componentStack: string[],
-): Promise<void> {
-  if (node == null || typeof node === "boolean") return;
-  if (node instanceof RawContent) {
-    buf.add(node.toString());
-  } else if (Array.isArray(node)) {
-    if (isSpecialNode(node)) {
-      if (isStackPushNode(node)) {
-        // Handle Stack.Push: redirect content to stack buffer
-        buf.beginStackRedirect(node.stackPush);
-        for (const item of node) {
-          await renderNode(item, buf, context, mode, componentStack);
-        }
-        buf.endStackRedirect();
-      } else if (isStackOutNode(node)) {
-        // Handle Stack.Out: render buffered stack content
-        buf.handleStackOut(node.stackOut);
-      } else if (isOnceNode(node)) {
-        // Handle Once: render content only if key hasn't been seen
-        if (!buf.hasSeenOnceKey(node.onceKey)) {
-          buf.markOnceKey(node.onceKey);
-          for (const item of node) {
-            await renderNode(item, buf, context, mode, componentStack);
-          }
-        }
-      }
-    } else {
-      for (const item of node) {
-        await renderNode(item as JSXNode, buf, context, mode, componentStack);
-      }
-    }
-  } else if (typeof node === "function") {
-    try {
-      const childContext = context.fork();
-      const result = node(childContext) as JSXNode;
-      const contextToUse = childContext.wasModified() ? childContext : context;
-
-      if (result instanceof Promise) {
-        buf.yield();
-        try {
-          const resolved = (await result) as JSXNode;
-          await renderNode(resolved, buf, contextToUse, mode, componentStack);
-        } catch (error) {
-          throw new RenderingError("content-function-promise-rejection", componentStack, error);
-        }
-      } else {
-        await renderNode(result, buf, contextToUse, mode, componentStack);
-      }
-    } catch (error) {
-      if (error instanceof RenderingError) {
-        throw error;
-      }
-      throw new RenderingError("content-function-error", componentStack, error);
-    }
-  } else if (node instanceof Promise) {
-    buf.yield();
-    try {
-      const resolved = (await node) as JSXNode;
-      await renderNode(resolved, buf, context, mode, componentStack);
-    } catch (error) {
-      if (error instanceof RenderingError) {
-        throw error;
-      }
-      throw new RenderingError("content-promise-error", componentStack, error);
-    }
-  } else if (node instanceof MarkupStream) {
-    await renderMarkupStream(node, buf, context, mode, componentStack);
-  } else {
-    buf.add(escapeHtml(String(node)));
-  }
-}
-
-async function renderMarkupStream(
-  element: MarkupStream,
-  buf: StreamBuffer,
-  context: ContextImpl,
-  mode: "html" | "xml",
-  componentStack: string[],
-): Promise<void> {
-  const { tag, attributes, content, displayName } = element;
-  const hasChildren = content && content.length > 0;
-
-  // Push displayName to component stack if present
-  const newStack = displayName ? [...componentStack, displayName] : componentStack;
-
-  if (tag) {
-    const isVoidElement = mode === "html" && emptyTags.has(tag);
-    if (isVoidElement && hasChildren) {
-      throw new RenderingError(
-        "attribute-type-error",
-        newStack,
-        new Error(`<${tag}> is a void element and must not have children`),
-      );
-    }
-
-    const selfClosing = !isVoidElement && mode === "xml" && !hasChildren;
-    try {
-      renderOpeningTag(tag, attributes, buf, mode, selfClosing, newStack);
-    } catch (error) {
-      if (error instanceof RenderingError) {
-        throw error;
-      }
-      throw new RenderingError("attribute-type-error", newStack, error);
-    }
-
-    if (isVoidElement || selfClosing) {
-      return;
-    }
-  }
-
-  if (content) {
-    for (const child of content) {
-      await renderNode(child, buf, context, mode, newStack);
-    }
-  }
-
-  if (tag) {
-    renderClosingTag(tag, buf);
-  }
-}
-
-function renderOpeningTag(
-  tag: string,
-  attributes: Record<string, unknown> | null,
-  buf: StreamBuffer,
-  mode: "html" | "xml",
-  selfClosing: boolean,
-  componentStack: string[],
-): void {
-  buf.add("<");
-  buf.add(tag);
-
-  if (attributes) {
-    for (const [key, value] of Object.entries(attributes)) {
-      if (value == null) {
-        continue;
-      }
-
-      if (mode === "html" && booleanAttributes.has(key)) {
-        if (value === true) {
-          buf.add(" ");
-          buf.add(key);
-        } else if (value !== false) {
-          buf.add(" ");
-          buf.add(key);
-          buf.add('="');
-          buf.add(escapeHtml(String(value)));
-          buf.add('"');
-        }
-      } else {
-        // Validate attribute types that can't be serialized
-        if (value instanceof Promise || typeof value === "symbol" || typeof value === "function") {
-          const valueType =
-            value instanceof Promise
-              ? "Promise"
-              : typeof value === "symbol"
-                ? "Symbol"
-                : "Function";
-          throw new RenderingError(
-            "attribute-type-error",
-            componentStack,
-            new Error(`Attribute "${key}" has an invalid value type: ${valueType}`),
-          );
-        }
-
-        let stringValue: string;
-
-        if (key === "style" && typeof value === "object" && value) {
-          stringValue = styleObjectToString(value as CSSProperties);
-          if (!stringValue) continue;
-        } else if (key === "class" && (typeof value === "object" || Array.isArray(value))) {
-          stringValue = classAttribute(value as ClassAttributeValue);
-          if (!stringValue) continue;
-        } else {
-          stringValue = String(value);
-        }
-
-        buf.add(" ");
-        buf.add(key);
-        buf.add('="');
-        buf.add(escapeHtml(stringValue));
-        buf.add('"');
-      }
-    }
-  }
-
-  buf.add(selfClosing ? " />" : ">");
-}
-
-/**
- * Renders a closing tag to the buf.
- */
-function renderClosingTag(tag: string, buf: StreamBuffer): void {
-  buf.add("</");
-  buf.add(tag);
-  buf.add(">");
-}
 
 type ErrorKind =
   | "content-function-error"

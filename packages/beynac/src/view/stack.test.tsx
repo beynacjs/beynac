@@ -298,9 +298,10 @@ test("Once deduplication works across multiple stacks", async () => {
     </div>,
   );
 
-  // StackA renders: X1 (first OnceX), Y2 (first OnceY to be rendered)
-  // StackB renders: Z only (X2 skipped - OnceX already used, Y1 skipped - OnceY already used)
-  expect(result).toBe("<div>A:[X1][Y2]B:[Z]</div>");
+  // StackA renders: X1 (first OnceX encountered)
+  // StackB renders: Y1 (first OnceY encountered), Z
+  // X2 is skipped (OnceX already used), Y2 is skipped (OnceY already used)
+  expect(result).toBe("<div>A:[X1]B:[Y1][Z]</div>");
 });
 
 test("Stack content streams as it becomes available", async () => {
@@ -367,20 +368,21 @@ test("StackPush pushed onto a stack works correctly", async () => {
 test("Stacks maintain independent state and can render concurrently", async () => {
   const Stack = createStack();
 
+  const DelayPush = async ({ delay }: { delay: number }) => {
+    for (let i = 0; i < delay; i++) {
+      await Promise.resolve();
+    }
+    return <Stack.Push>{delay}</Stack.Push>;
+  };
+
   const Component = () => (
     <div>
       <Stack.Out />
-      {async function* () {
-        yield <Stack.Push>1</Stack.Push>;
-        await Promise.resolve();
-        yield <Stack.Push>2</Stack.Push>;
-        await Promise.resolve();
-        yield <Stack.Push>3</Stack.Push>;
-        await Promise.resolve();
-        yield <Stack.Push>4</Stack.Push>;
-        await Promise.resolve();
-        yield <Stack.Push>5</Stack.Push>;
-      }}
+      <DelayPush delay={1} />
+      <DelayPush delay={2} />
+      <DelayPush delay={3} />
+      <DelayPush delay={4} />
+      <DelayPush delay={5} />
     </div>
   );
 

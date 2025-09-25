@@ -1,4 +1,4 @@
-import { SPECIAL_NODE } from "./markup-stream";
+import { SPECIAL_NODE } from "./special-node";
 import type { Component, JSXNode, PropsWithChildren } from "./public-types";
 
 export type OnceKey = string | number | symbol | bigint;
