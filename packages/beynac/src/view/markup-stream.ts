@@ -92,46 +92,42 @@ class StreamBuffer {
   private errorValue: Error | null = null;
 
   // Stack handling state
-  private stackRedirects: symbol[] = []; // Stack of active redirects
+  private activeRedirect: symbol | null = null; // Currently active redirect
+  private parentRedirects: symbol[] = []; // Stack of parent redirects for nesting
   private stackBuffers: Map<symbol, string> = new Map(); // Buffered content per stack
   private stackOutPositions: Map<symbol, string> = new Map(); // Markers for where Stack.Out appears
-  private stackOutUsage: Map<symbol, boolean> = new Map(); // Track if Stack.Out used (for error)
-  private hasStackOut = false; // True after first Stack.Out encountered
+  private redirectsEmitted = new Set<symbol>(); // Track if Stack.Out used (for error)
+  private hasRedirectEmit = false; // True after first Stack.Out encountered
   private deferredChunks: string[] = []; // Chunks to yield at end when hasStackOut is true
 
   add(content: string): void {
-    if (this.stackRedirects.length > 0) {
-      // Redirect to the current stack buffer
-      const currentStack = this.stackRedirects[this.stackRedirects.length - 1];
-      const existing = this.stackBuffers.get(currentStack) || "";
-      this.stackBuffers.set(currentStack, existing + content);
-    } else {
-      this.buffer += content;
-    }
+    this.buffer += content;
   }
 
   yield(): void {
-    if (this.hasStackOut) {
-      // In deferred mode, store chunks for later
-      if (this.buffer) {
-        this.deferredChunks.push(this.buffer);
-        this.buffer = "";
-      }
-    } else if (this.stackRedirects.length === 0) {
-      // Normal yield only when not redirecting
-      if (this.buffer) {
-        const chunk = this.buffer;
-        this.buffer = "";
+    // Early return if buffer is empty
+    if (!this.buffer) return;
 
-        if (this.resolver) {
-          this.resolver({ done: false, chunk });
-          this.resolver = null;
-        } else {
-          this.pending.push(chunk);
-        }
+    const chunk = this.buffer;
+    this.buffer = "";
+
+    // Route the chunk based on current state
+    if (this.activeRedirect) {
+      // Append to the active stack buffer
+      const existing = this.stackBuffers.get(this.activeRedirect) || "";
+      this.stackBuffers.set(this.activeRedirect, existing + chunk);
+    } else if (this.hasRedirectEmit) {
+      // In deferred mode, store chunks for later
+      this.deferredChunks.push(chunk);
+    } else {
+      // Normal mode: send immediately to consumer
+      if (this.resolver) {
+        this.resolver({ done: false, chunk });
+        this.resolver = null;
+      } else {
+        this.pending.push(chunk);
       }
     }
-    // When redirecting, don't yield (content goes to stack buffer)
   }
 
   complete(): void {
@@ -148,7 +144,7 @@ class StreamBuffer {
     }
 
     // Flush all deferred chunks if we were in deferred mode
-    if (this.hasStackOut) {
+    if (this.hasRedirectEmit) {
       for (const chunk of this.deferredChunks) {
         // Replace stack markers with actual content
         let processedChunk = chunk;
@@ -185,11 +181,14 @@ class StreamBuffer {
   }
 
   beginStackRedirect(stackSymbol: symbol): void {
-    // Yield current buffer if not already redirecting
-    if (this.stackRedirects.length === 0) {
-      this.yield();
+    // Always yield to flush any pending content
+    this.yield();
+
+    // Push current redirect to parent stack if there is one
+    if (this.activeRedirect) {
+      this.parentRedirects.push(this.activeRedirect);
     }
-    this.stackRedirects.push(stackSymbol);
+    this.activeRedirect = stackSymbol;
     // Initialize stack buffer if needed
     if (!this.stackBuffers.has(stackSymbol)) {
       this.stackBuffers.set(stackSymbol, "");
@@ -197,23 +196,23 @@ class StreamBuffer {
   }
 
   endStackRedirect(): void {
-    this.stackRedirects.pop();
-    // If we're back to normal mode, we might need to yield
-    if (this.stackRedirects.length === 0 && !this.hasStackOut) {
-      this.yield();
-    }
+    // Always yield to flush any content accumulated during redirect
+    this.yield();
+
+    // Pop back to parent redirect or null
+    this.activeRedirect = this.parentRedirects.pop() ?? null;
   }
 
   handleStackOut(stackSymbol: symbol): void {
     // Check if already used
-    if (this.stackOutUsage.get(stackSymbol)) {
+    if (this.redirectsEmitted.has(stackSymbol)) {
       throw new Error("Stack.Out can only be used once per render");
     }
-    this.stackOutUsage.set(stackSymbol, true);
+    this.redirectsEmitted.add(stackSymbol);
 
     // Enable deferred mode on first Stack.Out
-    if (!this.hasStackOut) {
-      this.hasStackOut = true;
+    if (!this.hasRedirectEmit) {
+      this.hasRedirectEmit = true;
       // Flush any pending content to deferred chunks
       if (this.buffer) {
         this.deferredChunks.push(this.buffer);
@@ -330,7 +329,7 @@ async function renderNode(
     // Handle Stack.Push: redirect content to stack buffer
     buf.beginStackRedirect(node.stackPush);
     for (const item of node) {
-      await renderNode(item as JSXNode, buf, context, mode, componentStack);
+      await renderNode(item, buf, context, mode, componentStack);
     }
     buf.endStackRedirect();
   } else if (isStackOutNode(node)) {
