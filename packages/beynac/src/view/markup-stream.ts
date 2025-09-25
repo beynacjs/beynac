@@ -2,6 +2,7 @@ import { arrayWrap } from "../utils";
 import { classAttribute, type ClassAttributeValue } from "./class-attribute";
 import { ContextImpl } from "./context";
 import { CSSProperties } from "./intrinsic-element-types";
+import { isOnceNode, type OnceKey } from "./once";
 import type { JSXNode, RenderOptions } from "./public-types";
 import { RawContent } from "./raw";
 import { isStackOutNode, isStackPushNode } from "./stack";
@@ -98,6 +99,9 @@ class StreamBuffer {
   private redirectsEmitted = new Set<symbol>(); // Track if Stack.Out used (for error)
   private hasRedirectEmit = false; // True after first Stack.Out encountered
   private deferredChunks: Array<string | string[]> = []; // Chunks to yield at end when hasStackOut is true
+
+  // Once handling state
+  private onceKeys = new Set<string | number | symbol | bigint>(); // Track used Once keys
 
   add(content: string): void {
     this.buffer += content;
@@ -246,6 +250,14 @@ class StreamBuffer {
       this.pending.push(chunk);
     }
   }
+
+  hasSeenOnceKey(key: OnceKey): boolean {
+    return this.onceKeys.has(key);
+  }
+
+  markOnceKey(key: OnceKey): void {
+    this.onceKeys.add(key);
+  }
 }
 
 const HTML_ESCAPE: Record<string, string> = {
@@ -304,6 +316,11 @@ const booleanAttributes = new Set([
   "selected",
 ]);
 
+export const SPECIAL_NODE: unique symbol = Symbol("special-node");
+
+const isSpecialNode = (node: unknown): boolean =>
+  (node as { [SPECIAL_NODE]?: boolean })?.[SPECIAL_NODE] === true;
+
 async function renderNode(
   node: JSXNode,
   buf: StreamBuffer,
@@ -315,16 +332,26 @@ async function renderNode(
   if (node instanceof RawContent) {
     buf.add(node.toString());
   } else if (Array.isArray(node)) {
-    if (isStackPushNode(node)) {
-      // Handle Stack.Push: redirect content to stack buffer
-      buf.beginStackRedirect(node.stackPush);
-      for (const item of node) {
-        await renderNode(item, buf, context, mode, componentStack);
+    if (isSpecialNode(node)) {
+      if (isStackPushNode(node)) {
+        // Handle Stack.Push: redirect content to stack buffer
+        buf.beginStackRedirect(node.stackPush);
+        for (const item of node) {
+          await renderNode(item, buf, context, mode, componentStack);
+        }
+        buf.endStackRedirect();
+      } else if (isStackOutNode(node)) {
+        // Handle Stack.Out: render buffered stack content
+        buf.handleStackOut(node.stackOut);
+      } else if (isOnceNode(node)) {
+        // Handle Once: render content only if key hasn't been seen
+        if (!buf.hasSeenOnceKey(node.onceKey)) {
+          buf.markOnceKey(node.onceKey);
+          for (const item of node) {
+            await renderNode(item, buf, context, mode, componentStack);
+          }
+        }
       }
-      buf.endStackRedirect();
-    } else if (isStackOutNode(node)) {
-      // Handle Stack.Out: render buffered stack content
-      buf.handleStackOut(node.stackOut);
     } else {
       for (const item of node) {
         await renderNode(item as JSXNode, buf, context, mode, componentStack);

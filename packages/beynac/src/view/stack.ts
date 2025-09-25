@@ -1,3 +1,4 @@
+import { SPECIAL_NODE } from "./markup-stream";
 import type { Component, JSXNode, PropsWithChildren } from "./public-types";
 
 type CreateStackArgs = { displayName?: string };
@@ -25,24 +26,24 @@ export function createStack({ displayName = "Stack" }: CreateStackArgs = {}): {
   const stackIdentity = Symbol(displayName);
 
   const Push: Component<PropsWithChildren> = ({ children }): StackPushNode => {
-    return Object.assign([children], { stackPush: stackIdentity });
+    return Object.assign([children], { stackPush: stackIdentity, [SPECIAL_NODE]: true });
   };
   Push.displayName = `${displayName}.Push`;
 
   const Out: Component<PropsWithChildren> = () => {
-    return Object.assign([], { stackOut: stackIdentity });
+    return Object.assign([], { stackOut: stackIdentity, [SPECIAL_NODE]: true });
   };
   Out.displayName = `${displayName}.Out`;
 
   return { Push, Out };
 }
 
-export type StackPushNode = JSXNode[] & { stackPush: symbol };
+export type StackPushNode = JSXNode[] & { stackPush: symbol; [SPECIAL_NODE]: true };
 
 export const isStackPushNode = (node: JSXNode): node is StackPushNode =>
   typeof (node as StackPushNode)?.stackPush === "symbol";
 
-export type StackOutNode = JSXNode[] & { stackOut: symbol };
+export type StackOutNode = JSXNode[] & { stackOut: symbol; [SPECIAL_NODE]: true };
 
 export const isStackOutNode = (node: JSXNode): node is StackOutNode =>
   typeof (node as StackOutNode)?.stackOut === "symbol";
