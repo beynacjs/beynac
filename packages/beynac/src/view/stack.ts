@@ -1,5 +1,5 @@
 import type { Component, JSXNode, PropsWithChildren } from "./public-types";
-import { SPECIAL_NODE } from "./special-node";
+import { SPECIAL_NODE, SpecialNode } from "./special-node";
 
 type CreateStackArgs = { displayName?: string };
 
@@ -38,12 +38,12 @@ export function createStack({ displayName = "Stack" }: CreateStackArgs = {}): {
   return { Push, Out };
 }
 
-export type StackPushNode = JSXNode[] & { stackPush: symbol; [SPECIAL_NODE]: true };
+export type StackPushNode = JSXNode[] & SpecialNode & { stackPush: symbol };
 
 export const isStackPushNode = (node: JSXNode): node is StackPushNode =>
   typeof (node as StackPushNode)?.stackPush === "symbol";
 
-export type StackOutNode = JSXNode[] & { stackOut: symbol; [SPECIAL_NODE]: true };
+export type StackOutNode = JSXNode[] & SpecialNode & { stackOut: symbol };
 
 export const isStackOutNode = (node: JSXNode): node is StackOutNode =>
   typeof (node as StackOutNode)?.stackOut === "symbol";

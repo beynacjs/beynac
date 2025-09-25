@@ -1,9 +1,9 @@
-import { SPECIAL_NODE } from "./special-node";
 import type { Component, JSXNode, PropsWithChildren } from "./public-types";
+import { SPECIAL_NODE, SpecialNode } from "./special-node";
 
 export type OnceKey = string | number | symbol | bigint;
 
-export type OnceNode = JSXNode[] & { onceKey: OnceKey; [SPECIAL_NODE]: true };
+export type OnceNode = JSXNode[] & SpecialNode & { onceKey: OnceKey };
 
 export const isOnceNode = (node: JSXNode): node is OnceNode =>
   typeof (node as OnceNode)?.onceKey !== "undefined";

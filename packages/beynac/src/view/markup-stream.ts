@@ -76,8 +76,63 @@ export function renderStream(
   const rootContext = new ContextImpl();
   const componentStack: string[] = [];
   const onceKeys = new Set<OnceKey>(); // Track used Once keys
+  const functionCache = new Map<Function, JSXNode>(); // Cache function execution results
 
-  // Define rendering functions as closures that capture buf, mode, and onceKeys
+  // Pre-execute traversal - executes functions and starts promises without waiting
+  function startPreExecution(node: JSXNode, context: ContextImpl): void {
+    switch (typeof node) {
+      case "object":
+        if (node instanceof MarkupStream) {
+          startPreExecution(node.content, context);
+          return;
+        }
+
+        if (isSpecialNode(node)) {
+          // Don't descend into StackPush or Once nodes
+          return;
+        }
+
+        // Handle arrays - start all in parallel
+        if (Array.isArray(node)) {
+          for (const item of node) {
+            startPreExecution(item as JSXNode, context);
+          }
+          return;
+        }
+
+        // Handle standalone promises - just continue pre-execution on resolved value
+        if (node instanceof Promise) {
+          node.then(
+            (resolved) => {
+              startPreExecution(resolved as JSXNode, context);
+            },
+            () => {
+              // Ignore errors
+            },
+          );
+          return;
+        }
+        return;
+
+      case "function":
+        // Skip if already cached
+        if (functionCache.has(node)) {
+          return;
+        }
+
+        try {
+          const childContext = context.fork();
+          const result = node(childContext) as JSXNode;
+          functionCache.set(node, result);
+          startPreExecution(result, childContext.wasModified() ? childContext : context);
+        } catch {
+          // Ignore errors during pre-execution
+        }
+        return;
+    }
+  }
+
+  // Define rendering functions as closures that capture buf, mode, onceKeys, and functionCache
   async function renderNode(node: JSXNode, context: ContextImpl, stack: string[]): Promise<void> {
     switch (typeof node) {
       case "symbol":
@@ -155,9 +210,23 @@ export function renderStream(
 
       case "function":
         try {
-          const childContext = context.fork();
-          const result = node(childContext) as JSXNode;
-          const contextToUse = childContext.wasModified() ? childContext : context;
+          let result: JSXNode;
+          let contextToUse: ContextImpl;
+
+          // Check if function was already executed in pre-execution
+          if (functionCache.has(node)) {
+            result = functionCache.get(node)!;
+            // Still need to fork context for proper context behavior
+            const childContext = context.fork();
+            contextToUse = childContext.wasModified() ? childContext : context;
+          } else {
+            // Execute the function normally
+            const childContext = context.fork();
+            result = node(childContext) as JSXNode;
+            contextToUse = childContext.wasModified() ? childContext : context;
+            // Cache the result for potential future use
+            functionCache.set(node, result);
+          }
 
           if (result instanceof Promise) {
             buf.yield();
@@ -302,6 +371,9 @@ export function renderStream(
     buf.add(tag);
     buf.add(">");
   }
+
+  // Start pre-execution traversal (non-blocking)
+  startPreExecution(content, rootContext);
 
   // Start the rendering
   renderNode(content, rootContext, componentStack).then(
