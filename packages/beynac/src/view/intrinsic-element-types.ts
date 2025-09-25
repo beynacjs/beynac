@@ -81,29 +81,14 @@ interface JSXAttributes {
 
 export interface HTMLAttributes extends JSXAttributes, AnyAttributes {
   accesskey?: string | undefined;
-  autocapitalize?:
-    | "off"
-    | "none"
-    | "on"
-    | "sentences"
-    | "words"
-    | "characters"
-    | undefined;
+  autocapitalize?: "off" | "none" | "on" | "sentences" | "words" | "characters" | undefined;
   autofocus?: boolean | undefined;
   class?: string | ClassAttributeValue | undefined;
   contenteditable?: boolean | "inherit" | undefined;
   contextmenu?: string | undefined;
   dir?: string | undefined;
   draggable?: "true" | "false" | boolean | undefined;
-  enterkeyhint?:
-    | "enter"
-    | "done"
-    | "go"
-    | "next"
-    | "previous"
-    | "search"
-    | "send"
-    | undefined;
+  enterkeyhint?: "enter" | "done" | "go" | "next" | "previous" | "search" | "send" | undefined;
   hidden?: boolean | undefined;
   id?: string | undefined;
   inert?: boolean | undefined;
@@ -148,9 +133,7 @@ type HTMLAttributeReferrerPolicy =
   | "strict-origin-when-cross-origin"
   | "unsafe-url";
 
-type HTMLAttributeAnchorTarget = StringLiteralUnion<
-  "_self" | "_blank" | "_parent" | "_top"
->;
+type HTMLAttributeAnchorTarget = StringLiteralUnion<"_self" | "_blank" | "_parent" | "_top">;
 
 interface AnchorHTMLAttributes extends HTMLAttributes {
   download?: string | boolean | undefined;
@@ -629,9 +612,7 @@ interface ScriptHTMLAttributes extends HTMLAttributes {
   /**
    * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script/type
    */
-  type?:
-    | StringLiteralUnion<"" | "text/javascript" | "importmap" | "module">
-    | undefined;
+  type?: StringLiteralUnion<"" | "text/javascript" | "importmap" | "module"> | undefined;
 
   // React 19 compatibility
   crossOrigin?: CrossOrigin;
@@ -654,8 +635,7 @@ interface SelectHTMLAttributes extends HTMLAttributes {
   value?: string | ReadonlyArray<string> | number | undefined;
 }
 
-type MediaMime = BaseMime &
-  (`image/${string}` | `audio/${string}` | `video/${string}`);
+type MediaMime = BaseMime & (`image/${string}` | `audio/${string}` | `video/${string}`);
 interface SourceHTMLAttributes extends HTMLAttributes {
   height?: number | string | undefined;
   media?: string | undefined;

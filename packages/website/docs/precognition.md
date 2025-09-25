@@ -77,12 +77,7 @@ const submit = () => form.submit();
     </div>
 
     <label for="email">Email</label>
-    <input
-      id="email"
-      type="email"
-      v-model="form.email"
-      @change="form.validate('email')"
-    />
+    <input id="email" type="email" v-model="form.email" @change="form.validate('email')" />
     <div v-if="form.invalid('email')">
       {{ form.errors.email }}
     </div>
@@ -492,23 +487,13 @@ To enable live validation, you should bind the form's data to its relevant input
 >
   @csrf
   <label for="name">Name</label>
-  <input
-    id="name"
-    name="name"
-    x-model="form.name"
-    @change="form.validate('name')"
-  />
+  <input id="name" name="name" x-model="form.name" @change="form.validate('name')" />
   <template x-if="form.invalid('name')">
     <div x-text="form.errors.name"></div>
   </template>
 
   <label for="email">Email</label>
-  <input
-    id="email"
-    name="email"
-    x-model="form.email"
-    @change="form.validate('email')"
-  />
+  <input id="email" name="email" x-model="form.email" @change="form.validate('email')" />
   <template x-if="form.invalid('email')">
     <div x-text="form.errors.email"></div>
   </template>

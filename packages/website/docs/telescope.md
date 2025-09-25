@@ -185,9 +185,7 @@ To keep the assets up-to-date and avoid issues in future updates, you may add th
 ```json
 {
   "scripts": {
-    "post-update-cmd": [
-      "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
-    ]
+    "post-update-cmd": ["@php artisan vendor:publish --tag=laravel-assets --ansi --force"]
   }
 }
 ```

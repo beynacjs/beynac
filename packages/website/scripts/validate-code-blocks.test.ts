@@ -23,9 +23,7 @@ test("validate code blocks", async () => {
     }
 
     // Process non-manual blocks
-    const nonManualBlocks = blocks.filter(
-      (b) => b.source && b.source !== "manual",
-    );
+    const nonManualBlocks = blocks.filter((b) => b.source && b.source !== "manual");
     if (nonManualBlocks.length === 0) continue;
 
     // Check if test file exists
@@ -40,10 +38,7 @@ test("validate code blocks", async () => {
       if (!block.source) continue;
 
       const testContent = readFileSync(testFilePath, "utf-8");
-      const expectedCode = getExpectedCodeForBlockFromContent(
-        testContent,
-        block.source,
-      );
+      const expectedCode = getExpectedCodeForBlockFromContent(testContent, block.source);
       const actualCode = block.content.trim();
 
       // Use expect for better error reporting

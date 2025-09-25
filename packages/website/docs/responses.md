@@ -751,9 +751,7 @@ const loadUsers = () => {
 <template>
   <div>
     <ul>
-      <li v-for="user in data?.users" :key="user.id">
-        {{ user.id }}: {{ user.name }}
-      </li>
+      <li v-for="user in data?.users" :key="user.id">{{ user.id }}: {{ user.name }}</li>
     </ul>
     <button @click="loadUsers">Load Users</button>
   </div>

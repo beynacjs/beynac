@@ -5,17 +5,7 @@ import { render } from "./markup-stream";
 import type { JSX, JSXNode } from "./public-types";
 
 test("childrenToArray filters out null, undefined, and boolean values", () => {
-  const children: JSXNode = [
-    "hello",
-    null,
-    42,
-    undefined,
-    true,
-    false,
-    <span>world</span>,
-    0,
-    "",
-  ];
+  const children: JSXNode = ["hello", null, 42, undefined, true, false, <span>world</span>, 0, ""];
 
   const result = childrenToArray(children);
 

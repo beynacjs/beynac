@@ -116,16 +116,14 @@ export function asyncGate(checkpoints: string[]): AsyncGate {
 
       if (!isAnyTaskWaitingHere) {
         // Check if any task might reach this checkpoint
-        const willAnyTaskReachHere = Array.from(tasks.values()).some(
-          (taskState) => {
-            if (!taskState.waitingOn) {
-              // Task not waiting yet - might reach this checkpoint
-              return true;
-            }
-            // Task is waiting on this exact checkpoint
-            return taskState.waitingOn === currentCheckpoint;
-          },
-        );
+        const willAnyTaskReachHere = Array.from(tasks.values()).some((taskState) => {
+          if (!taskState.waitingOn) {
+            // Task not waiting yet - might reach this checkpoint
+            return true;
+          }
+          // Task is waiting on this exact checkpoint
+          return taskState.waitingOn === currentCheckpoint;
+        });
 
         if (willAnyTaskReachHere) {
           // Wait for a task to arrive

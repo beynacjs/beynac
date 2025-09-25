@@ -6,9 +6,7 @@ test("asyncGate throws on empty checkpoints array", () => {
 });
 
 test("asyncGate throws on duplicate checkpoints", () => {
-  expect(() => asyncGate(["a", "b", "a"])).toThrow(
-    "Checkpoints array contains duplicates",
-  );
+  expect(() => asyncGate(["a", "b", "a"])).toThrow("Checkpoints array contains duplicates");
 });
 
 test("task() throws if task name already exists", () => {
@@ -172,12 +170,7 @@ test("task can skip checkpoints", async () => {
 });
 
 test("complex race condition scenario", async () => {
-  const gate = asyncGate([
-    "read-start",
-    "write-start",
-    "write-end",
-    "read-end",
-  ]);
+  const gate = asyncGate(["read-start", "write-start", "write-end", "read-end"]);
   const sharedResource: string[] = [];
 
   const writerCheckpoint = gate.task("writer");
@@ -203,12 +196,7 @@ test("complex race condition scenario", async () => {
   await gate.run();
 
   // Assert events happened in expected order
-  expect(sharedResource).toEqual([
-    "reading",
-    "writing",
-    "write complete",
-    "read complete",
-  ]);
+  expect(sharedResource).toEqual(["reading", "writing", "write complete", "read complete"]);
 });
 
 test("next() waits for task to reach checkpoint", async () => {
@@ -242,12 +230,11 @@ test("multiple tasks waiting on same checkpoint are all released", async () => {
   const checkpoint2 = gate.task("task2");
   const checkpoint3 = gate.task("task3");
 
-  const createTask =
-    (name: string, checkpoint: (name: string) => Promise<void>) => async () => {
-      events.push(`${name}: start`);
-      await checkpoint("sync-point");
-      events.push(`${name}: done`);
-    };
+  const createTask = (name: string, checkpoint: (name: string) => Promise<void>) => async () => {
+    events.push(`${name}: start`);
+    await checkpoint("sync-point");
+    events.push(`${name}: done`);
+  };
 
   // Start all tasks
   const tasks = [
@@ -351,12 +338,7 @@ test("calling gate as a function uses the default task", async () => {
   await taskPromise;
 
   expect(gate.current("default")).toBe(null);
-  expect(events).toEqual([
-    "start",
-    "after init",
-    "after process",
-    "after cleanup",
-  ]);
+  expect(events).toEqual(["start", "after init", "after process", "after cleanup"]);
 });
 
 test("default task throws when used concurrently by multiple processes waiting on same checkpoint", async () => {

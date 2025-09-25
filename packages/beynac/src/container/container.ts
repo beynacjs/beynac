@@ -3,11 +3,7 @@ import { BeynacError } from "../error";
 import { isKey, type Key } from "../keys";
 import { ArrayMultiMap, arrayWrap, describeType, SetMultiMap } from "../utils";
 import { ContextualBindingBuilder } from "./ContextualBindingBuilder";
-import {
-  type ClassReference,
-  getKeyName,
-  type KeyOrClass,
-} from "./container-key";
+import { type ClassReference, getKeyName, type KeyOrClass } from "./container-key";
 import { _getInjectHandler, _setInjectHandler } from "./inject";
 import { NO_VALUE, type NoValue } from "./no-value";
 
@@ -69,9 +65,7 @@ type BindKeyToFactoryArgs<T, C extends Container> = SharedBindArgs & {
   factory: FactoryFunction<T, C>;
 };
 
-type BindKeyArgs<T, C extends Container> =
-  | BindKeyToInstanceArgs<T>
-  | BindKeyToFactoryArgs<T, C>;
+type BindKeyArgs<T, C extends Container> = BindKeyToInstanceArgs<T> | BindKeyToFactoryArgs<T, C>;
 
 type BindClassToFactoryArgs<T, C extends Container> = SharedBindArgs & {
   factory?: FactoryFunction<T, C> | null;
@@ -94,10 +88,7 @@ type ExtenderCallback<T = unknown, C extends Container = Container> = (
 
 export type InstanceCallback<T> = (instance: T, container: Container) => void;
 
-export type TypeCallback<T> = (
-  key: KeyOrClass<T>,
-  container: Container,
-) => void;
+export type TypeCallback<T> = (key: KeyOrClass<T>, container: Container) => void;
 
 /**
  * A type-safe Inversion of Control (IoC) container. Essentially a fancy map of
@@ -119,18 +110,12 @@ export class Container {
   #tags = new SetMultiMap<KeyOrClass, KeyOrClass>();
   #scopeStorage = new AsyncLocalStorage<Map<KeyOrClass, unknown>>();
 
-  #reboundCallbacks = new ArrayMultiMap<
-    KeyOrClass,
-    InstanceCallback<unknown>
-  >();
+  #reboundCallbacks = new ArrayMultiMap<KeyOrClass, InstanceCallback<unknown>>();
 
   /**
    * All of the resolving callbacks by class type.
    */
-  #resolvingCallbacks = new ArrayMultiMap<
-    KeyOrClass,
-    InstanceCallback<unknown>
-  >();
+  #resolvingCallbacks = new ArrayMultiMap<KeyOrClass, InstanceCallback<unknown>>();
 
   /**
    * Bind a value to a type token in the IoC container
@@ -150,11 +135,7 @@ export class Container {
    *                       - "singleton": one instance is created for and reused for all requests
    * @param args.ifNotBound if true, the binding will not be created if it already exists
    */
-  public bind<T, C extends Container>(
-    this: C,
-    key: Key<T>,
-    args: BindKeyArgs<T, C>,
-  ): void;
+  public bind<T, C extends Container>(this: C, key: Key<T>, args: BindKeyArgs<T, C>): void;
 
   /**
    * Bind a value to a class reference in the IoC container
@@ -260,11 +241,9 @@ export class Container {
     const previousInjectHandler = _getInjectHandler();
     try {
       const needsContextualBuild = this.#hasContextualOverrides(binding);
-      _setInjectHandler(
-        <TArg>(dependency: KeyOrClass<TArg>, optional: boolean) => {
-          return this.#getInjected(key, dependency, optional);
-        },
-      );
+      _setInjectHandler(<TArg>(dependency: KeyOrClass<TArg>, optional: boolean) => {
+        return this.#getInjected(key, dependency, optional);
+      });
 
       let factory: AnyFactory | undefined;
 
@@ -323,10 +302,7 @@ export class Container {
         // Store instance appropriately based on binding type
         if (scopeInstances) {
           scopeInstances.set(key, instance);
-        } else if (
-          binding?.lifecycle === "singleton" &&
-          !needsContextualBuild
-        ) {
+        } else if (binding?.lifecycle === "singleton" && !needsContextualBuild) {
           binding.instance = instance;
         }
         binding.resolved = true;
@@ -381,8 +357,7 @@ export class Container {
 
     if (!ctxBinding.contextualOverrides) return null;
 
-    const getOverride = (cb: Binding, db: Binding) =>
-      cb.contextualOverrides?.get(db.key);
+    const getOverride = (cb: Binding, db: Binding) => cb.contextualOverrides?.get(db.key);
 
     // direct overrides - this exact context needs this exact dependency
     const override = getOverride(ctxBinding, depBinding);
@@ -432,16 +407,12 @@ export class Container {
     return this.get(dependency);
   }
 
-  #getConcreteBinding<T>(
-    key: KeyOrClass<T>,
-  ): ConcreteBinding | ImplicitBinding {
+  #getConcreteBinding<T>(key: KeyOrClass<T>): ConcreteBinding | ImplicitBinding {
     const stack = new Set<KeyOrClass>();
     let binding = this.#getActualBinding(key);
     while (binding?.type === "alias") {
       if (stack.has(key)) {
-        throw this.#containerError(
-          `Circular alias detected: ${formatKeyCycle(stack, key)}`,
-        );
+        throw this.#containerError(`Circular alias detected: ${formatKeyCycle(stack, key)}`);
       }
       stack.add(key);
       key = binding.to as KeyOrClass<T>;
@@ -466,13 +437,7 @@ export class Container {
    * Alias a type to a different name. After setting up an alias,
    * `container.get(from)` will return the same value as `container.get(to)`
    */
-  public alias<T>({
-    to,
-    from,
-  }: {
-    to: KeyOrClass<T>;
-    from: KeyOrClass<T>;
-  }): void {
+  public alias<T>({ to, from }: { to: KeyOrClass<T>; from: KeyOrClass<T> }): void {
     if (to === from) {
       throw this.#containerError(`${getKeyName(from)} is aliased to itself.`);
     }
@@ -506,10 +471,7 @@ export class Container {
    */
   public resolved(key: KeyOrClass): boolean {
     const binding = this.#getConcreteBinding(key);
-    return !!(
-      binding.resolved ||
-      (binding.type === "concrete" && binding.instance !== undefined)
-    );
+    return !!(binding.resolved || (binding.type === "concrete" && binding.instance !== undefined));
   }
 
   /**
@@ -570,10 +532,7 @@ export class Container {
     // If there's already a shared instance, apply the extender immediately
     // const binding = this.#bindings.get(key);
     if (binding.type === "concrete" && binding.instance !== undefined) {
-      binding.instance = callback(
-        binding.instance as Exclude<T, undefined>,
-        this,
-      );
+      binding.instance = callback(binding.instance as Exclude<T, undefined>, this);
       this.#rebound(key);
     } else if (this.resolved(key)) {
       this.#rebound(key);
@@ -630,26 +589,17 @@ export class Container {
   ): ContextualBindingBuilder<C> {
     return new ContextualBindingBuilder<C>(this, (need, factory) => {
       for (const cls of arrayWrap(dependent)) {
-        const binding =
-          this.#bindings.get(cls) ?? this.#getConcreteBinding(cls);
+        const binding = this.#bindings.get(cls) ?? this.#getConcreteBinding(cls);
         binding.contextualOverrides ??= new Map();
-        binding.contextualOverrides.set(
-          need,
-          factory as FactoryFunction<unknown, Container>,
-        );
+        binding.contextualOverrides.set(need, factory as FactoryFunction<unknown, Container>);
       }
     });
   }
 
-  #containerError(
-    message: string,
-    args: { omitTopOfBuildStack?: boolean } = {},
-  ): ContainerError {
+  #containerError(message: string, args: { omitTopOfBuildStack?: boolean } = {}): ContainerError {
     const stackArray = Array.from(this.#buildStack);
     return new ContainerError(message, {
-      buildStack: args.omitTopOfBuildStack
-        ? stackArray.slice(0, -1)
-        : stackArray,
+      buildStack: args.omitTopOfBuildStack ? stackArray.slice(0, -1) : stackArray,
     });
   }
 
@@ -733,11 +683,9 @@ export class Container {
 
     const previousInjectHandler = _getInjectHandler();
     try {
-      _setInjectHandler(
-        <TArg>(dependency: KeyOrClass<TArg>, optional: boolean) => {
-          return this.#getInjected(dependent, dependency, optional) as TArg;
-        },
-      );
+      _setInjectHandler(<TArg>(dependency: KeyOrClass<TArg>, optional: boolean) => {
+        return this.#getInjected(dependent, dependency, optional) as TArg;
+      });
       const o = object as Record<string, () => unknown>;
       const m = methodName as string;
       if (!o[m]) {
@@ -755,10 +703,7 @@ export class Container {
    * @param keys The abstract types
    * @param tags The tags
    */
-  public tag<T>(
-    keys: KeyOrClass<T> | KeyOrClass<T>[],
-    tags: Key<T> | Key<T>[],
-  ): void {
+  public tag<T>(keys: KeyOrClass<T> | KeyOrClass<T>[], tags: Key<T> | Key<T>[]): void {
     this.#tags.addAll(tags, keys);
   }
 
@@ -800,18 +745,11 @@ export class Container {
 const formatKeyCycle = (stack: Set<KeyOrClass>, cycleKey: KeyOrClass) => {
   const stackArray = Array.from(stack);
   const cycleStart = stackArray.indexOf(cycleKey);
-  return stackArray
-    .slice(cycleStart)
-    .concat(cycleKey)
-    .map(getKeyName)
-    .join(" -> ");
+  return stackArray.slice(cycleStart).concat(cycleKey).map(getKeyName).join(" -> ");
 };
 
 const looksLikeClassConstructor = (value: unknown) => {
-  return (
-    typeof value === "function" &&
-    /^class\s+/.test(Function.prototype.toString.call(value))
-  );
+  return typeof value === "function" && /^class\s+/.test(Function.prototype.toString.call(value));
 };
 
 class ContainerError extends BeynacError {

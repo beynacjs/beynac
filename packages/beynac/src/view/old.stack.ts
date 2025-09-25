@@ -67,7 +67,6 @@ export const stackRenderContextKey: Key<StackContext | undefined> = createKey<St
   displayName: "StackRenderContext",
 });
 
-
 /**
  * StackQueue provides an async iterable interface for streaming content.
  * Items can be pushed from the push phase and consumed from the render phase.

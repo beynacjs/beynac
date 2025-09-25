@@ -858,9 +858,7 @@ $orders = Order::search('Star Trek')->paginate(15);
 Once you have retrieved the results, you may display the results and render the page links using [Blade](./blade) just as if you had paginated a traditional Eloquent query:
 
 ```html
-<div class="container">
-  @foreach ($orders as $order) {{ $order->price }} @endforeach
-</div>
+<div class="container">@foreach ($orders as $order) {{ $order->price }} @endforeach</div>
 
 {{ $orders->links() }}
 ```

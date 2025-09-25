@@ -101,12 +101,7 @@ export const styleObjectToString = (style: CSSProperties): string => {
 
     // Convert numbers to px for properties that need units
     // Check the original property name (k) not the transformed one (propName)
-    const value =
-      typeof v === "number"
-        ? noUnitProperties.has(k)
-          ? `${v}`
-          : `${v}px`
-        : String(v);
+    const value = typeof v === "number" ? (noUnitProperties.has(k) ? `${v}` : `${v}px`) : String(v);
 
     if (result) result += ";";
     result += `${key}:${value}`;

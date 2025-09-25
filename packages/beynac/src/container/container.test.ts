@@ -1,12 +1,4 @@
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  expectTypeOf,
-  mock,
-  test,
-} from "bun:test";
+import { afterEach, beforeEach, describe, expect, expectTypeOf, mock, test } from "bun:test";
 import { createKey } from "../keys";
 import { asyncGate } from "../test-utils";
 import { Container } from "./container";
@@ -104,9 +96,7 @@ describe("Container", () => {
       constructor(public name = inject(nameToken)) {}
     }
     container.bind(HasNameDependency);
-    expect(() =>
-      container.get(HasNameDependency),
-    ).toThrowErrorMatchingInlineSnapshot(
+    expect(() => container.get(HasNameDependency)).toThrowErrorMatchingInlineSnapshot(
       `"Can't create an instance of [name] because no value or factory function was supplied (while building [HasNameDependency])"`,
     );
   });
@@ -138,9 +128,7 @@ describe("Container", () => {
     expect(() =>
       //@ts-expect-error testing ts error
       container.bind(token),
-    ).toThrow(
-      "When binding a type token you must supply a function to create an instance",
-    );
+    ).toThrow("When binding a type token you must supply a function to create an instance");
   });
 
   test("bound checks if a type token is bound", () => {
@@ -611,9 +599,7 @@ describe("Container", () => {
     const token = createKey({ displayName: "tokenName" });
     expect(() => {
       container.alias({ from: token, to: token });
-    }).toThrowErrorMatchingInlineSnapshot(
-      `"[tokenName] is aliased to itself."`,
-    );
+    }).toThrowErrorMatchingInlineSnapshot(`"[tokenName] is aliased to itself."`);
     class Foo {}
     expect(() => {
       container.alias({ from: Foo, to: Foo });

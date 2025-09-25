@@ -21,9 +21,7 @@ describe("styleObjectToString", () => {
         marginTop: 20,
         padding: 10,
       }),
-    ).toBe(
-      "width:100px;height:50px;font-size:14px;margin-top:20px;padding:10px",
-    );
+    ).toBe("width:100px;height:50px;font-size:14px;margin-top:20px;padding:10px");
   });
 
   test("does not add px to unitless properties", () => {

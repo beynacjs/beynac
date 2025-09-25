@@ -33,9 +33,7 @@ describe("classAttribute", () => {
       const falsy = false;
       expect(classAttribute("")).toBe("");
       expect(classAttribute("foo", "bar")).toBe("foo bar");
-      expect(classAttribute(truthy && "foo", falsy && "bar", "baz")).toBe(
-        "foo baz",
-      );
+      expect(classAttribute(truthy && "foo", falsy && "bar", "baz")).toBe("foo baz");
       expect(classAttribute(falsy && "foo", "bar", "baz", "")).toBe("bar baz");
     });
   });
@@ -81,18 +79,10 @@ describe("classAttribute", () => {
     test("handles variadic object arguments", () => {
       expect(classAttribute({}, {})).toBe("");
       expect(classAttribute({ foo: 1 }, { bar: 2 })).toBe("foo bar");
-      expect(classAttribute({ foo: 1 }, null, { baz: 1, bat: 0 })).toBe(
-        "foo baz",
+      expect(classAttribute({ foo: 1 }, null, { baz: 1, bat: 0 })).toBe("foo baz");
+      expect(classAttribute({ foo: 1 }, {}, {}, { bar: "a" }, { baz: null, bat: Infinity })).toBe(
+        "foo bar bat",
       );
-      expect(
-        classAttribute(
-          { foo: 1 },
-          {},
-          {},
-          { bar: "a" },
-          { baz: null, bat: Infinity },
-        ),
-      ).toBe("foo bar bat");
     });
   });
 
@@ -106,35 +96,27 @@ describe("classAttribute", () => {
       expect(classAttribute(["foo", "bar"])).toBe("foo bar");
       const zero = 0;
       const one = 1;
-      expect(classAttribute(["foo", zero && "bar", one && "baz"])).toBe(
-        "foo baz",
-      );
+      expect(classAttribute(["foo", zero && "bar", one && "baz"])).toBe("foo baz");
     });
 
     test("handles nested arrays", () => {
       expect(classAttribute([[[]]])).toBe("");
       expect(classAttribute([[["foo"]]])).toBe("foo");
       expect(classAttribute([true, [["foo"]]])).toBe("foo");
-      expect(classAttribute(["foo", ["bar", ["", [["baz"]]]]])).toBe(
-        "foo bar baz",
-      );
+      expect(classAttribute(["foo", ["bar", ["", [["baz"]]]]])).toBe("foo bar baz");
     });
 
     test("handles variadic array arguments", () => {
       expect(classAttribute([], [])).toBe("");
       expect(classAttribute(["foo"], ["bar"])).toBe("foo bar");
-      expect(classAttribute(["foo"], null, ["baz", ""], true, "", [])).toBe(
-        "foo baz",
-      );
+      expect(classAttribute(["foo"], null, ["baz", ""], true, "", [])).toBe("foo baz");
     });
 
     test("no push escape - handles array-like method names", () => {
       expect(classAttribute({ push: 1 })).toBe("push");
       expect(classAttribute({ pop: true })).toBe("pop");
       expect(classAttribute({ push: true })).toBe("push");
-      expect(classAttribute("hello", { world: 1, push: true })).toBe(
-        "hello world push",
-      );
+      expect(classAttribute("hello", { world: 1, push: true })).toBe("hello world push");
     });
   });
 
@@ -142,9 +124,7 @@ describe("classAttribute", () => {
     test("ignores functions", () => {
       const foo = (() => {}) as unknown as string;
       expect(classAttribute(foo, "hello")).toBe("hello");
-      expect(classAttribute(foo, "hello", [[foo], "world"])).toBe(
-        "hello world",
-      );
+      expect(classAttribute(foo, "hello", [[foo], "world"])).toBe("hello world");
     });
   });
 
@@ -166,11 +146,7 @@ describe("classAttribute", () => {
     test("handles deeply nested structures", () => {
       expect(
         classAttribute({
-          foo: [
-            1,
-            { bar: [2, { baz: { qux: [3, { quux: 4 }] } }] },
-            { quuz: [] },
-          ],
+          foo: [1, { bar: [2, { baz: { qux: [3, { quux: 4 }] } }] }, { quuz: [] }],
         }),
       ).toBe("foo");
     });

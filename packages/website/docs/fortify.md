@@ -461,9 +461,7 @@ The value of the `$status` session variable will match one of the translation st
 
 ```html
 @if (session('status'))
-<div class="mb-4 font-medium text-sm text-green-600">
-  {{ session('status') }}
-</div>
+<div class="mb-4 font-medium text-sm text-green-600">{{ session('status') }}</div>
 @endif
 ```
 

@@ -2,10 +2,7 @@
 
 import { readFileSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
-import {
-  findMarkdownFiles,
-  processMarkdownFileContent,
-} from "./code-block-utils.ts";
+import { findMarkdownFiles, processMarkdownFileContent } from "./code-block-utils.ts";
 
 async function main() {
   const docsPath = join(dirname(import.meta.path), "..", "docs");
@@ -32,10 +29,7 @@ async function main() {
         const testFilePath = fullPath.replace(/\.md$/, "-code.test.ts");
 
         // Process the content
-        const updatedContent = processMarkdownFileContent(
-          originalContent,
-          testFilePath,
-        );
+        const updatedContent = processMarkdownFileContent(originalContent, testFilePath);
 
         // Check if content changed
         if (updatedContent !== originalContent) {
@@ -43,8 +37,7 @@ async function main() {
           filesUpdated++;
 
           // Count how many blocks were updated (rough estimate)
-          const originalBlocks =
-            (originalContent.match(/```/g) || []).length / 2;
+          const originalBlocks = (originalContent.match(/```/g) || []).length / 2;
           const updatedBlocks = (updatedContent.match(/```/g) || []).length / 2;
           blocksUpdated += Math.max(originalBlocks, updatedBlocks);
 

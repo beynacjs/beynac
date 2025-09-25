@@ -211,9 +211,7 @@ const config = defineConfig({
       ],
     },
 
-    socialLinks: [
-      { icon: "github", link: "https://github.com/beynacjs/beynac" },
-    ],
+    socialLinks: [{ icon: "github", link: "https://github.com/beynacjs/beynac" }],
   },
 });
 

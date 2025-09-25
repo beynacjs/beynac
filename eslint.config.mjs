@@ -17,11 +17,7 @@ export default tseslint.config(
     ],
   },
   {
-    files: [
-      "packages/*/src/**/*.ts",
-      "packages/*/src/**/*.tsx",
-      "packages/*/src/**/*.mts",
-    ],
+    files: ["packages/*/src/**/*.ts", "packages/*/src/**/*.tsx", "packages/*/src/**/*.mts"],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,

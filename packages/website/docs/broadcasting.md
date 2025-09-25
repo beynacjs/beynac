@@ -1127,12 +1127,9 @@ Once you have [installed and instantiated Laravel Echo](#client-side-installatio
 <!-- source: manual -->
 
 ```js
-Echo.channel(`orders.${this.order.id}`).listen(
-  "OrderShipmentStatusUpdated",
-  (e) => {
-    console.log(e.order.name);
-  },
-);
+Echo.channel(`orders.${this.order.id}`).listen("OrderShipmentStatusUpdated", (e) => {
+  console.log(e.order.name);
+});
 ```
 
 If you would like to listen for events on a private channel, use the `private` method instead. You may continue to chain calls to the `listen` method to listen for multiple events on a single channel:
@@ -1140,10 +1137,7 @@ If you would like to listen for events on a private channel, use the `private` m
 <!-- source: manual -->
 
 ```js
-Echo.private(`orders.${this.order.id}`)
-  .listen(/* ... */)
-  .listen(/* ... */)
-  .listen(/* ... */);
+Echo.private(`orders.${this.order.id}`).listen(/* ... */).listen(/* ... */).listen(/* ... */);
 ```
 
 <a name="stop-listening-for-events"></a>
@@ -1155,9 +1149,7 @@ If you would like to stop listening to a given event without [leaving the channe
 <!-- source: manual -->
 
 ```js
-Echo.private(`orders.${this.order.id}`).stopListening(
-  "OrderShipmentStatusUpdated",
-);
+Echo.private(`orders.${this.order.id}`).stopListening("OrderShipmentStatusUpdated");
 ```
 
 <a name="leaving-a-channel"></a>
@@ -1237,13 +1229,9 @@ You may listen to multiple events by providing an array of events to `useEcho`:
 <!-- source: manual -->
 
 ```js
-useEcho(
-  `orders.${orderId}`,
-  ["OrderShipmentStatusUpdated", "OrderShipped"],
-  (e) => {
-    console.log(e.order);
-  },
-);
+useEcho(`orders.${orderId}`, ["OrderShipmentStatusUpdated", "OrderShipped"], (e) => {
+  console.log(e.order);
+});
 ```
 
 You may also specify the shape of the broadcast event payload data, providing greater type safety and editing convenience:
@@ -1701,15 +1689,10 @@ type User = {
   email: string;
 };
 
-useEchoModel<User, "App.Models.User">(
-  "App.Models.User",
-  userId,
-  ["UserUpdated"],
-  (e) => {
-    console.log(e.model.id);
-    console.log(e.model.name);
-  },
-);
+useEchoModel<User, "App.Models.User">("App.Models.User", userId, ["UserUpdated"], (e) => {
+  console.log(e.model.id);
+  console.log(e.model.name);
+});
 ```
 
 <a name="client-events"></a>

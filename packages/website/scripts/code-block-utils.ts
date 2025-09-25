@@ -12,8 +12,7 @@ export interface CodeBlock {
 /**
  * Regex to match code blocks (we'll check for comments separately)
  */
-export const CODE_BLOCK_REGEX =
-  /```(?:ts|js|tsx|jsx|typescript|javascript)\s*\n([\s\S]*?)```/g;
+export const CODE_BLOCK_REGEX = /```(?:ts|js|tsx|jsx|typescript|javascript)\s*\n([\s\S]*?)```/g;
 
 /**
  * Regex to match source comments
@@ -51,10 +50,7 @@ export function parseMarkdownFile(content: string): CodeBlock[] {
 
     // Check if there's a source comment immediately before this code block
     let source: string | undefined;
-    const beforeBlock = content.slice(
-      Math.max(0, match.index - 100),
-      match.index,
-    );
+    const beforeBlock = content.slice(Math.max(0, match.index - 100), match.index);
     const lines = beforeBlock.split("\n");
 
     // Check the last non-empty line before the code block
@@ -148,10 +144,7 @@ function extractBeynacImports(testFileContent: string): Map<string, string> {
 /**
  * Find identifiers used in code
  */
-function findUsedIdentifiers(
-  code: string,
-  availableImports: Map<string, string>,
-): Set<string> {
+function findUsedIdentifiers(code: string, availableImports: Map<string, string>): Set<string> {
   const used = new Set<string>();
 
   // Simple regex to find potential identifier usage
@@ -181,10 +174,7 @@ function generateBeynacImport(usedIdentifiers: Set<string>): string {
 /**
  * Extract code from test content string by test name
  */
-export function extractTestCodeFromContent(
-  content: string,
-  testName: string,
-): string {
+export function extractTestCodeFromContent(content: string, testName: string): string {
   // Match test() or it() with the exact test name and find BEGIN/END markers
   const testRegex = new RegExp(
     `(?:test|it)\\s*\\(\\s*["'\`]${escapeRegExp(testName)}["'\`]\\s*,\\s*(?:async\\s*)?\\(\\)\\s*=>\\s*\\{[\\s\\S]*?//\\s*BEGIN\\s*\\n([\\s\\S]*?)\\n\\s*//\\s*END[\\s\\S]*?\\}\\)`,
@@ -222,9 +212,7 @@ export function extractTestCodeFromContent(
     // Remove the common indentation from all lines
     if (minIndent > 0) {
       testBody = lines
-        .map((line) =>
-          line.length >= minIndent ? line.slice(minIndent) : line,
-        )
+        .map((line) => (line.length >= minIndent ? line.slice(minIndent) : line))
         .join("\n");
     }
   }
@@ -236,10 +224,7 @@ export function extractTestCodeFromContent(
 /**
  * Extract code from a test file by test name
  */
-export function extractTestCode(
-  testFilePath: string,
-  testName: string,
-): string {
+export function extractTestCode(testFilePath: string, testName: string): string {
   let content: string;
   try {
     content = readFileSync(testFilePath, "utf-8");
@@ -252,10 +237,7 @@ export function extractTestCode(
 /**
  * Get the expected code for a block from test content
  */
-export function getExpectedCodeForBlockFromContent(
-  testContent: string,
-  source: string,
-): string {
+export function getExpectedCodeForBlockFromContent(testContent: string, source: string): string {
   // Parse the source comment to get test name and tokens
   const { testName, tokens } = parseSourceComment(source);
 
@@ -283,10 +265,7 @@ export function getExpectedCodeForBlockFromContent(
 /**
  * Get the expected code for a block from its test source
  */
-export function getExpectedCodeForBlock(
-  testFilePath: string,
-  source: string,
-): string {
+export function getExpectedCodeForBlock(testFilePath: string, source: string): string {
   const testFileContent = readFileSync(testFilePath, "utf-8");
   return getExpectedCodeForBlockFromContent(testFileContent, source);
 }
@@ -294,10 +273,7 @@ export function getExpectedCodeForBlock(
 /**
  * Process markdown content using test content string
  */
-export function processMarkdownFileContentFromString(
-  content: string,
-  testContent: string,
-): string {
+export function processMarkdownFileContentFromString(content: string, testContent: string): string {
   const blocks = parseMarkdownFile(content);
 
   // Process blocks in reverse order to maintain correct indices
@@ -313,10 +289,7 @@ export function processMarkdownFileContentFromString(
 
     try {
       // Get the expected code using the shared function
-      const newCode = getExpectedCodeForBlockFromContent(
-        testContent,
-        block.source,
-      );
+      const newCode = getExpectedCodeForBlockFromContent(testContent, block.source);
 
       // Reconstruct just the code block (comment is already there)
       const newBlock = `\`\`\`${block.language}\n${newCode}\n\`\`\``;
@@ -327,13 +300,9 @@ export function processMarkdownFileContentFromString(
 
       // Replace just the code block, preserving everything before it
       updatedContent =
-        updatedContent.slice(0, codeBlockStart) +
-        newBlock +
-        updatedContent.slice(codeBlockEnd);
+        updatedContent.slice(0, codeBlockStart) + newBlock + updatedContent.slice(codeBlockEnd);
     } catch (error) {
-      throw new Error(
-        `Failed to update code block with source "${block.source}": ${error}`,
-      );
+      throw new Error(`Failed to update code block with source "${block.source}": ${error}`);
     }
   }
 
@@ -343,10 +312,7 @@ export function processMarkdownFileContentFromString(
 /**
  * Process markdown content and update code blocks from their test sources
  */
-export function processMarkdownFileContent(
-  content: string,
-  testFilePath: string,
-): string {
+export function processMarkdownFileContent(content: string, testFilePath: string): string {
   const testContent = readFileSync(testFilePath, "utf-8");
   return processMarkdownFileContentFromString(content, testContent);
 }

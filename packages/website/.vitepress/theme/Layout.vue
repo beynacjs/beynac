@@ -4,8 +4,7 @@
       <div v-if="frontmatter.laravelDocs" class="custom-block warning">
         <p class="custom-block-title">⚠️ Note</p>
         <p>
-          This page is a copy of the Laravel documentation and has not been
-          updated for Beynac yet.
+          This page is a copy of the Laravel documentation and has not been updated for Beynac yet.
         </p>
       </div>
     </template>

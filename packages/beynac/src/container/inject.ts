@@ -1,10 +1,6 @@
 import { BeynacError } from "../error";
 import { isKey, type Key } from "../keys";
-import {
-  type ClassReference,
-  getKeyName,
-  type KeyOrClass,
-} from "./container-key";
+import { type ClassReference, getKeyName, type KeyOrClass } from "./container-key";
 import { NO_VALUE, type NoValue } from "./no-value";
 
 const invalidInjectMessage = `Dependencies that use inject() must be created by the container. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms`;
@@ -61,9 +57,7 @@ export function injectOptional<T>(token: ClassReference<T>): T | null;
  * // in your tests: you can supply a mock dependency
  * const instance = new MyClass(new MockEmailService());
  */
-export function injectOptional<T>(
-  arg: KeyOrClass<T>,
-): Exclude<T, undefined> | null {
+export function injectOptional<T>(arg: KeyOrClass<T>): Exclude<T, undefined> | null {
   if (!_currentInjectHandler) {
     throw new BeynacError(invalidInjectMessage);
   }

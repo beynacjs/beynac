@@ -701,9 +701,7 @@ After you have created the Setup Intent and passed it to the view, you should at
 <!-- Stripe Elements Placeholder -->
 <div id="card-element"></div>
 
-<button id="card-button" data-secret="{{ $intent->client_secret }}">
-  Update Payment Method
-</button>
+<button id="card-button" data-secret="{{ $intent->client_secret }}">Update Payment Method</button>
 ```
 
 Next, the Stripe.js library may be used to attach a [Stripe Element](https://stripe.com/docs/stripe-js) to the form and securely gather the customer's payment details:
@@ -790,13 +788,9 @@ const cardHolderName = document.getElementById("card-holder-name");
 const cardButton = document.getElementById("card-button");
 
 cardButton.addEventListener("click", async (e) => {
-  const { paymentMethod, error } = await stripe.createPaymentMethod(
-    "card",
-    cardElement,
-    {
-      billing_details: { name: cardHolderName.value },
-    },
-  );
+  const { paymentMethod, error } = await stripe.createPaymentMethod("card", cardElement, {
+    billing_details: { name: cardHolderName.value },
+  });
 
   if (error) {
     // Display "error.message" to the user...

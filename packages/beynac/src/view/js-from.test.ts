@@ -4,17 +4,13 @@ import { jsFrom } from "./js-from";
 describe("jsFrom", () => {
   test("serializes simple values", () => {
     expect(jsFrom(42)).toMatchInlineSnapshot(`"(0, eval)("(42)")"`);
-    expect(jsFrom("hello")).toMatchInlineSnapshot(
-      `"(0, eval)("(\\"hello\\")")"`,
-    );
+    expect(jsFrom("hello")).toMatchInlineSnapshot(`"(0, eval)("(\\"hello\\")")"`);
     expect(jsFrom(true)).toMatchInlineSnapshot(`"(0, eval)("(true)")"`);
     expect(jsFrom(null)).toMatchInlineSnapshot(`"(0, eval)("(null)")"`);
   });
 
   test("serializes objects and arrays", () => {
-    expect(jsFrom({ a: 1, b: 2 })).toMatchInlineSnapshot(
-      `"(0, eval)("({a:1,b:2})")"`,
-    );
+    expect(jsFrom({ a: 1, b: 2 })).toMatchInlineSnapshot(`"(0, eval)("({a:1,b:2})")"`);
     expect(jsFrom([1, 2, 3])).toMatchInlineSnapshot(`"(0, eval)("([1,2,3])")"`);
   });
 
@@ -40,9 +36,7 @@ describe("jsFrom", () => {
 
     const deserialized = eval(serialized) as TestObj;
     expect(deserialized.name).toBe("root");
-    expect(deserialized.dangerous).toBe(
-      "This contains </script> which needs escaping",
-    );
+    expect(deserialized.dangerous).toBe("This contains </script> which needs escaping");
     expect(deserialized.self).toBe(deserialized);
   });
 });

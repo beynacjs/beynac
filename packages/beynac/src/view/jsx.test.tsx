@@ -5,9 +5,7 @@ import { render } from "./markup-stream";
 import { Component, JSXNode } from "./public-types";
 
 test("renders single element with attributes and text child", async () => {
-  expect(await render(<span id="foo">hello</span>)).toBe(
-    '<span id="foo">hello</span>',
-  );
+  expect(await render(<span id="foo">hello</span>)).toBe('<span id="foo">hello</span>');
 });
 
 test("renders childless non-empty elements", async () => {
@@ -40,23 +38,17 @@ test("throws error for void elements with children", async () => {
 });
 
 test("escapes attribute values", async () => {
-  expect(
-    await render(<input value={`I'm a "little" <teapot> short & stout`} />),
-  ).toBe(
+  expect(await render(<input value={`I'm a "little" <teapot> short & stout`} />)).toBe(
     `<input value="I'm a &quot;little&quot; &lt;teapot&gt; short &amp; stout">`,
   );
 });
 
 test("shortens boolean attributes", async () => {
-  expect(await render(<input type="checkbox" checked />)).toBe(
-    `<input type="checkbox" checked>`,
-  );
+  expect(await render(<input type="checkbox" checked />)).toBe(`<input type="checkbox" checked>`);
 });
 
 test("omits boolean attributes with false value", async () => {
-  expect(await render(<input type="checkbox" checked={false} />)).toBe(
-    `<input type="checkbox">`,
-  );
+  expect(await render(<input type="checkbox" checked={false} />)).toBe(`<input type="checkbox">`);
 });
 
 test("renders bigints", async () => {
@@ -70,9 +62,7 @@ test("default prop value for multiple select", async () => {
       <option>test</option>
     </select>
   );
-  expect(await render(template)).toBe(
-    "<select multiple><option>test</option></select>",
-  );
+  expect(await render(template)).toBe("<select multiple><option>test</option></select>");
 });
 
 test("does not shorten arbitrary boolean attributes", async () => {
@@ -100,9 +90,7 @@ test("renders fragments", async () => {
 });
 
 test("renders components", async () => {
-  const Component = (props: { value: number }) => (
-    <span the-value={props.value} />
-  );
+  const Component = (props: { value: number }) => <span the-value={props.value} />;
   expect(
     await render(
       <div>
@@ -201,9 +189,7 @@ test("renders style attribute from object", async () => {
       }}
     />,
   );
-  expect(result).toBe(
-    '<div style="color:red;background-color:blue;font-size:14px"></div>',
-  );
+  expect(result).toBe('<div style="color:red;background-color:blue;font-size:14px"></div>');
 });
 
 test("passing an array or other invalid value to style causes type error", async () => {
@@ -331,10 +317,7 @@ test("passing an invalid value to class attribute causes type error", async () =
 
 // https://en.reactjs.org/docs/jsx-in-depth.html#functions-as-children
 test("Functions as children", async () => {
-  function Repeat(props: {
-    numTimes: number;
-    children: (index: number) => JSXNode;
-  }) {
+  function Repeat(props: { numTimes: number; children: (index: number) => JSXNode }) {
     const items = [];
     for (let i = 0; i < props.numTimes; i++) {
       items.push(props.children(i));

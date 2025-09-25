@@ -27,12 +27,7 @@ export const jsx: JSXFactory = (
     } else if (tag.name) {
       displayName = tag.name;
     }
-    return new MarkupStream(
-      null,
-      null,
-      (ctx) => tag(props ?? {}, ctx),
-      displayName,
-    );
+    return new MarkupStream(null, null, (ctx) => tag(props ?? {}, ctx), displayName);
   } else if (typeof tag === "string") {
     let children = null;
     if (props != null) {
@@ -44,17 +39,13 @@ export const jsx: JSXFactory = (
       children == null ? null : (arrayWrap(children) as JSXNode[]),
     );
   } else {
-    throw new BeynacError(
-      `Expected tag to be a string or component, got ${describeType(tag)}`,
-    );
+    throw new BeynacError(`Expected tag to be a string or component, got ${describeType(tag)}`);
   }
 };
 export const jsxs: JSXFactory = jsx;
 export const jsxDEV: JSXFactory = jsx;
 
-export const Fragment = (
-  props: Record<string, unknown> | null,
-): JSX.Element => {
+export const Fragment = (props: Record<string, unknown> | null): JSX.Element => {
   const children = props?.children ?? null;
   return new MarkupStream(null, null, arrayWrap(children) as JSXNode[]);
 };

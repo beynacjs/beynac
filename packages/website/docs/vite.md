@@ -418,10 +418,7 @@ import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
 
 createInertiaApp({
   resolve: (name) =>
-    resolvePageComponent(
-      `./Pages/${name}.vue`,
-      import.meta.glob("./Pages/**/*.vue"),
-    ),
+    resolvePageComponent(`./Pages/${name}.vue`, import.meta.glob("./Pages/**/*.vue")),
   setup({ el, App, props, plugin }) {
     createApp({ render: () => h(App, props) })
       .use(plugin)
@@ -1101,10 +1098,7 @@ export default defineConfig({
 Now, while Vite is serving Assets, it will output URLs that point to the Vite dev server:
 
 ```html
--
-<img
-  src="/@imagetools/f0b2f404b13f052c604e632f2fb60381bf61a520"
-/><!-- [tl! remove] -->
+- <img src="/@imagetools/f0b2f404b13f052c604e632f2fb60381bf61a520" /><!-- [tl! remove] -->
 +
 <img
   src="http://[::1]:5173/@imagetools/f0b2f404b13f052c604e632f2fb60381bf61a520"

@@ -34,9 +34,7 @@ describe("html template literal", () => {
     test("escapes interpolated strings by default", async () => {
       const dangerous = "<script>alert('xss')</script>";
       const result = html`<div>${dangerous}</div>`;
-      expect(await render(result)).toBe(
-        "<div>&lt;script&gt;alert('xss')&lt;/script&gt;</div>",
-      );
+      expect(await render(result)).toBe("<div>&lt;script&gt;alert('xss')&lt;/script&gt;</div>");
     });
   });
 

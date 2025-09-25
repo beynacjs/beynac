@@ -12,9 +12,7 @@ export class OnceMarker {
   ) {}
 }
 
-const onceMapKey: Key<Map<OnceKey, true> | undefined> = createKey<
-  Map<OnceKey, true>
->({
+const onceMapKey: Key<Map<OnceKey, true> | undefined> = createKey<Map<OnceKey, true>>({
   displayName: "OnceMap",
 });
 
@@ -32,14 +30,11 @@ const OnceImpl: Component<OnceProps> = ({ children, key }, ctx) => {
 
 let anonOnceCounter = 0;
 
-const createComponent = (
-  key: OnceKey = Symbol(`once-${++anonOnceCounter}`),
-) => {
+const createComponent = (key: OnceKey = Symbol(`once-${++anonOnceCounter}`)) => {
   const component: Component<PropsWithChildren> = ({ children }, ctx) => {
     return OnceImpl({ children, key }, ctx);
   };
-  const name =
-    (typeof key === "symbol" ? key.description : String(key)) || "anonymous";
+  const name = (typeof key === "symbol" ? key.description : String(key)) || "anonymous";
   component.displayName = `Once(${name})`;
   return component;
 };

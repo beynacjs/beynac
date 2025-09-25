@@ -250,9 +250,7 @@ If necessary, the `checkout` method will automatically create a customer in Padd
 In the `buy` view, we will include a button to display the Checkout Overlay. The `paddle-button` Blade component is included with Cashier Paddle; however, you may also [manually render an overlay checkout](#manually-rendering-an-overlay-checkout):
 
 ```html
-<x-paddle-button :checkout="$checkout" class="px-8 py-4">
-  Buy Product
-</x-paddle-button>
+<x-paddle-button :checkout="$checkout" class="px-8 py-4"> Buy Product </x-paddle-button>
 ```
 
 <a name="providing-meta-data-to-paddle-checkout"></a>
@@ -356,9 +354,7 @@ Route::get('/subscribe', function (Request $request) {
 In the `subscribe` view, we will include a button to display the Checkout Overlay. The `paddle-button` Blade component is included with Cashier Paddle; however, you may also [manually render an overlay checkout](#manually-rendering-an-overlay-checkout):
 
 ```html
-<x-paddle-button :checkout="$checkout" class="px-8 py-4">
-  Subscribe
-</x-paddle-button>
+<x-paddle-button :checkout="$checkout" class="px-8 py-4"> Subscribe </x-paddle-button>
 ```
 
 Now, when the Subscribe button is clicked, the customer will be able to enter their payment details and initiate their subscription. To know when their subscription has actually started (since some payment methods require a few seconds to process), you should also [configure Cashier's webhook handling](#handling-paddle-webhooks).
@@ -486,9 +482,7 @@ Route::get('/buy', function (Request $request) {
 Cashier includes a `paddle-button` [Blade component](./blade#components). You may pass the checkout session to this component as a "prop". Then, when this button is clicked, Paddle's checkout widget will be displayed:
 
 ```html
-<x-paddle-button :checkout="$checkout" class="px-8 py-4">
-  Subscribe
-</x-paddle-button>
+<x-paddle-button :checkout="$checkout" class="px-8 py-4"> Subscribe </x-paddle-button>
 ```
 
 By default, this will display the widget using Paddle's default styling. You can customize the widget by adding [Paddle supported attributes](https://developer.paddle.com/paddlejs/html-data-attributes) like the `data-theme='light'` attribute to the component:
@@ -1600,11 +1594,7 @@ When listing the transactions for a customer, you may use the transaction instan
     <td>{{ $transaction->total() }}</td>
     <td>{{ $transaction->tax() }}</td>
     <td>
-      <a
-        href="{{ route('download-invoice', $transaction->id) }}"
-        target="_blank"
-        >Download</a
-      >
+      <a href="{{ route('download-invoice', $transaction->id) }}" target="_blank">Download</a>
     </td>
   </tr>
   @endforeach
