@@ -114,67 +114,36 @@ class StreamBuffer {
     if (this.activeRedirect) {
       // Push to the active stack buffer array
       const bufferArray = this.stackBuffers.get(this.activeRedirect);
-      if (bufferArray) {
-        bufferArray.push(chunk);
-      }
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- will always have been created if there's an activeRedirect
+      bufferArray!.push(chunk);
     } else if (this.hasRedirectEmit) {
       // In deferred mode, store chunks for later
       this.deferredChunks.push(chunk);
     } else {
       // Normal mode: send immediately to consumer
-      if (this.resolver) {
-        this.resolver({ done: false, chunk });
-        this.resolver = null;
-      } else {
-        this.pending.push(chunk);
-      }
+      this.#sendToResolver(chunk);
     }
   }
 
   complete(): void {
     this.yield();
 
-    // Helper function to recursively flatten arrays
-    const flattenItem = (item: string | string[]): void => {
+    for (const item of this.deferredChunks) {
       if (typeof item === "string") {
-        // Regular string chunk
-        if (this.resolver) {
-          this.resolver({ done: false, chunk: item });
-          this.resolver = null;
-        } else {
-          this.pending.push(item);
-        }
-      } else if (Array.isArray(item)) {
-        // Array of chunks - recursively flatten
+        this.#sendToResolver(item);
+      } else {
         for (const subItem of item) {
-          flattenItem(subItem);
+          this.#sendToResolver(subItem);
         }
       }
-    };
-
-    // Flush all deferred chunks if we were in deferred mode
-    if (this.hasRedirectEmit) {
-      for (const item of this.deferredChunks) {
-        flattenItem(item);
-      }
     }
 
-    this.completed = true;
-
-    if (this.resolver) {
-      this.resolver({ done: true });
-      this.resolver = null;
-    }
+    this.#terminate();
   }
 
   error(err: Error): void {
     this.errorValue = err;
-    this.completed = true;
-
-    if (this.resolver) {
-      this.resolver({ done: true });
-      this.resolver = null;
-    }
+    this.#terminate();
   }
 
   beginStackRedirect(stackSymbol: symbol): void {
@@ -201,13 +170,11 @@ class StreamBuffer {
   }
 
   handleStackOut(stackSymbol: symbol): void {
-    // Check if already used
     if (this.redirectsEmitted.has(stackSymbol)) {
       throw new Error("Stack.Out can only be used once per render");
     }
     this.redirectsEmitted.add(stackSymbol);
 
-    // Yield current buffer first
     this.yield();
 
     // Get or create the stack buffer array for this symbol
@@ -219,11 +186,9 @@ class StreamBuffer {
 
     // Push the array reference to the appropriate destination
     if (this.activeRedirect) {
-      // We're inside another stack redirect, add to that stack's buffer
       const parentBuffer = this.stackBuffers.get(this.activeRedirect);
-      if (parentBuffer) {
-        parentBuffer.push(stackArray);
-      }
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- will always have been created if there's an activeRedirect
+      parentBuffer!.push(stackArray);
     } else {
       // Enable deferred mode on first top-level Stack.Out
       if (!this.hasRedirectEmit) {
@@ -261,6 +226,24 @@ class StreamBuffer {
           yield result.chunk;
         }
       }
+    }
+  }
+
+  #terminate() {
+    this.completed = true;
+
+    if (this.resolver) {
+      this.resolver({ done: true });
+      this.resolver = null;
+    }
+  }
+
+  #sendToResolver(chunk: string): void {
+    if (this.resolver) {
+      this.resolver({ done: false, chunk });
+      this.resolver = null;
+    } else {
+      this.pending.push(chunk);
     }
   }
 }
