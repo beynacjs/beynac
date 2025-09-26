@@ -718,22 +718,22 @@ describe("context handling", () => {
   test("multiple functions with shared context propagation", async () => {
     const counterKey = createKey<number>({ displayName: "counter" });
 
-    const incrementer = (ctx: Context) => {
+    const makeIncrement = () => (ctx: Context) => {
       const current = ctx.get(counterKey) || 0;
       ctx.set(counterKey, current + 1);
       return String(current + 1);
     };
 
-    const reader = (ctx: Context) => String(ctx.get(counterKey) || 0);
+    const makeRead = () => (ctx: Context) => String(ctx.get(counterKey) || 0);
 
     const stream = new MarkupStream("div", null, [
-      incrementer,
+      makeIncrement(),
       "-",
-      reader, // Should be 0 (sibling doesn't see the change)
+      makeRead(), // Should be 0 (sibling doesn't see the change)
       [
         (ctx) => {
           ctx.set(counterKey, 10);
-          return [incrementer, "-", reader]; // incrementer sets to 11, but reader is a sibling so sees 10
+          return [makeIncrement(), "-", makeRead()]; // incrementer sets to 11, but reader is a sibling so sees 10
         },
       ],
     ]);

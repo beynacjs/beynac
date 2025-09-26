@@ -2,10 +2,10 @@ import { SPECIAL_NODE } from "./special-node";
 
 export class RawContent {
   #content: string;
-  [SPECIAL_NODE] = true;
 
   constructor(content: string) {
     this.#content = content;
+    Object.assign(this, { [SPECIAL_NODE]: true });
   }
 
   toString(): string {

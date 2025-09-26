@@ -3,7 +3,7 @@ import { expect, test } from "bun:test";
 import { createKey } from "../keys";
 import { render } from "./markup-stream";
 import { Once } from "./once";
-import type { Component } from "./public-types";
+import type { Component, Context } from "./public-types";
 import { createStack } from "./stack";
 
 test("basic Stack push and out functionality", async () => {
@@ -325,45 +325,45 @@ test("Stack content streams as it becomes available", async () => {
   expect(result).toBe("<div>FirstSecond</div>");
 });
 
-test("StackOut pushed onto a stack - edge case", async () => {
-  const OuterStack = createStack();
-  const InnerStack = createStack();
+test("StackOut can be pushed onto a stack", async () => {
+  const A = createStack();
+  const B = createStack();
 
-  // Pushing a StackOut component onto another stack
+  // B.Out is pushed to A, so B's content will appear where A.Out is
   const result = await render(
     <div>
-      <OuterStack.Push>
-        <InnerStack.Out />
-      </OuterStack.Push>
-      <InnerStack.Push>content</InnerStack.Push>
-      <OuterStack.Out />
+      <A.Push>
+        <b-out><B.Out /></b-out>
+      </A.Push>
+      <B.Push>b-content</B.Push>
+      <a-out><A.Out /></a-out>
     </div>,
   );
 
-  // The InnerStackOut inside OuterStack will render "content"
-  expect(result).toBe("<div>content</div>");
+  // B's content appears at A.Out location (wrapped in b-out marker)
+  expect(result).toBe("<div><a-out><b-out>b-content</b-out></a-out></div>");
 });
 
-test("StackPush pushed onto a stack works correctly", async () => {
-  const OuterStack = createStack();
-  const InnerStack = createStack();
+test("StackPush can be pushed onto a stack", async () => {
+  const A = createStack();
+  const B = createStack();
 
-  // Nested stacks should now work correctly
+  // A.Push contains a function that returns B.Push
+  // The B.Push content should appear at B.Out, not A.Out
   const result = await render(
     <div>
-      <OuterStack.Push>
+      <A.Push>
         {async () => {
-          return <InnerStack.Push>nested content</InnerStack.Push>;
+          return <B.Push>b-content</B.Push>;
         }}
-      </OuterStack.Push>
-      <OuterStack.Out />
-      <InnerStack.Out />
+      </A.Push>
+      <a-out><A.Out /></a-out>
+      <b-out><B.Out /></b-out>
     </div>,
   );
 
-  // The inner stack content should appear at InnerStack.Out
-  // The outer stack should be empty (it contained only a Stack.Push which was processed)
-  expect(result).toBe("<div>nested content</div>");
+  // B's content appears at B.Out, A is empty (contained only a function that pushed to B)
+  expect(result).toBe("<div><a-out></a-out><b-out>b-content</b-out></div>");
 });
 
 test("Stack.Push preserves context from pre-execution", async () => {
@@ -372,7 +372,7 @@ test("Stack.Push preserves context from pre-execution", async () => {
 
   const result = await render(
     <div>
-      {(ctx) => {
+      {(ctx: Context) => {
         // Outer function modifies context
         ctx.set(TestKey, "value-from-outer");
 

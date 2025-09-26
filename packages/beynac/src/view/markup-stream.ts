@@ -3,7 +3,7 @@ import { classAttribute, type ClassAttributeValue } from "./class-attribute";
 import { ContextImpl } from "./context";
 import { CSSProperties } from "./intrinsic-element-types";
 import { isOnceNode, type OnceKey } from "./once";
-import type { JSXNode, RenderOptions } from "./public-types";
+import type { Context, JSXNode, RenderOptions } from "./public-types";
 import { RawContent } from "./raw";
 import { isSpecialNode } from "./special-node";
 import { isStackOutNode, isStackPushNode } from "./stack";
@@ -68,18 +68,29 @@ export async function render(content: JSXNode, options?: RenderOptions): Promise
  * }
  * ```
  */
+type ComponentStack = {
+  name: string;
+  parent: ComponentStack | null;
+};
+
 export function renderStream(
   content: JSXNode,
   { mode = "html" }: RenderOptions = {},
 ): AsyncGenerator<string> {
   const buf = new StreamBuffer();
   const rootContext = new ContextImpl();
-  const componentStack: string[] = [];
+  const componentStack: ComponentStack | null = null;
   const onceKeys = new Set<OnceKey>(); // Track used Once keys
-  const functionCache = new Map<Function, JSXNode>(); // Cache function execution results
+  const preExecuteResults = new Map<unknown, { result: JSXNode; context: ContextImpl }>(); // Cache function execution results with context
+  const preExecuteInProgress = new Map<unknown, Promise<unknown>>(); // Track functions currently being pre-executed
 
-  // Pre-execute traversal - executes functions and starts promises without waiting
-  function startPreExecution(node: JSXNode, context: ContextImpl): void {
+  // Pre-execution rapidly visits the tree in parallel executing functions and
+  // saving their results. This means that by the time the rendering phase has
+  // got to a function it will usually have already been executed. The practical
+  // effect of this is that when a document contains two components that require
+  // data e.g. a database call, provided that the components are independent in
+  // the tree, they will load data in parallel.
+  function startPreExecution(node: unknown, context: ContextImpl): void {
     switch (typeof node) {
       case "object":
         if (node instanceof MarkupStream) {
@@ -88,14 +99,14 @@ export function renderStream(
         }
 
         if (isSpecialNode(node)) {
-          // Don't descend into StackPush or Once nodes
+          // Don't pre-execute Stack or Once nodes
           return;
         }
 
         // Handle arrays - start all in parallel
         if (Array.isArray(node)) {
           for (const item of node) {
-            startPreExecution(item as JSXNode, context);
+            startPreExecution(item, context);
           }
           return;
         }
@@ -104,7 +115,7 @@ export function renderStream(
         if (node instanceof Promise) {
           node.then(
             (resolved) => {
-              startPreExecution(resolved as JSXNode, context);
+              startPreExecution(resolved, context);
             },
             () => {
               // Ignore errors
@@ -115,16 +126,37 @@ export function renderStream(
         return;
 
       case "function":
-        // Skip if already cached
-        if (functionCache.has(node)) {
+        // Skip if already cached or in progress
+        if (preExecuteResults.has(node) || preExecuteInProgress.has(node)) {
           return;
         }
 
         try {
           const childContext = context.fork();
-          const result = node(childContext) as JSXNode;
-          functionCache.set(node, result);
-          startPreExecution(result, childContext.wasModified() ? childContext : context);
+          const result = (node as (ctx: Context) => JSXNode)(childContext);
+
+          if (result instanceof Promise) {
+            // Mark as in-progress immediately
+            const completionPromise = result.then(
+              (resolved) => {
+                const contextToUse = childContext.wasModified() ? childContext : context;
+                // Store the original promise as result, but use context determined after resolution
+                preExecuteResults.set(node, { result, context: contextToUse });
+                preExecuteInProgress.delete(node); // Remove from in-progress
+                startPreExecution(resolved as JSXNode, contextToUse);
+              },
+              () => {
+                // Ignore errors in pre-execution
+                preExecuteInProgress.delete(node); // Remove from in-progress even on error
+              },
+            );
+            preExecuteInProgress.set(node, completionPromise);
+          } else {
+            // For sync functions, cache immediately
+            const contextToUse = childContext.wasModified() ? childContext : context;
+            preExecuteResults.set(node, { result, context: contextToUse });
+            startPreExecution(result, contextToUse);
+          }
         } catch {
           // Ignore errors during pre-execution
         }
@@ -132,8 +164,12 @@ export function renderStream(
     }
   }
 
-  // Define rendering functions as closures that capture buf, mode, onceKeys, and functionCache
-  async function renderNode(node: JSXNode, context: ContextImpl, stack: string[]): Promise<void> {
+  // Define rendering functions as closures that capture buf, mode, onceKeys, preExecuteResults, and preExecuteInProgress
+  async function renderNode(
+    node: JSXNode,
+    context: ContextImpl,
+    stack: ComponentStack | null,
+  ): Promise<void> {
     switch (typeof node) {
       case "symbol":
         buf.add(escapeHtml(String(node)));
@@ -213,31 +249,49 @@ export function renderStream(
           let result: JSXNode;
           let contextToUse: ContextImpl;
 
+          // Wait for pre-execution if in progress
+          const inProgress = preExecuteInProgress.get(node);
+          if (inProgress) {
+            await inProgress;
+          }
+
           // Check if function was already executed in pre-execution
-          if (functionCache.has(node)) {
-            result = functionCache.get(node)!;
-            // Still need to fork context for proper context behavior
-            const childContext = context.fork();
-            contextToUse = childContext.wasModified() ? childContext : context;
+          const preExecuted = preExecuteResults.get(node);
+          if (preExecuted) {
+            result = preExecuted.result;
+            contextToUse = preExecuted.context;
+
+            if (result instanceof Promise) {
+              buf.yield();
+              try {
+                const resolved = (await result) as JSXNode;
+                await renderNode(resolved, contextToUse, stack);
+              } catch (error) {
+                throw new RenderingError("content-function-promise-rejection", stack, error);
+              }
+            } else {
+              await renderNode(result, contextToUse, stack);
+            }
           } else {
             // Execute the function normally
             const childContext = context.fork();
             result = node(childContext) as JSXNode;
-            contextToUse = childContext.wasModified() ? childContext : context;
-            // Cache the result for potential future use
-            functionCache.set(node, result);
-          }
 
-          if (result instanceof Promise) {
-            buf.yield();
-            try {
-              const resolved = (await result) as JSXNode;
-              await renderNode(resolved, contextToUse, stack);
-            } catch (error) {
-              throw new RenderingError("content-function-promise-rejection", stack, error);
+            if (result instanceof Promise) {
+              buf.yield();
+              try {
+                const resolved = (await result) as JSXNode;
+                // Check wasModified after promise resolves for async functions
+                contextToUse = childContext.wasModified() ? childContext : context;
+                await renderNode(resolved, contextToUse, stack);
+              } catch (error) {
+                throw new RenderingError("content-function-promise-rejection", stack, error);
+              }
+            } else {
+              // For sync functions, check wasModified immediately
+              contextToUse = childContext.wasModified() ? childContext : context;
+              await renderNode(result, contextToUse, stack);
             }
-          } else {
-            await renderNode(result, contextToUse, stack);
           }
         } catch (error) {
           if (error instanceof RenderingError) {
@@ -252,13 +306,13 @@ export function renderStream(
   async function renderMarkupStream(
     element: MarkupStream,
     context: ContextImpl,
-    stack: string[],
+    stack: ComponentStack | null,
   ): Promise<void> {
     const { tag, attributes, content, displayName } = element;
     const hasChildren = content && content.length > 0;
 
     // Push displayName to component stack if present
-    const newStack = displayName ? [...stack, displayName] : stack;
+    const newStack = displayName ? { name: displayName, parent: stack } : stack;
 
     if (tag) {
       const isVoidElement = mode === "html" && emptyTags.has(tag);
@@ -300,7 +354,7 @@ export function renderStream(
     tag: string,
     attributes: Record<string, unknown> | null,
     selfClosing: boolean,
-    stack: string[],
+    stack: ComponentStack | null,
   ): void {
     buf.add("<");
     buf.add(tag);
@@ -386,6 +440,9 @@ export function renderStream(
   return buf.stream();
 }
 
+type RedirectedContent = string | RedirectedContent[];
+type RedirectSink = RedirectedContent[];
+
 class StreamBuffer {
   private buffer: string = "";
   private pending: string[] = [];
@@ -393,20 +450,18 @@ class StreamBuffer {
   private completed = false;
   private errorValue: Error | null = null;
 
-  // Stack handling state
-  private activeRedirect: symbol | null = null; // Currently active redirect
-  private parentRedirects: symbol[] = []; // Stack of parent redirects for nesting
-  private stackBuffers: Map<symbol, Array<string | string[]>> = new Map(); // Buffered content per stack
+  private activeRedirect: RedirectSink | null = null;
+  private parentRedirects: RedirectSink[] = [];
+  private redirects: Map<symbol, RedirectSink> = new Map();
   private redirectsEmitted = new Set<symbol>(); // Track if Stack.Out used (for error)
-  private hasRedirectEmit = false; // True after first Stack.Out encountered
-  private deferredChunks: Array<string | string[]> = []; // Chunks to yield at end when hasStackOut is true
+  private deferOutput = false;
+  private deferredChunks: RedirectSink = []; // Chunks to yield at end when hasStackOut is true
 
   add(content: string): void {
     this.buffer += content;
   }
 
   yield(): void {
-    // Early return if buffer is empty
     if (!this.buffer) return;
 
     const chunk = this.buffer;
@@ -414,11 +469,9 @@ class StreamBuffer {
 
     // Route the chunk based on current state
     if (this.activeRedirect) {
-      // Push to the active stack buffer array
-      const bufferArray = this.stackBuffers.get(this.activeRedirect);
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- will always have been created if there's an activeRedirect
-      bufferArray!.push(chunk);
-    } else if (this.hasRedirectEmit) {
+      // Direct push - no lookup needed!
+      this.activeRedirect.push(chunk);
+    } else if (this.deferOutput) {
       // In deferred mode, store chunks for later
       this.deferredChunks.push(chunk);
     } else {
@@ -430,14 +483,18 @@ class StreamBuffer {
   complete(): void {
     this.yield();
 
-    for (const item of this.deferredChunks) {
+    const flattenAndSend = (item: RedirectedContent): void => {
       if (typeof item === "string") {
         this.#sendToResolver(item);
       } else {
         for (const subItem of item) {
-          this.#sendToResolver(subItem);
+          flattenAndSend(subItem);
         }
       }
+    };
+
+    for (const item of this.deferredChunks) {
+      flattenAndSend(item);
     }
 
     this.#terminate();
@@ -456,11 +513,10 @@ class StreamBuffer {
     if (this.activeRedirect) {
       this.parentRedirects.push(this.activeRedirect);
     }
-    this.activeRedirect = stackSymbol;
-    // Initialize stack buffer array if needed
-    if (!this.stackBuffers.has(stackSymbol)) {
-      this.stackBuffers.set(stackSymbol, []);
-    }
+
+    const buffer = getOrCreateStackBuffer(this.redirects, stackSymbol);
+
+    this.activeRedirect = buffer;
   }
 
   endStackRedirect(): void {
@@ -480,24 +536,15 @@ class StreamBuffer {
     this.yield();
 
     // Get or create the stack buffer array for this symbol
-    let stackArray = this.stackBuffers.get(stackSymbol);
-    if (!stackArray) {
-      stackArray = [];
-      this.stackBuffers.set(stackSymbol, stackArray);
-    }
+    const stackBuffer = getOrCreateStackBuffer(this.redirects, stackSymbol);
 
     // Push the array reference to the appropriate destination
     if (this.activeRedirect) {
-      const parentBuffer = this.stackBuffers.get(this.activeRedirect);
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- will always have been created if there's an activeRedirect
-      parentBuffer!.push(stackArray);
+      this.activeRedirect.push(stackBuffer);
     } else {
       // Enable deferred mode on first top-level Stack.Out
-      if (!this.hasRedirectEmit) {
-        this.hasRedirectEmit = true;
-      }
-      // Add to deferred chunks
-      this.deferredChunks.push(stackArray);
+      this.deferOutput = true;
+      this.deferredChunks.push(stackBuffer);
     }
   }
 
@@ -549,6 +596,15 @@ class StreamBuffer {
     }
   }
 }
+
+const getOrCreateStackBuffer = <K, V>(map: Map<K, V[]>, key: K): V[] => {
+  let value = map.get(key);
+  if (!value) {
+    value = [];
+    map.set(key, value);
+  }
+  return value;
+};
 
 const HTML_ESCAPE: Record<string, string> = {
   "&": "&amp;",
@@ -620,9 +676,19 @@ export class RenderingError extends Error {
   public readonly errorKind: ErrorKind;
   public readonly componentStack: string[];
 
-  constructor(errorKind: ErrorKind, componentStack: string[], cause: unknown) {
+  constructor(errorKind: ErrorKind, componentStack: ComponentStack | null, cause: unknown) {
     const errorDetail = cause instanceof Error ? cause.message : String(cause);
-    const stackTrace = componentStack.map((name) => `<${name}>`).join(" -> ");
+
+    // Convert linked list to array for public API
+    const stackArray: string[] = [];
+    let node = componentStack;
+    while (node) {
+      stackArray.unshift(node.name);
+      node = node.parent;
+    }
+
+    // Build stack trace string
+    const stackTrace = stackArray.map((name) => `<${name}>`).join(" -> ");
     const message = stackTrace
       ? `Rendering error: ${errorDetail}; Component stack: ${stackTrace}`
       : `Rendering error: ${errorDetail}`;
@@ -630,7 +696,7 @@ export class RenderingError extends Error {
     super(message);
     this.name = "RenderingError";
     this.errorKind = errorKind;
-    this.componentStack = componentStack;
+    this.componentStack = stackArray;
     this.cause = cause;
   }
 }
