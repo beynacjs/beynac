@@ -333,10 +333,14 @@ test("StackOut can be pushed onto a stack", async () => {
   const result = await render(
     <div>
       <A.Push>
-        <b-out><B.Out /></b-out>
+        <b-out>
+          <B.Out />
+        </b-out>
       </A.Push>
       <B.Push>b-content</B.Push>
-      <a-out><A.Out /></a-out>
+      <a-out>
+        <A.Out />
+      </a-out>
     </div>,
   );
 
@@ -357,8 +361,12 @@ test("StackPush can be pushed onto a stack", async () => {
           return <B.Push>b-content</B.Push>;
         }}
       </A.Push>
-      <a-out><A.Out /></a-out>
-      <b-out><B.Out /></b-out>
+      <a-out>
+        <A.Out />
+      </a-out>
+      <b-out>
+        <B.Out />
+      </b-out>
     </div>,
   );
 
@@ -419,4 +427,170 @@ test("Stacks maintain independent state and can render concurrently", async () =
 
   expect(result1).toBe("<div>12345</div>");
   expect(result2).toBe("<div>12345</div>");
+});
+
+test("deeply nested: Push contains Push contains Out", async () => {
+  const A = createStack();
+  const B = createStack();
+  const C = createStack();
+
+  const result = await render(
+    <div>
+      <A.Push>
+        <B.Push>
+          <c-out>
+            <C.Out />
+          </c-out>
+        </B.Push>
+      </A.Push>
+      <C.Push>c-content</C.Push>
+      <a-out>
+        <A.Out />
+      </a-out>
+      <b-out>
+        <B.Out />
+      </b-out>
+    </div>,
+  );
+
+  // C.Out is inside B.Push, which is inside A.Push
+  // B.Push (containing C.Out) goes to A, but when A.Out renders,
+  // it only contains the B.Push, not its content. B.Out shows C.Out with c-content
+  expect(result).toBe("<div><a-out></a-out><b-out><c-out>c-content</c-out></b-out></div>");
+});
+
+test("mutual stack outputs: A pushes B.Out, B pushes A.Out", async () => {
+  const A = createStack();
+  const B = createStack();
+
+  const result = await render(
+    <div>
+      <A.Push>
+        a1-
+        <b-out>
+          <B.Out />
+        </b-out>
+      </A.Push>
+      <B.Push>
+        b1-
+        <a-out>
+          <A.Out />
+        </a-out>
+      </B.Push>
+      <A.Push>-a2</A.Push>
+      <B.Push>-b2</B.Push>
+    </div>,
+  );
+
+  // This doesn't create a circular dependency because:
+  // A.Push contains B.Out, B.Push contains A.Out
+  // The Outs themselves aren't rendered yet, they're just pushed to stacks
+  // Since neither A.Out nor B.Out appear at the root level, result is empty
+  expect(result).toBe("<div></div>");
+});
+
+test("nested functions: Push with function returning Push with function", async () => {
+  const A = createStack();
+  const B = createStack();
+  const C = createStack();
+
+  const result = await render(
+    <div>
+      <A.Push>
+        [a-start]
+        {() => <B.Push>[b-start]{() => <C.Push>deeply-nested</C.Push>}[b-end]</B.Push>}
+        [a-end]
+      </A.Push>
+      <a-out>
+        <A.Out />
+      </a-out>
+      <b-out>
+        <B.Out />
+      </b-out>
+      <c-out>
+        <C.Out />
+      </c-out>
+    </div>,
+  );
+
+  // Function in A returns B.Push, function in B returns C.Push
+  // Content should end up only in C
+  expect(result).toBe(
+    "<div><a-out>[a-start][a-end]</a-out><b-out>[b-start][b-end]</b-out><c-out>deeply-nested</c-out></div>",
+  );
+});
+
+test("async function pushing to multiple stacks in sequence", async () => {
+  const A = createStack();
+  const B = createStack();
+  const C = createStack();
+
+  const result = await render(
+    <div>
+      <A.Push>
+        {async () => {
+          await Promise.resolve();
+          return (
+            <>
+              <B.Push>to-b-from-a</B.Push>
+              <C.Push>to-c-from-a</C.Push>
+              direct-in-a
+            </>
+          );
+        }}
+      </A.Push>
+      <a-out>
+        <A.Out />
+      </a-out>
+      <b-out>
+        <B.Out />
+      </b-out>
+      <c-out>
+        <C.Out />
+      </c-out>
+    </div>,
+  );
+
+  // The async function's return value contains pushes to B and C
+  // Only "direct-in-a" should appear in A
+  expect(result).toBe(
+    "<div><a-out>direct-in-a</a-out><b-out>to-b-from-a</b-out><c-out>to-c-from-a</c-out></div>",
+  );
+});
+
+test("Push with Once containing another stack's Out", async () => {
+  const A = createStack();
+  const B = createStack();
+  const OnceKey = Once.createComponent("key");
+
+  const result = await render(
+    <div>
+      <A.Push>
+        <OnceKey>
+          once-[
+          <b-out>
+            <B.Out />
+          </b-out>
+          ]
+        </OnceKey>
+      </A.Push>
+      <A.Push>
+        <OnceKey>
+          ignored-[
+          <b-out>
+            <B.Out />
+          </b-out>
+          ]
+        </OnceKey>
+      </A.Push>
+      <B.Push>b-content</B.Push>
+      <a-out>
+        <A.Out />
+      </a-out>
+    </div>,
+  );
+
+  // First Once renders with B.Out, second is ignored
+  // B's content appears nested inside A through the Once
+  expect(result).toBe("<div><a-out>once-[<b-out>b-content</b-out>]</a-out></div>");
 });
