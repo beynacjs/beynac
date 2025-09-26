@@ -132,6 +132,9 @@ export function asyncGate(checkpoints: string[]): AsyncGate {
           });
         }
       }
+
+      // Add a little delay to give async tasks the time do do stuff
+      await nextTick();
     }
 
     // Release all tasks waiting on this checkpoint
@@ -188,3 +191,5 @@ export function asyncGate(checkpoints: string[]): AsyncGate {
 
   return gate;
 }
+
+export const nextTick = (): Promise<unknown> => new Promise((resolve) => setTimeout(resolve, 0));

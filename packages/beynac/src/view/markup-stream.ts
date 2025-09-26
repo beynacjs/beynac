@@ -7,6 +7,7 @@ import type { Context, JSXNode, RenderOptions } from "./public-types";
 import { RawContent } from "./raw";
 import { isSpecialNode } from "./special-node";
 import { isStackOutNode, isStackPushNode } from "./stack";
+import { StreamBuffer } from "./stream-buffer";
 import { styleObjectToString } from "./style-attribute";
 
 /**
@@ -193,16 +194,16 @@ export function renderStream(
           }
           if (isStackPushNode(node)) {
             // Handle Stack.Push: redirect content to stack buffer
-            buf.beginStackRedirect(node.stackPush);
+            buf.beginRedirect(node.stackPush);
             for (const item of node) {
               await renderNode(item, context, stack);
             }
-            buf.endStackRedirect();
+            buf.endRedirect();
             return;
           }
           if (isStackOutNode(node)) {
             // Handle Stack.Out: render buffered stack content
-            buf.handleStackOut(node.stackOut);
+            buf.emitRedirectedContent(node.stackOut);
             return;
           }
           if (isOnceNode(node)) {
@@ -439,172 +440,6 @@ export function renderStream(
 
   return buf.stream();
 }
-
-type RedirectedContent = string | RedirectedContent[];
-type RedirectSink = RedirectedContent[];
-
-class StreamBuffer {
-  private buffer: string = "";
-  private pending: string[] = [];
-  private resolver: ((value: { done: boolean; chunk?: string }) => void) | null = null;
-  private completed = false;
-  private errorValue: Error | null = null;
-
-  private activeRedirect: RedirectSink | null = null;
-  private parentRedirects: RedirectSink[] = [];
-  private redirects: Map<symbol, RedirectSink> = new Map();
-  private redirectsEmitted = new Set<symbol>(); // Track if Stack.Out used (for error)
-  private deferOutput = false;
-  private deferredChunks: RedirectSink = []; // Chunks to yield at end when hasStackOut is true
-
-  add(content: string): void {
-    this.buffer += content;
-  }
-
-  yield(): void {
-    if (!this.buffer) return;
-
-    const chunk = this.buffer;
-    this.buffer = "";
-
-    // Route the chunk based on current state
-    if (this.activeRedirect) {
-      // Direct push - no lookup needed!
-      this.activeRedirect.push(chunk);
-    } else if (this.deferOutput) {
-      // In deferred mode, store chunks for later
-      this.deferredChunks.push(chunk);
-    } else {
-      // Normal mode: send immediately to consumer
-      this.#sendToResolver(chunk);
-    }
-  }
-
-  complete(): void {
-    this.yield();
-
-    const flattenAndSend = (item: RedirectedContent): void => {
-      if (typeof item === "string") {
-        this.#sendToResolver(item);
-      } else {
-        for (const subItem of item) {
-          flattenAndSend(subItem);
-        }
-      }
-    };
-
-    for (const item of this.deferredChunks) {
-      flattenAndSend(item);
-    }
-
-    this.#terminate();
-  }
-
-  error(err: Error): void {
-    this.errorValue = err;
-    this.#terminate();
-  }
-
-  beginStackRedirect(stackSymbol: symbol): void {
-    // Always yield to flush any pending content
-    this.yield();
-
-    // Push current redirect to parent stack if there is one
-    if (this.activeRedirect) {
-      this.parentRedirects.push(this.activeRedirect);
-    }
-
-    const buffer = getOrCreateStackBuffer(this.redirects, stackSymbol);
-
-    this.activeRedirect = buffer;
-  }
-
-  endStackRedirect(): void {
-    // Always yield to flush any content accumulated during redirect
-    this.yield();
-
-    // Pop back to parent redirect or null
-    this.activeRedirect = this.parentRedirects.pop() ?? null;
-  }
-
-  handleStackOut(stackSymbol: symbol): void {
-    if (this.redirectsEmitted.has(stackSymbol)) {
-      throw new Error("Stack.Out can only be used once per render");
-    }
-    this.redirectsEmitted.add(stackSymbol);
-
-    this.yield();
-
-    // Get or create the stack buffer array for this symbol
-    const stackBuffer = getOrCreateStackBuffer(this.redirects, stackSymbol);
-
-    // Push the array reference to the appropriate destination
-    if (this.activeRedirect) {
-      this.activeRedirect.push(stackBuffer);
-    } else {
-      // Enable deferred mode on first top-level Stack.Out
-      this.deferOutput = true;
-      this.deferredChunks.push(stackBuffer);
-    }
-  }
-
-  async *stream(): AsyncGenerator<string> {
-    while (true) {
-      if (this.pending.length > 0) {
-        const chunk = this.pending.shift();
-        if (chunk) yield chunk;
-      } else if (this.completed) {
-        if (this.errorValue) {
-          throw this.errorValue;
-        }
-        return;
-      } else {
-        if (this.resolver !== null) {
-          throw new Error("StreamBuffer already has a consumer waiting");
-        }
-        const result = await new Promise<{ done: boolean; chunk?: string }>((resolve) => {
-          this.resolver = resolve;
-        });
-        if (result.done) {
-          if (this.errorValue) {
-            throw this.errorValue;
-          }
-          return;
-        }
-        if (result.chunk) {
-          yield result.chunk;
-        }
-      }
-    }
-  }
-
-  #terminate() {
-    this.completed = true;
-
-    if (this.resolver) {
-      this.resolver({ done: true });
-      this.resolver = null;
-    }
-  }
-
-  #sendToResolver(chunk: string): void {
-    if (this.resolver) {
-      this.resolver({ done: false, chunk });
-      this.resolver = null;
-    } else {
-      this.pending.push(chunk);
-    }
-  }
-}
-
-const getOrCreateStackBuffer = <K, V>(map: Map<K, V[]>, key: K): V[] => {
-  let value = map.get(key);
-  if (!value) {
-    value = [];
-    map.set(key, value);
-  }
-  return value;
-};
 
 const HTML_ESCAPE: Record<string, string> = {
   "&": "&amp;",

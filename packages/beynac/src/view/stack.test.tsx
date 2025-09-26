@@ -1,7 +1,8 @@
 /** @jsxImportSource ./ */
 import { expect, test } from "bun:test";
 import { createKey } from "../keys";
-import { render } from "./markup-stream";
+import { asyncGate, nextTick } from "../test-utils/async-gate";
+import { render, renderStream } from "./markup-stream";
 import { Once } from "./once";
 import type { Component, Context } from "./public-types";
 import { createStack } from "./stack";
@@ -593,4 +594,92 @@ test("Push with Once containing another stack's Out", async () => {
   // First Once renders with B.Out, second is ignored
   // B's content appears nested inside A through the Once
   expect(result).toBe("<div><a-out>once-[<b-out>b-content</b-out>]</a-out></div>");
+});
+
+test("first Stack.Out streams immediately without buffering", async () => {
+  const HeadStack = createStack();
+  const FooterStack = createStack();
+
+  // Use asyncGate to control when content is produced
+  const gate = asyncGate(["pushHead1", "pushHead2", "pushFooter1", "pushFooter2"]);
+
+  const AsyncHeadProducer: Component = async () => {
+    await gate("pushHead1");
+    return <HeadStack.Push>Head1</HeadStack.Push>;
+  };
+
+  const AsyncHeadProducer2: Component = async () => {
+    await gate("pushHead2");
+    return <HeadStack.Push>Head2</HeadStack.Push>;
+  };
+
+  const AsyncFooterProducer: Component = async () => {
+    await gate("pushFooter1");
+    return <FooterStack.Push>Footer1</FooterStack.Push>;
+  };
+
+  const AsyncFooterProducer2: Component = async () => {
+    await gate("pushFooter2");
+    return <FooterStack.Push>Footer2</FooterStack.Push>;
+  };
+
+  const document = (
+    <html>
+      <HeadStack.Push>PreHead</HeadStack.Push>
+      <head>
+        <HeadStack.Out />
+      </head>
+      <body>
+        <AsyncHeadProducer />
+        <AsyncHeadProducer2 />
+        <div>Middle content</div>
+        <AsyncFooterProducer />
+        <AsyncFooterProducer2 />
+        <footer>
+          <FooterStack.Out />
+        </footer>
+      </body>
+    </html>
+  );
+
+  // Collect chunks in parallel
+  const chunks: string[] = [];
+  const collectingPromise = (async () => {
+    for await (const chunk of renderStream(document)) {
+      chunks.push(chunk);
+    }
+  })();
+
+  // Wait for initial chunk
+  await nextTick();
+  expect(chunks.length).toBe(3);
+  expect(chunks[0]).toBe("<html>");
+  expect(chunks[1]).toBe("<head>");
+  // When HeadStack.Out is encountered, PreHead content is immediately flushed
+  expect(chunks[2]).toBe("PreHead");
+
+  // Resolve pushHead1 - Head1 should stream immediately (first Stack.Out optimization)
+  await gate.next(); // pushHead1
+  expect(chunks.length).toBe(4);
+  expect(chunks[3]).toBe("Head1");
+
+  // Resolve pushHead2 - Head2 should also stream immediately
+  await gate.next(); // pushHead2
+  expect(chunks.length).toBe(5);
+  expect(chunks[4]).toBe("Head2");
+
+  const chunksBeforeFooter = chunks.length;
+  await gate.next(); // pushFooter1
+  // Because the footer stack is not the first stack, its chunks should not be
+  // streamed. We are buffering them until the end of a document.
+  expect(chunks.length).toBe(chunksBeforeFooter);
+  await gate.next(); // pushFooter2
+
+  await collectingPromise;
+
+  // Verify final output
+  const fullOutput = chunks.join("");
+  expect(fullOutput).toBe(
+    "<html><head>PreHeadHead1Head2</head><body><div>Middle content</div><footer>Footer1Footer2</footer></body></html>",
+  );
 });
