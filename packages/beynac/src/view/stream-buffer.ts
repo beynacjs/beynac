@@ -150,13 +150,13 @@ export class StreamBuffer {
 
   async *stream(): AsyncGenerator<string> {
     while (true) {
-      if (this.errorValue) {
-        throw this.errorValue;
-      }
       if (this.pending.length > 0) {
         const chunk = this.pending.shift();
         if (chunk) yield chunk;
       } else if (this.completed) {
+        if (this.errorValue) {
+          throw this.errorValue;
+        }
         return;
       } else {
         if (this.resolver !== null) {
@@ -166,6 +166,9 @@ export class StreamBuffer {
           this.resolver = resolve;
         });
         if (result.done) {
+          if (this.errorValue) {
+            throw this.errorValue;
+          }
           return;
         }
         if (result.chunk) {
