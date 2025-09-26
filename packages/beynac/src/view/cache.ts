@@ -1,0 +1,36 @@
+import { render } from "./markup-stream";
+import type { Component, PropsWithChildren } from "./public-types";
+import { RawContent } from "./raw";
+
+type CacheProps = PropsWithChildren<{
+  map: Map<string, string>;
+  key: string;
+}>;
+
+/**
+ * PoC to check that the rendering design can support child renders.
+ *
+ * Cache component that renders and caches content based on a key.
+ * If the key exists in the map, returns the cached rendered content.
+ * Otherwise, renders the children and caches the result.
+ *
+ * @example
+ * ```tsx
+ * const cache = new Map<string, string>();
+ * <Cache map={cache} key="header">
+ *   <ExpensiveComponent />
+ * </Cache>
+ * ```
+ */
+export const Cache: Component<CacheProps> = async ({ map, key, children }, context) => {
+  const cached = map.get(key);
+  if (cached != null) {
+    return new RawContent(cached);
+  }
+
+  const rendered = await render(children, { context });
+  map.set(key, rendered);
+
+  return new RawContent(rendered);
+};
+Cache.displayName = "Cache";

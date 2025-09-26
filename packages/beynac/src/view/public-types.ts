@@ -3,6 +3,7 @@ import type { IntrinsicElements as IntrinsicElementsDefined } from "./intrinsic-
 
 export type RenderOptions = {
   mode?: "html" | "xml";
+  context?: Context;
 };
 
 export interface Context {

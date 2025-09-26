@@ -76,10 +76,18 @@ type ComponentStack = {
 
 export function renderStream(
   content: JSXNode,
-  { mode = "html" }: RenderOptions = {},
+  { mode = "html", context }: RenderOptions = {},
 ): AsyncGenerator<string> {
   const buf = new StreamBuffer();
-  const rootContext = new ContextImpl();
+  let rootContext: ContextImpl;
+  if (context) {
+    if (!(context instanceof ContextImpl)) {
+      throw new Error("Invalid context");
+    }
+    rootContext = context;
+  } else {
+    rootContext = new ContextImpl();
+  }
   const componentStack: ComponentStack | null = null;
   const onceKeys = new Set<OnceKey>(); // Track used Once keys
   const preExecuteResults = new Map<unknown, { result: JSXNode; context: ContextImpl }>(); // Cache function execution results with context
