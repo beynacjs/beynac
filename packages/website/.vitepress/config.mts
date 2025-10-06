@@ -48,6 +48,7 @@ const config = defineConfig({
       { text: "Documentation", link: "/docs/" },
       { text: "API Reference", link: "/api/", target: "_self" },
       { text: "Blog", link: "/blog/" },
+      { text: "Progress", link: "/docs/progress" },
     ],
 
     sidebar: {
@@ -59,6 +60,7 @@ const config = defineConfig({
             { text: "Release Notes", link: "/docs/releases" },
             { text: "Upgrade Guide", link: "/docs/upgrade" },
             { text: "Contribution Guide", link: "/docs/contributions" },
+            { text: "Port Progress", link: "/docs/progress" },
           ],
         },
         {

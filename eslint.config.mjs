@@ -13,7 +13,7 @@ export default tseslint.config(
       "packages/website/**",
       "packages/create-beynac/**",
       "eslint.config.mjs",
-      "port-progress.ts",
+      "progress/**",
     ],
   },
   {

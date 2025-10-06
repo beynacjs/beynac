@@ -4,10 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "vitepress dev",
-    "build": "bun run build:api && bun run build:vitepress",
+    "build": "bun run generate-progress && bun run build:api && bun run build:vitepress",
     "build:api": "typedoc",
     "build:vitepress": "vitepress build",
-    "preview": "vitepress preview"
+    "preview": "vitepress preview",
+    "generate-progress": "bun scripts/generate-paths.ts && bun scripts/generate-progress.ts"
   },
   "devDependencies": {
     "beynac": "workspace:",

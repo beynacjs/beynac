@@ -1,60 +1,12 @@
 #!/usr/bin/env bun
 
-import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-
-const PHP_FOLDER = "./laravel";
-const DONE_MARKER = "// DONE";
-
-interface FileStats {
-	path: string;
-	isDone: boolean;
-	lines: number;
-	functions: number;
-}
-
-async function findPhpFiles(dir: string): Promise<string[]> {
-	const files: string[] = [];
-	const entries = await readdir(dir, { withFileTypes: true });
-
-	for (const entry of entries) {
-		const fullPath = join(dir, entry.name);
-		if (entry.isDirectory()) {
-			files.push(...(await findPhpFiles(fullPath)));
-		} else if (entry.isFile() && entry.name.endsWith(".php")) {
-			files.push(fullPath);
-		}
-	}
-
-	return files;
-}
-
-function removeComments(content: string): string {
-	// Remove block comments /* ... */
-	content = content.replace(/\/\*[\s\S]*?\*\//g, "");
-	// Remove line comments //... (but not our DONE marker)
-	content = content.replace(/\/\/(?!.*DONE).*$/gm, "");
-	return content;
-}
-
-async function analyzeFile(filePath: string): Promise<FileStats> {
-	const content = await readFile(filePath, "utf-8");
-	const isDone = content.includes(DONE_MARKER);
-
-	// Count functions after removing comments
-	const cleanContent = removeComments(content);
-	const functions = (
-		cleanContent.match(/\b(function|class|interface)\b/g) || []
-	).length;
-	const lines = cleanContent.trim().split(/\s*\n\s*/g).length;
-
-	return {
-		path: filePath,
-		isDone,
-		lines,
-		functions,
-	};
-}
+import {
+	PHP_FOLDER,
+	findPhpFiles,
+	analyzeFile,
+	type FileStats,
+} from "../packages/website/scripts/port-utils.js";
 
 async function main() {
 	try {

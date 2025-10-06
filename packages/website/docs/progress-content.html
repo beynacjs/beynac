@@ -1,0 +1,315 @@
+<style>
+  .progress-summary {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+  }
+  .progress-table {
+    border-collapse: collapse;
+    width: 100%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .progress-table th, .progress-table td {
+    border: 1px solid #dee2e6;
+    padding: 10px;
+    text-align: left;
+  }
+  .progress-table th {
+    background-color: #343a40;
+    color: white;
+    font-weight: 600;
+  }
+  .progress-table tr:hover {
+    opacity: 0.8;
+  }
+  .progress-table td[title] {
+    cursor: help;
+  }
+</style>
+
+<div class="progress-summary">
+  <p><strong>1.0%</strong> complete (961 of 99,164 LoC)</p>
+</div>
+
+<table class="progress-table">
+  <thead>
+    <tr>
+      <th>Feature</th>
+      <th>Lines ported</th>
+      <th>Files ported</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+    <tr style="background-color: #fff3cd">
+      <td>IoC Container</td>
+      <td title="961 of 1,160 LoC">82.8%</td>
+      <td>
+        <details>
+          <summary>6 of 19</summary>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>TODO: Container/Attributes/Auth.php</li><li>TODO: Container/Attributes/Authenticated.php</li><li>TODO: Container/Attributes/Cache.php</li><li>TODO: Container/Attributes/Config.php</li><li>TODO: Container/Attributes/Context.php</li><li>TODO: Container/Attributes/CurrentUser.php</li><li>TODO: Container/Attributes/Database.php</li><li>TODO: Container/Attributes/DB.php</li><li>TODO: Container/Attributes/Give.php</li><li>TODO: Container/Attributes/Log.php</li><li>TODO: Container/Attributes/RouteParameter.php</li><li>TODO: Container/Attributes/Storage.php</li><li>TODO: Container/Attributes/Tag.php</li><li><s>Container/BoundMethod.php</s></li><li><s>Container/Container.php</s></li><li><s>Container/ContextualBindingBuilder.php</s></li><li><s>Container/EntryNotFoundException.php</s></li><li><s>Container/RewindableGenerator.php</s></li><li><s>Container/Util.php</s></li>
+          </ul>
+        </details>
+      </td>
+    </tr>
+    <tr style="background-color: #e9ecef">
+      <td>View</td>
+      <td title="0 of 9,686 LoC">0.0%</td>
+      <td>
+        <details>
+          <summary>0 of 125</summary>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>TODO: tests/View/Blade/AbstractBladeTestCase.php</li><li>TODO: tests/View/Blade/BladeAppendTest.php</li><li>TODO: tests/View/Blade/BladeBoolTest.php</li><li>TODO: tests/View/Blade/BladeBreakStatementsTest.php</li><li>TODO: tests/View/Blade/BladeCananyStatementsTest.php</li><li>TODO: tests/View/Blade/BladeCannotStatementsTest.php</li><li>TODO: tests/View/Blade/BladeCanStatementsTest.php</li><li>TODO: tests/View/Blade/BladeCheckedStatementsTest.php</li><li>TODO: tests/View/Blade/BladeClassTest.php</li><li>TODO: tests/View/Blade/BladeCommentsTest.php</li><li>TODO: tests/View/Blade/BladeComponentFirstTest.php</li><li>TODO: tests/View/Blade/BladeComponentsTest.php</li><li>TODO: tests/View/Blade/BladeComponentTagCompilerTest.php</li><li>TODO: tests/View/Blade/BladeContextTest.php</li><li>TODO: tests/View/Blade/BladeContinueStatementsTest.php</li><li>TODO: tests/View/Blade/BladeCustomTest.php</li><li>TODO: tests/View/Blade/BladeEchoHandlerTest.php</li><li>TODO: tests/View/Blade/BladeEchoTest.php</li><li>TODO: tests/View/Blade/BladeElseAuthStatementsTest.php</li><li>TODO: tests/View/Blade/BladeElseGuestStatementsTest.php</li><li>TODO: tests/View/Blade/BladeElseIfStatementsTest.php</li><li>TODO: tests/View/Blade/BladeElseStatementsTest.php</li><li>TODO: tests/View/Blade/BladeEndSectionsTest.php</li><li>TODO: tests/View/Blade/BladeEnvironmentStatementsTest.php</li><li>TODO: tests/View/Blade/BladeErrorTest.php</li><li>TODO: tests/View/Blade/BladeEscapedTest.php</li><li>TODO: tests/View/Blade/BladeExpressionTest.php</li><li>TODO: tests/View/Blade/BladeExtendsTest.php</li><li>TODO: tests/View/Blade/BladeForeachStatementsTest.php</li><li>TODO: tests/View/Blade/BladeForelseStatementsTest.php</li><li>TODO: tests/View/Blade/BladeForStatementsTest.php</li><li>TODO: tests/View/Blade/BladeFragmentTest.php</li><li>TODO: tests/View/Blade/BladeHasSectionTest.php</li><li>TODO: tests/View/Blade/BladeHelpersTest.php</li><li>TODO: tests/View/Blade/BladeIfAuthStatementsTest.php</li><li>TODO: tests/View/Blade/BladeIfEmptyStatementsTest.php</li><li>TODO: tests/View/Blade/BladeIfGuestStatementsTest.php</li><li>TODO: tests/View/Blade/BladeIfIssetStatementsTest.php</li><li>TODO: tests/View/Blade/BladeIfStatementsTest.php</li><li>TODO: tests/View/Blade/BladeIncludesTest.php</li><li>TODO: tests/View/Blade/BladeInjectTest.php</li><li>TODO: tests/View/Blade/BladeJsonTest.php</li><li>TODO: tests/View/Blade/BladeJsTest.php</li><li>TODO: tests/View/Blade/BladeLangTest.php</li><li>TODO: tests/View/Blade/BladeOverwriteSectionTest.php</li><li>TODO: tests/View/Blade/BladePhpStatementsTest.php</li><li>TODO: tests/View/Blade/BladePrependTest.php</li><li>TODO: tests/View/Blade/BladePropsTest.php</li><li>TODO: tests/View/Blade/BladePushTest.php</li><li>TODO: tests/View/Blade/BladeSectionMissingTest.php</li><li>TODO: tests/View/Blade/BladeSectionTest.php</li><li>TODO: tests/View/Blade/BladeSessionTest.php</li><li>TODO: tests/View/Blade/BladeShowTest.php</li><li>TODO: tests/View/Blade/BladeStackTest.php</li><li>TODO: tests/View/Blade/BladeStopSectionTest.php</li><li>TODO: tests/View/Blade/BladeStyleTest.php</li><li>TODO: tests/View/Blade/BladeUnlessStatementsTest.php</li><li>TODO: tests/View/Blade/BladeUnsetStatementsTest.php</li><li>TODO: tests/View/Blade/BladeUseTest.php</li><li>TODO: tests/View/Blade/BladeVerbatimTest.php</li><li>TODO: tests/View/Blade/BladeWhileStatementsTest.php</li><li>TODO: tests/View/Blade/BladeYieldTest.php</li><li>TODO: tests/View/ComponentTest.php</li><li>TODO: tests/View/ViewBladeCompilerTest.php</li><li>TODO: tests/View/ViewCompilerEngineTest.php</li><li>TODO: tests/View/ViewComponentAttributeBagTest.php</li><li>TODO: tests/View/ViewComponentTest.php</li><li>TODO: tests/View/ViewEngineResolverTest.php</li><li>TODO: tests/View/ViewFactoryTest.php</li><li>TODO: tests/View/ViewFileViewFinderTest.php</li><li>TODO: tests/View/ViewPhpEngineTest.php</li><li>TODO: tests/View/ViewTest.php</li><li>TODO: View/AnonymousComponent.php</li><li>TODO: View/AppendableAttributeValue.php</li><li>TODO: View/Compilers/BladeCompiler.php</li><li>TODO: View/Compilers/Compiler.php</li><li>TODO: View/Compilers/CompilerInterface.php</li><li>TODO: View/Compilers/ComponentTagCompiler.php</li><li>TODO: View/Compilers/Concerns/CompilesAuthorizations.php</li><li>TODO: View/Compilers/Concerns/CompilesClasses.php</li><li>TODO: View/Compilers/Concerns/CompilesComments.php</li><li>TODO: View/Compilers/Concerns/CompilesComponents.php</li><li>TODO: View/Compilers/Concerns/CompilesConditionals.php</li><li>TODO: View/Compilers/Concerns/CompilesContexts.php</li><li>TODO: View/Compilers/Concerns/CompilesEchos.php</li><li>TODO: View/Compilers/Concerns/CompilesErrors.php</li><li>TODO: View/Compilers/Concerns/CompilesFragments.php</li><li>TODO: View/Compilers/Concerns/CompilesHelpers.php</li><li>TODO: View/Compilers/Concerns/CompilesIncludes.php</li><li>TODO: View/Compilers/Concerns/CompilesInjections.php</li><li>TODO: View/Compilers/Concerns/CompilesJs.php</li><li>TODO: View/Compilers/Concerns/CompilesJson.php</li><li>TODO: View/Compilers/Concerns/CompilesLayouts.php</li><li>TODO: View/Compilers/Concerns/CompilesLoops.php</li><li>TODO: View/Compilers/Concerns/CompilesRawPhp.php</li><li>TODO: View/Compilers/Concerns/CompilesSessions.php</li><li>TODO: View/Compilers/Concerns/CompilesStacks.php</li><li>TODO: View/Compilers/Concerns/CompilesStyles.php</li><li>TODO: View/Compilers/Concerns/CompilesTranslations.php</li><li>TODO: View/Compilers/Concerns/CompilesUseStatements.php</li><li>TODO: View/Component.php</li><li>TODO: View/ComponentAttributeBag.php</li><li>TODO: View/ComponentSlot.php</li><li>TODO: View/Concerns/ManagesComponents.php</li><li>TODO: View/Concerns/ManagesEvents.php</li><li>TODO: View/Concerns/ManagesFragments.php</li><li>TODO: View/Concerns/ManagesLayouts.php</li><li>TODO: View/Concerns/ManagesLoops.php</li><li>TODO: View/Concerns/ManagesStacks.php</li><li>TODO: View/Concerns/ManagesTranslations.php</li><li>TODO: View/DynamicComponent.php</li><li>TODO: View/Engines/CompilerEngine.php</li><li>TODO: View/Engines/Engine.php</li><li>TODO: View/Engines/EngineResolver.php</li><li>TODO: View/Engines/FileEngine.php</li><li>TODO: View/Engines/PhpEngine.php</li><li>TODO: View/Factory.php</li><li>TODO: View/FileViewFinder.php</li><li>TODO: View/InvokableComponentVariable.php</li><li>TODO: View/Middleware/ShareErrorsFromSession.php</li><li>TODO: View/View.php</li><li>TODO: View/ViewException.php</li><li>TODO: View/ViewFinderInterface.php</li><li>TODO: View/ViewName.php</li><li>TODO: View/ViewServiceProvider.php</li>
+          </ul>
+        </details>
+      </td>
+    </tr>
+    <tr style="background-color: #e9ecef">
+      <td>Validation</td>
+      <td title="0 of 18,125 LoC">0.0%</td>
+      <td>
+        <details>
+          <summary>0 of 73</summary>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>TODO: tests/Validation/Enums.php</li><li>TODO: tests/Validation/ValidationAddFailureTest.php</li><li>TODO: tests/Validation/ValidationAnyOfRuleTest.php</li><li>TODO: tests/Validation/ValidationArrayRuleTest.php</li><li>TODO: tests/Validation/ValidationDatabasePresenceVerifierTest.php</li><li>TODO: tests/Validation/ValidationDateRuleTest.php</li><li>TODO: tests/Validation/ValidationDimensionsRuleTest.php</li><li>TODO: tests/Validation/ValidationEmailRuleTest.php</li><li>TODO: tests/Validation/ValidationEnumRuleTest.php</li><li>TODO: tests/Validation/ValidationExceptionTest.php</li><li>TODO: tests/Validation/ValidationExcludeIfTest.php</li><li>TODO: tests/Validation/ValidationExistsRuleTest.php</li><li>TODO: tests/Validation/ValidationFactoryTest.php</li><li>TODO: tests/Validation/ValidationFileRuleTest.php</li><li>TODO: tests/Validation/ValidationForEachTest.php</li><li>TODO: tests/Validation/ValidationImageFileRuleTest.php</li><li>TODO: tests/Validation/ValidationInArrayKeysTest.php</li><li>TODO: tests/Validation/ValidationInRuleTest.php</li><li>TODO: tests/Validation/ValidationInvokableRuleTest.php</li><li>TODO: tests/Validation/ValidationMacroTest.php</li><li>TODO: tests/Validation/ValidationNotInRuleTest.php</li><li>TODO: tests/Validation/ValidationNotPwnedVerifierTest.php</li><li>TODO: tests/Validation/ValidationNumericRuleTest.php</li><li>TODO: tests/Validation/ValidationPasswordRuleTest.php</li><li>TODO: tests/Validation/ValidationProhibitedIfTest.php</li><li>TODO: tests/Validation/ValidationRequiredIfTest.php</li><li>TODO: tests/Validation/ValidationRuleCanTest.php</li><li>TODO: tests/Validation/ValidationRuleContainsTest.php</li><li>TODO: tests/Validation/ValidationRuleParserTest.php</li><li>TODO: tests/Validation/ValidationUniqueRuleTest.php</li><li>TODO: tests/Validation/ValidationValidatorTest.php</li><li>TODO: tests/Validation/ValidatorAfterRuleTest.php</li><li>TODO: Validation/ClosureValidationRule.php</li><li>TODO: Validation/Concerns/FilterEmailValidation.php</li><li>TODO: Validation/Concerns/FormatsMessages.php</li><li>TODO: Validation/Concerns/ReplacesAttributes.php</li><li>TODO: Validation/Concerns/ValidatesAttributes.php</li><li>TODO: Validation/ConditionalRules.php</li><li>TODO: Validation/DatabasePresenceVerifier.php</li><li>TODO: Validation/DatabasePresenceVerifierInterface.php</li><li>TODO: Validation/Factory.php</li><li>TODO: Validation/InvokableValidationRule.php</li><li>TODO: Validation/NestedRules.php</li><li>TODO: Validation/NotPwnedVerifier.php</li><li>TODO: Validation/PresenceVerifierInterface.php</li><li>TODO: Validation/Rule.php</li><li>TODO: Validation/Rules/AnyOf.php</li><li>TODO: Validation/Rules/ArrayRule.php</li><li>TODO: Validation/Rules/Can.php</li><li>TODO: Validation/Rules/Contains.php</li><li>TODO: Validation/Rules/DatabaseRule.php</li><li>TODO: Validation/Rules/Date.php</li><li>TODO: Validation/Rules/Dimensions.php</li><li>TODO: Validation/Rules/Email.php</li><li>TODO: Validation/Rules/Enum.php</li><li>TODO: Validation/Rules/ExcludeIf.php</li><li>TODO: Validation/Rules/Exists.php</li><li>TODO: Validation/Rules/File.php</li><li>TODO: Validation/Rules/ImageFile.php</li><li>TODO: Validation/Rules/In.php</li><li>TODO: Validation/Rules/NotIn.php</li><li>TODO: Validation/Rules/Numeric.php</li><li>TODO: Validation/Rules/Password.php</li><li>TODO: Validation/Rules/ProhibitedIf.php</li><li>TODO: Validation/Rules/RequiredIf.php</li><li>TODO: Validation/Rules/Unique.php</li><li>TODO: Validation/UnauthorizedException.php</li><li>TODO: Validation/ValidatesWhenResolvedTrait.php</li><li>TODO: Validation/ValidationData.php</li><li>TODO: Validation/ValidationException.php</li><li>TODO: Validation/ValidationRuleParser.php</li><li>TODO: Validation/ValidationServiceProvider.php</li><li>TODO: Validation/Validator.php</li>
+          </ul>
+        </details>
+      </td>
+    </tr>
+    <tr style="background-color: #e9ecef">
+      <td>Routing</td>
+      <td title="0 of 10,830 LoC">0.0%</td>
+      <td>
+        <details>
+          <summary>0 of 70</summary>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>TODO: Routing/AbstractRouteCollection.php</li><li>TODO: Routing/CallableDispatcher.php</li><li>TODO: Routing/CompiledRouteCollection.php</li><li>TODO: Routing/Contracts/CallableDispatcher.php</li><li>TODO: Routing/Contracts/ControllerDispatcher.php</li><li>TODO: Routing/Controller.php</li><li>TODO: Routing/ControllerDispatcher.php</li><li>TODO: Routing/ControllerMiddlewareOptions.php</li><li>TODO: Routing/Controllers/HasMiddleware.php</li><li>TODO: Routing/Controllers/Middleware.php</li><li>TODO: Routing/CreatesRegularExpressionRouteConstraints.php</li><li>TODO: Routing/Events/PreparingResponse.php</li><li>TODO: Routing/Events/ResponsePrepared.php</li><li>TODO: Routing/Events/RouteMatched.php</li><li>TODO: Routing/Events/Routing.php</li><li>TODO: Routing/Exceptions/BackedEnumCaseNotFoundException.php</li><li>TODO: Routing/Exceptions/InvalidSignatureException.php</li><li>TODO: Routing/Exceptions/MissingRateLimiterException.php</li><li>TODO: Routing/Exceptions/StreamedResponseException.php</li><li>TODO: Routing/Exceptions/UrlGenerationException.php</li><li>TODO: Routing/FiltersControllerMiddleware.php</li><li>TODO: Routing/ImplicitRouteBinding.php</li><li>TODO: Routing/Matching/HostValidator.php</li><li>TODO: Routing/Matching/MethodValidator.php</li><li>TODO: Routing/Matching/SchemeValidator.php</li><li>TODO: Routing/Matching/UriValidator.php</li><li>TODO: Routing/Matching/ValidatorInterface.php</li><li>TODO: Routing/Middleware/SubstituteBindings.php</li><li>TODO: Routing/Middleware/ThrottleRequests.php</li><li>TODO: Routing/Middleware/ThrottleRequestsWithRedis.php</li><li>TODO: Routing/Middleware/ValidateSignature.php</li><li>TODO: Routing/MiddlewareNameResolver.php</li><li>TODO: Routing/PendingResourceRegistration.php</li><li>TODO: Routing/PendingSingletonResourceRegistration.php</li><li>TODO: Routing/Pipeline.php</li><li>TODO: Routing/RedirectController.php</li><li>TODO: Routing/Redirector.php</li><li>TODO: Routing/ResolvesRouteDependencies.php</li><li>TODO: Routing/ResourceRegistrar.php</li><li>TODO: Routing/ResponseFactory.php</li><li>TODO: Routing/Route.php</li><li>TODO: Routing/RouteAction.php</li><li>TODO: Routing/RouteBinding.php</li><li>TODO: Routing/RouteCollection.php</li><li>TODO: Routing/RouteCollectionInterface.php</li><li>TODO: Routing/RouteDependencyResolverTrait.php</li><li>TODO: Routing/RouteFileRegistrar.php</li><li>TODO: Routing/RouteGroup.php</li><li>TODO: Routing/RouteParameterBinder.php</li><li>TODO: Routing/Router.php</li><li>TODO: Routing/RouteRegistrar.php</li><li>TODO: Routing/RouteSignatureParameters.php</li><li>TODO: Routing/RouteUri.php</li><li>TODO: Routing/RouteUrlGenerator.php</li><li>TODO: Routing/RoutingServiceProvider.php</li><li>TODO: Routing/SortedMiddleware.php</li><li>TODO: Routing/UrlGenerator.php</li><li>TODO: Routing/ViewController.php</li><li>TODO: tests/Routing/Enums.php</li><li>TODO: tests/Routing/ImplicitRouteBindingTest.php</li><li>TODO: tests/Routing/RouteActionTest.php</li><li>TODO: tests/Routing/RouteBindingTest.php</li><li>TODO: tests/Routing/RouteCollectionTest.php</li><li>TODO: tests/Routing/RouteRegistrarTest.php</li><li>TODO: tests/Routing/RouteSignatureParametersTest.php</li><li>TODO: tests/Routing/RouteUriTest.php</li><li>TODO: tests/Routing/RoutingRedirectorTest.php</li><li>TODO: tests/Routing/RoutingRouteTest.php</li><li>TODO: tests/Routing/RoutingSortedMiddlewareTest.php</li><li>TODO: tests/Routing/RoutingUrlGeneratorTest.php</li>
+          </ul>
+        </details>
+      </td>
+    </tr>
+    <tr style="background-color: #e9ecef">
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;Make controller/middleware commands</td>
+      <td title="0 of 520 LoC">0.0%</td>
+      <td>
+        <details>
+          <summary>0 of 15</summary>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>TODO: Routing/Console/ControllerMakeCommand.php</li><li>TODO: Routing/Console/MiddlewareMakeCommand.php</li><li>TODO: Routing/Console/stubs/controller.api.stub</li><li>TODO: Routing/Console/stubs/controller.invokable.stub</li><li>TODO: Routing/Console/stubs/controller.model.api.stub</li><li>TODO: Routing/Console/stubs/controller.model.stub</li><li>TODO: Routing/Console/stubs/controller.nested.api.stub</li><li>TODO: Routing/Console/stubs/controller.nested.singleton.api.stub</li><li>TODO: Routing/Console/stubs/controller.nested.singleton.stub</li><li>TODO: Routing/Console/stubs/controller.nested.stub</li><li>TODO: Routing/Console/stubs/controller.plain.stub</li><li>TODO: Routing/Console/stubs/controller.singleton.api.stub</li><li>TODO: Routing/Console/stubs/controller.singleton.stub</li><li>TODO: Routing/Console/stubs/controller.stub</li><li>TODO: Routing/Console/stubs/middleware.stub</li>
+          </ul>
+        </details>
+      </td>
+    </tr>
+    <tr style="background-color: #e9ecef">
+      <td>Auth</td>
+      <td title="0 of 6,236 LoC">0.0%</td>
+      <td>
+        <details>
+          <summary>0 of 66</summary>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>TODO: Auth/Access/AuthorizationException.php</li><li>TODO: Auth/Access/Events/GateEvaluated.php</li><li>TODO: Auth/Access/Gate.php</li><li>TODO: Auth/Access/HandlesAuthorization.php</li><li>TODO: Auth/Access/Response.php</li><li>TODO: Auth/Authenticatable.php</li><li>TODO: Auth/AuthenticationException.php</li><li>TODO: Auth/AuthManager.php</li><li>TODO: Auth/AuthServiceProvider.php</li><li>TODO: Auth/Console/ClearResetsCommand.php</li><li>TODO: Auth/Console/stubs/make/views/layouts/app.stub</li><li>TODO: Auth/CreatesUserProviders.php</li><li>TODO: Auth/DatabaseUserProvider.php</li><li>TODO: Auth/EloquentUserProvider.php</li><li>TODO: Auth/Events/Attempting.php</li><li>TODO: Auth/Events/Authenticated.php</li><li>TODO: Auth/Events/CurrentDeviceLogout.php</li><li>TODO: Auth/Events/Failed.php</li><li>TODO: Auth/Events/Lockout.php</li><li>TODO: Auth/Events/Login.php</li><li>TODO: Auth/Events/Logout.php</li><li>TODO: Auth/Events/OtherDeviceLogout.php</li><li>TODO: Auth/Events/PasswordReset.php</li><li>TODO: Auth/Events/PasswordResetLinkSent.php</li><li>TODO: Auth/Events/Registered.php</li><li>TODO: Auth/Events/Validated.php</li><li>TODO: Auth/Events/Verified.php</li><li>TODO: Auth/GenericUser.php</li><li>TODO: Auth/GuardHelpers.php</li><li>TODO: Auth/Listeners/SendEmailVerificationNotification.php</li><li>TODO: Auth/Middleware/Authenticate.php</li><li>TODO: Auth/Middleware/AuthenticateWithBasicAuth.php</li><li>TODO: Auth/Middleware/Authorize.php</li><li>TODO: Auth/Middleware/EnsureEmailIsVerified.php</li><li>TODO: Auth/Middleware/RedirectIfAuthenticated.php</li><li>TODO: Auth/Middleware/RequirePassword.php</li><li>TODO: Auth/MustVerifyEmail.php</li><li>TODO: Auth/Notifications/ResetPassword.php</li><li>TODO: Auth/Notifications/VerifyEmail.php</li><li>TODO: Auth/Passwords/CacheTokenRepository.php</li><li>TODO: Auth/Passwords/CanResetPassword.php</li><li>TODO: Auth/Passwords/DatabaseTokenRepository.php</li><li>TODO: Auth/Passwords/PasswordBroker.php</li><li>TODO: Auth/Passwords/PasswordBrokerManager.php</li><li>TODO: Auth/Passwords/PasswordResetServiceProvider.php</li><li>TODO: Auth/Passwords/TokenRepositoryInterface.php</li><li>TODO: Auth/Recaller.php</li><li>TODO: Auth/RequestGuard.php</li><li>TODO: Auth/SessionGuard.php</li><li>TODO: Auth/TokenGuard.php</li><li>TODO: tests/Auth/AuthAccessGateTest.php</li><li>TODO: tests/Auth/AuthAccessResponseTest.php</li><li>TODO: tests/Auth/AuthDatabaseTokenRepositoryTest.php</li><li>TODO: tests/Auth/AuthDatabaseUserProviderTest.php</li><li>TODO: tests/Auth/AuthEloquentUserProviderTest.php</li><li>TODO: tests/Auth/AuthenticatableTest.php</li><li>TODO: tests/Auth/AuthenticateMiddlewareTest.php</li><li>TODO: tests/Auth/AuthGuardTest.php</li><li>TODO: tests/Auth/AuthHandlesAuthorizationTest.php</li><li>TODO: tests/Auth/AuthListenersSendEmailVerificationNotificationHandleFunctionTest.php</li><li>TODO: tests/Auth/AuthorizeMiddlewareTest.php</li><li>TODO: tests/Auth/AuthorizesResourcesTest.php</li><li>TODO: tests/Auth/AuthPasswordBrokerTest.php</li><li>TODO: tests/Auth/AuthTokenGuardTest.php</li><li>TODO: tests/Auth/EnsureEmailIsVerifiedTest.php</li><li>TODO: tests/Auth/Enums.php</li>
+          </ul>
+        </details>
+      </td>
+    </tr>
+    <tr style="background-color: #e9ecef">
+      <td>Config</td>
+      <td title="0 of 441 LoC">0.0%</td>
+      <td>
+        <details>
+          <summary>0 of 2</summary>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>TODO: Config/Repository.php</li><li>TODO: tests/Config/RepositoryTest.php</li>
+          </ul>
+        </details>
+      </td>
+    </tr>
+    <tr style="background-color: #e9ecef">
+      <td>Console</td>
+      <td title="0 of 8,654 LoC">0.0%</td>
+      <td>
+        <details>
+          <summary>0 of 120</summary>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>TODO: Console/Application.php</li><li>TODO: Console/BufferedConsoleOutput.php</li><li>TODO: Console/CacheCommandMutex.php</li><li>TODO: Console/Command.php</li><li>TODO: Console/CommandMutex.php</li><li>TODO: Console/Concerns/CallsCommands.php</li><li>TODO: Console/Concerns/ConfiguresPrompts.php</li><li>TODO: Console/Concerns/CreatesMatchingTest.php</li><li>TODO: Console/Concerns/HasParameters.php</li><li>TODO: Console/Concerns/InteractsWithIO.php</li><li>TODO: Console/Concerns/InteractsWithSignals.php</li><li>TODO: Console/Concerns/PromptsForMissingInput.php</li><li>TODO: Console/ConfirmableTrait.php</li><li>TODO: Console/ContainerCommandLoader.php</li><li>TODO: Console/Contracts/NewLineAware.php</li><li>TODO: Console/Events/ArtisanStarting.php</li><li>TODO: Console/Events/CommandFinished.php</li><li>TODO: Console/Events/CommandStarting.php</li><li>TODO: Console/Events/ScheduledBackgroundTaskFinished.php</li><li>TODO: Console/Events/ScheduledTaskFailed.php</li><li>TODO: Console/Events/ScheduledTaskFinished.php</li><li>TODO: Console/Events/ScheduledTaskSkipped.php</li><li>TODO: Console/Events/ScheduledTaskStarting.php</li><li>TODO: Console/GeneratorCommand.php</li><li>TODO: Console/ManuallyFailedException.php</li><li>TODO: Console/MigrationGeneratorCommand.php</li><li>TODO: Console/OutputStyle.php</li><li>TODO: Console/Parser.php</li><li>TODO: Console/Prohibitable.php</li><li>TODO: Console/PromptValidationException.php</li><li>TODO: Console/QuestionHelper.php</li><li>TODO: Console/resources/views/components/alert.php</li><li>TODO: Console/resources/views/components/bullet-list.php</li><li>TODO: Console/resources/views/components/line.php</li><li>TODO: Console/resources/views/components/two-column-detail.php</li><li>TODO: Console/Scheduling/CacheAware.php</li><li>TODO: Console/Scheduling/CacheEventMutex.php</li><li>TODO: Console/Scheduling/CacheSchedulingMutex.php</li><li>TODO: Console/Scheduling/CallbackEvent.php</li><li>TODO: Console/Scheduling/CommandBuilder.php</li><li>TODO: Console/Scheduling/Event.php</li><li>TODO: Console/Scheduling/EventMutex.php</li><li>TODO: Console/Scheduling/ManagesAttributes.php</li><li>TODO: Console/Scheduling/ManagesFrequencies.php</li><li>TODO: Console/Scheduling/PendingEventAttributes.php</li><li>TODO: Console/Scheduling/Schedule.php</li><li>TODO: Console/Scheduling/ScheduleClearCacheCommand.php</li><li>TODO: Console/Scheduling/ScheduleFinishCommand.php</li><li>TODO: Console/Scheduling/ScheduleInterruptCommand.php</li><li>TODO: Console/Scheduling/ScheduleListCommand.php</li><li>TODO: Console/Scheduling/ScheduleRunCommand.php</li><li>TODO: Console/Scheduling/ScheduleTestCommand.php</li><li>TODO: Console/Scheduling/ScheduleWorkCommand.php</li><li>TODO: Console/Scheduling/SchedulingMutex.php</li><li>TODO: Console/Signals.php</li><li>TODO: Console/View/Components/Alert.php</li><li>TODO: Console/View/Components/Ask.php</li><li>TODO: Console/View/Components/AskWithCompletion.php</li><li>TODO: Console/View/Components/BulletList.php</li><li>TODO: Console/View/Components/Choice.php</li><li>TODO: Console/View/Components/Component.php</li><li>TODO: Console/View/Components/Confirm.php</li><li>TODO: Console/View/Components/Error.php</li><li>TODO: Console/View/Components/Factory.php</li><li>TODO: Console/View/Components/Info.php</li><li>TODO: Console/View/Components/Line.php</li><li>TODO: Console/View/Components/Mutators/EnsureDynamicContentIsHighlighted.php</li><li>TODO: Console/View/Components/Mutators/EnsureNoPunctuation.php</li><li>TODO: Console/View/Components/Mutators/EnsurePunctuation.php</li><li>TODO: Console/View/Components/Mutators/EnsureRelativePaths.php</li><li>TODO: Console/View/Components/Secret.php</li><li>TODO: Console/View/Components/Success.php</li><li>TODO: Console/View/Components/Task.php</li><li>TODO: Console/View/Components/TwoColumnDetail.php</li><li>TODO: Console/View/Components/Warn.php</li><li>TODO: Console/View/TaskResult.php</li><li>TODO: Contracts/Console/Application.php</li><li>TODO: Contracts/Console/Isolatable.php</li><li>TODO: Contracts/Console/Kernel.php</li><li>TODO: Contracts/Console/PromptsForMissingInput.php</li><li>TODO: tests/Console/CacheCommandMutexTest.php</li><li>TODO: tests/Console/CommandMutexTest.php</li><li>TODO: tests/Console/CommandTest.php</li><li>TODO: tests/Console/CommandTrapTest.php</li><li>TODO: tests/Console/Concerns/InteractsWithIOTest.php</li><li>TODO: tests/Console/ConfiguresPromptsTest.php</li><li>TODO: tests/Console/ConsoleApplicationTest.php</li><li>TODO: tests/Console/ConsoleEventSchedulerTest.php</li><li>TODO: tests/Console/ConsoleParserTest.php</li><li>TODO: tests/Console/ConsoleScheduledEventTest.php</li><li>TODO: tests/Console/OutputStyleTest.php</li><li>TODO: tests/Console/Scheduling/CacheEventMutexTest.php</li><li>TODO: tests/Console/Scheduling/CacheSchedulingMutexTest.php</li><li>TODO: tests/Console/Scheduling/EventTest.php</li><li>TODO: tests/Console/Scheduling/FrequencyTest.php</li><li>TODO: tests/Console/Scheduling/ScheduleTest.php</li><li>TODO: tests/Console/SignalsTest.php</li><li>TODO: tests/Console/View/ComponentsTest.php</li><li>TODO: tests/Integration/Console/CallbackSchedulingTest.php</li><li>TODO: tests/Integration/Console/CallCommandsTest.php</li><li>TODO: tests/Integration/Console/CommandDurationThresholdTest.php</li><li>TODO: tests/Integration/Console/CommandEventsTest.php</li><li>TODO: tests/Integration/Console/CommandManualFailTest.php</li><li>TODO: tests/Integration/Console/CommandSchedulingTest.php</li><li>TODO: tests/Integration/Console/ConsoleApplicationTest.php</li><li>TODO: tests/Integration/Console/EnvironmentDecryptCommandTest.php</li><li>TODO: tests/Integration/Console/EnvironmentEncryptCommandTest.php</li><li>TODO: tests/Integration/Console/Events/EventListCommandTest.php</li><li>TODO: tests/Integration/Console/GeneratorCommandTest.php</li><li>TODO: tests/Integration/Console/JobSchedulingTest.php</li><li>TODO: tests/Integration/Console/PromptsAssertionTest.php</li><li>TODO: tests/Integration/Console/PromptsValidationTest.php</li><li>TODO: tests/Integration/Console/Scheduling/CallbackEventTest.php</li><li>TODO: tests/Integration/Console/Scheduling/EventPingTest.php</li><li>TODO: tests/Integration/Console/Scheduling/ScheduleGroupTest.php</li><li>TODO: tests/Integration/Console/Scheduling/ScheduleListCommandTest.php</li><li>TODO: tests/Integration/Console/Scheduling/ScheduleRunCommandTest.php</li><li>TODO: tests/Integration/Console/Scheduling/ScheduleTestCommandTest.php</li><li>TODO: tests/Integration/Console/Scheduling/SubMinuteSchedulingTest.php</li><li>TODO: tests/Integration/Console/UniqueJobSchedulingTest.php</li>
+          </ul>
+        </details>
+      </td>
+    </tr>
+    <tr style="background-color: #e9ecef">
+      <td>Broadcasting</td>
+      <td title="0 of 2,218 LoC">0.0%</td>
+      <td>
+        <details>
+          <summary>0 of 28</summary>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>TODO: Broadcasting/AnonymousEvent.php</li><li>TODO: Broadcasting/BroadcastController.php</li><li>TODO: Broadcasting/Broadcasters/AblyBroadcaster.php</li><li>TODO: Broadcasting/Broadcasters/Broadcaster.php</li><li>TODO: Broadcasting/Broadcasters/LogBroadcaster.php</li><li>TODO: Broadcasting/Broadcasters/NullBroadcaster.php</li><li>TODO: Broadcasting/Broadcasters/PusherBroadcaster.php</li><li>TODO: Broadcasting/Broadcasters/RedisBroadcaster.php</li><li>TODO: Broadcasting/Broadcasters/UsePusherChannelConventions.php</li><li>TODO: Broadcasting/BroadcastEvent.php</li><li>TODO: Broadcasting/BroadcastException.php</li><li>TODO: Broadcasting/BroadcastManager.php</li><li>TODO: Broadcasting/BroadcastServiceProvider.php</li><li>TODO: Broadcasting/Channel.php</li><li>TODO: Broadcasting/EncryptedPrivateChannel.php</li><li>TODO: Broadcasting/FakePendingBroadcast.php</li><li>TODO: Broadcasting/InteractsWithBroadcasting.php</li><li>TODO: Broadcasting/InteractsWithSockets.php</li><li>TODO: Broadcasting/PendingBroadcast.php</li><li>TODO: Broadcasting/PresenceChannel.php</li><li>TODO: Broadcasting/PrivateChannel.php</li><li>TODO: Broadcasting/UniqueBroadcastEvent.php</li><li>TODO: tests/Broadcasting/AblyBroadcasterTest.php</li><li>TODO: tests/Broadcasting/BroadcasterTest.php</li><li>TODO: tests/Broadcasting/BroadcastEventTest.php</li><li>TODO: tests/Broadcasting/PusherBroadcasterTest.php</li><li>TODO: tests/Broadcasting/RedisBroadcasterTest.php</li><li>TODO: tests/Broadcasting/UsePusherChannelsNamesTest.php</li>
+          </ul>
+        </details>
+      </td>
+    </tr>
+    <tr style="background-color: #e9ecef">
+      <td>Queue</td>
+      <td title="0 of 10,695 LoC">0.0%</td>
+      <td>
+        <details>
+          <summary>0 of 135</summary>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>TODO: Bus/Batch.php</li><li>TODO: Bus/Batchable.php</li><li>TODO: Bus/BatchFactory.php</li><li>TODO: Bus/BatchRepository.php</li><li>TODO: Bus/BusServiceProvider.php</li><li>TODO: Bus/ChainedBatch.php</li><li>TODO: Bus/DatabaseBatchRepository.php</li><li>TODO: Bus/Dispatcher.php</li><li>TODO: Bus/DynamoBatchRepository.php</li><li>TODO: Bus/Events/BatchDispatched.php</li><li>TODO: Bus/PendingBatch.php</li><li>TODO: Bus/PrunableBatchRepository.php</li><li>TODO: Bus/Queueable.php</li><li>TODO: Bus/UniqueLock.php</li><li>TODO: Bus/UpdatedBatchJobCounts.php</li><li>TODO: Queue/Attributes/DeleteWhenMissingModels.php</li><li>TODO: Queue/Attributes/WithoutRelations.php</li><li>TODO: Queue/BeanstalkdQueue.php</li><li>TODO: Queue/CallQueuedClosure.php</li><li>TODO: Queue/CallQueuedHandler.php</li><li>TODO: Queue/Capsule/Manager.php</li><li>TODO: Queue/Connectors/BeanstalkdConnector.php</li><li>TODO: Queue/Connectors/ConnectorInterface.php</li><li>TODO: Queue/Connectors/DatabaseConnector.php</li><li>TODO: Queue/Connectors/NullConnector.php</li><li>TODO: Queue/Connectors/RedisConnector.php</li><li>TODO: Queue/Connectors/SqsConnector.php</li><li>TODO: Queue/Connectors/SyncConnector.php</li><li>TODO: Queue/Console/BatchesTableCommand.php</li><li>TODO: Queue/Console/ClearCommand.php</li><li>TODO: Queue/Console/FailedTableCommand.php</li><li>TODO: Queue/Console/FlushFailedCommand.php</li><li>TODO: Queue/Console/ForgetFailedCommand.php</li><li>TODO: Queue/Console/ListenCommand.php</li><li>TODO: Queue/Console/ListFailedCommand.php</li><li>TODO: Queue/Console/MonitorCommand.php</li><li>TODO: Queue/Console/PruneBatchesCommand.php</li><li>TODO: Queue/Console/PruneFailedJobsCommand.php</li><li>TODO: Queue/Console/RestartCommand.php</li><li>TODO: Queue/Console/RetryBatchCommand.php</li><li>TODO: Queue/Console/RetryCommand.php</li><li>TODO: Queue/Console/stubs/batches.stub</li><li>TODO: Queue/Console/stubs/failed_jobs.stub</li><li>TODO: Queue/Console/stubs/jobs.stub</li><li>TODO: Queue/Console/TableCommand.php</li><li>TODO: Queue/Console/WorkCommand.php</li><li>TODO: Queue/DatabaseQueue.php</li><li>TODO: Queue/Events/JobAttempted.php</li><li>TODO: Queue/Events/JobExceptionOccurred.php</li><li>TODO: Queue/Events/JobFailed.php</li><li>TODO: Queue/Events/JobPopped.php</li><li>TODO: Queue/Events/JobPopping.php</li><li>TODO: Queue/Events/JobProcessed.php</li><li>TODO: Queue/Events/JobProcessing.php</li><li>TODO: Queue/Events/JobQueued.php</li><li>TODO: Queue/Events/JobQueueing.php</li><li>TODO: Queue/Events/JobReleasedAfterException.php</li><li>TODO: Queue/Events/JobRetryRequested.php</li><li>TODO: Queue/Events/JobTimedOut.php</li><li>TODO: Queue/Events/Looping.php</li><li>TODO: Queue/Events/QueueBusy.php</li><li>TODO: Queue/Events/WorkerStarting.php</li><li>TODO: Queue/Events/WorkerStopping.php</li><li>TODO: Queue/Failed/CountableFailedJobProvider.php</li><li>TODO: Queue/Failed/DatabaseFailedJobProvider.php</li><li>TODO: Queue/Failed/DatabaseUuidFailedJobProvider.php</li><li>TODO: Queue/Failed/DynamoDbFailedJobProvider.php</li><li>TODO: Queue/Failed/FailedJobProviderInterface.php</li><li>TODO: Queue/Failed/FileFailedJobProvider.php</li><li>TODO: Queue/Failed/NullFailedJobProvider.php</li><li>TODO: Queue/Failed/PrunableFailedJobProvider.php</li><li>TODO: Queue/InteractsWithQueue.php</li><li>TODO: Queue/InvalidPayloadException.php</li><li>TODO: Queue/Jobs/BeanstalkdJob.php</li><li>TODO: Queue/Jobs/DatabaseJob.php</li><li>TODO: Queue/Jobs/DatabaseJobRecord.php</li><li>TODO: Queue/Jobs/FakeJob.php</li><li>TODO: Queue/Jobs/Job.php</li><li>TODO: Queue/Jobs/JobName.php</li><li>TODO: Queue/Jobs/RedisJob.php</li><li>TODO: Queue/Jobs/SqsJob.php</li><li>TODO: Queue/Jobs/SyncJob.php</li><li>TODO: Queue/Listener.php</li><li>TODO: Queue/ListenerOptions.php</li><li>TODO: Queue/LuaScripts.php</li><li>TODO: Queue/ManuallyFailedException.php</li><li>TODO: Queue/MaxAttemptsExceededException.php</li><li>TODO: Queue/Middleware/FailOnException.php</li><li>TODO: Queue/Middleware/RateLimited.php</li><li>TODO: Queue/Middleware/RateLimitedWithRedis.php</li><li>TODO: Queue/Middleware/Skip.php</li><li>TODO: Queue/Middleware/SkipIfBatchCancelled.php</li><li>TODO: Queue/Middleware/ThrottlesExceptions.php</li><li>TODO: Queue/Middleware/ThrottlesExceptionsWithRedis.php</li><li>TODO: Queue/Middleware/WithoutOverlapping.php</li><li>TODO: Queue/NullQueue.php</li><li>TODO: Queue/Queue.php</li><li>TODO: Queue/QueueManager.php</li><li>TODO: Queue/QueueServiceProvider.php</li><li>TODO: Queue/RedisQueue.php</li><li>TODO: Queue/SerializesAndRestoresModelIdentifiers.php</li><li>TODO: Queue/SerializesModels.php</li><li>TODO: Queue/SqsQueue.php</li><li>TODO: Queue/SyncQueue.php</li><li>TODO: Queue/TimeoutExceededException.php</li><li>TODO: Queue/Worker.php</li><li>TODO: Queue/WorkerOptions.php</li><li>TODO: tests/Bus/BusBatchableTest.php</li><li>TODO: tests/Bus/BusBatchTest.php</li><li>TODO: tests/Bus/BusDispatcherTest.php</li><li>TODO: tests/Bus/BusPendingBatchTest.php</li><li>TODO: tests/Bus/BusPendingDispatchTest.php</li><li>TODO: tests/Bus/QueueableTest.php</li><li>TODO: tests/Queue/DatabaseFailedJobProviderTest.php</li><li>TODO: tests/Queue/DatabaseUuidFailedJobProviderTest.php</li><li>TODO: tests/Queue/DynamoDbFailedJobProviderTest.php</li><li>TODO: tests/Queue/FailOnExceptionMiddlewareTest.php</li><li>TODO: tests/Queue/FileFailedJobProviderTest.php</li><li>TODO: tests/Queue/InteractsWithQueueTest.php</li><li>TODO: tests/Queue/PruneBatchesCommandTest.php</li><li>TODO: tests/Queue/QueueBeanstalkdJobTest.php</li><li>TODO: tests/Queue/QueueBeanstalkdQueueTest.php</li><li>TODO: tests/Queue/QueueDatabaseQueueIntegrationTest.php</li><li>TODO: tests/Queue/QueueDatabaseQueueUnitTest.php</li><li>TODO: tests/Queue/QueueDelayTest.php</li><li>TODO: tests/Queue/QueueExceptionTest.php</li><li>TODO: tests/Queue/QueueListenerTest.php</li><li>TODO: tests/Queue/QueueManagerTest.php</li><li>TODO: tests/Queue/QueueRedisJobTest.php</li><li>TODO: tests/Queue/QueueRedisQueueTest.php</li><li>TODO: tests/Queue/QueueSizeTest.php</li><li>TODO: tests/Queue/QueueSqsJobTest.php</li><li>TODO: tests/Queue/QueueSqsQueueTest.php</li><li>TODO: tests/Queue/QueueSyncQueueTest.php</li><li>TODO: tests/Queue/QueueWorkerTest.php</li>
+          </ul>
+        </details>
+      </td>
+    </tr>
+    <tr style="background-color: #e9ecef">
+      <td>Cache</td>
+      <td title="0 of 6,164 LoC">0.0%</td>
+      <td>
+        <details>
+          <summary>0 of 51</summary>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>TODO: Cache/ApcStore.php</li><li>TODO: Cache/ApcWrapper.php</li><li>TODO: Cache/ArrayLock.php</li><li>TODO: Cache/ArrayStore.php</li><li>TODO: Cache/CacheLock.php</li><li>TODO: Cache/CacheManager.php</li><li>TODO: Cache/CacheServiceProvider.php</li><li>TODO: Cache/DatabaseLock.php</li><li>TODO: Cache/DatabaseStore.php</li><li>TODO: Cache/DynamoDbLock.php</li><li>TODO: Cache/DynamoDbStore.php</li><li>TODO: Cache/Events/CacheEvent.php</li><li>TODO: Cache/Events/CacheFlushed.php</li><li>TODO: Cache/Events/CacheFlushFailed.php</li><li>TODO: Cache/Events/CacheFlushing.php</li><li>TODO: Cache/Events/CacheHit.php</li><li>TODO: Cache/Events/CacheMissed.php</li><li>TODO: Cache/Events/ForgettingKey.php</li><li>TODO: Cache/Events/KeyForgetFailed.php</li><li>TODO: Cache/Events/KeyForgotten.php</li><li>TODO: Cache/Events/KeyWriteFailed.php</li><li>TODO: Cache/Events/KeyWritten.php</li><li>TODO: Cache/Events/RetrievingKey.php</li><li>TODO: Cache/Events/RetrievingManyKeys.php</li><li>TODO: Cache/Events/WritingKey.php</li><li>TODO: Cache/Events/WritingManyKeys.php</li><li>TODO: Cache/FileLock.php</li><li>TODO: Cache/FileStore.php</li><li>TODO: Cache/HasCacheLock.php</li><li>TODO: Cache/Lock.php</li><li>TODO: Cache/LuaScripts.php</li><li>TODO: Cache/MemoizedStore.php</li><li>TODO: Cache/NoLock.php</li><li>TODO: Cache/NullStore.php</li><li>TODO: Cache/Repository.php</li><li>TODO: Cache/RetrievesMultipleKeys.php</li><li>TODO: Cache/TaggableStore.php</li><li>TODO: Cache/TaggedCache.php</li><li>TODO: Cache/TagSet.php</li><li>TODO: tests/Cache/CacheApcStoreTest.php</li><li>TODO: tests/Cache/CacheArrayStoreTest.php</li><li>TODO: tests/Cache/CacheDatabaseStoreTest.php</li><li>TODO: tests/Cache/CacheEventsTest.php</li><li>TODO: tests/Cache/CacheFileStoreTest.php</li><li>TODO: tests/Cache/CacheManagerTest.php</li><li>TODO: tests/Cache/CacheNullStoreTest.php</li><li>TODO: tests/Cache/CacheRepositoryTest.php</li><li>TODO: tests/Cache/CacheTaggedCacheTest.php</li><li>TODO: tests/Cache/ClearCommandTest.php</li><li>TODO: tests/Cache/LimitTest.php</li><li>TODO: tests/Cache/RateLimiterTest.php</li>
+          </ul>
+        </details>
+      </td>
+    </tr>
+    <tr style="background-color: #e9ecef">
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;Redis backend</td>
+      <td title="0 of 622 LoC">0.0%</td>
+      <td>
+        <details>
+          <summary>0 of 7</summary>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>TODO: Cache/PhpRedisLock.php</li><li>TODO: Cache/RedisLock.php</li><li>TODO: Cache/RedisStore.php</li><li>TODO: Cache/RedisTaggedCache.php</li><li>TODO: Cache/RedisTagSet.php</li><li>TODO: tests/Cache/CacheRedisStoreTest.php</li><li>TODO: tests/Cache/RedisCacheIntegrationTest.php</li>
+          </ul>
+        </details>
+      </td>
+    </tr>
+    <tr style="background-color: #e9ecef">
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;Memcached backend</td>
+      <td title="0 of 401 LoC">0.0%</td>
+      <td>
+        <details>
+          <summary>0 of 5</summary>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>TODO: Cache/MemcachedConnector.php</li><li>TODO: Cache/MemcachedLock.php</li><li>TODO: Cache/MemcachedStore.php</li><li>TODO: tests/Cache/CacheMemcachedConnectorTest.php</li><li>TODO: tests/Cache/CacheMemcachedStoreTest.php</li>
+          </ul>
+        </details>
+      </td>
+    </tr>
+    <tr style="background-color: #e9ecef">
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;Console API</td>
+      <td title="0 of 166 LoC">0.0%</td>
+      <td>
+        <details>
+          <summary>0 of 5</summary>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>TODO: Cache/Console/CacheTableCommand.php</li><li>TODO: Cache/Console/ClearCommand.php</li><li>TODO: Cache/Console/ForgetCommand.php</li><li>TODO: Cache/Console/PruneStaleTagsCommand.php</li><li>TODO: Cache/Console/stubs/cache.stub</li>
+          </ul>
+        </details>
+      </td>
+    </tr>
+    <tr style="background-color: #e9ecef">
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;Rate Limiting</td>
+      <td title="0 of 387 LoC">0.0%</td>
+      <td>
+        <details>
+          <summary>0 of 5</summary>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>TODO: Cache/RateLimiter.php</li><li>TODO: Cache/RateLimiting/GlobalLimit.php</li><li>TODO: Cache/RateLimiting/Limit.php</li><li>TODO: Cache/RateLimiting/Unlimited.php</li><li>TODO: tests/Cache/CacheRateLimiterTest.php</li>
+          </ul>
+        </details>
+      </td>
+    </tr>
+    <tr style="background-color: #e9ecef">
+      <td>Collections</td>
+      <td title="0 of 3,624 LoC">0.0%</td>
+      <td>
+        <details>
+          <summary>0 of 15</summary>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>TODO: Collections/Arr.php</li><li>TODO: Collections/Collection.php</li><li>TODO: Collections/Enumerable.php</li><li>TODO: Collections/functions.php</li><li>TODO: Collections/helpers.php</li><li>TODO: Collections/HigherOrderCollectionProxy.php</li><li>TODO: Collections/ItemNotFoundException.php</li><li>TODO: Collections/LazyCollection.php</li><li>TODO: Collections/MultipleItemsFoundException.php</li><li>TODO: Collections/Traits/EnumeratesValues.php</li><li>TODO: Collections/Traits/TransformsToResourceCollection.php</li><li>TODO: Conditionable/HigherOrderWhenProxy.php</li><li>TODO: Conditionable/Traits/Conditionable.php</li><li>TODO: tests/Conditionable/ConditionableTest.php</li><li>TODO: tests/Support/SupportConditionableTest.php</li>
+          </ul>
+        </details>
+      </td>
+    </tr>
+    <tr style="background-color: #e9ecef">
+      <td>Console</td>
+      <td title="0 of 2,674 LoC">0.0%</td>
+      <td>
+        <details>
+          <summary>0 of 13</summary>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>TODO: Filesystem/AwsS3V3Adapter.php</li><li>TODO: Filesystem/Filesystem.php</li><li>TODO: Filesystem/FilesystemAdapter.php</li><li>TODO: Filesystem/FilesystemManager.php</li><li>TODO: Filesystem/FilesystemServiceProvider.php</li><li>TODO: Filesystem/functions.php</li><li>TODO: Filesystem/LocalFilesystemAdapter.php</li><li>TODO: Filesystem/LockableFile.php</li><li>TODO: Filesystem/ServeFile.php</li><li>TODO: tests/Filesystem/FilesystemAdapterTest.php</li><li>TODO: tests/Filesystem/FilesystemManagerTest.php</li><li>TODO: tests/Filesystem/FilesystemTest.php</li><li>TODO: tests/Filesystem/JoinPathsHelperTest.php</li>
+          </ul>
+        </details>
+      </td>
+    </tr>
+    <tr style="background-color: #e9ecef">
+      <td>Database</td>
+      <td title="0 of 18,208 LoC">0.0%</td>
+      <td>
+        <details>
+          <summary>0 of 0</summary>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            
+          </ul>
+        </details>
+      </td>
+    </tr>
+    <tr style="background-color: #e9ecef">
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;Query Builder</td>
+      <td title="0 of 4,206 LoC">0.0%</td>
+      <td>
+        <details>
+          <summary>0 of 17</summary>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>TODO: Database/Query/Builder.php</li><li>TODO: Database/Query/Expression.php</li><li>TODO: Database/Query/Grammars/Grammar.php</li><li>TODO: Database/Query/Grammars/MariaDbGrammar.php</li><li>TODO: Database/Query/Grammars/MySqlGrammar.php</li><li>TODO: Database/Query/Grammars/PostgresGrammar.php</li><li>TODO: Database/Query/Grammars/SQLiteGrammar.php</li><li>TODO: Database/Query/Grammars/SqlServerGrammar.php</li><li>TODO: Database/Query/IndexHint.php</li><li>TODO: Database/Query/JoinClause.php</li><li>TODO: Database/Query/JoinLateralClause.php</li><li>TODO: Database/Query/Processors/MariaDbProcessor.php</li><li>TODO: Database/Query/Processors/MySqlProcessor.php</li><li>TODO: Database/Query/Processors/PostgresProcessor.php</li><li>TODO: Database/Query/Processors/Processor.php</li><li>TODO: Database/Query/Processors/SQLiteProcessor.php</li><li>TODO: Database/Query/Processors/SqlServerProcessor.php</li>
+          </ul>
+        </details>
+      </td>
+    </tr>
+    <tr style="background-color: #e9ecef">
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;Eloquent ORM</td>
+      <td title="0 of 11,175 LoC">0.0%</td>
+      <td>
+        <details>
+          <summary>0 of 88</summary>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>TODO: Database/Eloquent/Attributes/CollectedBy.php</li><li>TODO: Database/Eloquent/Attributes/ObservedBy.php</li><li>TODO: Database/Eloquent/Attributes/Scope.php</li><li>TODO: Database/Eloquent/Attributes/ScopedBy.php</li><li>TODO: Database/Eloquent/Attributes/UseEloquentBuilder.php</li><li>TODO: Database/Eloquent/Attributes/UseFactory.php</li><li>TODO: Database/Eloquent/Attributes/UsePolicy.php</li><li>TODO: Database/Eloquent/BroadcastableModelEventOccurred.php</li><li>TODO: Database/Eloquent/BroadcastsEvents.php</li><li>TODO: Database/Eloquent/BroadcastsEventsAfterCommit.php</li><li>TODO: Database/Eloquent/Builder.php</li><li>TODO: Database/Eloquent/Casts/ArrayObject.php</li><li>TODO: Database/Eloquent/Casts/AsArrayObject.php</li><li>TODO: Database/Eloquent/Casts/AsCollection.php</li><li>TODO: Database/Eloquent/Casts/AsEncryptedArrayObject.php</li><li>TODO: Database/Eloquent/Casts/AsEncryptedCollection.php</li><li>TODO: Database/Eloquent/Casts/AsEnumArrayObject.php</li><li>TODO: Database/Eloquent/Casts/AsEnumCollection.php</li><li>TODO: Database/Eloquent/Casts/AsFluent.php</li><li>TODO: Database/Eloquent/Casts/AsHtmlString.php</li><li>TODO: Database/Eloquent/Casts/AsStringable.php</li><li>TODO: Database/Eloquent/Casts/AsUri.php</li><li>TODO: Database/Eloquent/Casts/Attribute.php</li><li>TODO: Database/Eloquent/Casts/Json.php</li><li>TODO: Database/Eloquent/Collection.php</li><li>TODO: Database/Eloquent/Concerns/GuardsAttributes.php</li><li>TODO: Database/Eloquent/Concerns/HasAttributes.php</li><li>TODO: Database/Eloquent/Concerns/HasEvents.php</li><li>TODO: Database/Eloquent/Concerns/HasGlobalScopes.php</li><li>TODO: Database/Eloquent/Concerns/HasRelationships.php</li><li>TODO: Database/Eloquent/Concerns/HasTimestamps.php</li><li>TODO: Database/Eloquent/Concerns/HasUlids.php</li><li>TODO: Database/Eloquent/Concerns/HasUniqueIds.php</li><li>TODO: Database/Eloquent/Concerns/HasUniqueStringIds.php</li><li>TODO: Database/Eloquent/Concerns/HasUuids.php</li><li>TODO: Database/Eloquent/Concerns/HasVersion4Uuids.php</li><li>TODO: Database/Eloquent/Concerns/HidesAttributes.php</li><li>TODO: Database/Eloquent/Concerns/PreventsCircularRecursion.php</li><li>TODO: Database/Eloquent/Concerns/QueriesRelationships.php</li><li>TODO: Database/Eloquent/Concerns/TransformsToResource.php</li><li>TODO: Database/Eloquent/Factories/BelongsToManyRelationship.php</li><li>TODO: Database/Eloquent/Factories/BelongsToRelationship.php</li><li>TODO: Database/Eloquent/Factories/CrossJoinSequence.php</li><li>TODO: Database/Eloquent/Factories/Factory.php</li><li>TODO: Database/Eloquent/Factories/HasFactory.php</li><li>TODO: Database/Eloquent/Factories/Relationship.php</li><li>TODO: Database/Eloquent/Factories/Sequence.php</li><li>TODO: Database/Eloquent/HasBuilder.php</li><li>TODO: Database/Eloquent/HasCollection.php</li><li>TODO: Database/Eloquent/HigherOrderBuilderProxy.php</li><li>TODO: Database/Eloquent/InvalidCastException.php</li><li>TODO: Database/Eloquent/JsonEncodingException.php</li><li>TODO: Database/Eloquent/MassAssignmentException.php</li><li>TODO: Database/Eloquent/MassPrunable.php</li><li>TODO: Database/Eloquent/MissingAttributeException.php</li><li>TODO: Database/Eloquent/Model.php</li><li>TODO: Database/Eloquent/ModelInspector.php</li><li>TODO: Database/Eloquent/ModelNotFoundException.php</li><li>TODO: Database/Eloquent/PendingHasThroughRelationship.php</li><li>TODO: Database/Eloquent/Prunable.php</li><li>TODO: Database/Eloquent/QueueEntityResolver.php</li><li>TODO: Database/Eloquent/RelationNotFoundException.php</li><li>TODO: Database/Eloquent/Relations/BelongsTo.php</li><li>TODO: Database/Eloquent/Relations/BelongsToMany.php</li><li>TODO: Database/Eloquent/Relations/Concerns/AsPivot.php</li><li>TODO: Database/Eloquent/Relations/Concerns/CanBeOneOfMany.php</li><li>TODO: Database/Eloquent/Relations/Concerns/ComparesRelatedModels.php</li><li>TODO: Database/Eloquent/Relations/Concerns/InteractsWithDictionary.php</li><li>TODO: Database/Eloquent/Relations/Concerns/InteractsWithPivotTable.php</li><li>TODO: Database/Eloquent/Relations/Concerns/SupportsDefaultModels.php</li><li>TODO: Database/Eloquent/Relations/Concerns/SupportsInverseRelations.php</li><li>TODO: Database/Eloquent/Relations/HasMany.php</li><li>TODO: Database/Eloquent/Relations/HasManyThrough.php</li><li>TODO: Database/Eloquent/Relations/HasOne.php</li><li>TODO: Database/Eloquent/Relations/HasOneOrMany.php</li><li>TODO: Database/Eloquent/Relations/HasOneOrManyThrough.php</li><li>TODO: Database/Eloquent/Relations/HasOneThrough.php</li><li>TODO: Database/Eloquent/Relations/MorphMany.php</li><li>TODO: Database/Eloquent/Relations/MorphOne.php</li><li>TODO: Database/Eloquent/Relations/MorphOneOrMany.php</li><li>TODO: Database/Eloquent/Relations/MorphPivot.php</li><li>TODO: Database/Eloquent/Relations/MorphTo.php</li><li>TODO: Database/Eloquent/Relations/MorphToMany.php</li><li>TODO: Database/Eloquent/Relations/Pivot.php</li><li>TODO: Database/Eloquent/Relations/Relation.php</li><li>TODO: Database/Eloquent/Scope.php</li><li>TODO: Database/Eloquent/SoftDeletes.php</li><li>TODO: Database/Eloquent/SoftDeletingScope.php</li>
+          </ul>
+        </details>
+      </td>
+    </tr>
+    <tr style="background-color: #e9ecef">
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;Database Migrations</td>
+      <td title="0 of 2,827 LoC">0.0%</td>
+      <td>
+        <details>
+          <summary>0 of 48</summary>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>TODO: Contracts/Database/Events/MigrationEvent.php</li><li>TODO: Database/Console/Migrations/BaseCommand.php</li><li>TODO: Database/Console/Migrations/FreshCommand.php</li><li>TODO: Database/Console/Migrations/InstallCommand.php</li><li>TODO: Database/Console/Migrations/MigrateCommand.php</li><li>TODO: Database/Console/Migrations/MigrateMakeCommand.php</li><li>TODO: Database/Console/Migrations/RefreshCommand.php</li><li>TODO: Database/Console/Migrations/ResetCommand.php</li><li>TODO: Database/Console/Migrations/RollbackCommand.php</li><li>TODO: Database/Console/Migrations/StatusCommand.php</li><li>TODO: Database/Console/Migrations/TableGuesser.php</li><li>TODO: Database/Events/MigrationEnded.php</li><li>TODO: Database/Events/MigrationEvent.php</li><li>TODO: Database/Events/MigrationsEnded.php</li><li>TODO: Database/Events/MigrationsEvent.php</li><li>TODO: Database/Events/MigrationsPruned.php</li><li>TODO: Database/Events/MigrationsStarted.php</li><li>TODO: Database/Events/MigrationStarted.php</li><li>TODO: Database/Events/NoPendingMigrations.php</li><li>TODO: Database/Migrations/DatabaseMigrationRepository.php</li><li>TODO: Database/Migrations/Migration.php</li><li>TODO: Database/Migrations/MigrationCreator.php</li><li>TODO: Database/Migrations/MigrationRepositoryInterface.php</li><li>TODO: Database/Migrations/MigrationResult.php</li><li>TODO: Database/Migrations/Migrator.php</li><li>TODO: Database/Migrations/stubs/migration.create.stub</li><li>TODO: Database/Migrations/stubs/migration.stub</li><li>TODO: Database/Migrations/stubs/migration.update.stub</li><li>TODO: Database/MigrationServiceProvider.php</li><li>TODO: Foundation/Testing/DatabaseMigrations.php</li><li>TODO: Foundation/Testing/Traits/CanConfigureMigrationCommands.php</li><li>TODO: tests/Database/DatabaseMigrationCreatorTest.php</li><li>TODO: tests/Database/DatabaseMigrationInstallCommandTest.php</li><li>TODO: tests/Database/DatabaseMigrationMakeCommandTest.php</li><li>TODO: tests/Database/DatabaseMigrationMigrateCommandTest.php</li><li>TODO: tests/Database/DatabaseMigrationRefreshCommandTest.php</li><li>TODO: tests/Database/DatabaseMigrationRepositoryTest.php</li><li>TODO: tests/Database/DatabaseMigrationResetCommandTest.php</li><li>TODO: tests/Database/DatabaseMigrationRollbackCommandTest.php</li><li>TODO: tests/Database/stubs/MigrationCreatorFakeMigration.php</li><li>TODO: tests/Foundation/Testing/DatabaseMigrationsTest.php</li><li>TODO: tests/Foundation/Testing/Traits/CanConfigureMigrationCommandsTest.php</li><li>TODO: tests/Integration/Database/MigrationServiceProviderTest.php</li><li>TODO: tests/Integration/Migration/MigratorTest.php</li><li>TODO: tests/Integration/Migration/pretending/2014_10_12_000000_create_people_is_dynamic_table.php</li><li>TODO: tests/Integration/Migration/pretending/2014_10_12_000000_create_people_non_dynamic_table.php</li><li>TODO: tests/Integration/Migration/pretending/2023_10_17_000000_dynamic_content_is_shown.php</li><li>TODO: tests/Integration/Migration/pretending/2023_10_17_000000_dynamic_content_not_shown.php</li>
+          </ul>
+        </details>
+      </td>
+    </tr>
+    <tr style="background-color: #e9ecef">
+      <td>Concurrency</td>
+      <td title="0 of 449 LoC">0.0%</td>
+      <td>
+        <details>
+          <summary>0 of 10</summary>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>TODO: Concurrency/ConcurrencyManager.php</li><li>TODO: Concurrency/ConcurrencyServiceProvider.php</li><li>TODO: Concurrency/Console/InvokeSerializedClosureCommand.php</li><li>TODO: Concurrency/ForkDriver.php</li><li>TODO: Concurrency/ProcessDriver.php</li><li>TODO: Concurrency/SyncDriver.php</li><li>TODO: Contracts/Concurrency/Driver.php</li><li>TODO: Support/Facades/Concurrency.php</li><li>TODO: tests/Integration/Concurrency/ConcurrencyTest.php</li><li>TODO: tests/Integration/Concurrency/Console/InvokeSerializedClosureCommandTest.php</li>
+          </ul>
+        </details>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<p style="margin-top: 20px; color: #6c757d; font-size: 0.9em;">
+  Generated: 10/6/2025, 4:20:31 PM |
+  Hover over cells to see detailed LoC counts
+</p>
