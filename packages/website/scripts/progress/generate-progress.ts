@@ -156,15 +156,28 @@ async function checkFilesCoverage(stats: FeatureStats[]): Promise<string | null>
   // Check top-level features and recursively check their children
   checkSiblingDuplicates(stats, []);
 
-  // Collect all non-ignored files for coverage checking
+  // Collect all non-ignored files for coverage checking and duplicate detection
   const fileToFeature = new Map<string, string>();
   const ignoredFiles = new Set<string>();
+  const allFilesGlobal = new Map<string, string>(); // Track ALL files globally for duplicate detection
 
   function collectFiles(stat: FeatureStats, featurePath: string[]): void {
+    const currentPath = featurePath.join(" > ");
+
     if (stat.feature.isIgnored) {
       // Collect ignored files separately
       for (const fileInfo of stat.fileInfos) {
         ignoredFiles.add(fileInfo.path);
+        // Check for duplicates in ignored section too
+        if (allFilesGlobal.has(fileInfo.path)) {
+          throw new Error(
+            `Duplicate file found:\n` +
+              `  File: ${fileInfo.path}\n` +
+              `  First occurrence: ${allFilesGlobal.get(fileInfo.path)}\n` +
+              `  Second occurrence: ${currentPath}`
+          );
+        }
+        allFilesGlobal.set(fileInfo.path, currentPath);
       }
       for (const subStat of stat.subStats) {
         collectFiles(subStat, [...featurePath, subStat.feature.name]);
@@ -172,7 +185,17 @@ async function checkFilesCoverage(stats: FeatureStats[]): Promise<string | null>
     } else {
       // Collect feature files for coverage tracking
       for (const fileInfo of stat.fileInfos) {
-        fileToFeature.set(fileInfo.path, featurePath.join(" > "));
+        // Check for global duplicates
+        if (allFilesGlobal.has(fileInfo.path)) {
+          throw new Error(
+            `Duplicate file found:\n` +
+              `  File: ${fileInfo.path}\n` +
+              `  First occurrence: ${allFilesGlobal.get(fileInfo.path)}\n` +
+              `  Second occurrence: ${currentPath}`
+          );
+        }
+        allFilesGlobal.set(fileInfo.path, currentPath);
+        fileToFeature.set(fileInfo.path, currentPath);
       }
       for (const subStat of stat.subStats) {
         collectFiles(subStat, [...featurePath, subStat.feature.name]);
@@ -250,8 +273,8 @@ function generateRow(stat: FeatureStats, level: number = 0): string {
 
   let html = `
     <tr style="background-color: ${bgColor}">
-      <td>${indent}${stat.feature.name}</td>
-      <td title="${locTitle}">${stat.percent.toFixed(1)}%</td>
+      <td><span class="sticky-cell-content">${indent}${stat.feature.name}</span></td>
+      <td title="${locTitle}"><span class="sticky-cell-content">${stat.percent.toFixed(1)}%</span></td>
       <td>
         <details>
           <summary>${doneFileCount} of ${totalFileCount}</summary>
@@ -321,11 +344,21 @@ async function main() {
     border: 1px solid #dee2e6;
     padding: 10px;
     text-align: left;
+    vertical-align: top;
   }
   .progress-table th {
     background-color: #343a40;
     color: white;
     font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .sticky-cell-content {
+    position: sticky;
+    top: 50px;
+    display: inline-block;
+    background-color: inherit;
   }
   .progress-table tr:hover {
     opacity: 0.8;
