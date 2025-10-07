@@ -2,17 +2,12 @@
 
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { features, type Feature } from "./features.js";
-import { expandGlobPatterns } from "./glob-utils.js";
-import { allLaravelPaths } from "./paths.js";
-import { analyzeFile, PHP_FOLDER } from "./port-utils.js";
-
-const PHP_BASE = join(PHP_FOLDER, "src/Illuminate");
-const TESTS_BASE = join(PHP_FOLDER, "tests");
+import { parseFeaturesMarkdown, type Feature } from "./parse-features-md.js";
+import { analyzeFile } from "./port-utils.js";
+import { Glob } from "bun";
 
 interface FileInfo {
-  path: string; // Full filesystem path
-  relativePath: string; // Relative path (for display)
+  path: string; // Full filesystem path from repo root
   isDone: boolean;
   loc: number;
 }
@@ -25,23 +20,6 @@ interface FeatureStats {
   status: "done" | "in-progress" | "not-started";
   fileInfos: FileInfo[];
   subStats: FeatureStats[];
-}
-
-// Convert a LaravelPath to a full filesystem path
-function pathToFullPath(path: string): string {
-  if (path.startsWith("tests/")) {
-    return join(TESTS_BASE, path.replace(/^tests\//, ""));
-  } else {
-    return join(PHP_BASE, path);
-  }
-}
-
-// Get all files matching glob patterns (only actual files, not directories)
-function getFilesForPatterns(patterns: string[]): string[] {
-  // Filter to only files (paths without trailing slash)
-  const allFiles = allLaravelPaths.filter((p) => !p.endsWith("/"));
-  const matchedFiles = expandGlobPatterns(patterns, allFiles);
-  return matchedFiles.map(pathToFullPath);
 }
 
 // Recursively collect all file paths from a feature and its descendants
@@ -96,43 +74,31 @@ async function calculateFeatureStats(
     collectAllFilePaths(subStat, subfeatureFiles, ignoredFiles);
   }
 
-  // Get this feature's matched files, excluding subfeature and ignored files
+  // Get this feature's direct files, excluding subfeature and ignored files
   const fileInfos: FileInfo[] = [];
-  if (feature.patterns.length > 0) {
-    const featureFiles = getFilesForPatterns(feature.patterns);
 
-    // Filter out files that belong to subfeatures or are globally ignored (implicit exclusion)
-    const parentOnlyFiles = featureFiles.filter(
-      (file) =>
-        !subfeatureFiles.has(file) &&
-        !ignoredFiles.has(file) &&
-        !(globalIgnoredFiles && globalIgnoredFiles.has(file)),
-    );
+  // Filter out files that belong to subfeatures or are globally ignored (implicit exclusion)
+  const parentOnlyFiles = feature.files.filter(
+    (file) =>
+      !subfeatureFiles.has(file) &&
+      !ignoredFiles.has(file) &&
+      !(globalIgnoredFiles && globalIgnoredFiles.has(file)),
+  );
 
-    for (const file of parentOnlyFiles) {
-      const stats = await analyzeFile(file);
-      totalLoc += stats.lines;
-      if (stats.isDone) {
-        doneLoc += stats.lines;
-      }
-
-      // Calculate the relative path for display
-      let relativePath: string;
-      if (file.startsWith(TESTS_BASE)) {
-        // For test files, show "tests/..." path
-        relativePath = "tests/" + file.replace(TESTS_BASE + "/", "");
-      } else {
-        // For src files, show path relative to Illuminate/
-        relativePath = file.replace(PHP_BASE + "/", "");
-      }
-
-      fileInfos.push({
-        path: file,
-        relativePath,
-        isDone: stats.isDone,
-        loc: stats.lines,
-      });
+  for (const file of parentOnlyFiles) {
+    // File paths are relative to Laravel folder, need full path for analyzeFile
+    const fullPath = join(import.meta.dir, "../../../../laravel", file);
+    const stats = await analyzeFile(fullPath);
+    totalLoc += stats.lines;
+    if (stats.isDone) {
+      doneLoc += stats.lines;
     }
+
+    fileInfos.push({
+      path: file, // Keep relative path for display
+      isDone: stats.isDone,
+      loc: stats.lines,
+    });
   }
 
   const percent = totalLoc > 0 ? (doneLoc / totalLoc) * 100 : 0;
@@ -151,7 +117,7 @@ async function calculateFeatureStats(
 
 // Check for duplicate files and ensure all files are covered
 // Returns error message if there are issues, null otherwise
-function checkFilesCoverage(stats: FeatureStats[]): string | null {
+async function checkFilesCoverage(stats: FeatureStats[]): Promise<string | null> {
   // Check for duplicate files between siblings (features at the same level)
   // This includes both feature-feature and feature-ignore overlaps
   // Parent-child duplicates are allowed due to implicit exclusion
@@ -171,7 +137,7 @@ function checkFilesCoverage(stats: FeatureStats[]): string | null {
             `Duplicate file between sibling ${type1} and ${type2}:\n` +
               `  ${type1 === "ignore" ? "Ignore" : "Feature"} 1: ${path1}\n` +
               `  ${type2 === "ignore" ? "Ignore" : "Feature"} 2: ${path2}\n` +
-              `  File: ${fileInfo.relativePath}`,
+              `  File: ${fileInfo.path}`,
           );
         }
         const displayName = stat.feature.isIgnored
@@ -218,20 +184,26 @@ function checkFilesCoverage(stats: FeatureStats[]): string | null {
     collectFiles(stat, [stat.feature.name]);
   }
 
-  // Check that all files are covered (only check files, not directories)
-  // Files can be either in a feature OR ignored
-  const uncoveredFiles: string[] = [];
-  const allFiles = allLaravelPaths.filter((p) => !p.endsWith("/"));
-
-  for (const file of allFiles) {
-    const fullPath = pathToFullPath(file);
-    if (!fileToFeature.has(fullPath) && !ignoredFiles.has(fullPath)) {
-      uncoveredFiles.push(file);
+  // Scan Laravel folder for all actual PHP files
+  const laravelDir = join(import.meta.dir, "../../../../laravel");
+  const glob = new Glob("**/*.php");
+  const actualFiles: string[] = [];
+  for await (const file of glob.scan({ cwd: laravelDir })) {
+    if (!file.startsWith("vendor/")) {
+      actualFiles.push(file);
     }
   }
 
-  if (uncoveredFiles.length > 0) {
-    return `Found files not included in any feature or ignore:\n  ${uncoveredFiles.join("\n  ")}\n\n  Total: ${uncoveredFiles.length} files`;
+  // Check if any files are missing from features.md
+  const missingFiles: string[] = [];
+  for (const file of actualFiles) {
+    if (!fileToFeature.has(file) && !ignoredFiles.has(file)) {
+      missingFiles.push(file);
+    }
+  }
+
+  if (missingFiles.length > 0) {
+    return `Missing ${missingFiles.length} file(s) from features.md:\n${missingFiles.slice(0, 20).map((f) => `  - ${f}`).join("\n")}${missingFiles.length > 20 ? `\n  ... and ${missingFiles.length - 20} more` : ""}`;
   }
 
   return null;
@@ -261,14 +233,17 @@ function generateRow(stat: FeatureStats, level: number = 0): string {
 
   // Generate files list for details element
   const sortedFiles = [...stat.fileInfos].sort((a, b) =>
-    a.relativePath.localeCompare(b.relativePath),
+    a.path.localeCompare(b.path),
   );
   const filesList = sortedFiles
     .map((f) => {
+      // File paths are now relative to Laravel folder (src/Illuminate/... or tests/...)
+      // Remove src/Illuminate/ prefix for display
+      const displayPath = f.path.replace(/^src\/Illuminate\//, "");
       if (f.isDone) {
-        return `<li><s>${f.relativePath}</s></li>`;
+        return `<li><s>${displayPath}</s></li>`;
       } else {
-        return `<li>TODO: ${f.relativePath}</li>`;
+        return `<li>TODO: ${displayPath}</li>`;
       }
     })
     .join("");
@@ -298,12 +273,14 @@ function generateRow(stat: FeatureStats, level: number = 0): string {
 async function main() {
   console.log("📊 Generating progress report...");
 
+  // Parse features from markdown (located in Laravel folder at repo root)
+  const features = await parseFeaturesMarkdown(join(import.meta.dir, "../../../../laravel/features.md"));
+
   // First pass: collect all ignored files globally
   const globalIgnoredFiles = new Set<string>();
   for (const feature of features) {
-    if (feature.isIgnored && feature.patterns.length > 0) {
-      const files = getFilesForPatterns(feature.patterns);
-      for (const file of files) {
+    if (feature.isIgnored) {
+      for (const file of feature.files) {
         globalIgnoredFiles.add(file);
       }
     }
@@ -316,7 +293,7 @@ async function main() {
   // Check for duplicates and coverage, but continue to generate report
   let coverageError: string | null = null;
   try {
-    coverageError = checkFilesCoverage(allStats);
+    coverageError = await checkFilesCoverage(allStats);
   } catch (error) {
     console.error("❌ Error:", (error as Error).message);
     process.exit(1);
@@ -380,7 +357,7 @@ async function main() {
   Hover over cells to see detailed LoC counts
 </p>`;
 
-  await writeFile(join(import.meta.dir, "../docs/progress-content.html"), htmlFragment);
+  await writeFile(join(import.meta.dir, "../../docs/progress-content.html"), htmlFragment);
   console.log("✅ Generated docs/progress-content.html");
   console.log(
     `📈 Overall: ${overallPercent.toFixed(1)}% (${doneLoc.toLocaleString()} of ${totalLoc.toLocaleString()} LoC)`,

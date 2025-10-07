@@ -8,7 +8,7 @@
     "build:api": "typedoc",
     "build:vitepress": "vitepress build",
     "preview": "vitepress preview",
-    "generate-progress": "bun scripts/generate-paths.ts && bun scripts/generate-progress.ts"
+    "generate-progress": "bun scripts/progress/generate-progress.ts"
   },
   "devDependencies": {
     "beynac": "workspace:",
