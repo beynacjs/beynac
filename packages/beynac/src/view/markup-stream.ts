@@ -145,7 +145,7 @@ export function renderStream(
           const result = (node as (ctx: Context) => JSXNode)(childContext);
 
           if (result instanceof Promise) {
-            // Mark as in-progress immediately
+            // For async functions, mark the function as in-progress and cache result when done
             const completionPromise = result.then(
               (resolved) => {
                 const contextToUse = childContext.wasModified() ? childContext : context;

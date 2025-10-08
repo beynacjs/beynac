@@ -1640,5 +1640,3 @@ Next payment: {{ $nextPayment->amount() }} due on {{ $nextPayment->date()->forma
 ## Testing
 
 While testing, you should manually test your billing flow to make sure your integration works as expected.
-
-For automated tests, including those executed within a CI environment, you may use [Laravel's HTTP Client](./http-client#testing) to fake HTTP calls made to Paddle. Although this does not test the actual responses from Paddle, it does provide a way to test your application without actually calling Paddle's API.

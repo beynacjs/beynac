@@ -4,36 +4,39 @@ laravelDocs: true
 
 # Laravel Sail
 
-- [Introduction](#introduction)
-- [Installation and Setup](#installation)
-  - [Installing Sail Into Existing Applications](#installing-sail-into-existing-applications)
-  - [Rebuilding Sail Images](#rebuilding-sail-images)
-  - [Configuring A Shell Alias](#configuring-a-shell-alias)
-- [Starting and Stopping Sail](#starting-and-stopping-sail)
-- [Executing Commands](#executing-sail-commands)
-  - [Executing PHP Commands](#executing-php-commands)
-  - [Executing Composer Commands](#executing-composer-commands)
-  - [Executing Artisan Commands](#executing-artisan-commands)
-  - [Executing Node / NPM Commands](#executing-node-npm-commands)
-- [Interacting With Databases](#interacting-with-sail-databases)
-  - [MySQL](#mysql)
-  - [MongoDB](#mongodb)
-  - [Redis](#redis)
-  - [Valkey](#valkey)
-  - [Meilisearch](#meilisearch)
-  - [Typesense](#typesense)
-- [File Storage](#file-storage)
-- [Running Tests](#running-tests)
-  - [Laravel Dusk](#laravel-dusk)
-- [Previewing Emails](#previewing-emails)
-- [Container CLI](#sail-container-cli)
-- [PHP Versions](#sail-php-versions)
-- [Node Versions](#sail-node-versions)
-- [Sharing Your Site](#sharing-your-site)
-- [Debugging With Xdebug](#debugging-with-xdebug)
-  - [Xdebug CLI Usage](#xdebug-cli-usage)
-  - [Xdebug Browser Usage](#xdebug-browser-usage)
-- [Customization](#sail-customization)
+- [Laravel Sail](#laravel-sail)
+  - [Introduction](#introduction)
+  - [Installation and Setup](#installation-and-setup)
+    - [Installing Sail Into Existing Applications](#installing-sail-into-existing-applications)
+      - [Adding Additional Services](#adding-additional-services)
+      - [Using Devcontainers](#using-devcontainers)
+    - [Rebuilding Sail Images](#rebuilding-sail-images)
+    - [Configuring A Shell Alias](#configuring-a-shell-alias)
+  - [Starting and Stopping Sail](#starting-and-stopping-sail)
+  - [Executing Commands](#executing-commands)
+    - [Executing PHP Commands](#executing-php-commands)
+    - [Executing Composer Commands](#executing-composer-commands)
+    - [Executing Artisan Commands](#executing-artisan-commands)
+    - [Executing Node / NPM Commands](#executing-node--npm-commands)
+  - [Interacting With Databases](#interacting-with-databases)
+    - [MySQL](#mysql)
+    - [MongoDB](#mongodb)
+    - [Redis](#redis)
+    - [Valkey](#valkey)
+    - [Meilisearch](#meilisearch)
+    - [Typesense](#typesense)
+  - [File Storage](#file-storage)
+  - [Running Tests](#running-tests)
+  - [Previewing Emails](#previewing-emails)
+  - [Container CLI](#container-cli)
+  - [PHP Versions](#php-versions)
+  - [Node Versions](#node-versions)
+  - [Sharing Your Site](#sharing-your-site)
+  - [Debugging With Xdebug](#debugging-with-xdebug)
+    - [Linux Host IP Configuration](#linux-host-ip-configuration)
+    - [Xdebug CLI Usage](#xdebug-cli-usage)
+    - [Xdebug Browser Usage](#xdebug-browser-usage)
+  - [Customization](#customization)
 
 <a name="introduction"></a>
 
@@ -353,53 +356,6 @@ By default, Sail will create a dedicated `testing` database so that your tests d
 ```
 
 <a name="laravel-dusk"></a>
-
-### Laravel Dusk
-
-[Laravel Dusk](./dusk) provides an expressive, easy-to-use browser automation and testing API. Thanks to Sail, you may run these tests without ever installing Selenium or other tools on your local computer. To get started, uncomment the Selenium service in your application's `docker-compose.yml` file:
-
-```yaml
-selenium:
-  image: "selenium/standalone-chrome"
-  extra_hosts:
-    - "host.docker.internal:host-gateway"
-  volumes:
-    - "/dev/shm:/dev/shm"
-  networks:
-    - sail
-```
-
-Next, ensure that the `laravel.test` service in your application's `docker-compose.yml` file has a `depends_on` entry for `selenium`:
-
-```yaml
-depends_on:
-  - mysql
-  - redis
-  - selenium
-```
-
-Finally, you may run your Dusk test suite by starting Sail and running the `dusk` command:
-
-```shell
-sail dusk
-```
-
-<a name="selenium-on-apple-silicon"></a>
-
-#### Selenium on Apple Silicon
-
-If your local machine contains an Apple Silicon chip, your `selenium` service must use the `selenium/standalone-chromium` image:
-
-```yaml
-selenium:
-  image: "selenium/standalone-chromium"
-  extra_hosts:
-    - "host.docker.internal:host-gateway"
-  volumes:
-    - "/dev/shm:/dev/shm"
-  networks:
-    - sail
-```
 
 <a name="previewing-emails"></a>
 

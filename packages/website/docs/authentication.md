@@ -4,34 +4,49 @@ laravelDocs: true
 
 # Authentication
 
-- [Introduction](#introduction)
-  - [Starter Kits](#starter-kits)
-  - [Database Considerations](#introduction-database-considerations)
-  - [Ecosystem Overview](#ecosystem-overview)
-- [Authentication Quickstart](#authentication-quickstart)
-  - [Install a Starter Kit](#install-a-starter-kit)
-  - [Retrieving the Authenticated User](#retrieving-the-authenticated-user)
-  - [Protecting Routes](#protecting-routes)
-  - [Login Throttling](#login-throttling)
-- [Manually Authenticating Users](#authenticating-users)
-  - [Remembering Users](#remembering-users)
-  - [Other Authentication Methods](#other-authentication-methods)
-- [HTTP Basic Authentication](#http-basic-authentication)
-  - [Stateless HTTP Basic Authentication](#stateless-http-basic-authentication)
-- [Logging Out](#logging-out)
-  - [Invalidating Sessions on Other Devices](#invalidating-sessions-on-other-devices)
-- [Password Confirmation](#password-confirmation)
-  - [Configuration](#password-confirmation-configuration)
-  - [Routing](#password-confirmation-routing)
-  - [Protecting Routes](#password-confirmation-protecting-routes)
-- [Adding Custom Guards](#adding-custom-guards)
-  - [Closure Request Guards](#closure-request-guards)
-- [Adding Custom User Providers](#adding-custom-user-providers)
-  - [The User Provider Contract](#the-user-provider-contract)
-  - [The Authenticatable Contract](#the-authenticatable-contract)
-- [Automatic Password Rehashing](#automatic-password-rehashing)
-- [Social Authentication](./socialite)
-- [Events](#events)
+- [Authentication](#authentication)
+  - [Introduction](#introduction)
+    - [Starter Kits](#starter-kits)
+    - [Database Considerations](#database-considerations)
+    - [Ecosystem Overview](#ecosystem-overview)
+      - [Laravel's Built-in Browser Authentication Services](#laravels-built-in-browser-authentication-services)
+      - [Laravel's API Authentication Services](#laravels-api-authentication-services)
+      - [Summary and Choosing Your Stack](#summary-and-choosing-your-stack)
+  - [Authentication Quickstart](#authentication-quickstart)
+    - [Install a Starter Kit](#install-a-starter-kit)
+    - [Retrieving the Authenticated User](#retrieving-the-authenticated-user)
+      - [Determining if the Current User is Authenticated](#determining-if-the-current-user-is-authenticated)
+    - [Protecting Routes](#protecting-routes)
+      - [Redirecting Unauthenticated Users](#redirecting-unauthenticated-users)
+      - [Redirecting Authenticated Users](#redirecting-authenticated-users)
+      - [Specifying a Guard](#specifying-a-guard)
+    - [Login Throttling](#login-throttling)
+  - [Manually Authenticating Users](#manually-authenticating-users)
+    - [Specifying Additional Conditions](#specifying-additional-conditions)
+    - [Accessing Specific Guard Instances](#accessing-specific-guard-instances)
+    - [Remembering Users](#remembering-users)
+    - [Other Authentication Methods](#other-authentication-methods)
+      - [Authenticate a User Instance](#authenticate-a-user-instance)
+      - [Authenticate a User by ID](#authenticate-a-user-by-id)
+      - [Authenticate a User Once](#authenticate-a-user-once)
+  - [HTTP Basic Authentication](#http-basic-authentication)
+    - [A Note on FastCGI](#a-note-on-fastcgi)
+    - [Stateless HTTP Basic Authentication](#stateless-http-basic-authentication)
+  - [Logging Out](#logging-out)
+    - [Invalidating Sessions on Other Devices](#invalidating-sessions-on-other-devices)
+  - [Password Confirmation](#password-confirmation)
+    - [Configuration](#configuration)
+    - [Routing](#routing)
+      - [The Password Confirmation Form](#the-password-confirmation-form)
+      - [Confirming the Password](#confirming-the-password)
+    - [Protecting Routes](#protecting-routes-1)
+  - [Adding Custom Guards](#adding-custom-guards)
+    - [Closure Request Guards](#closure-request-guards)
+  - [Adding Custom User Providers](#adding-custom-user-providers)
+    - [The User Provider Contract](#the-user-provider-contract)
+    - [The Authenticatable Contract](#the-authenticatable-contract)
+  - [Automatic Password Rehashing](#automatic-password-rehashing)
+  - [Events](#events)
 
 <a name="introduction"></a>
 
@@ -92,7 +107,7 @@ As discussed in this documentation, you can interact with these authentication s
 
 #### Laravel's API Authentication Services
 
-Laravel provides two optional packages to assist you in managing API tokens and authenticating requests made with API tokens: [Passport](./passport) and [Sanctum](./sanctum). Please note that these libraries and Laravel's built-in cookie based authentication libraries are not mutually exclusive. These libraries primarily focus on API token authentication while the built-in authentication services focus on cookie based browser authentication. Many applications will use both Laravel's built-in cookie based authentication services and one of Laravel's API authentication packages.
+Laravel provides two optional packages to assist you in managing API tokens and authenticating requests made with API tokens: Passport (link removed) and Sanctum (link removed). Please note that these libraries and Laravel's built-in cookie based authentication libraries are not mutually exclusive. These libraries primarily focus on API token authentication while the built-in authentication services focus on cookie based browser authentication. Many applications will use both Laravel's built-in cookie based authentication services and one of Laravel's API authentication packages.
 
 **Passport**
 
@@ -100,9 +115,9 @@ Passport is an OAuth2 authentication provider, offering a variety of OAuth2 "gra
 
 **Sanctum**
 
-In response to the complexity of OAuth2 and developer confusion, we set out to build a simpler, more streamlined authentication package that could handle both first-party web requests from a web browser and API requests via tokens. This goal was realized with the release of [Laravel Sanctum](./sanctum), which should be considered the preferred and recommended authentication package for applications that will be offering a first-party web UI in addition to an API, or will be powered by a single-page application (SPA) that exists separately from the backend Laravel application, or applications that offer a mobile client.
+In response to the complexity of OAuth2 and developer confusion, we set out to build a simpler, more streamlined authentication package that could handle both first-party web requests from a web browser and API requests via tokens. This goal was realized with the release of Laravel Sanctum (link removed), which should be considered the preferred and recommended authentication package for applications that will be offering a first-party web UI in addition to an API, or will be powered by a single-page application (SPA) that exists separately from the backend Laravel application, or applications that offer a mobile client.
 
-Laravel Sanctum is a hybrid web / API authentication package that can manage your application's entire authentication process. This is possible because when Sanctum based applications receive a request, Sanctum will first determine if the request includes a session cookie that references an authenticated session. Sanctum accomplishes this by calling Laravel's built-in authentication services which we discussed earlier. If the request is not being authenticated via a session cookie, Sanctum will inspect the request for an API token. If an API token is present, Sanctum will authenticate the request using that token. To learn more about this process, please consult Sanctum's ["how it works"](./sanctum#how-it-works) documentation.
+Laravel Sanctum is a hybrid web / API authentication package that can manage your application's entire authentication process. This is possible because when Sanctum based applications receive a request, Sanctum will first determine if the request includes a session cookie that references an authenticated session. Sanctum accomplishes this by calling Laravel's built-in authentication services which we discussed earlier. If the request is not being authenticated via a session cookie, Sanctum will inspect the request for an API token. If an API token is present, Sanctum will authenticate the request using that token. To learn more about this process, please consult Sanctum's "how it works" (link removed) documentation.
 
 <a name="summary-choosing-your-stack"></a>
 
@@ -110,9 +125,9 @@ Laravel Sanctum is a hybrid web / API authentication package that can manage you
 
 In summary, if your application will be accessed using a browser and you are building a monolithic Laravel application, your application will use Laravel's built-in authentication services.
 
-Next, if your application offers an API that will be consumed by third parties, you will choose between [Passport](./passport) or [Sanctum](./sanctum) to provide API token authentication for your application. In general, Sanctum should be preferred when possible since it is a simple, complete solution for API authentication, SPA authentication, and mobile authentication, including support for "scopes" or "abilities".
+Next, if your application offers an API that will be consumed by third parties, you will choose between Passport (link removed) or Sanctum (link removed) to provide API token authentication for your application. In general, Sanctum should be preferred when possible since it is a simple, complete solution for API authentication, SPA authentication, and mobile authentication, including support for "scopes" or "abilities".
 
-If you are building a single-page application (SPA) that will be powered by a Laravel backend, you should use [Laravel Sanctum](./sanctum). When using Sanctum, you will either need to [manually implement your own backend authentication routes](#authenticating-users) or utilize [Laravel Fortify](./fortify) as a headless authentication backend service that provides routes and controllers for features such as registration, password reset, email verification, and more.
+If you are building a single-page application (SPA) that will be powered by a Laravel backend, you should use Laravel Sanctum (link removed). When using Sanctum, you will either need to [manually implement your own backend authentication routes](#authenticating-users) or utilize [Laravel Fortify](./fortify) as a headless authentication backend service that provides routes and controllers for features such as registration, password reset, email verification, and more.
 
 Passport may be chosen when your application absolutely needs all of the features provided by the OAuth2 specification.
 

@@ -4,20 +4,22 @@ laravelDocs: true
 
 # Deployment
 
-- [Introduction](#introduction)
-- [Server Requirements](#server-requirements)
-- [Server Configuration](#server-configuration)
-  - [Nginx](#nginx)
-  - [FrankenPHP](#frankenphp)
-  - [Directory Permissions](#directory-permissions)
-- [Optimization](#optimization)
-  - [Caching Configuration](#optimizing-configuration-loading)
-  - [Caching Events](#caching-events)
-  - [Caching Routes](#optimizing-route-loading)
-  - [Caching Views](#optimizing-view-loading)
-- [Debug Mode](#debug-mode)
-- [The Health Route](#the-health-route)
-- [Deploying With Laravel Cloud or Forge](#deploying-with-cloud-or-forge)
+- [Deployment](#deployment)
+  - [Introduction](#introduction)
+  - [Server Requirements](#server-requirements)
+  - [Server Configuration](#server-configuration)
+    - [Nginx](#nginx)
+    - [Directory Permissions](#directory-permissions)
+  - [Optimization](#optimization)
+    - [Caching Configuration](#caching-configuration)
+    - [Caching Events](#caching-events)
+    - [Caching Routes](#caching-routes)
+    - [Caching Views](#caching-views)
+  - [Debug Mode](#debug-mode)
+  - [The Health Route](#the-health-route)
+  - [Deploying With Laravel Cloud or Forge](#deploying-with-laravel-cloud-or-forge)
+    - [Laravel Cloud](#laravel-cloud)
+    - [Laravel Forge](#laravel-forge)
 
 <a name="introduction"></a>
 
@@ -97,18 +99,6 @@ server {
     }
 }
 ```
-
-<a name="frankenphp"></a>
-
-### FrankenPHP
-
-[FrankenPHP](https://frankenphp.dev/) may also be used to serve your Laravel applications. FrankenPHP is a modern PHP application server written in Go. To serve a Laravel PHP application using FrankenPHP, you may simply invoke its `php-server` command:
-
-```shell
-frankenphp php-server -r public/
-```
-
-To take advantage of more powerful features supported by FrankenPHP, such as its [Laravel Octane](./octane) integration, HTTP/3, modern compression, or the ability to package Laravel applications as standalone binaries, please consult FrankenPHP's [Laravel documentation](https://frankenphp.dev/docs/laravel/).
 
 <a name="directory-permissions"></a>
 

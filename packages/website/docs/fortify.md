@@ -4,29 +4,38 @@ laravelDocs: true
 
 # Laravel Fortify
 
-- [Introduction](#introduction)
-  - [What is Fortify?](#what-is-fortify)
-  - [When Should I Use Fortify?](#when-should-i-use-fortify)
-- [Installation](#installation)
-  - [Fortify Features](#fortify-features)
-  - [Disabling Views](#disabling-views)
-- [Authentication](#authentication)
-  - [Customizing User Authentication](#customizing-user-authentication)
-  - [Customizing the Authentication Pipeline](#customizing-the-authentication-pipeline)
-  - [Customizing Redirects](#customizing-authentication-redirects)
-- [Two Factor Authentication](#two-factor-authentication)
-  - [Enabling Two Factor Authentication](#enabling-two-factor-authentication)
-  - [Authenticating With Two Factor Authentication](#authenticating-with-two-factor-authentication)
-  - [Disabling Two Factor Authentication](#disabling-two-factor-authentication)
-- [Registration](#registration)
-  - [Customizing Registration](#customizing-registration)
-- [Password Reset](#password-reset)
-  - [Requesting a Password Reset Link](#requesting-a-password-reset-link)
-  - [Resetting the Password](#resetting-the-password)
-  - [Customizing Password Resets](#customizing-password-resets)
-- [Email Verification](#email-verification)
-  - [Protecting Routes](#protecting-routes)
-- [Password Confirmation](#password-confirmation)
+- [Laravel Fortify](#laravel-fortify)
+  - [Introduction](#introduction)
+    - [What is Fortify?](#what-is-fortify)
+    - [When Should I Use Fortify?](#when-should-i-use-fortify)
+  - [Installation](#installation)
+    - [Fortify Features](#fortify-features)
+    - [Disabling Views](#disabling-views)
+      - [Disabling Views and Password Reset](#disabling-views-and-password-reset)
+  - [Authentication](#authentication)
+    - [Customizing User Authentication](#customizing-user-authentication)
+      - [Authentication Guard](#authentication-guard)
+    - [Customizing the Authentication Pipeline](#customizing-the-authentication-pipeline)
+      - [Authentication Throttling](#authentication-throttling)
+    - [Customizing Redirects](#customizing-redirects)
+  - [Two Factor Authentication](#two-factor-authentication)
+    - [Enabling Two Factor Authentication](#enabling-two-factor-authentication)
+      - [Confirming Two Factor Authentication](#confirming-two-factor-authentication)
+      - [Displaying the Recovery Codes](#displaying-the-recovery-codes)
+    - [Authenticating With Two Factor Authentication](#authenticating-with-two-factor-authentication)
+    - [Disabling Two Factor Authentication](#disabling-two-factor-authentication)
+  - [Registration](#registration)
+    - [Customizing Registration](#customizing-registration)
+  - [Password Reset](#password-reset)
+    - [Requesting a Password Reset Link](#requesting-a-password-reset-link)
+      - [Handling the Password Reset Link Request Response](#handling-the-password-reset-link-request-response)
+    - [Resetting the Password](#resetting-the-password)
+      - [Handling the Password Reset Response](#handling-the-password-reset-response)
+    - [Customizing Password Resets](#customizing-password-resets)
+  - [Email Verification](#email-verification)
+    - [Resending Email Verification Links](#resending-email-verification-links)
+    - [Protecting Routes](#protecting-routes)
+  - [Password Confirmation](#password-confirmation)
 
 <a name="introduction"></a>
 
@@ -62,16 +71,6 @@ If you are not using an application starter kit and your application needs authe
 If you choose to install Fortify, your user interface will make requests to Fortify's authentication routes that are detailed in this documentation in order to authenticate and register users.
 
 If you choose to manually interact with Laravel's authentication services instead of using Fortify, you may do so by following the documentation available in the [authentication](./authentication), [password reset](./passwords), and [email verification](./verification) documentation.
-
-<a name="laravel-fortify-and-laravel-sanctum"></a>
-
-#### Laravel Fortify and Laravel Sanctum
-
-Some developers become confused regarding the difference between [Laravel Sanctum](./sanctum) and Laravel Fortify. Because the two packages solve two different but related problems, Laravel Fortify and Laravel Sanctum are not mutually exclusive or competing packages.
-
-Laravel Sanctum is only concerned with managing API tokens and authenticating existing users using session cookies or tokens. Sanctum does not provide any routes that handle user registration, password reset, etc.
-
-If you are attempting to manually build the authentication layer for an application that offers an API or serves as the backend for a single-page application, it is entirely possible that you will utilize both Laravel Fortify (for user registration, password reset, etc.) and Laravel Sanctum (API token management, session authentication).
 
 <a name="installation"></a>
 

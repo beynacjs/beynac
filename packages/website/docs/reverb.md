@@ -4,24 +4,25 @@ laravelDocs: true
 
 # Laravel Reverb
 
-- [Introduction](#introduction)
-- [Installation](#installation)
-- [Configuration](#configuration)
-  - [Application Credentials](#application-credentials)
-  - [Allowed Origins](#allowed-origins)
-  - [Additional Applications](#additional-applications)
-  - [SSL](#ssl)
-- [Running the Server](#running-server)
-  - [Debugging](#debugging)
-  - [Restarting](#restarting)
-- [Monitoring](#monitoring)
-- [Running Reverb in Production](#production)
-  - [Open Files](#open-files)
-  - [Event Loop](#event-loop)
-  - [Web Server](#web-server)
-  - [Ports](#ports)
-  - [Process Management](#process-management)
-  - [Scaling](#scaling)
+- [Laravel Reverb](#laravel-reverb)
+  - [Introduction](#introduction)
+  - [Installation](#installation)
+  - [Configuration](#configuration)
+    - [Application Credentials](#application-credentials)
+    - [Allowed Origins](#allowed-origins)
+    - [Additional Applications](#additional-applications)
+    - [SSL](#ssl)
+  - [Running the Server](#running-the-server)
+    - [Debugging](#debugging)
+    - [Restarting](#restarting)
+  - [Running Reverb in Production](#running-reverb-in-production)
+    - [Open Files](#open-files)
+      - [Operating System](#operating-system)
+    - [Event Loop](#event-loop)
+    - [Web Server](#web-server)
+    - [Ports](#ports)
+    - [Process Management](#process-management)
+    - [Scaling](#scaling)
 
 <a name="introduction"></a>
 
@@ -100,7 +101,7 @@ For example, you may wish to maintain a single Laravel application which, via Re
 
 In most cases, secure WebSocket connections are handled by the upstream web server (Nginx, etc.) before the request is proxied to your Reverb server.
 
-However, it can sometimes be useful, such as during local development, for the Reverb server to handle secure connections directly. If you are using [Laravel Herd's](https://herd.laravel.com) secure site feature or you are using [Laravel Valet](./valet) and have run the [secure command](./valet#securing-sites) against your application, you may use the Herd / Valet certificate generated for your site to secure your Reverb connections. To do so, set the `REVERB_HOST` environment variable to your site's hostname or explicitly pass the hostname option when starting the Reverb server:
+However, it can sometimes be useful, such as during local development, for the Reverb server to handle secure connections directly. If you are using [Laravel Herd's](https://herd.laravel.com) secure site feature, you may use the Herd / Valet certificate generated for your site to secure your Reverb connections. To do so, set the `REVERB_HOST` environment variable to your site's hostname or explicitly pass the hostname option when starting the Reverb server:
 
 ```shell
 php artisan reverb:start --host="0.0.0.0" --port=8080 --hostname="laravel.test"
@@ -171,43 +172,6 @@ php artisan reverb:restart
 ```
 
 <a name="monitoring"></a>
-
-## Monitoring
-
-Reverb may be monitored via an integration with [Laravel Pulse](./pulse). By enabling Reverb's Pulse integration, you may track the number of connections and messages being handled by your server.
-
-To enable the integration, you should first ensure you have [installed Pulse](./pulse#installation). Then, add any of Reverb's recorders to your application's `config/pulse.php` configuration file:
-
-```php
-use Laravel\Reverb\Pulse\Recorders\ReverbConnections;
-use Laravel\Reverb\Pulse\Recorders\ReverbMessages;
-
-'recorders' => [
-    ReverbConnections::class => [
-        'sample_rate' => 1,
-    ],
-
-    ReverbMessages::class => [
-        'sample_rate' => 1,
-    ],
-
-    // ...
-],
-```
-
-Next, add the Pulse cards for each recorder to your [Pulse dashboard](./pulse#dashboard-customization):
-
-```blade
-<x-pulse>
-    <livewire:reverb.connections cols="full" />
-    <livewire:reverb.messages cols="full" />
-    ...
-</x-pulse>
-```
-
-Connection activity is recorded by polling for new updates on a periodic basis. To ensure this information is rendered correctly on the Pulse dashboard, you must run the `pulse:check` daemon on your Reverb server. If you are running Reverb in a [horizontally scaled](#scaling) configuration, you should only run this daemon on one of your servers.
-
-<a name="production"></a>
 
 ## Running Reverb in Production
 

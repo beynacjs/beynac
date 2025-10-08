@@ -4,22 +4,25 @@ laravelDocs: true
 
 # Installation
 
-- [Meet Laravel](#meet-laravel)
-  - [Why Laravel?](#why-laravel)
-- [Creating a Laravel Application](#creating-a-laravel-project)
-  - [Installing PHP and the Laravel Installer](#installing-php)
-  - [Creating an Application](#creating-an-application)
-- [Initial Configuration](#initial-configuration)
-  - [Environment Based Configuration](#environment-based-configuration)
-  - [Databases and Migrations](#databases-and-migrations)
-  - [Directory Configuration](#directory-configuration)
-- [Installation Using Herd](#installation-using-herd)
-  - [Herd on macOS](#herd-on-macos)
-  - [Herd on Windows](#herd-on-windows)
-- [IDE Support](#ide-support)
-- [Next Steps](#next-steps)
-  - [Laravel the Full Stack Framework](#laravel-the-fullstack-framework)
-  - [Laravel the API Backend](#laravel-the-api-backend)
+- [Installation](#installation)
+  - [Meet Laravel](#meet-laravel)
+    - [Why Laravel?](#why-laravel)
+      - [A Progressive Framework](#a-progressive-framework)
+      - [A Scalable Framework](#a-scalable-framework)
+      - [A Community Framework](#a-community-framework)
+  - [Creating a Laravel Application](#creating-a-laravel-application)
+    - [Installing PHP and the Laravel Installer](#installing-php-and-the-laravel-installer)
+    - [Creating an Application](#creating-an-application)
+  - [Initial Configuration](#initial-configuration)
+    - [Environment Based Configuration](#environment-based-configuration)
+    - [Databases and Migrations](#databases-and-migrations)
+    - [Directory Configuration](#directory-configuration)
+  - [Installation Using Herd](#installation-using-herd)
+    - [Herd on macOS](#herd-on-macos)
+    - [Herd on Windows](#herd-on-windows)
+  - [IDE Support](#ide-support)
+  - [Next Steps](#next-steps)
+    - [Laravel the Full Stack Framework](#laravel-the-full-stack-framework)
 
 <a name="meet-laravel"></a>
 
@@ -261,9 +264,3 @@ If you are using Laravel as a full stack framework, we also strongly encourage y
 > If you want to get a head start building your application, check out one of our official [application starter kits](./starter-kits).
 
 <a name="laravel-the-api-backend"></a>
-
-### Laravel the API Backend
-
-Laravel may also serve as an API backend to a JavaScript single-page application or mobile application. For example, you might use Laravel as an API backend for your [Next.js](https://nextjs.org) application. In this context, you may use Laravel to provide [authentication](./sanctum) and data storage / retrieval for your application, while also taking advantage of Laravel's powerful services such as queues, emails, notifications, and more.
-
-If this is how you plan to use Laravel, you may want to check out our documentation on [routing](./routing), [Laravel Sanctum](./sanctum), and the [Eloquent ORM](./eloquent).

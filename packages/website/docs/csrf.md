@@ -4,11 +4,14 @@ laravelDocs: true
 
 # CSRF Protection
 
-- [Introduction](#csrf-introduction)
-- [Preventing CSRF Requests](#preventing-csrf-requests)
-  - [Excluding URIs](#csrf-excluding-uris)
-- [X-CSRF-Token](#csrf-x-csrf-token)
-- [X-XSRF-Token](#csrf-x-xsrf-token)
+- [CSRF Protection](#csrf-protection)
+  - [Introduction](#introduction)
+    - [An Explanation of the Vulnerability](#an-explanation-of-the-vulnerability)
+  - [Preventing CSRF Requests](#preventing-csrf-requests)
+    - [CSRF Tokens \& SPAs](#csrf-tokens--spas)
+    - [Excluding URIs From CSRF Protection](#excluding-uris-from-csrf-protection)
+  - [X-CSRF-TOKEN](#x-csrf-token)
+  - [X-XSRF-TOKEN](#x-xsrf-token)
 
 <a name="csrf-introduction"></a>
 
@@ -75,7 +78,7 @@ The `Illuminate\Foundation\Http\Middleware\ValidateCsrfToken` [middleware](./mid
 
 ### CSRF Tokens & SPAs
 
-If you are building an SPA that is utilizing Laravel as an API backend, you should consult the [Laravel Sanctum documentation](./sanctum) for information on authenticating with your API and protecting against CSRF vulnerabilities.
+If you are building an SPA that is utilizing Laravel as an API backend, you should consult the Laravel Sanctum documentation (link removed) for information on authenticating with your API and protecting against CSRF vulnerabilities.
 
 <a name="csrf-excluding-uris"></a>
 

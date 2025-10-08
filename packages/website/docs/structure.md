@@ -89,7 +89,7 @@ The `console.php` file is where you may define all of your closure-based console
 
 Optionally, you may install additional route files for API routes (`api.php`) and broadcasting channels (`channels.php`), via the `install:api` and `install:broadcasting` Artisan commands.
 
-The `api.php` file contains routes that are intended to be stateless, so requests entering the application through these routes are intended to be authenticated [via tokens](./sanctum) and will not have access to session state.
+The `api.php` file contains routes that are intended to be stateless, so requests entering the application through these routes are intended to be authenticated via tokens and will not have access to session state.
 
 The `channels.php` file is where you may register all of the [event broadcasting](./broadcasting) channels that your application supports.
 

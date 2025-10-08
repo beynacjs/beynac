@@ -1,5 +1,4 @@
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 
 export interface Feature {
   name: string;
@@ -71,9 +70,7 @@ export async function parseFeaturesMarkdown(filePath: string): Promise<Feature[]
       if (stack.length > 0) {
         stack[stack.length - 1].feature.files.push(filePath);
       } else {
-        throw new Error(
-          `File path at line ${lineNum} is not under any feature header: ${line}`,
-        );
+        throw new Error(`File path at line ${lineNum} is not under any feature header: ${line}`);
       }
     }
   }

@@ -4,55 +4,83 @@ laravelDocs: true
 
 # Notifications
 
-- [Introduction](#introduction)
-- [Generating Notifications](#generating-notifications)
-- [Sending Notifications](#sending-notifications)
-  - [Using the Notifiable Trait](#using-the-notifiable-trait)
-  - [Using the Notification Facade](#using-the-notification-facade)
-  - [Specifying Delivery Channels](#specifying-delivery-channels)
-  - [Queueing Notifications](#queueing-notifications)
-  - [On-Demand Notifications](#on-demand-notifications)
-- [Mail Notifications](#mail-notifications)
-  - [Formatting Mail Messages](#formatting-mail-messages)
-  - [Customizing the Sender](#customizing-the-sender)
-  - [Customizing the Recipient](#customizing-the-recipient)
-  - [Customizing the Subject](#customizing-the-subject)
-  - [Customizing the Mailer](#customizing-the-mailer)
-  - [Customizing the Templates](#customizing-the-templates)
-  - [Attachments](#mail-attachments)
-  - [Adding Tags and Metadata](#adding-tags-metadata)
-  - [Customizing the Symfony Message](#customizing-the-symfony-message)
-  - [Using Mailables](#using-mailables)
-  - [Previewing Mail Notifications](#previewing-mail-notifications)
-- [Markdown Mail Notifications](#markdown-mail-notifications)
-  - [Generating the Message](#generating-the-message)
-  - [Writing the Message](#writing-the-message)
-  - [Customizing the Components](#customizing-the-components)
-- [Database Notifications](#database-notifications)
-  - [Prerequisites](#database-prerequisites)
-  - [Formatting Database Notifications](#formatting-database-notifications)
-  - [Accessing the Notifications](#accessing-the-notifications)
-  - [Marking Notifications as Read](#marking-notifications-as-read)
-- [Broadcast Notifications](#broadcast-notifications)
-  - [Prerequisites](#broadcast-prerequisites)
-  - [Formatting Broadcast Notifications](#formatting-broadcast-notifications)
-  - [Listening for Notifications](#listening-for-notifications)
-- [SMS Notifications](#sms-notifications)
-  - [Prerequisites](#sms-prerequisites)
-  - [Formatting SMS Notifications](#formatting-sms-notifications)
-  - [Customizing the "From" Number](#customizing-the-from-number)
-  - [Adding a Client Reference](#adding-a-client-reference)
-  - [Routing SMS Notifications](#routing-sms-notifications)
-- [Slack Notifications](#slack-notifications)
-  - [Prerequisites](#slack-prerequisites)
-  - [Formatting Slack Notifications](#formatting-slack-notifications)
-  - [Slack Interactivity](#slack-interactivity)
-  - [Routing Slack Notifications](#routing-slack-notifications)
-  - [Notifying External Slack Workspaces](#notifying-external-slack-workspaces)
-- [Localizing Notifications](#localizing-notifications)
-- [Testing](#testing)
-- [Notification Events](#notification-events)
-- [Custom Channels](#custom-channels)
+- [Notifications](#notifications)
+  - [Introduction](#introduction)
+  - [Generating Notifications](#generating-notifications)
+  - [Sending Notifications](#sending-notifications)
+    - [Using the Notifiable Trait](#using-the-notifiable-trait)
+    - [Using the Notification Facade](#using-the-notification-facade)
+    - [Specifying Delivery Channels](#specifying-delivery-channels)
+    - [Queueing Notifications](#queueing-notifications)
+      - [Delaying Notifications](#delaying-notifications)
+      - [Customizing the Notification Queue Connection](#customizing-the-notification-queue-connection)
+      - [Customizing Notification Channel Queues](#customizing-notification-channel-queues)
+      - [Queued Notification Middleware](#queued-notification-middleware)
+      - [Queued Notifications and Database Transactions](#queued-notifications-and-database-transactions)
+      - [Determining if a Queued Notification Should Be Sent](#determining-if-a-queued-notification-should-be-sent)
+    - [On-Demand Notifications](#on-demand-notifications)
+  - [Mail Notifications](#mail-notifications)
+    - [Formatting Mail Messages](#formatting-mail-messages)
+      - [Error Messages](#error-messages)
+      - [Other Mail Notification Formatting Options](#other-mail-notification-formatting-options)
+    - [Customizing the Sender](#customizing-the-sender)
+    - [Customizing the Recipient](#customizing-the-recipient)
+    - [Customizing the Subject](#customizing-the-subject)
+    - [Customizing the Mailer](#customizing-the-mailer)
+    - [Customizing the Templates](#customizing-the-templates)
+    - [Attachments](#attachments)
+      - [Raw Data Attachments](#raw-data-attachments)
+    - [Adding Tags and Metadata](#adding-tags-and-metadata)
+    - [Customizing the Symfony Message](#customizing-the-symfony-message)
+    - [Using Mailables](#using-mailables)
+      - [Mailables and On-Demand Notifications](#mailables-and-on-demand-notifications)
+    - [Previewing Mail Notifications](#previewing-mail-notifications)
+  - [Markdown Mail Notifications](#markdown-mail-notifications)
+    - [Generating the Message](#generating-the-message)
+    - [Writing the Message](#writing-the-message)
+      - [Button Component](#button-component)
+      - [Panel Component](#panel-component)
+      - [Table Component](#table-component)
+    - [Customizing the Components](#customizing-the-components)
+      - [Customizing the CSS](#customizing-the-css)
+  - [Database Notifications](#database-notifications)
+    - [Prerequisites](#prerequisites)
+    - [Formatting Database Notifications](#formatting-database-notifications)
+      - [`toDatabase` vs. `toArray`](#todatabase-vs-toarray)
+    - [Accessing the Notifications](#accessing-the-notifications)
+    - [Marking Notifications as Read](#marking-notifications-as-read)
+  - [Broadcast Notifications](#broadcast-notifications)
+    - [Prerequisites](#prerequisites-1)
+    - [Formatting Broadcast Notifications](#formatting-broadcast-notifications)
+      - [Broadcast Queue Configuration](#broadcast-queue-configuration)
+      - [Customizing the Notification Type](#customizing-the-notification-type)
+    - [Listening for Notifications](#listening-for-notifications)
+      - [Using React or Vue](#using-react-or-vue)
+      - [Customizing the Notification Channel](#customizing-the-notification-channel)
+  - [SMS Notifications](#sms-notifications)
+    - [Prerequisites](#prerequisites-2)
+    - [Formatting SMS Notifications](#formatting-sms-notifications)
+      - [Unicode Content](#unicode-content)
+    - [Customizing the "From" Number](#customizing-the-from-number)
+    - [Adding a Client Reference](#adding-a-client-reference)
+    - [Routing SMS Notifications](#routing-sms-notifications)
+  - [Slack Notifications](#slack-notifications)
+    - [Prerequisites](#prerequisites-3)
+      - [App Distribution](#app-distribution)
+    - [Formatting Slack Notifications](#formatting-slack-notifications)
+      - [Using Slack's Block Kit Builder Template](#using-slacks-block-kit-builder-template)
+    - [Slack Interactivity](#slack-interactivity)
+      - [Confirmation Modals](#confirmation-modals)
+      - [Inspecting Slack Blocks](#inspecting-slack-blocks)
+    - [Routing Slack Notifications](#routing-slack-notifications)
+  - [Localizing Notifications](#localizing-notifications)
+    - [User Preferred Locales](#user-preferred-locales)
+  - [Testing](#testing)
+    - [On-Demand Notifications](#on-demand-notifications-1)
+  - [Notification Events](#notification-events)
+    - [Notification Sending Event](#notification-sending-event)
+    - [Notification Sent Event](#notification-sent-event)
+  - [Custom Channels](#custom-channels)
 
 <a name="introduction"></a>
 
@@ -1427,7 +1455,7 @@ Next, copy the App's "Bot User OAuth Token" and place it within a `slack` config
 
 #### App Distribution
 
-If your application will be sending notifications to external Slack workspaces that are owned by your application's users, you will need to "distribute" your App via Slack. App distribution can be managed from your App's "Manage Distribution" tab within Slack. Once your App has been distributed, you may use [Socialite](./socialite) to [obtain Slack Bot tokens](./socialite#slack-bot-scopes) on behalf of your application's users.
+If your application will be sending notifications to external Slack workspaces that are owned by your application's users, you will need to "distribute" your App via Slack. App distribution can be managed from your App's "Manage Distribution" tab within Slack.
 
 <a name="formatting-slack-notifications"></a>
 
@@ -1627,41 +1655,6 @@ class User extends Authenticatable
     public function routeNotificationForSlack(Notification $notification): mixed
     {
         return '#support-channel';
-    }
-}
-```
-
-<a name="notifying-external-slack-workspaces"></a>
-
-### Notifying External Slack Workspaces
-
-> [!NOTE]
-> Before sending notifications to external Slack workspaces, your Slack App must be [distributed](#slack-app-distribution).
-
-Of course, you will often want to send notifications to the Slack workspaces owned by your application's users. To do so, you will first need to obtain a Slack OAuth token for the user. Thankfully, [Laravel Socialite](./socialite) includes a Slack driver that will allow you to easily authenticate your application's users with Slack and [obtain a bot token](./socialite#slack-bot-scopes).
-
-Once you have obtained the bot token and stored it within your application's database, you may utilize the `SlackRoute::make` method to route a notification to the user's workspace. In addition, your application will likely need to offer an opportunity for the user to specify which channel notifications should be sent to:
-
-```php
-<?php
-
-namespace App\Models;
-
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
-use Illuminate\Notifications\Notification;
-use Illuminate\Notifications\Slack\SlackRoute;
-
-class User extends Authenticatable
-{
-    use Notifiable;
-
-    /**
-     * Route notifications for the Slack channel.
-     */
-    public function routeNotificationForSlack(Notification $notification): mixed
-    {
-        return SlackRoute::make($this->slack_channel, $this->slack_token);
     }
 }
 ```

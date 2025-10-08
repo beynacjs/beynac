@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
 
+import { Glob } from "bun";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseFeaturesMarkdown, type Feature } from "./parse-features-md.js";
 import { analyzeFile } from "./port-utils.js";
-import { Glob } from "bun";
 
 interface FileInfo {
   path: string; // Full filesystem path from repo root
@@ -174,7 +174,7 @@ async function checkFilesCoverage(stats: FeatureStats[]): Promise<string | null>
             `Duplicate file found:\n` +
               `  File: ${fileInfo.path}\n` +
               `  First occurrence: ${allFilesGlobal.get(fileInfo.path)}\n` +
-              `  Second occurrence: ${currentPath}`
+              `  Second occurrence: ${currentPath}`,
           );
         }
         allFilesGlobal.set(fileInfo.path, currentPath);
@@ -191,7 +191,7 @@ async function checkFilesCoverage(stats: FeatureStats[]): Promise<string | null>
             `Duplicate file found:\n` +
               `  File: ${fileInfo.path}\n` +
               `  First occurrence: ${allFilesGlobal.get(fileInfo.path)}\n` +
-              `  Second occurrence: ${currentPath}`
+              `  Second occurrence: ${currentPath}`,
           );
         }
         allFilesGlobal.set(fileInfo.path, currentPath);
@@ -226,7 +226,12 @@ async function checkFilesCoverage(stats: FeatureStats[]): Promise<string | null>
   }
 
   if (missingFiles.length > 0) {
-    return `Missing ${missingFiles.length} file(s) from features.md:\n${missingFiles.slice(0, 20).map((f) => `  - ${f}`).join("\n")}${missingFiles.length > 20 ? `\n  ... and ${missingFiles.length - 20} more` : ""}`;
+    return `Missing ${missingFiles.length} file(s) from features.md:\n${missingFiles
+      .slice(0, 20)
+      .map((f) => `  - ${f}`)
+      .join(
+        "\n",
+      )}${missingFiles.length > 20 ? `\n  ... and ${missingFiles.length - 20} more` : ""}`;
   }
 
   return null;
@@ -255,9 +260,7 @@ function generateRow(stat: FeatureStats, level: number = 0): string {
   const totalFileCount = stat.fileInfos.length;
 
   // Generate files list for details element
-  const sortedFiles = [...stat.fileInfos].sort((a, b) =>
-    a.path.localeCompare(b.path),
-  );
+  const sortedFiles = [...stat.fileInfos].sort((a, b) => a.path.localeCompare(b.path));
   const filesList = sortedFiles
     .map((f) => {
       // File paths are now relative to Laravel folder (src/Illuminate/... or tests/...)
@@ -297,7 +300,9 @@ async function main() {
   console.log("📊 Generating progress report...");
 
   // Parse features from markdown (located in Laravel folder at repo root)
-  const features = await parseFeaturesMarkdown(join(import.meta.dir, "../../../../laravel/features.md"));
+  const features = await parseFeaturesMarkdown(
+    join(import.meta.dir, "../../../../laravel/features.md"),
+  );
 
   // First pass: collect all ignored files globally
   const globalIgnoredFiles = new Set<string>();
