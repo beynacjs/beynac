@@ -622,6 +622,47 @@ describe("Container", () => {
     );
   });
 
+  test("call closure with dependency injection", () => {
+    const result = container.call(() => {
+      const dep = inject(Dep);
+      return dep.name;
+    });
+
+    expect(result).toBe("default");
+
+    // Without container.call, inject should throw
+    expect(() => {
+      const dep = inject(Dep);
+      return dep.name;
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"Dependencies that use inject() must be created by the container. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`,
+    );
+  });
+
+  test("call closure with custom bound dependency", () => {
+    container.bind(Dep, { factory: () => new Dep("custom") });
+
+    const result = container.call(() => {
+      const dep = inject(Dep);
+      return dep.name;
+    });
+
+    expect(result).toBe("custom");
+  });
+
+  test("call closure returns closure return value", () => {
+    const result = container.call(() => {
+      return { value: 42, nested: { data: "test" } };
+    });
+
+    expect(result).toEqual({ value: 42, nested: { data: "test" } });
+  });
+
+  test("call closure with no dependencies", () => {
+    const result = container.call(() => "hello world");
+    expect(result).toBe("hello world");
+  });
+
   test("container can catch circular dependency", () => {
     class Root {
       constructor(public a: unknown = inject(A)) {}

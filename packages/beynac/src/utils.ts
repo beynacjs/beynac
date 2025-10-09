@@ -39,7 +39,8 @@ export class SetMultiMap<K, V> extends MultiMap<K, V> {
   }
 
   hasAny(key: K): boolean {
-    return this.#map.get(key)?.size !== 0;
+    const set = this.#map.get(key);
+    return set !== undefined && set.size > 0;
   }
 
   delete(key: K, value: V): void {
@@ -101,3 +102,41 @@ export class ArrayMultiMap<K, V> extends MultiMap<K, V> {
 export type MethodNamesWithNoRequiredArgs<T> = {
   [K in keyof T]: T[K] extends () => unknown ? K : never;
 }[keyof T];
+
+/**
+ * A constructor function that accepts any arguments
+ */
+export type Constructor<T = unknown> = abstract new (...args: never[]) => T;
+
+/**
+ * A constructor function that accepts no arguments
+ */
+export type NoArgConstructor<T = unknown> = abstract new () => T;
+
+/**
+ * Generator function that walks up the prototype chain from an instance or constructor.
+ * Yields each constructor in the chain from most specific to least specific,
+ * including Object.
+ *
+ * @param instanceOrClass - Either an instance of a class or a constructor function
+ * @yields Constructor functions in the prototype chain
+ */
+export function* getPrototypeChain(instanceOrClass: object | Constructor): Generator<Constructor> {
+  // Start with the appropriate prototype based on input type
+  let prototype: unknown =
+    typeof instanceOrClass === "function"
+      ? instanceOrClass.prototype
+      : Object.getPrototypeOf(instanceOrClass);
+
+  // Walk up the prototype chain
+  while (prototype) {
+    const constructor = (prototype as { constructor: Constructor }).constructor;
+    if (typeof constructor === "function") {
+      yield constructor;
+    }
+    if (prototype === Object.prototype) {
+      break;
+    }
+    prototype = Object.getPrototypeOf(prototype);
+  }
+}

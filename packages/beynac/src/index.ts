@@ -5,9 +5,10 @@ export {
   Lifecycle,
   inject,
   injectOptional,
-  type ClassReference,
+  type Constructor,
   type FactoryFunction,
   type InstanceCallback,
+  type NoArgConstructor,
 } from "./container/index";
 
 export { BeynacError } from "./error";

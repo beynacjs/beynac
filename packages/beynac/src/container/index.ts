@@ -5,6 +5,6 @@ export {
   type Lifecycle,
 } from "./container";
 
-export type { ClassReference } from "./container-key";
+export type { Constructor, NoArgConstructor } from "../utils";
 
 export { inject, injectOptional } from "./inject";

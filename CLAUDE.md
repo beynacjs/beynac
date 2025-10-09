@@ -1,5 +1,7 @@
 # Agent Instructions for Beynac
 
+When I ask questions, answer briefly to minimise time taken to read response. I'll ask for more information if I need it.
+
 ## General instructions for tasks
 
 - After you have finished a task, run the formatter then check for issues with `bun check`. Only fix issues that are related to the code you're working on. If there are unrelated lint or test issues elsewhere in the codebase report them but no not fix them.

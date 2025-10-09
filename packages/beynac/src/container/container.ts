@@ -5,11 +5,13 @@ import {
   ArrayMultiMap,
   arrayWrap,
   describeType,
+  getPrototypeChain,
   MethodNamesWithNoRequiredArgs,
+  type NoArgConstructor,
   SetMultiMap,
 } from "../utils";
 import { ContextualBindingBuilder } from "./ContextualBindingBuilder";
-import { type ClassReference, getKeyName, type KeyOrClass } from "./container-key";
+import { getKeyName, type KeyOrClass } from "./container-key";
 import { _getInjectHandler, _setInjectHandler } from "./inject";
 import { NO_VALUE, type NoValue } from "./no-value";
 
@@ -165,7 +167,7 @@ export class Container {
    */
   public bind<T, C extends Container>(
     this: C,
-    key: ClassReference<T>,
+    key: NoArgConstructor<T>,
     args?: BindClassArgs<T, C>,
   ): void;
 
@@ -659,18 +661,21 @@ export class Container {
     if (instance == null) return;
 
     // Also fire callbacks for types that the object is an instance of
-    let prototype: unknown = Object.getPrototypeOf(instance);
-    while (prototype) {
-      const classReference = prototype.constructor as ClassReference;
-      if (typeof classReference !== "function") {
-        break;
+    for (const constructor of getPrototypeChain(instance)) {
+      if (constructor !== key) {
+        fireForType(constructor);
       }
-      if (classReference !== key) {
-        fireForType(classReference);
-      }
-      prototype = Object.getPrototypeOf(prototype);
     }
   }
+
+  /**
+   * Call a closure in the context of the container, allowing
+   * dependencies to be injected.
+   *
+   * @param closure The closure to call
+   * @returns The return value of the closure
+   */
+  public call<R>(closure: () => R): R;
 
   /**
    * Call a method on an object in the context of the container, allowing
@@ -678,11 +683,36 @@ export class Container {
    *
    * The method may declare injected dependencies and contextual bindings can
    * be used to override the dependencies given to the object.
+   *
+   * @param object The object containing the method
+   * @param methodName The name of the method to call
+   * @returns The return value of the method
    */
   public call<T extends object, K extends MethodNamesWithNoRequiredArgs<T>>(
     object: T,
     methodName: K,
-  ): T[K] extends () => infer R ? R : never {
+  ): T[K] extends () => infer R ? R : never;
+
+  public call<T extends object, K extends keyof T, R>(
+    objectOrClosure: T | (() => R),
+    methodName?: K,
+  ): R | (T[K] extends () => infer R2 ? R2 : never) {
+    // If only one argument and it's a function, it's a closure
+    if (arguments.length === 1 && typeof objectOrClosure === "function") {
+      const closure = objectOrClosure;
+      const previousInjectHandler = _getInjectHandler();
+      try {
+        _setInjectHandler(<TArg>(dependency: KeyOrClass<TArg>, optional: boolean) => {
+          return this.#getInjected(undefined, dependency, optional) as TArg;
+        });
+        return closure();
+      } finally {
+        _setInjectHandler(previousInjectHandler);
+      }
+    }
+
+    // Otherwise it's an object method call
+    const object = objectOrClosure as T;
     const dependent = (Object.getPrototypeOf(object) as object).constructor as
       | KeyOrClass
       | undefined;
@@ -697,7 +727,7 @@ export class Container {
       if (!o[m]) {
         throw new Error(`Method ${m} not found on object`);
       }
-      return o[m]() as T[K] extends () => infer R ? R : never;
+      return o[m]() as T[K] extends () => infer R2 ? R2 : never;
     } finally {
       _setInjectHandler(previousInjectHandler);
     }

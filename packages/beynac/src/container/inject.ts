@@ -1,12 +1,13 @@
 import { BeynacError } from "../error";
 import { isKey, type Key } from "../keys";
-import { type ClassReference, getKeyName, type KeyOrClass } from "./container-key";
+import { NoArgConstructor } from "../utils";
+import { getKeyName, type KeyOrClass } from "./container-key";
 import { NO_VALUE, type NoValue } from "./no-value";
 
 const invalidInjectMessage = `Dependencies that use inject() must be created by the container. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms`;
 
 export function inject<T>(token: Key<T>): Exclude<T, undefined>;
-export function inject<T>(token: ClassReference<T>): T;
+export function inject<T>(token: NoArgConstructor<T>): T;
 
 /**
  * Inject a dependency into a class constructor. Use this method with JavaScript
@@ -38,7 +39,7 @@ export function inject<T>(arg: KeyOrClass<T>): Exclude<T, undefined> {
 }
 
 export function injectOptional<T>(token: Key<T>): Exclude<T, undefined> | null;
-export function injectOptional<T>(token: ClassReference<T>): T | null;
+export function injectOptional<T>(token: NoArgConstructor<T>): T | null;
 
 /**
  * Inject an optional dependency into a class constructor. Use like `inject()`.
