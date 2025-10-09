@@ -1,7 +1,13 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { BeynacError } from "../error";
 import { isKey, type Key } from "../keys";
-import { ArrayMultiMap, arrayWrap, describeType, SetMultiMap } from "../utils";
+import {
+  ArrayMultiMap,
+  arrayWrap,
+  describeType,
+  MethodNamesWithNoRequiredArgs,
+  SetMultiMap,
+} from "../utils";
 import { ContextualBindingBuilder } from "./ContextualBindingBuilder";
 import { type ClassReference, getKeyName, type KeyOrClass } from "./container-key";
 import { _getInjectHandler, _setInjectHandler } from "./inject";
@@ -673,9 +679,9 @@ export class Container {
    * The method may declare injected dependencies and contextual bindings can
    * be used to override the dependencies given to the object.
    */
-  public call<T extends object, K extends keyof T>(
+  public call<T extends object, K extends MethodNamesWithNoRequiredArgs<T>>(
     object: T,
-    methodName: T[K] extends () => unknown ? K : never,
+    methodName: K,
   ): T[K] extends () => infer R ? R : never {
     const dependent = (Object.getPrototypeOf(object) as object).constructor as
       | KeyOrClass

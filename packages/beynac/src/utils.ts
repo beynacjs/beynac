@@ -94,3 +94,10 @@ export class ArrayMultiMap<K, V> extends MultiMap<K, V> {
     this.#map.clear();
   }
 }
+
+/**
+ * Extract method names from T that have no required arguments (all parameters are optional)
+ */
+export type MethodNamesWithNoRequiredArgs<T> = {
+  [K in keyof T]: T[K] extends () => unknown ? K : never;
+}[keyof T];
