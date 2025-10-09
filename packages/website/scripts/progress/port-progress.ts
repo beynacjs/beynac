@@ -6,7 +6,7 @@ import {
 	findPhpFiles,
 	analyzeFile,
 	type FileStats,
-} from "../packages/website/scripts/port-utils.js";
+} from "./port-utils.js";
 
 async function main() {
 	try {

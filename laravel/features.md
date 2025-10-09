@@ -1470,7 +1470,7 @@
 [](tests/Foundation/Http/Middleware/TransformsRequestTest.php)
 [](tests/Foundation/Http/Middleware/TrimStringsTest.php)
 
-## Client
+## Client IGNORED
 
 [](src/Illuminate/Http/Client/Concerns/DeterminesStatusCode.php)
 [](src/Illuminate/Http/Client/ConnectionException.php)
@@ -1486,6 +1486,7 @@
 [](src/Illuminate/Http/Client/Response.php)
 [](src/Illuminate/Http/Client/ResponseSequence.php)
 [](src/Illuminate/Http/Client/StrayRequestException.php)
+[](src/Illuminate/Support/Facades/Http.php)
 
 ## Middleware
 
