@@ -21,13 +21,11 @@ test("all files should be categorized (no files in Uncategorised section)", asyn
   const uncategorisedFiles = uncategorised ? collectFiles(uncategorised) : [];
 
   if (uncategorisedFiles.length > 0) {
-    const fileList = uncategorisedFiles.slice(0, 20).join("\n  - ");
-    const more =
-      uncategorisedFiles.length > 20 ? `\n  ... and ${uncategorisedFiles.length - 20} more` : "";
+    const fileList = uncategorisedFiles.join("\n  - ");
     throw new Error(
       `Found ${uncategorisedFiles.length} uncategorised file(s) in features.md.\n` +
         `All files must be categorized into specific feature sections.\n\n` +
-        `Files in Uncategorised section:\n  - ${fileList}${more}`,
+        `Files in Uncategorised section:\n  - ${fileList}`,
     );
   }
 

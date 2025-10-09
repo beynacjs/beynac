@@ -66,6 +66,15 @@
 [](tests/Auth/AuthorizesResourcesTest.php)
 [](tests/Auth/EnsureEmailIsVerifiedTest.php)
 [](tests/Auth/Enums.php)
+[](src/Illuminate/Foundation/Auth/Access/Authorizable.php)
+[](src/Illuminate/Foundation/Auth/Access/AuthorizesRequests.php)
+[](src/Illuminate/Foundation/Auth/EmailVerificationRequest.php)
+[](src/Illuminate/Foundation/Auth/User.php)
+
+
+## Testing
+
+[](src/Illuminate/Foundation/Testing/Concerns/InteractsWithAuthentication.php)
 
 # Broadcasting
 
@@ -397,6 +406,12 @@
 [](tests/Integration/Console/Scheduling/SubMinuteSchedulingTest.php)
 [](tests/Integration/Console/UniqueJobSchedulingTest.php)
 
+
+## Testing
+
+[](src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php)
+[](src/Illuminate/Foundation/Testing/WithConsoleEvents.php)
+
 # Contracts
 
 ## Auth
@@ -479,18 +494,6 @@
 [](src/Illuminate/Database/Concerns/ManagesTransactions.php)
 [](src/Illuminate/Database/Concerns/ParsesSearchPath.php)
 [](src/Illuminate/Database/ConfigurationUrlParser.php)
-[](src/Illuminate/Database/Console/DatabaseInspectionCommand.php)
-[](src/Illuminate/Database/Console/DbCommand.php)
-[](src/Illuminate/Database/Console/DumpCommand.php)
-[](src/Illuminate/Database/Console/Factories/FactoryMakeCommand.php)
-[](src/Illuminate/Database/Console/MonitorCommand.php)
-[](src/Illuminate/Database/Console/PruneCommand.php)
-[](src/Illuminate/Database/Console/Seeds/SeedCommand.php)
-[](src/Illuminate/Database/Console/Seeds/WithoutModelEvents.php)
-[](src/Illuminate/Database/Console/ShowCommand.php)
-[](src/Illuminate/Database/Console/ShowModelCommand.php)
-[](src/Illuminate/Database/Console/TableCommand.php)
-[](src/Illuminate/Database/Console/WipeCommand.php)
 [](src/Illuminate/Database/DatabaseManager.php)
 [](src/Illuminate/Database/DatabaseServiceProvider.php)
 [](src/Illuminate/Database/DatabaseTransactionRecord.php)
@@ -806,6 +809,32 @@
 [](tests/Integration/Database/TimestampTypeTest.php)
 [](tests/Integration/Database/stubs/2014_10_12_000000_create_members_table.php)
 
+## Console commands
+
+[](src/Illuminate/Database/Console/DatabaseInspectionCommand.php)
+[](src/Illuminate/Database/Console/DbCommand.php)
+[](src/Illuminate/Database/Console/DumpCommand.php)
+[](src/Illuminate/Database/Console/Factories/FactoryMakeCommand.php)
+[](src/Illuminate/Database/Console/Migrations/BaseCommand.php)
+[](src/Illuminate/Database/Console/Migrations/FreshCommand.php)
+[](src/Illuminate/Database/Console/Migrations/InstallCommand.php)
+[](src/Illuminate/Database/Console/Migrations/MigrateCommand.php)
+[](src/Illuminate/Database/Console/Migrations/MigrateMakeCommand.php)
+[](src/Illuminate/Database/Console/Migrations/RefreshCommand.php)
+[](src/Illuminate/Database/Console/Migrations/ResetCommand.php)
+[](src/Illuminate/Database/Console/Migrations/RollbackCommand.php)
+[](src/Illuminate/Database/Console/Migrations/StatusCommand.php)
+[](src/Illuminate/Database/Console/Migrations/TableGuesser.php)
+[](src/Illuminate/Database/Console/MonitorCommand.php)
+[](src/Illuminate/Database/Console/PruneCommand.php)
+[](src/Illuminate/Database/Console/Seeds/SeedCommand.php)
+[](src/Illuminate/Database/Console/Seeds/SeederMakeCommand.php)
+[](src/Illuminate/Database/Console/Seeds/WithoutModelEvents.php)
+[](src/Illuminate/Database/Console/ShowCommand.php)
+[](src/Illuminate/Database/Console/ShowModelCommand.php)
+[](src/Illuminate/Database/Console/TableCommand.php)
+[](src/Illuminate/Database/Console/WipeCommand.php)
+
 ## Connections
 
 [](src/Illuminate/Database/Connection.php)
@@ -846,16 +875,6 @@
 ## Database Migrations
 
 [](src/Illuminate/Contracts/Database/Events/MigrationEvent.php)
-[](src/Illuminate/Database/Console/Migrations/BaseCommand.php)
-[](src/Illuminate/Database/Console/Migrations/FreshCommand.php)
-[](src/Illuminate/Database/Console/Migrations/InstallCommand.php)
-[](src/Illuminate/Database/Console/Migrations/MigrateCommand.php)
-[](src/Illuminate/Database/Console/Migrations/MigrateMakeCommand.php)
-[](src/Illuminate/Database/Console/Migrations/RefreshCommand.php)
-[](src/Illuminate/Database/Console/Migrations/ResetCommand.php)
-[](src/Illuminate/Database/Console/Migrations/RollbackCommand.php)
-[](src/Illuminate/Database/Console/Migrations/StatusCommand.php)
-[](src/Illuminate/Database/Console/Migrations/TableGuesser.php)
 [](src/Illuminate/Database/Events/MigrationEnded.php)
 [](src/Illuminate/Database/Events/MigrationEvent.php)
 [](src/Illuminate/Database/Events/MigrationStarted.php)
@@ -1048,9 +1067,21 @@
 
 ## Seeding
 
-[](src/Illuminate/Database/Console/Seeds/SeederMakeCommand.php)
 [](src/Illuminate/Database/Seeder.php)
 [](tests/Database/DatabaseSeederTest.php)
+
+
+## Testing
+
+[](src/Illuminate/Foundation/Testing/Concerns/InteractsWithDatabase.php)
+[](src/Illuminate/Foundation/Testing/DatabaseTransactions.php)
+[](src/Illuminate/Foundation/Testing/DatabaseTransactionsManager.php)
+[](src/Illuminate/Foundation/Testing/DatabaseTruncation.php)
+[](src/Illuminate/Foundation/Testing/LazilyRefreshDatabase.php)
+[](src/Illuminate/Foundation/Testing/RefreshDatabase.php)
+[](src/Illuminate/Foundation/Testing/RefreshDatabaseState.php)
+[](tests/Foundation/Testing/DatabaseTransactionsManagerTest.php)
+[](tests/Foundation/Testing/DatabaseTruncationTest.php)
 
 # Encryption
 
@@ -1084,10 +1115,6 @@
 [](src/Illuminate/Contracts/Foundation/MaintenanceMode.php)
 [](src/Illuminate/Foundation/AliasLoader.php)
 [](src/Illuminate/Foundation/Application.php)
-[](src/Illuminate/Foundation/Auth/Access/Authorizable.php)
-[](src/Illuminate/Foundation/Auth/Access/AuthorizesRequests.php)
-[](src/Illuminate/Foundation/Auth/EmailVerificationRequest.php)
-[](src/Illuminate/Foundation/Auth/User.php)
 [](src/Illuminate/Foundation/Bus/Dispatchable.php)
 [](src/Illuminate/Foundation/Bus/DispatchesJobs.php)
 [](src/Illuminate/Foundation/Bus/PendingChain.php)
@@ -1317,63 +1344,10 @@
 
 ## HTTP Kernel
 
-[](src/Illuminate/Foundation/Http/Events/RequestHandled.php)
-[](src/Illuminate/Foundation/Http/FormRequest.php)
-[](src/Illuminate/Foundation/Http/HtmlDumper.php)
-[](src/Illuminate/Foundation/Http/Kernel.php)
-[](src/Illuminate/Foundation/Http/MaintenanceModeBypassCookie.php)
-[](src/Illuminate/Foundation/Http/Middleware/CheckForMaintenanceMode.php)
-[](src/Illuminate/Foundation/Http/Middleware/Concerns/ExcludesPaths.php)
-[](src/Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull.php)
-[](src/Illuminate/Foundation/Http/Middleware/HandlePrecognitiveRequests.php)
-[](src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php)
-[](src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php)
-[](src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php)
-[](src/Illuminate/Foundation/Http/Middleware/TrimStrings.php)
-[](src/Illuminate/Foundation/Http/Middleware/ValidateCsrfToken.php)
-[](src/Illuminate/Foundation/Http/Middleware/ValidatePostSize.php)
-[](src/Illuminate/Foundation/Http/Middleware/VerifyCsrfToken.php)
-[](tests/Foundation/Http/HtmlDumperTest.php)
-[](tests/Foundation/Http/KernelTest.php)
-[](tests/Foundation/Http/Middleware/ConvertEmptyStringsToNullTest.php)
-[](tests/Foundation/Http/Middleware/TransformsRequestTest.php)
-[](tests/Foundation/Http/Middleware/TrimStringsTest.php)
 [](tests/Foundation/Http/Middleware/ValidatePathEncodingTest.php)
 
 ## Testing
 
-[](src/Illuminate/Foundation/Testing/Concerns/InteractsWithAuthentication.php)
-[](src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php)
-[](src/Illuminate/Foundation/Testing/Concerns/InteractsWithContainer.php)
-[](src/Illuminate/Foundation/Testing/Concerns/InteractsWithDatabase.php)
-[](src/Illuminate/Foundation/Testing/Concerns/InteractsWithDeprecationHandling.php)
-[](src/Illuminate/Foundation/Testing/Concerns/InteractsWithExceptionHandling.php)
-[](src/Illuminate/Foundation/Testing/Concerns/InteractsWithRedis.php)
-[](src/Illuminate/Foundation/Testing/Concerns/InteractsWithSession.php)
-[](src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php)
-[](src/Illuminate/Foundation/Testing/Concerns/InteractsWithTime.php)
-[](src/Illuminate/Foundation/Testing/Concerns/InteractsWithViews.php)
-[](src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php)
-[](src/Illuminate/Foundation/Testing/Concerns/WithoutExceptionHandlingHandler.php)
-[](src/Illuminate/Foundation/Testing/DatabaseTransactions.php)
-[](src/Illuminate/Foundation/Testing/DatabaseTransactionsManager.php)
-[](src/Illuminate/Foundation/Testing/DatabaseTruncation.php)
-[](src/Illuminate/Foundation/Testing/LazilyRefreshDatabase.php)
-[](src/Illuminate/Foundation/Testing/RefreshDatabase.php)
-[](src/Illuminate/Foundation/Testing/RefreshDatabaseState.php)
-[](src/Illuminate/Foundation/Testing/TestCase.php)
-[](src/Illuminate/Foundation/Testing/WithConsoleEvents.php)
-[](src/Illuminate/Foundation/Testing/WithFaker.php)
-[](src/Illuminate/Foundation/Testing/WithoutMiddleware.php)
-[](src/Illuminate/Foundation/Testing/Wormhole.php)
-[](tests/Foundation/Testing/BootTraitsTest.php)
-[](tests/Foundation/Testing/Concerns/InteractsWithContainerTest.php)
-[](tests/Foundation/Testing/Concerns/InteractsWithViewsTest.php)
-[](tests/Foundation/Testing/Concerns/MakesHttpRequestsTest.php)
-[](tests/Foundation/Testing/DatabaseTransactionsManagerTest.php)
-[](tests/Foundation/Testing/DatabaseTruncationTest.php)
-[](tests/Foundation/Testing/RefreshDatabaseTest.php)
-[](tests/Foundation/Testing/WormholeTest.php)
 [](tests/Integration/Foundation/Testing/Concerns/InteractsWithAuthenticationTest.php)
 [](tests/Integration/Foundation/Testing/Concerns/MakeHttpRequestsTest.php)
 
@@ -1474,6 +1448,27 @@
 [](tests/Integration/Http/ResponseTest.php)
 [](tests/Integration/Http/ThrottleRequestsTest.php)
 [](tests/Integration/Http/ThrottleRequestsWithRedisTest.php)
+[](src/Illuminate/Foundation/Http/Events/RequestHandled.php)
+[](src/Illuminate/Foundation/Http/FormRequest.php)
+[](src/Illuminate/Foundation/Http/HtmlDumper.php)
+[](src/Illuminate/Foundation/Http/Kernel.php)
+[](src/Illuminate/Foundation/Http/MaintenanceModeBypassCookie.php)
+[](src/Illuminate/Foundation/Http/Middleware/CheckForMaintenanceMode.php)
+[](src/Illuminate/Foundation/Http/Middleware/Concerns/ExcludesPaths.php)
+[](src/Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull.php)
+[](src/Illuminate/Foundation/Http/Middleware/HandlePrecognitiveRequests.php)
+[](src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php)
+[](src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php)
+[](src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php)
+[](src/Illuminate/Foundation/Http/Middleware/TrimStrings.php)
+[](src/Illuminate/Foundation/Http/Middleware/ValidateCsrfToken.php)
+[](src/Illuminate/Foundation/Http/Middleware/ValidatePostSize.php)
+[](src/Illuminate/Foundation/Http/Middleware/VerifyCsrfToken.php)
+[](tests/Foundation/Http/HtmlDumperTest.php)
+[](tests/Foundation/Http/KernelTest.php)
+[](tests/Foundation/Http/Middleware/ConvertEmptyStringsToNullTest.php)
+[](tests/Foundation/Http/Middleware/TransformsRequestTest.php)
+[](tests/Foundation/Http/Middleware/TrimStringsTest.php)
 
 ## Client
 
@@ -1511,9 +1506,14 @@
 [](tests/Integration/Http/Middleware/VerifyCsrfTokenExceptStub.php)
 [](tests/Integration/Http/Middleware/VerifyCsrfTokenExceptTest.php)
 
-# Ignored
 
-## IDE stub files
+## Testing
+
+[](src/Illuminate/Foundation/Testing/Concerns/MakesHttpRequests.php)
+[](src/Illuminate/Foundation/Testing/WithoutMiddleware.php)
+[](tests/Foundation/Testing/Concerns/MakesHttpRequestsTest.php)
+
+# IDE stub files IGNORED
 
 [](types/Autoload.php)
 [](types/Cache/Repository.php)
@@ -1942,36 +1942,12 @@
 [](src/Illuminate/Foundation/Queue/Queueable.php)
 [](src/Illuminate/Queue/Attributes/DeleteWhenMissingModels.php)
 [](src/Illuminate/Queue/Attributes/WithoutRelations.php)
-[](src/Illuminate/Queue/BeanstalkdQueue.php)
 [](src/Illuminate/Queue/CallQueuedClosure.php)
 [](src/Illuminate/Queue/CallQueuedHandler.php)
 [](src/Illuminate/Queue/Capsule/Manager.php)
-[](src/Illuminate/Queue/Connectors/BeanstalkdConnector.php)
 [](src/Illuminate/Queue/Connectors/ConnectorInterface.php)
-[](src/Illuminate/Queue/Connectors/DatabaseConnector.php)
 [](src/Illuminate/Queue/Connectors/NullConnector.php)
 [](src/Illuminate/Queue/Connectors/RedisConnector.php)
-[](src/Illuminate/Queue/Connectors/SqsConnector.php)
-[](src/Illuminate/Queue/Connectors/SyncConnector.php)
-[](src/Illuminate/Queue/Console/BatchesTableCommand.php)
-[](src/Illuminate/Queue/Console/ClearCommand.php)
-[](src/Illuminate/Queue/Console/FailedTableCommand.php)
-[](src/Illuminate/Queue/Console/FlushFailedCommand.php)
-[](src/Illuminate/Queue/Console/ForgetFailedCommand.php)
-[](src/Illuminate/Queue/Console/ListFailedCommand.php)
-[](src/Illuminate/Queue/Console/ListenCommand.php)
-[](src/Illuminate/Queue/Console/MonitorCommand.php)
-[](src/Illuminate/Queue/Console/PruneBatchesCommand.php)
-[](src/Illuminate/Queue/Console/PruneFailedJobsCommand.php)
-[](src/Illuminate/Queue/Console/RestartCommand.php)
-[](src/Illuminate/Queue/Console/RetryBatchCommand.php)
-[](src/Illuminate/Queue/Console/RetryCommand.php)
-[](src/Illuminate/Queue/Console/TableCommand.php)
-[](src/Illuminate/Queue/Console/WorkCommand.php)
-[](src/Illuminate/Queue/Console/stubs/batches.stub)
-[](src/Illuminate/Queue/Console/stubs/failed_jobs.stub)
-[](src/Illuminate/Queue/Console/stubs/jobs.stub)
-[](src/Illuminate/Queue/DatabaseQueue.php)
 [](src/Illuminate/Queue/Events/JobAttempted.php)
 [](src/Illuminate/Queue/Events/JobExceptionOccurred.php)
 [](src/Illuminate/Queue/Events/JobFailed.php)
@@ -1998,15 +1974,10 @@
 [](src/Illuminate/Queue/Failed/PrunableFailedJobProvider.php)
 [](src/Illuminate/Queue/InteractsWithQueue.php)
 [](src/Illuminate/Queue/InvalidPayloadException.php)
-[](src/Illuminate/Queue/Jobs/BeanstalkdJob.php)
-[](src/Illuminate/Queue/Jobs/DatabaseJob.php)
-[](src/Illuminate/Queue/Jobs/DatabaseJobRecord.php)
 [](src/Illuminate/Queue/Jobs/FakeJob.php)
 [](src/Illuminate/Queue/Jobs/Job.php)
 [](src/Illuminate/Queue/Jobs/JobName.php)
 [](src/Illuminate/Queue/Jobs/RedisJob.php)
-[](src/Illuminate/Queue/Jobs/SqsJob.php)
-[](src/Illuminate/Queue/Jobs/SyncJob.php)
 [](src/Illuminate/Queue/Listener.php)
 [](src/Illuminate/Queue/ListenerOptions.php)
 [](src/Illuminate/Queue/LuaScripts.php)
@@ -2027,8 +1998,6 @@
 [](src/Illuminate/Queue/RedisQueue.php)
 [](src/Illuminate/Queue/SerializesAndRestoresModelIdentifiers.php)
 [](src/Illuminate/Queue/SerializesModels.php)
-[](src/Illuminate/Queue/SqsQueue.php)
-[](src/Illuminate/Queue/SyncQueue.php)
 [](src/Illuminate/Queue/TimeoutExceededException.php)
 [](src/Illuminate/Queue/Worker.php)
 [](src/Illuminate/Queue/WorkerOptions.php)
@@ -2062,7 +2031,6 @@
 [](tests/Integration/Queue/UniqueJobTest.php)
 [](tests/Integration/Queue/UniqueUntilProcessingJobTest.php)
 [](tests/Integration/Queue/WithoutOverlappingJobsTest.php)
-[](tests/Integration/Queue/WorkCommandTest.php)
 [](tests/Integration/Queue/typed-properties.php)
 [](tests/Queue/DatabaseFailedJobProviderTest.php)
 [](tests/Queue/DatabaseUuidFailedJobProviderTest.php)
@@ -2070,11 +2038,6 @@
 [](tests/Queue/FailOnExceptionMiddlewareTest.php)
 [](tests/Queue/FileFailedJobProviderTest.php)
 [](tests/Queue/InteractsWithQueueTest.php)
-[](tests/Queue/PruneBatchesCommandTest.php)
-[](tests/Queue/QueueBeanstalkdJobTest.php)
-[](tests/Queue/QueueBeanstalkdQueueTest.php)
-[](tests/Queue/QueueDatabaseQueueIntegrationTest.php)
-[](tests/Queue/QueueDatabaseQueueUnitTest.php)
 [](tests/Queue/QueueDelayTest.php)
 [](tests/Queue/QueueExceptionTest.php)
 [](tests/Queue/QueueListenerTest.php)
@@ -2082,13 +2045,72 @@
 [](tests/Queue/QueueRedisJobTest.php)
 [](tests/Queue/QueueRedisQueueTest.php)
 [](tests/Queue/QueueSizeTest.php)
+[](tests/Queue/QueueWorkerTest.php)
+
+## Console commands
+
+[](src/Illuminate/Queue/Console/BatchesTableCommand.php)
+[](src/Illuminate/Queue/Console/ClearCommand.php)
+[](src/Illuminate/Queue/Console/FailedTableCommand.php)
+[](src/Illuminate/Queue/Console/FlushFailedCommand.php)
+[](src/Illuminate/Queue/Console/ForgetFailedCommand.php)
+[](src/Illuminate/Queue/Console/ListFailedCommand.php)
+[](src/Illuminate/Queue/Console/ListenCommand.php)
+[](src/Illuminate/Queue/Console/MonitorCommand.php)
+[](src/Illuminate/Queue/Console/PruneBatchesCommand.php)
+[](src/Illuminate/Queue/Console/PruneFailedJobsCommand.php)
+[](src/Illuminate/Queue/Console/RestartCommand.php)
+[](src/Illuminate/Queue/Console/RetryBatchCommand.php)
+[](src/Illuminate/Queue/Console/RetryCommand.php)
+[](src/Illuminate/Queue/Console/TableCommand.php)
+[](src/Illuminate/Queue/Console/WorkCommand.php)
+[](src/Illuminate/Queue/Console/stubs/batches.stub)
+[](src/Illuminate/Queue/Console/stubs/failed_jobs.stub)
+[](src/Illuminate/Queue/Console/stubs/jobs.stub)
+[](tests/Integration/Queue/WorkCommandTest.php)
+[](tests/Queue/PruneBatchesCommandTest.php)
+
+## Beanstalkd driver
+
+[](src/Illuminate/Queue/BeanstalkdQueue.php)
+[](src/Illuminate/Queue/Connectors/BeanstalkdConnector.php)
+[](src/Illuminate/Queue/Jobs/BeanstalkdJob.php)
+[](tests/Queue/QueueBeanstalkdJobTest.php)
+[](tests/Queue/QueueBeanstalkdQueueTest.php)
+
+## Database driver
+
+[](src/Illuminate/Queue/Connectors/DatabaseConnector.php)
+[](src/Illuminate/Queue/DatabaseQueue.php)
+[](src/Illuminate/Queue/Jobs/DatabaseJob.php)
+[](src/Illuminate/Queue/Jobs/DatabaseJobRecord.php)
+[](tests/Queue/QueueDatabaseQueueIntegrationTest.php)
+[](tests/Queue/QueueDatabaseQueueUnitTest.php)
+
+## SQS driver
+
+[](src/Illuminate/Queue/Connectors/SqsConnector.php)
+[](src/Illuminate/Queue/Jobs/SqsJob.php)
+[](src/Illuminate/Queue/SqsQueue.php)
 [](tests/Queue/QueueSqsJobTest.php)
 [](tests/Queue/QueueSqsQueueTest.php)
+
+## Sync driver
+
+[](src/Illuminate/Queue/Connectors/SyncConnector.php)
+[](src/Illuminate/Queue/Jobs/SyncJob.php)
+[](src/Illuminate/Queue/SyncQueue.php)
 [](tests/Queue/QueueSyncQueueTest.php)
-[](tests/Queue/QueueWorkerTest.php)
 
 ## Redis driver
 
+[](src/Illuminate/Contracts/Redis/LimiterTimeoutException.php)
+[](src/Illuminate/Redis/Limiters/ConcurrencyLimiter.php)
+[](src/Illuminate/Redis/Limiters/ConcurrencyLimiterBuilder.php)
+[](src/Illuminate/Redis/Limiters/DurationLimiter.php)
+[](src/Illuminate/Redis/Limiters/DurationLimiterBuilder.php)
+[](tests/Redis/ConcurrentLimiterTest.php)
+[](tests/Redis/DurationLimiterTest.php)
 [](tests/Integration/Queue/RedisQueueTest.php)
 
 # Redis
@@ -2096,7 +2118,6 @@
 [](src/Illuminate/Contracts/Redis/Connection.php)
 [](src/Illuminate/Contracts/Redis/Connector.php)
 [](src/Illuminate/Contracts/Redis/Factory.php)
-[](src/Illuminate/Contracts/Redis/LimiterTimeoutException.php)
 [](src/Illuminate/Redis/Connections/Connection.php)
 [](src/Illuminate/Redis/Connections/PacksPhpRedisValues.php)
 [](src/Illuminate/Redis/Connections/PhpRedisClusterConnection.php)
@@ -2106,19 +2127,18 @@
 [](src/Illuminate/Redis/Connectors/PhpRedisConnector.php)
 [](src/Illuminate/Redis/Connectors/PredisConnector.php)
 [](src/Illuminate/Redis/Events/CommandExecuted.php)
-[](src/Illuminate/Redis/Limiters/ConcurrencyLimiter.php)
-[](src/Illuminate/Redis/Limiters/ConcurrencyLimiterBuilder.php)
-[](src/Illuminate/Redis/Limiters/DurationLimiter.php)
-[](src/Illuminate/Redis/Limiters/DurationLimiterBuilder.php)
 [](src/Illuminate/Redis/RedisManager.php)
 [](src/Illuminate/Redis/RedisServiceProvider.php)
 [](tests/Integration/Redis/PredisConnectionTest.php)
-[](tests/Redis/ConcurrentLimiterTest.php)
 [](tests/Redis/Connections/PhpRedisClusterConnectionTest.php)
-[](tests/Redis/DurationLimiterTest.php)
 [](tests/Redis/RedisConnectionTest.php)
 [](tests/Redis/RedisConnectorTest.php)
 [](tests/Redis/RedisManagerExtensionTest.php)
+
+
+## Testing
+
+[](src/Illuminate/Foundation/Testing/Concerns/InteractsWithRedis.php)
 
 # Routing
 
@@ -2282,6 +2302,11 @@
 [](tests/Session/FileSessionHandlerTest.php)
 [](tests/Session/Middleware/AuthenticateSessionTest.php)
 [](tests/Session/SessionStoreTest.php)
+
+
+## Testing
+
+[](src/Illuminate/Foundation/Testing/Concerns/InteractsWithSession.php)
 
 # Support
 
@@ -2519,6 +2544,23 @@
 [](tests/Testing/ParallelTestingTest.php)
 [](tests/Testing/Stubs/ArrayableStubObject.php)
 [](tests/Testing/TestResponseTest.php)
+
+
+## From Foundation
+
+[](src/Illuminate/Foundation/Testing/Concerns/InteractsWithContainer.php)
+[](src/Illuminate/Foundation/Testing/Concerns/InteractsWithDeprecationHandling.php)
+[](src/Illuminate/Foundation/Testing/Concerns/InteractsWithExceptionHandling.php)
+[](src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php)
+[](src/Illuminate/Foundation/Testing/Concerns/InteractsWithTime.php)
+[](src/Illuminate/Foundation/Testing/Concerns/WithoutExceptionHandlingHandler.php)
+[](src/Illuminate/Foundation/Testing/TestCase.php)
+[](src/Illuminate/Foundation/Testing/WithFaker.php)
+[](src/Illuminate/Foundation/Testing/Wormhole.php)
+[](tests/Foundation/Testing/BootTraitsTest.php)
+[](tests/Foundation/Testing/Concerns/InteractsWithContainerTest.php)
+[](tests/Foundation/Testing/RefreshDatabaseTest.php)
+[](tests/Foundation/Testing/WormholeTest.php)
 
 # Translation
 
@@ -2801,3 +2843,9 @@
 [](tests/View/fixtures/regular-exception.php)
 [](tests/View/fixtures/section-exception-layout.php)
 [](tests/View/fixtures/section-exception.php)
+
+
+## Testing
+
+[](src/Illuminate/Foundation/Testing/Concerns/InteractsWithViews.php)
+[](tests/Foundation/Testing/Concerns/InteractsWithViewsTest.php)

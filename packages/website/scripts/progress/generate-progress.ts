@@ -212,7 +212,7 @@ async function checkFilesCoverage(stats: FeatureStats[]): Promise<string | null>
   const glob = new Glob("**/*.php");
   const actualFiles: string[] = [];
   for await (const file of glob.scan({ cwd: laravelDir })) {
-    if (!file.startsWith("vendor/")) {
+    if (file.startsWith("src/") || file.startsWith("tests/")) {
       actualFiles.push(file);
     }
   }
@@ -227,11 +227,8 @@ async function checkFilesCoverage(stats: FeatureStats[]): Promise<string | null>
 
   if (missingFiles.length > 0) {
     return `Missing ${missingFiles.length} file(s) from features.md:\n${missingFiles
-      .slice(0, 20)
       .map((f) => `  - ${f}`)
-      .join(
-        "\n",
-      )}${missingFiles.length > 20 ? `\n  ... and ${missingFiles.length - 20} more` : ""}`;
+      .join("\n")}`;
   }
 
   return null;

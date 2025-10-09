@@ -36,10 +36,10 @@ export async function parseFeaturesMarkdown(filePath: string): Promise<Feature[]
 
       // Check if this feature should be ignored
       // A feature is ignored if:
-      // 1. Its name is "Ignored", OR
+      // 1. Its name contains "IGNORED" (case insensitive), OR
       // 2. It's a child of an ignored feature (inherited)
       const parentIsIgnored = stack.length > 0 && stack[stack.length - 1].feature.isIgnored;
-      const isIgnored = name === "Ignored" || parentIsIgnored;
+      const isIgnored = name.toUpperCase().includes("IGNORED") || parentIsIgnored;
 
       const feature: Feature = {
         name,
