@@ -5,16 +5,9 @@ import { render } from "./markup-stream";
 import type { JSX, JSXNode } from "./public-types";
 
 test("childrenToArray filters out null, undefined, and boolean values", () => {
-  const children: JSXNode = ["hello", null, 42, undefined, true, false, <span>world</span>, 0, ""];
-
+  const children = ["hello", null, 42, undefined, true, false, <span>world</span>, 0, ""];
   const result = childrenToArray(children);
-
-  expect(result).toHaveLength(5);
-  expect(result[0]).toBe("hello");
-  expect(result[1]).toBe(42);
-  expect(result[2]).toEqual(<span>world</span>);
-  expect(result[3]).toBe(0);
-  expect(result[4]).toBe("");
+  expect(result).toEqual(["hello", 42, <span>world</span>, 0, ""]);
 });
 
 test("childrenToArray wraps single non-array child", () => {
