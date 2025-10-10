@@ -516,8 +516,8 @@ type ErrorKind =
  * Includes a component stack trace for debugging.
  */
 export class RenderingError extends Error {
-  public readonly errorKind: ErrorKind;
-  public readonly componentStack: string[];
+  readonly errorKind: ErrorKind;
+  readonly componentStack: string[];
 
   constructor(errorKind: ErrorKind, componentStack: ComponentStack | null, cause: unknown) {
     const errorDetail = cause instanceof Error ? cause.message : String(cause);

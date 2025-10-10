@@ -10,7 +10,7 @@ This document lists all Laravel files needed to implement the application lifecy
 [](laravel/src/Illuminate/Foundation/Console/Kernel.php)
 
 [](laravel/tests/Foundation/FoundationApplicationTest.php)
-[](laravel/tests/Foundation/FoundationHttpKernelTest.php)
+[](laravel/tests/Foundation/Http/KernelTest.php)
 [](laravel/tests/Foundation/FoundationConsoleKernelTest.php)
 
 ## Application Bootstrap Classes

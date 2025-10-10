@@ -3,4 +3,4 @@ export type {
   Dispatcher as EventDispatcherInterface,
   EventListener,
 } from "../contracts/Dispatcher";
-export { Dispatcher } from "./Dispatcher";
+export { DispatcherImpl as Dispatcher } from "./DispatcherImpl";

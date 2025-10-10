@@ -143,7 +143,7 @@ export class Container {
    *                       - "singleton": one instance is created for and reused for all requests
    * @param args.ifNotBound if true, the binding will not be created if it already exists
    */
-  public bind<T, C extends Container>(this: C, key: Key<T>, args: BindKeyArgs<T, C>): void;
+  bind<T, C extends Container>(this: C, key: Key<T>, args: BindKeyArgs<T, C>): void;
 
   /**
    * Bind a value to a class reference in the IoC container
@@ -165,13 +165,9 @@ export class Container {
    * @param args.ifNotBound if true, the binding will not be created if it
    * already exists
    */
-  public bind<T, C extends Container>(
-    this: C,
-    key: NoArgConstructor<T>,
-    args?: BindClassArgs<T, C>,
-  ): void;
+  bind<T, C extends Container>(this: C, key: NoArgConstructor<T>, args?: BindClassArgs<T, C>): void;
 
-  public bind<T, C extends Container>(
+  bind<T, C extends Container>(
     this: C,
     key: KeyOrClass<T>,
     { factory, instance, lifecycle, ifNotBound }: AnyBindArgs<T, C> = {},
@@ -231,11 +227,11 @@ export class Container {
     }
   }
 
-  public bound(key: KeyOrClass): boolean {
+  bound(key: KeyOrClass): boolean {
     return this.#getActualBinding(key).type !== "implicit";
   }
 
-  public get<T>(abstract: KeyOrClass<T>): Exclude<T, undefined> {
+  get<T>(abstract: KeyOrClass<T>): Exclude<T, undefined> {
     const binding = this.#getConcreteBinding(abstract);
     const key = binding.key as KeyOrClass<T>;
 
@@ -445,7 +441,7 @@ export class Container {
    * Alias a type to a different name. After setting up an alias,
    * `container.get(from)` will return the same value as `container.get(to)`
    */
-  public alias<T>({ to, from }: { to: KeyOrClass<T>; from: KeyOrClass<T> }): void {
+  alias<T>({ to, from }: { to: KeyOrClass<T>; from: KeyOrClass<T> }): void {
     if (to === from) {
       throw this.#containerError(`${getKeyName(from)} is aliased to itself.`);
     }
@@ -477,7 +473,7 @@ export class Container {
    * @param key The abstract type
    * @returns True if the abstract type has been resolved
    */
-  public resolved(key: KeyOrClass): boolean {
+  resolved(key: KeyOrClass): boolean {
     const binding = this.#getConcreteBinding(key);
     return !!(binding.resolved || (binding.type === "concrete" && binding.instance !== undefined));
   }
@@ -485,7 +481,7 @@ export class Container {
   /**
    * Get the lifecycle associated with the given key.
    */
-  public getLifecycle(key: KeyOrClass): Lifecycle {
+  getLifecycle(key: KeyOrClass): Lifecycle {
     const binding = this.#getConcreteBinding(key);
     return binding.type === "concrete" ? binding.lifecycle : "transient";
   }
@@ -497,7 +493,7 @@ export class Container {
    * @param callback The async callback to execute within the scope
    * @returns The result of the callback
    */
-  public async withScope<T>(callback: () => Promise<T>): Promise<T> {
+  async withScope<T>(callback: () => Promise<T>): Promise<T> {
     const scopeInstances = new Map<KeyOrClass, unknown>();
     return await this.#scopeStorage.run(scopeInstances, callback);
   }
@@ -509,10 +505,7 @@ export class Container {
    * @param callback The callback
    * @returns The instance if bound
    */
-  public onRebinding<T>(
-    key: KeyOrClass<T>,
-    callback: (instance: T, container: Container) => void,
-  ): void {
+  onRebinding<T>(key: KeyOrClass<T>, callback: (instance: T, container: Container) => void): void {
     this.#reboundCallbacks.add(key, callback as InstanceCallback<unknown>);
   }
 
@@ -528,7 +521,7 @@ export class Container {
    *                 to the container. It may modify or and return the same
    *                 instance or create another instance of a compatible type.
    */
-  public extend<T, C extends Container>(
+  extend<T, C extends Container>(
     this: C,
     key: KeyOrClass<T>,
     callback: ExtenderCallback<Exclude<T, undefined>, C>,
@@ -591,7 +584,7 @@ export class Container {
    * @param dependent The concrete implementation
    * @returns A contextual binding builder
    */
-  public when<C extends Container>(
+  when<C extends Container>(
     this: C,
     dependent: KeyOrClass | KeyOrClass[],
   ): ContextualBindingBuilder<C> {
@@ -615,7 +608,7 @@ export class Container {
    * Get the key that the container is currently resolving or null if there is
    * no key being
    */
-  public currentlyResolving(): KeyOrClass | null {
+  currentlyResolving(): KeyOrClass | null {
     return Array.from(this.#buildStack).at(-1) ?? null;
   }
 
@@ -675,7 +668,7 @@ export class Container {
    * @param closure The closure to call
    * @returns The return value of the closure
    */
-  public call<R>(closure: () => R): R;
+  call<R>(closure: () => R): R;
 
   /**
    * Call a method on an object in the context of the container, allowing
@@ -688,12 +681,12 @@ export class Container {
    * @param methodName The name of the method to call
    * @returns The return value of the method
    */
-  public call<T extends object, K extends MethodNamesWithNoRequiredArgs<T>>(
+  call<T extends object, K extends MethodNamesWithNoRequiredArgs<T>>(
     object: T,
     methodName: K,
   ): T[K] extends () => infer R ? R : never;
 
-  public call<T extends object, K extends keyof T, R>(
+  call<T extends object, K extends keyof T, R>(
     objectOrClosure: T | (() => R),
     methodName?: K,
   ): R | (T[K] extends () => infer R2 ? R2 : never) {
@@ -739,7 +732,7 @@ export class Container {
    * @param keys The abstract types
    * @param tags The tags
    */
-  public tag<T>(keys: KeyOrClass<T> | KeyOrClass<T>[], tags: Key<T> | Key<T>[]): void {
+  tag<T>(keys: KeyOrClass<T> | KeyOrClass<T>[], tags: Key<T> | Key<T>[]): void {
     this.#tags.addAll(tags, keys);
   }
 
@@ -756,7 +749,7 @@ export class Container {
    * // eagerly create all reports
    * const reports = Array.from(container.tagged(reportTag));
    */
-  public *tagged<T>(tags: Key<T> | Key<T>[]): Generator<T, void, void> {
+  *tagged<T>(tags: Key<T> | Key<T>[]): Generator<T, void, void> {
     for (const tag of arrayWrap(tags)) {
       for (const key of this.#tags.get(tag)) {
         yield this.get(key) as T;
@@ -766,14 +759,14 @@ export class Container {
 
   static #instance: Container | null = null;
 
-  public static getInstance(): Container {
+  static getInstance(): Container {
     if (!Container.#instance) {
       Container.#instance = new Container();
     }
     return Container.#instance;
   }
 
-  public static setInstance(instance: Container | null): void {
+  static setInstance(instance: Container | null): void {
     Container.#instance = instance;
   }
 }

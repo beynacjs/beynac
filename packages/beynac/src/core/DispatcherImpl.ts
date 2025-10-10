@@ -1,5 +1,5 @@
 import type { Container } from "../container/container";
-import type { Dispatcher as DispatcherContract, EventListener } from "../contracts/Dispatcher";
+import type { Dispatcher, EventListener } from "../contracts/Dispatcher";
 import { Constructor, getPrototypeChain, SetMultiMap } from "../utils";
 
 /**
@@ -8,7 +8,7 @@ import { Constructor, getPrototypeChain, SetMultiMap } from "../utils";
  * This dispatcher allows event listeners to use dependency injection by
  * invoking them through the container's `call()` method.
  */
-export class Dispatcher implements DispatcherContract {
+export class DispatcherImpl implements Dispatcher {
   #listeners = new SetMultiMap<Constructor, EventListener>();
 
   /**
