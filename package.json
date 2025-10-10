@@ -2,7 +2,8 @@
   "type": "module",
   "private": true,
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "test-apps/*"
   ],
   "scripts": {
     "check": "bun run check:test && bun run check:lint && bun run check:projects",
