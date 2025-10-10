@@ -1,11 +1,6 @@
 import type { Key } from "../keys";
 import { createKey } from "../keys";
-import { Constructor } from "../utils";
-
-/**
- * A listener function that receives an event
- */
-export type EventListener<T = unknown> = (event: T) => void;
+import { AnyConstructor, AnyFunction } from "../utils";
 
 /**
  * The EventDispatcher interface defines methods for managing and dispatching events.
@@ -34,19 +29,19 @@ export interface Dispatcher {
    *
    * You can listen on a superclass to receive events of all subclasses.
    */
-  addListener<T extends object>(event: Constructor<T>, listener: EventListener<T>): void;
+  addListener<T extends object>(event: AnyConstructor<T>, listener: (event: T) => void): void;
 
   /**
    * Remove a previously registered listener.
    */
-  removeListener(event: Constructor, listener: EventListener): void;
+  removeListener(event: AnyConstructor, listener: AnyFunction): void;
 
   /**
    * Check if any listeners are registered for a specific event type.
    *
    * This can be used to avoid building an expensive event if there are no listeners.
    */
-  hasListener(eventClass: Constructor): boolean;
+  hasListener(eventClass: AnyConstructor): boolean;
 
   /**
    * Dispatch an event to all registered listeners.
@@ -56,6 +51,6 @@ export interface Dispatcher {
   dispatch<T extends object>(event: T): void;
 }
 
-export const EventDispatcher: Key<Dispatcher | undefined> = createKey<Dispatcher>({
-  displayName: "EventDispatcher",
+export const Dispatcher: Key<Dispatcher | undefined> = createKey<Dispatcher>({
+  displayName: "Dispatcher",
 });

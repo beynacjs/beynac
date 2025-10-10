@@ -6,7 +6,7 @@
     "test-apps/*"
   ],
   "scripts": {
-    "check": "bun run check:test && bun run check:lint && bun run check:projects",
+    "check": "bun run check:test && bun run check:projects && bun run check:lint",
     "check:test": "bun test packages/*/src",
     "check:projects": "bun run --filter='*' check",
     "check:tsc": "bun run --filter='*' check:tsc",

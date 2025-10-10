@@ -14,6 +14,7 @@ export default tseslint.config(
       "packages/create-beynac/**",
       "eslint.config.mjs",
       "progress/**",
+      "test-apps/**",
     ],
   },
   {

@@ -104,9 +104,15 @@ export type MethodNamesWithNoRequiredArgs<T> = {
 }[keyof T];
 
 /**
- * A constructor function that accepts any arguments
+ * A reference to any function - can not be invoked as arguments are unknown
  */
-export type Constructor<T = unknown> = abstract new (...args: never[]) => T;
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type -- sometimes we really do want to refer to an unknown function
+export type AnyFunction = Function;
+
+/**
+ * A reference to any constructor - can not be instantiated
+ */
+export type AnyConstructor<T = unknown> = abstract new (...args: never[]) => T;
 
 /**
  * A constructor function that accepts no arguments
@@ -121,7 +127,9 @@ export type NoArgConstructor<T = unknown> = abstract new () => T;
  * @param instanceOrClass - Either an instance of a class or a constructor function
  * @yields Constructor functions in the prototype chain
  */
-export function* getPrototypeChain(instanceOrClass: object | Constructor): Generator<Constructor> {
+export function* getPrototypeChain(
+  instanceOrClass: object | AnyConstructor,
+): Generator<AnyConstructor> {
   // Start with the appropriate prototype based on input type
   let prototype: unknown =
     typeof instanceOrClass === "function"
@@ -130,7 +138,7 @@ export function* getPrototypeChain(instanceOrClass: object | Constructor): Gener
 
   // Walk up the prototype chain
   while (prototype) {
-    const constructor = (prototype as { constructor: Constructor }).constructor;
+    const constructor = (prototype as { constructor: AnyConstructor }).constructor;
     if (typeof constructor === "function") {
       yield constructor;
     }

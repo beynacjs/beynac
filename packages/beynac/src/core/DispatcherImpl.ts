@@ -1,6 +1,8 @@
 import type { Container } from "../container/container";
-import type { Dispatcher, EventListener } from "../contracts/Dispatcher";
-import { Constructor, getPrototypeChain, SetMultiMap } from "../utils";
+import type { Dispatcher } from "../contracts/Dispatcher";
+import { AnyConstructor, AnyFunction, getPrototypeChain, SetMultiMap } from "../utils";
+
+type AnyEventListener = (event: unknown) => void;
 
 /**
  * Implementation of the EventDispatcher interface.
@@ -9,7 +11,7 @@ import { Constructor, getPrototypeChain, SetMultiMap } from "../utils";
  * invoking them through the container's `call()` method.
  */
 export class DispatcherImpl implements Dispatcher {
-  #listeners = new SetMultiMap<Constructor, EventListener>();
+  #listeners = new SetMultiMap<AnyConstructor, AnyEventListener>();
 
   /**
    * The container instance used for dependency injection in listeners
@@ -20,15 +22,15 @@ export class DispatcherImpl implements Dispatcher {
     this.#container = container;
   }
 
-  addListener<T extends object>(eventClass: Constructor<T>, listener: EventListener<T>): void {
-    this.#listeners.add(eventClass, listener as EventListener);
+  addListener<T extends object>(eventClass: AnyConstructor<T>, listener: (event: T) => void): void {
+    this.#listeners.add(eventClass, listener as AnyEventListener);
   }
 
-  removeListener<T extends object>(eventClass: Constructor<T>, listener: EventListener<T>): void {
-    this.#listeners.delete(eventClass, listener as EventListener);
+  removeListener(eventClass: AnyConstructor, listener: AnyFunction): void {
+    this.#listeners.delete(eventClass, listener as AnyEventListener);
   }
 
-  hasListener<T extends object>(eventClass: Constructor<T>): boolean {
+  hasListener(eventClass: AnyConstructor): boolean {
     for (const constructor of getPrototypeChain(eventClass)) {
       if (this.#listeners.hasAny(constructor)) {
         return true;
