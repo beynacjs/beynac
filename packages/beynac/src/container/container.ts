@@ -493,9 +493,18 @@ export class Container {
    * @param callback The async callback to execute within the scope
    * @returns The result of the callback
    */
-  async withScope<T>(callback: () => Promise<T>): Promise<T> {
+  withScope<T>(callback: () => T): T {
     const scopeInstances = new Map<KeyOrClass, unknown>();
-    return await this.#scopeStorage.run(scopeInstances, callback);
+    return this.#scopeStorage.run(scopeInstances, callback);
+  }
+
+  /**
+   * Check if the container is currently executing within a scope.
+   *
+   * @returns True if currently inside a scope, false otherwise
+   */
+  get hasScope(): boolean {
+    return this.#scopeStorage.getStore() !== undefined;
   }
 
   /**

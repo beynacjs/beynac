@@ -1812,6 +1812,26 @@ describe("Container resolving callbacks", () => {
 });
 
 describe("Container withScope", () => {
+  test("withScope returns same value as synchronous callback", () => {
+    const result = container.withScope(() => {
+      return 4;
+    });
+
+    expectTypeOf(result).toBeNumber();
+
+    expect(result).toBe(4);
+  });
+
+  test("withScope returns same value as asynchronous callback", async () => {
+    const result = container.withScope(async () => {
+      return 4;
+    });
+
+    expectTypeOf(result).toEqualTypeOf<Promise<number>>();
+
+    expect(await result).toBe(4);
+  });
+
   test("scoped type token resolution throws outside scope", () => {
     const token = createKey({ displayName: "token" });
     container.bind(token, {
@@ -1898,6 +1918,23 @@ describe("Container withScope", () => {
       const outerDb2 = container.get(Database);
       expect(outerDb2).toBe(outerDb); // Same scope
     });
+  });
+
+  test("hasScope property indicates whether container is in a scope", async () => {
+    expect(container.hasScope).toBe(false);
+
+    let hasBeenInScope = false;
+
+    await container.withScope(async () => {
+      expect(container.hasScope).toBe(true);
+      await Promise.resolve();
+      hasBeenInScope = true;
+      expect(container.hasScope).toBe(true);
+    });
+
+    expect(container.hasScope).toBe(false);
+
+    expect(hasBeenInScope).toBe(true);
   });
 
   test("scoped instances are isolated across concurrent async operations", async () => {
