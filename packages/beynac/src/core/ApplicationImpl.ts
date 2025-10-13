@@ -1,6 +1,7 @@
 import { Container } from "../container/container";
-import type { Application, RequestContext } from "../contracts/Application";
+import type { Application } from "../contracts/Application";
 import { Dispatcher as DispatcherKey, type Dispatcher } from "../contracts/Dispatcher";
+import { RequestContext } from "../contracts/RequestContext";
 import { RequestHandler } from "../contracts/RequestHandler";
 import { BeynacError } from "../error";
 import { RequestHandlerImpl } from "./RequestHandlerImpl";
@@ -47,12 +48,11 @@ export class ApplicationImpl extends Container implements Application {
    * enabled Beynac features that require request data, like the `Cookies` and
    * `Headers` facades, and features like authentication that build on
    */
-  withRequest<R>(context: RequestContext | Request, callback: () => R): R {
+  withRequest<R>(_context: RequestContext | Request, callback: () => R): R {
     if (this.hasScope) {
       throw new BeynacError("Can't start a new request scope, we're already handling a request.");
     }
     return this.withScope(() => {
-      this;
       return callback();
     });
   }

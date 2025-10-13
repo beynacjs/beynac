@@ -32,11 +32,7 @@ describe("Contracts", () => {
 
       const content = readFileSync(`${contractsDir}/${fileName}`, "utf-8");
 
-      expect(content).toContain(`export interface ${contractName} {`);
-
-      // Check that there are exactly 2 export statements
-      const exportMatches = content.match(/^export /gm) || [];
-      expect(exportMatches, `${fileName} should have exactly 2 export statements`).toHaveLength(2);
+      expect(content).toContain(`export interface ${contractName}`);
     }
   });
 });

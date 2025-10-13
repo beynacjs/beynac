@@ -7,11 +7,11 @@ import {
   describeType,
   getPrototypeChain,
   MethodNamesWithNoRequiredArgs,
-  type NoArgConstructor,
   SetMultiMap,
+  type NoArgConstructor,
 } from "../utils";
-import { ContextualBindingBuilder } from "./ContextualBindingBuilder";
 import { getKeyName, type KeyOrClass } from "./container-key";
+import { ContextualBindingBuilder } from "./ContextualBindingBuilder";
 import { _getInjectHandler, _setInjectHandler } from "./inject";
 import { NO_VALUE, type NoValue } from "./no-value";
 
