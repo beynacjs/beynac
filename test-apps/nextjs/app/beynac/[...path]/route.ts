@@ -1,8 +1,13 @@
 import { app } from "@/beynac/app";
-import { cookies } from "next/headers";
+import { Route } from "beynac/facades";
 import { NextRequest } from "next/server";
 
+class MyController {
+  handle() {}
+}
+
+Route.get("/path/:foo", [MyController, "handle"]);
+
 export async function GET(request: NextRequest) {
-  (await cookies()).set("test", "value", { domain });
-  return app.handleRequest(request);
+  return await app.handleRequest(request);
 }

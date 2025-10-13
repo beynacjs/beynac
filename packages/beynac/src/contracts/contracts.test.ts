@@ -33,6 +33,13 @@ describe("Contracts", () => {
       const content = readFileSync(`${contractsDir}/${fileName}`, "utf-8");
 
       expect(content).toContain(`export interface ${contractName}`);
+
+      // Check that the contract is exported from index.ts
+      const indexContent = readFileSync(`${contractsDir}/index.ts`, "utf-8");
+      expect(
+        indexContent,
+        `${contractName} should be exported from index.ts with: export { ${contractName} } from "./${contractName}";`,
+      ).toContain(`export { ${contractName} } from "./${contractName}";`);
     }
   });
 });

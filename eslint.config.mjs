@@ -63,6 +63,12 @@ export default tseslint.config(
           accessibility: "no-public",
         },
       ],
+      "prefer-const": [
+        "error",
+        {
+          destructuring: "all",
+        },
+      ],
     },
   },
   {

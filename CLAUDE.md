@@ -7,6 +7,13 @@ When I ask questions, answer briefly to minimise time taken to read response. I'
 - After you have finished a task, run the formatter then check for issues with `bun check`. Only fix issues that are related to the code you're working on. If there are unrelated lint or test issues elsewhere in the codebase report them but no not fix them.
 - Once the tests and lint check have passed, review your code for issues and potential improvements but DO NOT make them yet. Report these to me and let me decide if I want to make the changes.
 
+## Coding guidelines
+
+- The linter is there to prevent you from using bad patterns. Try not to add lint disable comments.
+- In particular, try to avoid use of `any`. Use `unknown` where possible. When an assignment breaks type checking, think carefully about how to write the code in a type safe way. If this really isn't possible, avoid `foo = bar as any`, use `foo = bar as TheCorrectType`
+- When writing tests, pass the function or class under test to the first argument describe, e.g. `describe(myFunc, ...)` not `describe("myFunc", ...)`
+- in bun, expect never returns a promise, do not `await expect(...)` just use `expect(...)`
+
 ## Soft port process
 
 When asked to follow the "soft port process", you will be given a reference to a TypeScript file. The TypeScript file will contain PHP syntax methods, wrapped in a template string to prevent syntax errors.

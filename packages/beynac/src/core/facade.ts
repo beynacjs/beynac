@@ -24,7 +24,7 @@ export const getFacadeApplication = (): Application | null => {
  *
  * @param key The key to look up in the container
  */
-export function createFacade<T extends object>(key: KeyOrClass<T>): T {
+export function createFacade<T extends object>(key: KeyOrClass<T | undefined>): T {
   let lifecycleChecked = false;
 
   const getInstance = (): UnknownRecord => {

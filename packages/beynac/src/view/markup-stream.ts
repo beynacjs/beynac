@@ -1,4 +1,5 @@
-import { arrayWrap } from "../utils";
+import { HeadersInit } from "bun";
+import { arrayWrap, withoutUndefinedValues } from "../utils";
 import { classAttribute, type ClassAttributeValue } from "./class-attribute";
 import { ContextImpl } from "./context";
 import { CSSProperties } from "./intrinsic-element-types";
@@ -52,6 +53,55 @@ export async function render(content: JSXNode, options?: RenderOptions): Promise
     result += chunk;
   }
   return result;
+}
+
+export type RenderResponseOptions = {
+  readonly status?: number;
+  readonly statusText?: string;
+  readonly headers?: HeadersInit;
+} & RenderOptions;
+
+/**
+ * Renders content to a Response object for use in request handlers.
+ * This streams the content as it's rendered, enabling efficient handling of async content.
+ *
+ * @param content - The content tree to render, e.g. <jsx>...</jsx> or html`...`
+ * @param options - Response options (status, headers, etc.) and render options (mode, context)
+ *
+ * @example
+ * ```ts
+ * return await renderResponse(<div>Hello World</div>, { status: 200 });
+ * ```
+ */
+export function renderResponse(
+  content: JSXNode,
+  { mode, context, headers, status, statusText }: RenderResponseOptions = {},
+): Response {
+  if (!(headers instanceof Headers)) {
+    headers = new Headers(headers);
+  }
+
+  if (!headers.has("content-type")) {
+    headers.set(
+      "content-type",
+      mode === "xml" ? "application/xml; charset=utf-8" : "text/html; charset=utf-8",
+    );
+  }
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const chunk of renderStream(content, { mode, context })) {
+          controller.enqueue(new TextEncoder().encode(chunk));
+        }
+        controller.close();
+      } catch (error) {
+        controller.error(error);
+      }
+    },
+  });
+
+  return new Response(stream, withoutUndefinedValues({ headers, status, statusText }));
 }
 
 /**

@@ -10,13 +10,17 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./contracts": {
+      "types": "./dist/contracts/index.d.ts",
+      "import": "./dist/contracts/index.js"
+    },
     "./events": {
       "types": "./dist/events.d.ts",
       "import": "./dist/events.js"
     },
-    "./contracts": {
-      "types": "./dist/contracts/index.d.ts",
-      "import": "./dist/contracts/index.js"
+    "./facades": {
+      "types": "./dist/facades.d.ts",
+      "import": "./dist/facades.js"
     }
   },
   "scripts": {
@@ -24,6 +28,7 @@
     "check:tsc": "tsc --noEmit",
     "prebuild": "mkdir -p src/vendor && cp node_modules/csstype/index.d.ts src/vendor/csstype.d.ts",
     "build": "tsc -p tsconfig.build.json",
+    "build:watch": "bun run build -- --watch",
     "postbuild": "mkdir -p dist/vendor && cp src/vendor/csstype.d.ts dist/vendor/",
     "clean": "rm -rf dist"
   },
@@ -49,6 +54,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "devalue": "^5.3.2"
+    "devalue": "^5.3.2",
+    "rou3": "^0.5.1"
   }
 }

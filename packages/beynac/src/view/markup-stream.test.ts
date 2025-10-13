@@ -1,7 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { createKey } from "../keys";
 import { asyncGate } from "../test-utils/async-gate";
-import { MarkupStream, RenderingError, render, renderStream } from "./markup-stream";
+import {
+  MarkupStream,
+  RenderingError,
+  render,
+  renderResponse,
+  renderStream,
+} from "./markup-stream";
 import type { Context, JSXNode } from "./public-types";
 
 describe("basic functionality", () => {
@@ -972,5 +978,164 @@ describe("error handling", () => {
       expect(err.message).toContain("Nested array error");
       expect(err.errorKind).toBe("content-function-error");
     }
+  });
+});
+
+describe("renderResponse", () => {
+  test("renders content to Response object with default headers", async () => {
+    const stream = new MarkupStream("div", { id: "test" }, ["Hello World"]);
+    const response = renderResponse(stream);
+
+    expect(response).toBeInstanceOf(Response);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
+    expect(await response.text()).toBe('<div id="test">Hello World</div>');
+  });
+
+  test("accepts custom status code", async () => {
+    const stream = new MarkupStream("div", null, ["Created"]);
+    const response = renderResponse(stream, { status: 201 });
+
+    expect(response.status).toBe(201);
+    expect(await response.text()).toBe("<div>Created</div>");
+  });
+
+  test("accepts custom headers while preserving Content-Type", async () => {
+    const stream = new MarkupStream("p", null, ["Test"]);
+    const response = renderResponse(stream, {
+      headers: {
+        "X-Custom-Header": "custom-value",
+      },
+    });
+
+    expect(response.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
+    expect(response.headers.get("X-Custom-Header")).toBe("custom-value");
+    expect(await response.text()).toBe("<p>Test</p>");
+  });
+
+  test("accepts custom Headers object while preserving Content-Type", async () => {
+    const stream = new MarkupStream("p", null, ["Test"]);
+    const response = renderResponse(stream, {
+      headers: new Headers({
+        "x-custom-header": "custom-value",
+      }),
+    });
+
+    expect(response.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
+    expect(response.headers.get("X-Custom-Header")).toBe("custom-value");
+    expect(await response.text()).toBe("<p>Test</p>");
+  });
+
+  test("allows overriding Content-Type header", async () => {
+    const stream = new MarkupStream("svg", { xmlns: "http://www.w3.org/2000/svg" }, []);
+    const response = renderResponse(stream, {
+      headers: {
+        "Content-Type": "image/svg+xml",
+      },
+    });
+
+    expect(response.headers.get("Content-Type")).toBe("image/svg+xml");
+    expect(await response.text()).toBe('<svg xmlns="http://www.w3.org/2000/svg"></svg>');
+  });
+
+  test("allows overriding Content-Type header with Headers object", async () => {
+    const stream = new MarkupStream("svg", { xmlns: "http://www.w3.org/2000/svg" }, []);
+    const response = renderResponse(stream, {
+      headers: {
+        "CONTENT-TYPE": "image/svg+xml",
+      },
+    });
+
+    expect(response.headers.get("Content-Type")).toBe("image/svg+xml");
+    expect(await response.text()).toBe('<svg xmlns="http://www.w3.org/2000/svg"></svg>');
+  });
+
+  test("uses xml mode for Content-Type", async () => {
+    const stream = new MarkupStream("root", null, [new MarkupStream("child", null, [])]);
+    const response = renderResponse(stream, { mode: "xml" });
+
+    expect(response.headers.get("Content-Type")).toBe("application/xml; charset=utf-8");
+    expect(await response.text()).toBe("<root><child /></root>");
+  });
+
+  test("passes mode to render for xml self-closing tags", async () => {
+    const stream = new MarkupStream("root", null, []);
+    const response = renderResponse(stream, { mode: "xml" });
+
+    expect(await response.text()).toBe("<root />");
+  });
+
+  test("works with async content", async () => {
+    const stream = new MarkupStream("div", null, [
+      "before ",
+      Promise.resolve("async content"),
+      " after",
+    ]);
+    const response = renderResponse(stream);
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("<div>before async content after</div>");
+  });
+
+  test("streams content with delayed async rendering", async () => {
+    const gate = asyncGate(["release"]);
+    const checkpoint = gate.task("render");
+
+    const stream = new MarkupStream("div", null, [
+      "before ",
+      (async () => {
+        await checkpoint("release");
+        return "delayed";
+      })(),
+      " after",
+    ]);
+
+    const response = renderResponse(stream);
+
+    // Start reading response body asynchronously
+    const reader = response.body?.getReader();
+    expect(reader).toBeDefined();
+    if (!reader) throw new Error("No reader");
+
+    const decoder = new TextDecoder();
+    const chunks: string[] = [];
+
+    // Read first chunk (should be available before gate release)
+    const firstChunk = await reader.read();
+    expect(firstChunk.done).toBe(false);
+    if (firstChunk.value) {
+      chunks.push(decoder.decode(firstChunk.value as Uint8Array, { stream: true }));
+    }
+
+    // Verify we got the content before the promise
+    expect(chunks[0]).toBe("<div>before ");
+
+    // Now release the gate
+    await gate.next();
+
+    // Read remaining chunks
+    let result = await reader.read();
+    while (!result.done) {
+      if (result.value) {
+        chunks.push(decoder.decode(result.value as Uint8Array, { stream: true }));
+      }
+      result = await reader.read();
+    }
+
+    // Verify complete output
+    expect(chunks.join("")).toBe("<div>before delayed after</div>");
+  });
+
+  test("can be used as controller return value", async () => {
+    const content = new MarkupStream("html", null, [
+      new MarkupStream("body", null, [new MarkupStream("h1", null, ["Welcome"])]),
+    ]);
+
+    const response = renderResponse(content, { status: 200 });
+
+    expect(response).toBeInstanceOf(Response);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
+    expect(await response.text()).toBe("<html><body><h1>Welcome</h1></body></html>");
   });
 });

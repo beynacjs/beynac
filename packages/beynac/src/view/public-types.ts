@@ -2,8 +2,8 @@ import type { Key } from "../keys";
 import type { IntrinsicElements as IntrinsicElementsDefined } from "./intrinsic-element-types";
 
 export type RenderOptions = {
-  mode?: "html" | "xml";
-  context?: Context;
+  mode?: "html" | "xml" | undefined;
+  context?: Context | undefined;
 };
 
 export interface Context {
