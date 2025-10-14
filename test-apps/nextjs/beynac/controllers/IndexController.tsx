@@ -31,7 +31,7 @@ const IndexView = () => (
     <h3>
       <code>Headers</code> facade
     </h3>
-    {Cookies.size === 0 ? (
+    {Headers.size === 0 ? (
       <p>
         <i>No headers</i>
       </p>

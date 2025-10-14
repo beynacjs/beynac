@@ -1,6 +1,6 @@
 import { Application } from "./contracts";
+import { Configuration } from "./contracts/Configuration";
 import { ApplicationImpl } from "./core/ApplicationImpl";
-import { Configuration } from "./core/Configuration";
 import { setFacadeApplication } from "./core/facade";
 
 export const createApplication = (config: Configuration = {}): Application => {

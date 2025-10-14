@@ -2,7 +2,9 @@
 import { addRoute, createRouter, findRoute, RouterContext } from "rou3";
 import { inject } from "../container/inject";
 import { Application, type Application as IApplication } from "../contracts/Application";
+import { Configuration } from "../contracts/Configuration";
 import type { ExtractRouteParams, RouteHandler, Router } from "../contracts/Router";
+import { DevModeAutoRefreshMiddleware } from "../development/DevModeAutoRefreshMiddleware";
 import { arrayWrap } from "../utils";
 import type { MiddlewareReference } from "./Middleware";
 
@@ -15,8 +17,16 @@ export class RouterImpl implements Router {
   private router: RouterContext<RouteData>;
   private middlewareStack: MiddlewareReference[] = [];
 
-  constructor(private app: IApplication = inject(Application)) {
+  constructor(
+    private app: IApplication = inject(Application),
+    private config: Configuration = inject(Configuration),
+  ) {
     this.router = createRouter();
+
+    // Add dev mode middleware if enabled
+    if (this.config.development && !this.config.devMode?.suppressAutoRefresh) {
+      this.middlewareStack.push(DevModeAutoRefreshMiddleware);
+    }
   }
 
   get<Path extends string>(uri: Path, handler: RouteHandler<ExtractRouteParams<Path>>): Router {

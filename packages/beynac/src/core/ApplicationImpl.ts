@@ -1,11 +1,13 @@
 import { Container } from "../container/container";
 import { Cookies, Headers } from "../contracts";
 import { Application } from "../contracts/Application";
+import { Configuration } from "../contracts/Configuration";
 import { Dispatcher as DispatcherKey, type Dispatcher } from "../contracts/Dispatcher";
 import { RequestContext } from "../contracts/RequestContext";
 import { Router } from "../contracts/Router";
+import { DevModeAutoRefreshMiddleware } from "../development/DevModeAutoRefreshMiddleware";
+import { DevModeWatchService } from "../development/DevModeWatchService";
 import { BeynacError } from "../error";
-import { Configuration } from "./Configuration";
 import { CookiesImpl } from "./CookiesImpl";
 import { HeadersImpl } from "./HeadersImpl";
 import { RouterImpl } from "./RouterImpl";
@@ -34,11 +36,25 @@ export class ApplicationImpl extends Container implements Application {
       factory: () => new CookiesImpl(),
       lifecycle: "scoped",
     });
+    this.bind(Configuration, {
+      instance: this.#config,
+    });
     this.bind(Application, {
       instance: this,
     });
     if (this.#config.routes) {
       this.#config.routes(this.get(Router));
+    }
+    if (this.#config.development && !this.#config.devMode?.suppressAutoRefresh) {
+      this.bind(DevModeAutoRefreshMiddleware, {
+        factory: () => new DevModeAutoRefreshMiddleware(),
+        lifecycle: "singleton",
+      });
+      this.bind(DevModeWatchService, {
+        factory: () => new DevModeWatchService(),
+        lifecycle: "singleton",
+      });
+      this.get(DevModeWatchService);
     }
   }
 

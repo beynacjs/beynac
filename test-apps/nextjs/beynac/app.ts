@@ -3,4 +3,5 @@ import routes from "./routes/web";
 
 export const app = createApplication({
   routes,
+  development: true,
 });

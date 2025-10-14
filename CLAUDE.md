@@ -34,4 +34,4 @@ After you have completed the initial port, go over your work and verify that non
 
 - **Run unit tests**: `bun test`
 - **Run lint and format test**: `bun check:lint`
-- **Apply correct formatting to files**: `bun format` - IMPORTANT: always run `bun format` after completing functionality changes
+- **Apply correct formatting to files**: `bun format` - IMPORTANT: always run checks (`bun check`) THEN format (`bun format`) after completing functionality changes

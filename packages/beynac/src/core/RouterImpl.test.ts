@@ -6,8 +6,14 @@ import { ApplicationImpl } from "./ApplicationImpl";
 import { Controller } from "./Controller";
 import { RouterImpl } from "./RouterImpl";
 
+function createRouter() {
+  const app = new ApplicationImpl();
+  const router = new RouterImpl(app, {});
+  return { router, app };
+}
+
 test("handles controller instance routes", async () => {
-  const router = new RouterImpl(new ApplicationImpl());
+  const { router } = createRouter();
   router.get("/hello", {
     handle() {
       return new Response("Hello from controller");
@@ -21,7 +27,7 @@ test("handles controller instance routes", async () => {
 });
 
 test("passes route params to handler", async () => {
-  const router = new RouterImpl(new ApplicationImpl());
+  const { router } = createRouter();
 
   router.get("/user/:id", {
     handle(_req, params) {
@@ -36,7 +42,7 @@ test("passes route params to handler", async () => {
 });
 
 test("type inference works for route params", () => {
-  const router = new RouterImpl(new ApplicationImpl());
+  const { router } = createRouter();
 
   // Route with no params - params should be empty
   router.get("/hello", {
@@ -70,7 +76,7 @@ test("handles controller class routes", async () => {
     }
   }
 
-  const router = new RouterImpl(new ApplicationImpl());
+  const { router } = createRouter();
 
   router.get("/hello", TestController);
 
@@ -81,8 +87,7 @@ test("handles controller class routes", async () => {
 });
 
 test("class controller can use dependency injection", async () => {
-  const app = new ApplicationImpl();
-  const router = new RouterImpl(app);
+  const { router, app } = createRouter();
 
   const messageKey = createKey<string>();
 
@@ -103,7 +108,7 @@ test("class controller can use dependency injection", async () => {
 });
 
 test("supports all HTTP methods", async () => {
-  const router = new RouterImpl(new ApplicationImpl());
+  const { router } = createRouter();
   const methods = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"] as const;
 
   router
@@ -146,7 +151,7 @@ test("supports all HTTP methods", async () => {
 });
 
 test("returns 404 for unmatched route", async () => {
-  const router = new RouterImpl(new ApplicationImpl());
+  const { router } = createRouter();
 
   router.get("/hello", {
     handle() {
@@ -161,7 +166,7 @@ test("returns 404 for unmatched route", async () => {
 });
 
 test("executes inline middleware", async () => {
-  const router = new RouterImpl(new ApplicationImpl());
+  const { router } = createRouter();
   const log: string[] = [];
 
   router.middleware(
@@ -191,8 +196,7 @@ test("executes inline middleware", async () => {
 });
 
 test("executes nested middleware in correct order", async () => {
-  const app = new ApplicationImpl();
-  const router = new RouterImpl(app);
+  const { router, app } = createRouter();
   const log: string[] = [];
 
   router.middleware(
@@ -234,8 +238,7 @@ test("executes nested middleware in correct order", async () => {
 });
 
 test("middleware can short-circuit by not calling next", async () => {
-  const app = new ApplicationImpl();
-  const router = new RouterImpl(app);
+  const { router, app } = createRouter();
 
   router.middleware(
     {
@@ -262,8 +265,7 @@ test("middleware can short-circuit by not calling next", async () => {
 });
 
 test("middleware can modify request", async () => {
-  const app = new ApplicationImpl();
-  const router = new RouterImpl(app);
+  const { router, app } = createRouter();
 
   router.middleware(
     {
@@ -305,8 +307,7 @@ test("handles async controller", async () => {
     }
   }
 
-  const app = new ApplicationImpl();
-  const router = new RouterImpl(app);
+  const { router, app } = createRouter();
 
   router.get("/async", AsyncController);
 
@@ -319,8 +320,7 @@ test("handles async controller", async () => {
 });
 
 test("handles synchronous middleware", async () => {
-  const app = new ApplicationImpl();
-  const router = new RouterImpl(app);
+  const { router, app } = createRouter();
   const log: string[] = [];
 
   router.middleware(
