@@ -39,6 +39,10 @@ export class RouterImpl implements Router {
     return this.#addRoute("PATCH", uri, handler);
   }
 
+  options<Path extends string>(uri: Path, handler: RouteHandler<ExtractRouteParams<Path>>): Router {
+    return this.#addRoute("OPTIONS", uri, handler);
+  }
+
   middleware(
     middleware: MiddlewareReference | MiddlewareReference[],
     callback: (router: Router) => void,

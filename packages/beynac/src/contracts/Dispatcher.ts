@@ -1,6 +1,6 @@
 import type { Key } from "../keys";
 import { createKey } from "../keys";
-import { AnyConstructor, AnyFunction } from "../utils";
+import { AnyConstructor } from "../utils";
 
 /**
  * The EventDispatcher interface defines methods for managing and dispatching events.
@@ -34,7 +34,7 @@ export interface Dispatcher {
   /**
    * Remove a previously registered listener.
    */
-  removeListener(event: AnyConstructor, listener: AnyFunction): void;
+  removeListener(event: AnyConstructor, listener: Function): void;
 
   /**
    * Check if any listeners are registered for a specific event type.

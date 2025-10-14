@@ -67,6 +67,11 @@ export interface Router {
   patch<Path extends string>(uri: Path, handler: RouteHandler<ExtractRouteParams<Path>>): Router;
 
   /**
+   * Register an OPTIONS request handler
+   */
+  options<Path extends string>(uri: Path, handler: RouteHandler<ExtractRouteParams<Path>>): Router;
+
+  /**
    * Register routes with middleware.
    *
    * The middleware will be applied to all routes registered within the

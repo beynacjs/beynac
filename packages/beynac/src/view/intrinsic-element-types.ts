@@ -184,10 +184,6 @@ interface ButtonHTMLAttributes extends HTMLAttributes {
   value?: string | ReadonlyArray<string> | number | undefined;
   popovertarget?: string | undefined;
   popovertargetaction?: HTMLAttributePopoverTargetAction | undefined;
-
-  // React 19 compatibility
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type -- vendored code
-  formAction?: string | Function | undefined;
 }
 
 interface CanvasHTMLAttributes extends HTMLAttributes {
@@ -252,10 +248,6 @@ interface FormHTMLAttributes extends HTMLAttributes {
   name?: string | undefined;
   novalidate?: boolean | undefined;
   target?: HTMLAttributeAnchorTarget | undefined;
-
-  // React 19 compatibility
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type -- vendored code
-  action?: string | Function | undefined;
 }
 
 interface HtmlHTMLAttributes extends HTMLAttributes {
@@ -412,10 +404,6 @@ interface InputHTMLAttributes extends HTMLAttributes {
   width?: number | string | undefined;
   popovertarget?: string | undefined;
   popovertargetaction?: HTMLAttributePopoverTargetAction | undefined;
-
-  // React 19 compatibility
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type -- vendored code
-  formAction?: string | Function | undefined;
 }
 
 interface KeygenHTMLAttributes extends HTMLAttributes {

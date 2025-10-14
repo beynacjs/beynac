@@ -120,12 +120,6 @@ export type MethodNamesWithNoRequiredArgs<T> = {
 }[keyof T];
 
 /**
- * A reference to any function - can not be invoked as arguments are unknown
- */
-// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type -- sometimes we really do want to refer to an unknown function
-export type AnyFunction = Function;
-
-/**
  * A reference to any constructor - can not be instantiated
  */
 export type AnyConstructor<T = unknown> = abstract new (...args: never[]) => T;

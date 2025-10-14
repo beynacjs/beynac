@@ -1,21 +1,12 @@
 import type { Container } from "../container/container";
 import type { Dispatcher } from "../contracts/Dispatcher";
-import { AnyConstructor, AnyFunction, getPrototypeChain, SetMultiMap } from "../utils";
+import { AnyConstructor, getPrototypeChain, SetMultiMap } from "../utils";
 
 type AnyEventListener = (event: unknown) => void;
 
-/**
- * Implementation of the EventDispatcher interface.
- *
- * This dispatcher allows event listeners to use dependency injection by
- * invoking them through the container's `call()` method.
- */
 export class DispatcherImpl implements Dispatcher {
   #listeners = new SetMultiMap<AnyConstructor, AnyEventListener>();
 
-  /**
-   * The container instance used for dependency injection in listeners
-   */
   #container: Container;
 
   constructor(container: Container) {
@@ -26,7 +17,7 @@ export class DispatcherImpl implements Dispatcher {
     this.#listeners.add(eventClass, listener as AnyEventListener);
   }
 
-  removeListener(eventClass: AnyConstructor, listener: AnyFunction): void {
+  removeListener(eventClass: AnyConstructor, listener: Function): void {
     this.#listeners.delete(eventClass, listener as AnyEventListener);
   }
 

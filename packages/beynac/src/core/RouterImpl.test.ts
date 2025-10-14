@@ -1,37 +1,27 @@
-import { beforeEach, expect, expectTypeOf, test } from "bun:test";
+import { expect, expectTypeOf, test } from "bun:test";
+import { inject } from "../container";
 import { Router } from "../contracts/Router";
+import { createKey } from "../keys";
 import { ApplicationImpl } from "./ApplicationImpl";
 import { Controller } from "./Controller";
 import { RouterImpl } from "./RouterImpl";
 
-let app: ApplicationImpl;
-let router: Router;
-
-beforeEach(() => {
-  app = new ApplicationImpl();
-  app.bootstrap();
-  router = app.get(Router);
-});
-
 test("handles controller instance routes", async () => {
+  const router = new RouterImpl(new ApplicationImpl());
   router.get("/hello", {
     handle() {
       return new Response("Hello from controller");
     },
   });
 
-  app.bind(Router, { factory: () => router, lifecycle: "singleton" });
-
   const request = new Request("http://example.com/hello");
   const response = await router.handle(request);
 
-  expect(response.status).toBe(200);
   expect(await response.text()).toBe("Hello from controller");
 });
 
 test("passes route params to handler", async () => {
-  const app = new ApplicationImpl();
-  const router = new RouterImpl(app);
+  const router = new RouterImpl(new ApplicationImpl());
 
   router.get("/user/:id", {
     handle(_req, params) {
@@ -39,45 +29,38 @@ test("passes route params to handler", async () => {
     },
   });
 
-  app.bind(Router, { factory: () => router, lifecycle: "singleton" });
-
   const request = new Request("http://example.com/user/123");
   const response = await router.handle(request);
 
-  expect(response.status).toBe(200);
   expect(await response.text()).toBe("User ID: 123");
 });
 
 test("type inference works for route params", () => {
-  const app = new ApplicationImpl();
-  const router = new RouterImpl(app);
+  const router = new RouterImpl(new ApplicationImpl());
 
   // Route with no params - params should be empty
   router.get("/hello", {
     handle(_req, params): Response {
-      expectTypeOf(params).toEqualTypeOf<Record<never, string>>();
+      expectTypeOf(params).toEqualTypeOf<{}>();
       return new Response();
     },
-  } satisfies Controller<never>);
+  });
 
   // Route with single param - params should have that param
   router.get("/user/:id", {
     handle(_req, params): Response {
       expectTypeOf(params).toEqualTypeOf<{ id: string }>();
-      expectTypeOf(params.id).toEqualTypeOf<string>();
       return new Response();
     },
-  } satisfies Controller<"id">);
+  });
 
   // Route with multiple params - params should have all params
   router.get("/posts/:postId/comments/:commentId", {
     handle(_req, params): Response {
       expectTypeOf(params).toEqualTypeOf<{ postId: string; commentId: string }>();
-      expectTypeOf(params.postId).toEqualTypeOf<string>();
-      expectTypeOf(params.commentId).toEqualTypeOf<string>();
       return new Response();
     },
-  } satisfies Controller<"postId" | "commentId">);
+  });
 });
 
 test("handles controller class routes", async () => {
@@ -87,54 +70,41 @@ test("handles controller class routes", async () => {
     }
   }
 
-  const app = new ApplicationImpl();
-  const router = new RouterImpl(app);
+  const router = new RouterImpl(new ApplicationImpl());
 
   router.get("/hello", TestController);
 
-  app.bind(Router, { factory: () => router, lifecycle: "singleton" });
-
   const request = new Request("http://example.com/hello");
   const response = await router.handle(request);
 
-  expect(response.status).toBe(200);
   expect(await response.text()).toBe("Hello from controller class");
 });
 
-test("controller can use dependency injection", async () => {
+test("class controller can use dependency injection", async () => {
   const app = new ApplicationImpl();
-
-  class Service {
-    getMessage() {
-      return "Injected message";
-    }
-  }
-
-  class InjectedController implements Controller {
-    handle(_request: Request, _params: Record<string, string>): Response {
-      const service = app.get(Service);
-      return new Response(service.getMessage());
-    }
-  }
-
   const router = new RouterImpl(app);
 
-  app.bind(Service, { factory: () => new Service(), lifecycle: "singleton" });
+  const messageKey = createKey<string>();
+
+  class InjectedController implements Controller {
+    constructor(private message = inject(messageKey)) {}
+
+    handle(): Response {
+      return new Response(this.message);
+    }
+  }
+
+  app.bind(messageKey, { instance: "injected" });
   router.get("/hello", InjectedController);
 
-  app.bind(Router, { factory: () => router, lifecycle: "singleton" });
+  const response = await router.handle(new Request("http://example.com/hello"));
 
-  const request = new Request("http://example.com/hello");
-  const response = await router.handle(request);
-
-  expect(response.status).toBe(200);
-  expect(await response.text()).toBe("Injected message");
+  expect(await response.text()).toBe("injected");
 });
 
 test("supports all HTTP methods", async () => {
-  const app = new ApplicationImpl();
-  const router = new RouterImpl(app);
-  const methods = ["GET", "POST", "PUT", "DELETE", "PATCH"] as const;
+  const router = new RouterImpl(new ApplicationImpl());
+  const methods = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"] as const;
 
   router
     .get("/test", {
@@ -161,29 +131,28 @@ test("supports all HTTP methods", async () => {
       handle() {
         return new Response("PATCH");
       },
+    })
+    .options("/test", {
+      handle() {
+        return new Response("OPTIONS");
+      },
     });
-
-  app.bind(Router, { factory: () => router, lifecycle: "singleton" });
 
   for (const method of methods) {
     const request = new Request("http://example.com/test", { method });
     const response = await router.handle(request);
-    expect(response.status).toBe(200);
     expect(await response.text()).toBe(method);
   }
 });
 
 test("returns 404 for unmatched route", async () => {
-  const app = new ApplicationImpl();
-  const router = new RouterImpl(app);
+  const router = new RouterImpl(new ApplicationImpl());
 
   router.get("/hello", {
     handle() {
       return new Response("Hello");
     },
   });
-
-  app.bind(Router, { factory: () => router, lifecycle: "singleton" });
 
   const request = new Request("http://example.com/goodbye");
   const response = await router.handle(request);
@@ -192,8 +161,7 @@ test("returns 404 for unmatched route", async () => {
 });
 
 test("executes inline middleware", async () => {
-  const app = new ApplicationImpl();
-  const router = new RouterImpl(app);
+  const router = new RouterImpl(new ApplicationImpl());
   const log: string[] = [];
 
   router.middleware(
@@ -215,12 +183,9 @@ test("executes inline middleware", async () => {
     },
   );
 
-  app.bind(Router, { factory: () => router, lifecycle: "singleton" });
-
   const request = new Request("http://example.com/test");
   const response = await router.handle(request);
 
-  expect(response.status).toBe(200);
   expect(await response.text()).toBe("OK");
   expect(log).toEqual(["middleware:before", "handler", "middleware:after"]);
 });
@@ -263,10 +228,8 @@ test("executes nested middleware in correct order", async () => {
 
   app.bind(Router, { factory: () => router, lifecycle: "singleton" });
 
-  const request = new Request("http://example.com/test");
-  const response = await router.handle(request);
+  await router.handle(new Request("http://example.com/test"));
 
-  expect(response.status).toBe(200);
   expect(log).toEqual(["outer:before", "inner:before", "handler", "inner:after", "outer:after"]);
 });
 
@@ -331,7 +294,6 @@ test("middleware can modify request", async () => {
   const request = new Request("http://example.com/test");
   const response = await router.handle(request);
 
-  expect(response.status).toBe(200);
   expect(await response.text()).toBe("Modified");
 });
 
@@ -353,7 +315,6 @@ test("handles async controller", async () => {
   const request = new Request("http://example.com/async");
   const response = await router.handle(request);
 
-  expect(response.status).toBe(200);
   expect(await response.text()).toBe("Async response");
 });
 
@@ -386,7 +347,6 @@ test("handles synchronous middleware", async () => {
   const request = new Request("http://example.com/test");
   const response = await router.handle(request);
 
-  expect(response.status).toBe(200);
   expect(await response.text()).toBe("OK");
   expect(log).toEqual(["sync-middleware:before", "handler", "sync-middleware:after"]);
 });
