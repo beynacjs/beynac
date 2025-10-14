@@ -1,19 +1,15 @@
 # Dependencies
-node_modules/
 **/node_modules/
 
 # Build outputs
-dist/
 **/dist/
-packages/website/.vitepress/cache/
-packages/website/.vitepress/dist/
 packages/website/public/api/
+
+# Dot directories (but not dotfiles)
+**/.*/
 
 # Other projects
 laravel/
-
-# Temporary files
-port-progress.ts
 
 # Lock files
 bun.lockb

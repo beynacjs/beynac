@@ -2,7 +2,7 @@
 import { addRoute, createRouter, findRoute, RouterContext } from "rou3";
 import { inject } from "../container/inject";
 import { Application, type Application as IApplication } from "../contracts/Application";
-import type { RouteHandler, RouteParams, Router } from "../contracts/Router";
+import type { ExtractRouteParams, RouteHandler, Router } from "../contracts/Router";
 import { arrayWrap } from "../utils";
 import type { MiddlewareReference } from "./Middleware";
 
@@ -19,23 +19,23 @@ export class RouterImpl implements Router {
     this.router = createRouter();
   }
 
-  get<Path extends string>(uri: Path, handler: RouteHandler<RouteParams<Path>>): Router {
+  get<Path extends string>(uri: Path, handler: RouteHandler<ExtractRouteParams<Path>>): Router {
     return this.#addRoute("GET", uri, handler);
   }
 
-  post<Path extends string>(uri: Path, handler: RouteHandler<RouteParams<Path>>): Router {
+  post<Path extends string>(uri: Path, handler: RouteHandler<ExtractRouteParams<Path>>): Router {
     return this.#addRoute("POST", uri, handler);
   }
 
-  put<Path extends string>(uri: Path, handler: RouteHandler<RouteParams<Path>>): Router {
+  put<Path extends string>(uri: Path, handler: RouteHandler<ExtractRouteParams<Path>>): Router {
     return this.#addRoute("PUT", uri, handler);
   }
 
-  delete<Path extends string>(uri: Path, handler: RouteHandler<RouteParams<Path>>): Router {
+  delete<Path extends string>(uri: Path, handler: RouteHandler<ExtractRouteParams<Path>>): Router {
     return this.#addRoute("DELETE", uri, handler);
   }
 
-  patch<Path extends string>(uri: Path, handler: RouteHandler<RouteParams<Path>>): Router {
+  patch<Path extends string>(uri: Path, handler: RouteHandler<ExtractRouteParams<Path>>): Router {
     return this.#addRoute("PATCH", uri, handler);
   }
 

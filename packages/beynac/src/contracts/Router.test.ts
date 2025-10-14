@@ -2,17 +2,17 @@ import { describe, expectTypeOf, it } from "bun:test";
 import type { RouteHandler } from "./Router";
 
 describe("RouteHandler", () => {
-  it("enforces correct param types based on params record", () => {
-    // Handler with no params - should accept empty record
-    const handlerNoParams: RouteHandler<Record<string, never>> = {
+  it("enforces correct param types based on params union", () => {
+    // Handler with no params - should have empty params
+    const handlerNoParams: RouteHandler<never> = {
       handle(_req, params) {
-        expectTypeOf(params).toEqualTypeOf<Record<string, never>>();
+        expectTypeOf(params).toEqualTypeOf<Record<never, string>>();
         return new Response();
       },
     };
 
     // Handler with single param - should have that param
-    const handlerSingleParam: RouteHandler<{ id: string }> = {
+    const handlerSingleParam: RouteHandler<"id"> = {
       handle(_req, params) {
         expectTypeOf(params).toEqualTypeOf<{ id: string }>();
         expectTypeOf(params.id).toEqualTypeOf<string>();
@@ -21,7 +21,7 @@ describe("RouteHandler", () => {
     };
 
     // Handler with multiple params - should have all params
-    const handlerMultiParams: RouteHandler<{ postId: string; commentId: string }> = {
+    const handlerMultiParams: RouteHandler<"postId" | "commentId"> = {
       handle(_req, params) {
         expectTypeOf(params).toEqualTypeOf<{ postId: string; commentId: string }>();
         expectTypeOf(params.postId).toEqualTypeOf<string>();

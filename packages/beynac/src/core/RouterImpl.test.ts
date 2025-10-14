@@ -1,15 +1,15 @@
 import { beforeEach, expect, expectTypeOf, test } from "bun:test";
-import { Application } from "../contracts";
 import { Router } from "../contracts/Router";
 import { ApplicationImpl } from "./ApplicationImpl";
 import { Controller } from "./Controller";
 import { RouterImpl } from "./RouterImpl";
 
-let app: Application;
+let app: ApplicationImpl;
 let router: Router;
 
 beforeEach(() => {
   app = new ApplicationImpl();
+  app.bootstrap();
   router = app.get(Router);
 });
 
@@ -52,13 +52,13 @@ test("type inference works for route params", () => {
   const app = new ApplicationImpl();
   const router = new RouterImpl(app);
 
-  // Route with no params - params should be empty record
+  // Route with no params - params should be empty
   router.get("/hello", {
     handle(_req, params): Response {
-      expectTypeOf(params).toEqualTypeOf<Record<string, never>>();
+      expectTypeOf(params).toEqualTypeOf<Record<never, string>>();
       return new Response();
     },
-  } satisfies Controller<Record<string, never>>);
+  } satisfies Controller<never>);
 
   // Route with single param - params should have that param
   router.get("/user/:id", {
@@ -67,7 +67,7 @@ test("type inference works for route params", () => {
       expectTypeOf(params.id).toEqualTypeOf<string>();
       return new Response();
     },
-  } satisfies Controller<{ id: string }>);
+  } satisfies Controller<"id">);
 
   // Route with multiple params - params should have all params
   router.get("/posts/:postId/comments/:commentId", {
@@ -77,7 +77,7 @@ test("type inference works for route params", () => {
       expectTypeOf(params.commentId).toEqualTypeOf<string>();
       return new Response();
     },
-  } satisfies Controller<{ postId: string; commentId: string }>);
+  } satisfies Controller<"postId" | "commentId">);
 });
 
 test("handles controller class routes", async () => {

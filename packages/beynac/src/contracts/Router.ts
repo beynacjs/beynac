@@ -30,8 +30,10 @@ export type RouteParams<T extends string> =
  * A route handler can be:
  * - A controller instance
  * - A controller class constructor
+ *
+ * @template Params - Union of parameter names (e.g., "id" | "postId"), defaults to string for any params
  */
-export type RouteHandler<Params extends Record<string, string> = Record<string, string>> =
+export type RouteHandler<Params extends string = string> =
   | Controller<Params>
   | NoArgConstructor<Controller<Params>>;
 
@@ -42,27 +44,27 @@ export interface Router {
   /**
    * Register a GET request handler
    */
-  get<Path extends string>(uri: Path, handler: RouteHandler<RouteParams<Path>>): Router;
+  get<Path extends string>(uri: Path, handler: RouteHandler<ExtractRouteParams<Path>>): Router;
 
   /**
-   * Register a PORT request handler
+   * Register a POST request handler
    */
-  post<Path extends string>(uri: Path, handler: RouteHandler<RouteParams<Path>>): Router;
+  post<Path extends string>(uri: Path, handler: RouteHandler<ExtractRouteParams<Path>>): Router;
 
   /**
    * Register a PUT request handler
    */
-  put<Path extends string>(uri: Path, handler: RouteHandler<RouteParams<Path>>): Router;
+  put<Path extends string>(uri: Path, handler: RouteHandler<ExtractRouteParams<Path>>): Router;
 
   /**
    * Register a DELETE request handler
    */
-  delete<Path extends string>(uri: Path, handler: RouteHandler<RouteParams<Path>>): Router;
+  delete<Path extends string>(uri: Path, handler: RouteHandler<ExtractRouteParams<Path>>): Router;
 
   /**
    * Register a PATCH request handler
    */
-  patch<Path extends string>(uri: Path, handler: RouteHandler<RouteParams<Path>>): Router;
+  patch<Path extends string>(uri: Path, handler: RouteHandler<ExtractRouteParams<Path>>): Router;
 
   /**
    * Register routes with middleware.

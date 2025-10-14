@@ -245,6 +245,15 @@ export function renderStream(
         return;
       case "object":
         if (node === null) return;
+        if (isReactElement(node)) {
+          throw new RenderingError(
+            "invalid-content",
+            stack,
+            new Error(
+              'Encountered a React JSX element. Use Beynac JSX instead, add /** @jsxImportSource beynac/view **/ to the file containing the JSX, or configure your build system to use "beynac/view" as a default JSX import source.',
+            ),
+          );
+        }
         if (isSpecialNode(node)) {
           if (node instanceof RawContent) {
             buf.add(node.toString());
@@ -555,11 +564,21 @@ const booleanAttributes = new Set([
   "selected",
 ]);
 
+function isReactElement(value: unknown): boolean {
+  return (
+    value != null &&
+    typeof value === "object" &&
+    "$$typeof" in value &&
+    typeof value.$$typeof === "symbol"
+  );
+}
+
 type ErrorKind =
   | "content-function-error"
   | "content-function-promise-rejection"
   | "content-promise-error"
-  | "attribute-type-error";
+  | "attribute-type-error"
+  | "invalid-content";
 
 /**
  * Error thrown during rendering when an error occurs during content expansion or rendering.

@@ -49,7 +49,13 @@ export function createFacade<T extends object>(key: KeyOrClass<T | undefined>): 
 
   return new Proxy({} as object, {
     get: (_target, prop) => {
-      return getInstance()[prop];
+      const instance = getInstance();
+      let value = instance[prop];
+      if (typeof value === "function") {
+        // must bind function to instance, otherwise #private fields won't work
+        value = value.bind(instance);
+      }
+      return value;
     },
     set: (_target, prop, value) => {
       getInstance()[prop] = value;

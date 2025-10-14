@@ -7,6 +7,13 @@ import { createKey } from "../keys";
  */
 export interface RequestContext {
   /**
+   * The name of the context, for debugging purposes. Should include framework
+   * name, and the kind of request, if the framework has multiple kinds of
+   * request. For example `"NextJS route handler"`
+   */
+  readonly context: string;
+
+  /**
    * A function to get a request header
    *
    * @param name The name of the header to retrieve, case-insensitive.
@@ -15,40 +22,49 @@ export interface RequestContext {
   readonly getRequestHeader: (name: string) => string | null;
 
   /**
+   * A function returning an iterable of request header names. This can be an
+   * array of strings, or iterator
+   *
+   * @param name The name of the header to retrieve, case-insensitive.
+   * @returns The header value or null if not present in the request.
+   */
+  readonly getRequestHeaderNames: () => Iterable<string>;
+
+  /**
    * Get the value of a request cookie
+   *
+   * @param name the name of the cookie, case-sensitive (NOTE: unlike headers,
+   *             cookie names are case-sensitive, which follows the HTTP spec)
    */
-  readonly getRequestCookie: (name: string) => string | null;
+  readonly getCookie: (name: string) => string | null;
 
   /**
-   * A function to set a response header, or null if headers cannot be set in
-   * this environment (some environments, like server actions in NextJS, don't
-   * allow arbitrary headers to be set.
-   *
-   * Repeated calls to set the same header name should overwrite the previous
-   * value. The function will not be called for Set-Cookie headers,
-   * setResponseCookie will be used instead
-   *
-   * @param name The name of the header to set, which should be treated case-insensitively
-   * @param value The value of the header to set
-   * @returns `true` if the header was set successfully, `false` if the headers
-   *          have already been sent
+   * A function returning an iterable of cookie names from the request. This can
+   * be an array of strings, or iterator
    */
-  setResponseHeader: ((name: string, value: string | null) => boolean) | null;
+  readonly getCookieNames: () => Iterable<string>;
 
   /**
-   * Set the value of a response cookie
+   * Add response header that deletes a cookie
    *
-   * @returns `true` if the Set-Cookie header was set successfully, `false` if
-   *          the headers have already been sent
+   * This will throw an error if the response headers have already been sent
+   *
+   * @param name the name of the cookie, case-sensitive (NOTE: unlike headers,
+   *             cookie names are case-sensitive, which follows the HTTP spec)
    */
-  setResponseCookie: (name: string, value: string, options?: CookieAttributes) => boolean;
+  readonly deleteCookie: ((name: string) => void) | null;
+
+  /**
+   * A function that sets a cookie, or null if cookies can't be set in this context
+   */
+  readonly setCookie: ((name: string, value: string, options?: CookieAttributes) => void) | null;
 }
 
 export const RequestContext: Key<RequestContext | undefined> = createKey<RequestContext>({
   displayName: "RequestContext",
 });
 
-interface CookieAttributes {
+export interface CookieAttributes {
   /**
    * Send the cookie to a specific domain and all its subdomains.
    *

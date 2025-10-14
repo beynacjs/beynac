@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { RequestContext } from "../contracts";
 import { ApplicationImpl } from "./ApplicationImpl";
 import { createFacade, setFacadeApplication } from "./facade";
 
@@ -74,11 +75,11 @@ describe(createFacade, () => {
 
     const facade = createFacade(MockService);
 
-    app.withRequest({} as Request, () => {
+    app.withRequestContext({} as RequestContext, () => {
       expect(facade.value).toBe("scoped-1");
     });
 
-    app.withRequest({} as Request, () => {
+    app.withRequestContext({} as RequestContext, () => {
       expect(facade.value).toBe("scoped-2");
     });
   });

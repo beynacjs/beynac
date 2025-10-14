@@ -1,13 +1,4 @@
 import { app } from "@/beynac/app";
-import { Route } from "beynac/facades";
-import { NextRequest } from "next/server";
+import { makeRouteHandlers } from "beynac/integrations/next";
 
-class MyController {
-  handle() {}
-}
-
-Route.get("/path/:foo", [MyController, "handle"]);
-
-export async function GET(request: NextRequest) {
-  return await app.handleRequest(request);
-}
+export const { GET, POST, PUT, DELETE, PATCH, OPTIONS } = makeRouteHandlers(app);

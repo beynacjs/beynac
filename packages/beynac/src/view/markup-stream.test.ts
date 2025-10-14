@@ -979,6 +979,56 @@ describe("error handling", () => {
       expect(err.errorKind).toBe("content-function-error");
     }
   });
+
+  test("invalid-content: detects React JSX elements", async () => {
+    // Create a mock React element
+    const reactElement = {
+      $$typeof: Symbol.for("react.element"),
+      type: "div",
+      props: { children: "React content" },
+      key: null,
+      ref: null,
+    };
+
+    const stream = new MarkupStream("div", null, ["before ", reactElement, " after"]);
+
+    try {
+      await render(stream);
+      throw new Error("Expected render(stream) to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(RenderingError);
+      const err = error as RenderingError;
+      expect(err.message).toContain("Encountered a React JSX element");
+      expect(err.message).toContain("@jsxImportSource beynac/view");
+      expect(err.errorKind).toBe("invalid-content");
+      expect(err.componentStack).toEqual(["div"]);
+    }
+  });
+
+  test("invalid-content: detects React JSX in nested components", async () => {
+    const reactElement = {
+      $$typeof: Symbol.for("react.element"),
+      type: "span",
+      props: {},
+      key: null,
+      ref: null,
+    };
+
+    const stream = new MarkupStream("outer", null, [
+      new MarkupStream("middle", null, [new MarkupStream("inner", null, [reactElement])]),
+    ]);
+
+    try {
+      await render(stream);
+      throw new Error("Expected render(stream) to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(RenderingError);
+      const err = error as RenderingError;
+      expect(err.message).toContain("Encountered a React JSX element");
+      expect(err.errorKind).toBe("invalid-content");
+      expect(err.componentStack).toEqual(["outer", "middle", "inner"]);
+    }
+  });
 });
 
 describe("renderResponse", () => {
