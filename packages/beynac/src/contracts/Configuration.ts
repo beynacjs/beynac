@@ -1,6 +1,6 @@
 import { Router } from ".";
-import type { Key } from "../keys";
-import { createKey } from "../keys";
+import type { TypeToken } from "../container/type-token";
+import { createTypeToken } from "../container/type-token";
 
 export interface Configuration {
   /**
@@ -61,7 +61,5 @@ export interface Configuration {
   };
 }
 
-export const Configuration: Key<Configuration> = createKey<Configuration>({
-  displayName: "Configuration",
-  default: {},
-});
+export const Configuration: TypeToken<Configuration> =
+  createTypeToken<Configuration>("Configuration");

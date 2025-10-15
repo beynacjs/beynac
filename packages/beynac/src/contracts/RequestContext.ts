@@ -1,5 +1,5 @@
-import type { Key } from "../keys";
-import { createKey } from "../keys";
+import type { TypeToken } from "../container/type-token";
+import { createTypeToken } from "../container/type-token";
 
 /**
  * The interface used by framework integrations to provide access to the request
@@ -60,9 +60,8 @@ export interface RequestContext {
   readonly setCookie: ((name: string, value: string, options?: CookieAttributes) => void) | null;
 }
 
-export const RequestContext: Key<RequestContext | undefined> = createKey<RequestContext>({
-  displayName: "RequestContext",
-});
+export const RequestContext: TypeToken<RequestContext> =
+  createTypeToken<RequestContext>("RequestContext");
 
 export interface CookieAttributes {
   /**

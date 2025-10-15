@@ -1,10 +1,10 @@
-import type { Key } from "../keys";
-import { NoArgConstructor } from "../utils";
+import { AnyConstructor } from "../utils";
+import type { TypeToken } from "./type-token";
 
 /**
  * A key that can be bound to a value in the IoC container
  */
-export type KeyOrClass<T = unknown> = NoArgConstructor<T> | Key<T>;
+export type KeyOrClass<T = unknown> = AnyConstructor<T> | TypeToken<T>;
 
 export const getKeyName = (key: KeyOrClass): string => {
   if (typeof key === "function") {

@@ -1,5 +1,5 @@
-import type { Key } from "../keys";
-import { createKey } from "../keys";
+import type { TypeToken } from "../container/type-token";
+import { createTypeToken } from "../container/type-token";
 import { AnyConstructor } from "../utils";
 
 /**
@@ -51,6 +51,4 @@ export interface Dispatcher {
   dispatch<T extends object>(event: T): void;
 }
 
-export const Dispatcher: Key<Dispatcher | undefined> = createKey<Dispatcher>({
-  displayName: "Dispatcher",
-});
+export const Dispatcher: TypeToken<Dispatcher> = createTypeToken<Dispatcher>("Dispatcher");

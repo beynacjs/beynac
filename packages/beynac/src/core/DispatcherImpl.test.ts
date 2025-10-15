@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import { Container } from "../container/container";
+import { ContainerImpl } from "../container/ContainerImpl";
 import { inject } from "../container/inject";
 import { DispatcherImpl } from "./DispatcherImpl";
 
-let container: Container;
+let container: ContainerImpl;
 let dispatcher: DispatcherImpl;
 
 beforeEach(() => {
-  container = new Container();
+  container = new ContainerImpl();
   dispatcher = new DispatcherImpl(container);
 });
 

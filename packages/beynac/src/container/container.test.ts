@@ -1,691 +1,749 @@
-import { afterEach, beforeEach, describe, expect, expectTypeOf, mock, test } from "bun:test";
-import { createKey } from "../keys";
+import { beforeEach, describe, expect, expectTypeOf, mock, spyOn, test } from "bun:test";
+import type { Container } from "../contracts/Container";
 import { asyncGate } from "../test-utils";
-import { Container } from "./container";
+import { ContainerImpl } from "./ContainerImpl";
 import type { KeyOrClass } from "./container-key";
 import { inject, injectOptional } from "./inject";
+import { createTypeToken } from "./type-token";
 
 let container: Container;
 
 beforeEach(() => {
-  container = new Container();
+  container = new ContainerImpl();
   Dep.instantiations = 0;
 });
 
-afterEach(() => {
-  Container.setInstance(null);
+test("resolution of bound type token", () => {
+  const name = createTypeToken<string>();
+  container.bind(name, { factory: () => "Bernie" });
+  expect(container.get(name)).toBe("Bernie");
 });
 
-describe("Container", () => {
-  test("container singleton", () => {
-    Container.setInstance(container);
-    expect(container).toBe(Container.getInstance());
-    Container.setInstance(null);
-    const container2 = Container.getInstance();
-    expect(container2).toBeInstanceOf(Container);
-    expect(container2).not.toBe(container);
+test("failed resolution of unbound token", () => {
+  const string = createTypeToken("Test");
+  expect(() => container.get(string)).toThrowErrorMatchingInlineSnapshot(
+    `"Can't create an instance of [Test] because no value or factory function was supplied"`,
+  );
+});
+
+test("resolution of bound class with injected dependencies", () => {
+  const nameToken = createTypeToken<string>("name");
+  class HasNameDependency {
+    constructor(public name = inject(nameToken)) {}
+  }
+  container.bind(nameToken, { factory: () => "Bernie" });
+  container.bind(HasNameDependency);
+  expect(container.get(HasNameDependency).name).toBe("Bernie");
+});
+
+test("resolution of bound class with factory function and injected dependencies", () => {
+  const nameToken = createTypeToken<string>("name");
+  class HasNameDependency {
+    constructor(public name = inject(nameToken)) {}
+  }
+  container.bind(nameToken, { factory: () => "Bernie" });
+  container.bind(HasNameDependency, {
+    factory: () => new HasNameDependency(),
+  });
+  expect(container.get(HasNameDependency).name).toBe("Bernie");
+});
+
+test("resolution of an unbound class value", () => {
+  class Foo {}
+  const foo1 = container.get(Foo);
+  const foo2 = container.get(Foo);
+  expect(foo1).toBeInstanceOf(Foo);
+  expect(foo2).toBeInstanceOf(Foo);
+  expect(foo1).not.toBe(foo2);
+});
+
+test("error when trying to instantiate a value with unbound dependencies", () => {
+  const nameToken = createTypeToken<string>("name");
+  class HasNameDependency {
+    constructor(public name = inject(nameToken)) {}
+  }
+  expect(() => new HasNameDependency()).toThrowErrorMatchingInlineSnapshot(
+    `"Dependencies that use inject() must be created by the container. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`,
+  );
+});
+
+test("auto-resolution of class with auto-resolvable dependencies", () => {
+  class A {
+    constructor(public b = inject(B)) {}
+  }
+  class B {
+    value = "hi";
+  }
+  expect(container.get(A)).toMatchObject({ b: { value: "hi" } });
+});
+
+test("error when resolving a value with missing injected dependencies", () => {
+  const nameToken = createTypeToken<string>("name");
+  class HasNameDependency {
+    constructor(public name = inject(nameToken)) {}
+  }
+  container.bind(HasNameDependency);
+  expect(() => container.get(HasNameDependency)).toThrowErrorMatchingInlineSnapshot(
+    `"Can't create an instance of [name] because no value or factory function was supplied (while building [HasNameDependency])"`,
+  );
+});
+
+test("abstract can be bound from concrete type", () => {
+  class Foo {}
+  container.bind(Foo);
+  expect(container.get(Foo)).toBeInstanceOf(Foo);
+});
+
+test("can create a null-returning factory function", () => {
+  const token = createTypeToken<string | null>();
+  container.bind(token, { factory: () => null });
+  expect(container.bound(token)).toBe(true);
+  expect(container.get(token)).toBe(null);
+});
+
+test("can create a null-returning factory function for a singleton", () => {
+  const token = createTypeToken<string | null>();
+  const factory = mock(() => null);
+  container.bind(token, { factory, lifecycle: "singleton" });
+  expect(container.bound(token)).toBe(true);
+  expect(container.get(token)).toBe(null);
+  expect(factory).toHaveBeenCalledTimes(1);
+});
+
+test("error when binding without providing class, factory, or instance", () => {
+  const token = createTypeToken();
+  // @ts-expect-error -- testing runtime error for invalid bind call
+  expect(() => container.bind(token)).toThrow("Must provide class, factory, or instance");
+});
+
+test("bound checks if a type token is bound", () => {
+  const token = createTypeToken();
+  expect(container.bound(token)).toBe(false);
+  container.bind(token, { factory: () => false });
+  expect(container.bound(token)).toBe(true);
+});
+
+test("bound checks if a class is bound", () => {
+  class Foo {}
+  expect(container.bound(Foo)).toBe(false);
+  container.bind(Foo);
+  expect(container.bound(Foo)).toBe(true);
+});
+
+test("bindIf doesn't register if service already registered", () => {
+  const name = createTypeToken();
+  container.bind(name, { factory: () => "Bernie" });
+  container.bind(name, { factory: () => "Miguel", ifNotBound: true });
+
+  expect(container.get(name)).toBe("Bernie");
+});
+
+test("bindIf does register if service not registered yet", () => {
+  const surname = createTypeToken();
+  const name = createTypeToken();
+  container.bind(surname, { factory: () => "Sumption" });
+  container.bind(name, { factory: () => "Bernie", ifNotBound: true });
+
+  expect(container.get(name)).toBe("Bernie");
+});
+
+test("instance registers an instance of a class", () => {
+  container.bind(Dep, {
+    instance: new Dep("instance"),
+    lifecycle: "singleton",
+  });
+  expect(container.getLifecycle(Dep)).toBe("singleton");
+  expect(container.get(Dep).name).toBe("instance");
+});
+
+test("instance registers an instance for a token", () => {
+  const token = createTypeToken<Dep>();
+  container.bind(token, {
+    instance: new Dep("instance"),
+    lifecycle: "singleton",
+  });
+  expect(container.getLifecycle(token)).toBe("singleton");
+  expect(container.get(token).name).toBe("instance");
+});
+
+test("resolved resolves alias to binding name before checking", () => {
+  class Foo {}
+  container.bind(Foo);
+  const fooAlias = createTypeToken<Foo>();
+  container.alias({ from: fooAlias, to: Foo });
+
+  expect(container.resolved(Foo)).toBe(false);
+  expect(container.resolved(fooAlias)).toBe(false);
+
+  container.get(Foo);
+
+  expect(container.resolved(Foo)).toBe(true);
+  expect(container.resolved(fooAlias)).toBe(true);
+});
+
+test("resolved considers provided shared instance to be resolved", () => {
+  class Foo {}
+
+  expect(container.resolved(Foo)).toBe(false);
+
+  container.bind(Foo, { instance: new Foo(), lifecycle: "singleton" });
+
+  expect(container.resolved(Foo)).toBe(true);
+});
+
+test("alias to bound type token", () => {
+  const from = createTypeToken();
+  const to = createTypeToken();
+  container.bind(to, { factory: () => "to value" });
+  container.alias({ from, to });
+  expect(container.get(from)).toBe("to value");
+});
+
+test("alias to bound class reference", () => {
+  class Foo {}
+  const foo = new Foo();
+  const from = createTypeToken<Foo>();
+  container.bind(Foo, { factory: () => foo });
+  container.alias({ from, to: Foo });
+  expect(container.get(from)).toBe(foo);
+});
+
+test("alias to unbound type token", () => {
+  const from = createTypeToken("from");
+  const to = createTypeToken("to");
+  container.alias({ from, to });
+  expect(() => container.get(from)).toThrowErrorMatchingInlineSnapshot(
+    `"Can't create an instance of [to] because no value or factory function was supplied"`,
+  );
+});
+
+test("alias to unbound class reference", () => {
+  class Foo {}
+  const from = createTypeToken<Foo>();
+  container.alias({ from, to: Foo });
+  const instance = container.get(from);
+  expect(instance).toBeInstanceOf(Foo);
+  // not a singleton
+  expect(container.get(from)).not.toBe(instance);
+  expect(container.bound(Foo)).toBe(false);
+});
+
+test("error message when following circular alias", () => {
+  const quux = createTypeToken("quux");
+  const foo = createTypeToken("foo");
+  const bar = createTypeToken("bar");
+  const baz = createTypeToken("baz");
+  container.alias({ from: quux, to: foo });
+  container.alias({ from: foo, to: bar });
+  container.alias({ from: bar, to: baz });
+  container.alias({ from: baz, to: foo });
+  expect(() => container.get(quux)).toThrowErrorMatchingInlineSnapshot(
+    `"Circular alias detected: [foo] -> [bar] -> [baz] -> [foo]"`,
+  );
+});
+
+test("singleton token resolution", () => {
+  const token = createTypeToken<object>();
+  container.bind(token, {
+    factory: () => {
+      return {};
+    },
+    lifecycle: "singleton",
+  });
+  const first = container.get(token);
+  const second = container.get(token);
+  expect(first).toBe(second);
+});
+
+test("singleton class resolution", () => {
+  class ContainerConcreteStub {}
+  container.singleton(ContainerConcreteStub);
+
+  const var1 = container.get(ContainerConcreteStub);
+  const var2 = container.get(ContainerConcreteStub);
+  expect(var1).toBe(var2);
+});
+
+test("singletonIf doesn't register if binding already registered", () => {
+  const token = createTypeToken<{ type: string }>();
+  container.bind(token, {
+    factory: () => ({ type: "a" }),
+    lifecycle: "singleton",
+  });
+  const firstInstantiation = container.get(token);
+  container.bind(token, {
+    factory: () => ({ type: "b" }),
+    lifecycle: "singleton",
+    ifNotBound: true,
+  });
+  const secondInstantiation = container.get(token);
+  expect(firstInstantiation).toBe(secondInstantiation);
+  expect(firstInstantiation).toEqual({ type: "a" });
+});
+
+test("singletonIf does register if binding not registered yet", () => {
+  const token = createTypeToken();
+  const otherToken = createTypeToken<{ type: string }>();
+  container.bind(token, { factory: () => ({}), lifecycle: "singleton" });
+  container.bind(otherToken, {
+    factory: () => ({ type: "a" }),
+    lifecycle: "singleton",
+    ifNotBound: true,
+  });
+  const firstInstantiation = container.get(otherToken);
+  const secondInstantiation = container.get(otherToken);
+  expect(firstInstantiation).toBe(secondInstantiation);
+  expect(firstInstantiation).toEqual({ type: "a" });
+});
+
+test("scopedIf", async () => {
+  const token = createTypeToken<string>();
+  container.bind(token, {
+    factory: () => "foo",
+    lifecycle: "scoped",
+    ifNotBound: true,
   });
 
-  test("resolution of bound type token", () => {
-    const name = createKey<string>();
-    container.bind(name, { factory: () => "Bernie" });
-    expect(container.get(name)).toBe("Bernie");
-  });
-
-  test("failed resolution of unbound token", () => {
-    const string = createKey({ displayName: "Test" });
-    expect(() => container.get(string)).toThrowErrorMatchingInlineSnapshot(
-      `"Can't create an instance of [Test] because no value or factory function was supplied"`,
-    );
-  });
-
-  test("resolution of bound class with injected dependencies", () => {
-    const nameToken = createKey<string>({ displayName: "name" });
-    class HasNameDependency {
-      constructor(public name = inject(nameToken)) {}
-    }
-    container.bind(nameToken, { factory: () => "Bernie" });
-    container.bind(HasNameDependency);
-    expect(container.get(HasNameDependency).name).toBe("Bernie");
-  });
-
-  test("resolution of bound class with factory function and injected dependencies", () => {
-    const nameToken = createKey<string>({ displayName: "name" });
-    class HasNameDependency {
-      constructor(public name = inject(nameToken)) {}
-    }
-    container.bind(nameToken, { factory: () => "Bernie" });
-    container.bind(HasNameDependency, {
-      factory: () => new HasNameDependency(),
-    });
-    expect(container.get(HasNameDependency).name).toBe("Bernie");
-  });
-
-  test("resolution of an unbound class value", () => {
-    class Foo {}
-    const foo1 = container.get(Foo);
-    const foo2 = container.get(Foo);
-    expect(foo1).toBeInstanceOf(Foo);
-    expect(foo2).toBeInstanceOf(Foo);
-    expect(foo1).not.toBe(foo2);
-  });
-
-  test("error when trying to instantiate a value with unbound dependencies", () => {
-    const nameToken = createKey<string>({ displayName: "name" });
-    class HasNameDependency {
-      constructor(public name = inject(nameToken)) {}
-    }
-    expect(() => new HasNameDependency()).toThrowErrorMatchingInlineSnapshot(
-      `"Dependencies that use inject() must be created by the container. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`,
-    );
-  });
-
-  test("auto-resolution of class with auto-resolvable dependencies", () => {
-    class A {
-      constructor(public b = inject(B)) {}
-    }
-    class B {
-      value = "hi";
-    }
-    expect(container.get(A)).toMatchObject({ b: { value: "hi" } });
-  });
-
-  test("error when resolving a value with missing injected dependencies", () => {
-    const nameToken = createKey<string>({ displayName: "name" });
-    class HasNameDependency {
-      constructor(public name = inject(nameToken)) {}
-    }
-    container.bind(HasNameDependency);
-    expect(() => container.get(HasNameDependency)).toThrowErrorMatchingInlineSnapshot(
-      `"Can't create an instance of [name] because no value or factory function was supplied (while building [HasNameDependency])"`,
-    );
-  });
-
-  test("abstract can be bound from concrete type", () => {
-    class Foo {}
-    container.bind(Foo);
-    expect(container.get(Foo)).toBeInstanceOf(Foo);
-  });
-
-  test("can create a null-returning factory function", () => {
-    const token = createKey<string | null>();
-    container.bind(token, { factory: () => null });
-    expect(container.bound(token)).toBe(true);
-    expect(container.get(token)).toBe(null);
-  });
-
-  test("can create a null-returning factory function for a singleton", () => {
-    const token = createKey<string | null>();
-    const factory = mock(() => null);
-    container.bind(token, { factory, lifecycle: "singleton" });
-    expect(container.bound(token)).toBe(true);
-    expect(container.get(token)).toBe(null);
-    expect(factory).toHaveBeenCalledTimes(1);
-  });
-
-  test("type and runtime error when attempting to bind a type token", () => {
-    const token = createKey();
-    expect(() =>
-      //@ts-expect-error testing ts error
-      container.bind(token),
-    ).toThrow("When binding a type token you must supply a function to create an instance");
-  });
-
-  test("bound checks if a type token is bound", () => {
-    const token = createKey();
-    expect(container.bound(token)).toBe(false);
-    container.bind(token, { factory: () => false });
-    expect(container.bound(token)).toBe(true);
-  });
-
-  test("bound checks if a class is bound", () => {
-    class Foo {}
-    expect(container.bound(Foo)).toBe(false);
-    container.bind(Foo);
-    expect(container.bound(Foo)).toBe(true);
-  });
-
-  test("bindIf doesn't register if service already registered", () => {
-    const name = createKey();
-    container.bind(name, { factory: () => "Bernie" });
-    container.bind(name, { factory: () => "Miguel", ifNotBound: true });
-
-    expect(container.get(name)).toBe("Bernie");
-  });
-
-  test("bindIf does register if service not registered yet", () => {
-    const surname = createKey();
-    const name = createKey();
-    container.bind(surname, { factory: () => "Sumption" });
-    container.bind(name, { factory: () => "Bernie", ifNotBound: true });
-
-    expect(container.get(name)).toBe("Bernie");
-  });
-
-  test("instance registers an instance of a class", () => {
-    container.bind(Dep, {
-      instance: new Dep("instance"),
-      lifecycle: "singleton",
-    });
-    expect(container.getLifecycle(Dep)).toBe("singleton");
-    expect(container.get(Dep).name).toBe("instance");
-  });
-
-  test("instance registers an instance for a token", () => {
-    const token = createKey<Dep>();
+  await container.withScope(async () => {
+    expect(container.get(token)).toBe("foo");
     container.bind(token, {
-      instance: new Dep("instance"),
-      lifecycle: "singleton",
-    });
-    expect(container.getLifecycle(token)).toBe("singleton");
-    expect(container.get(token).name).toBe("instance");
-  });
-
-  test("resolved resolves alias to binding name before checking", () => {
-    class Foo {}
-    container.bind(Foo);
-    const fooAlias = createKey<Foo>();
-    container.alias({ from: fooAlias, to: Foo });
-
-    expect(container.resolved(Foo)).toBe(false);
-    expect(container.resolved(fooAlias)).toBe(false);
-
-    container.get(Foo);
-
-    expect(container.resolved(Foo)).toBe(true);
-    expect(container.resolved(fooAlias)).toBe(true);
-  });
-
-  test("resolved considers provided shared instance to be resolved", () => {
-    class Foo {}
-
-    expect(container.resolved(Foo)).toBe(false);
-
-    container.bind(Foo, { instance: new Foo(), lifecycle: "singleton" });
-
-    expect(container.resolved(Foo)).toBe(true);
-  });
-
-  test("alias to bound type token", () => {
-    const from = createKey();
-    const to = createKey();
-    container.bind(to, { factory: () => "to value" });
-    container.alias({ from, to });
-    expect(container.get(from)).toBe("to value");
-  });
-
-  test("alias to bound class reference", () => {
-    class Foo {}
-    const foo = new Foo();
-    const from = createKey<Foo>();
-    container.bind(Foo, { factory: () => foo });
-    container.alias({ from, to: Foo });
-    expect(container.get(from)).toBe(foo);
-  });
-
-  test("alias to unbound type token", () => {
-    const from = createKey({ displayName: "from" });
-    const to = createKey({ displayName: "to" });
-    container.alias({ from, to });
-    expect(() => container.get(from)).toThrowErrorMatchingInlineSnapshot(
-      `"Can't create an instance of [to] because no value or factory function was supplied"`,
-    );
-  });
-
-  test("alias to unbound class reference", () => {
-    class Foo {}
-    const from = createKey<Foo>();
-    container.alias({ from, to: Foo });
-    const instance = container.get(from);
-    expect(instance).toBeInstanceOf(Foo);
-    // not a singleton
-    expect(container.get(from)).not.toBe(instance);
-    expect(container.bound(Foo)).toBe(false);
-  });
-
-  test("error message when following circular alias", () => {
-    const quux = createKey({ displayName: "quux" });
-    const foo = createKey({ displayName: "foo" });
-    const bar = createKey({ displayName: "bar" });
-    const baz = createKey({ displayName: "baz" });
-    container.alias({ from: quux, to: foo });
-    container.alias({ from: foo, to: bar });
-    container.alias({ from: bar, to: baz });
-    container.alias({ from: baz, to: foo });
-    expect(() => container.get(quux)).toThrowErrorMatchingInlineSnapshot(
-      `"Circular alias detected: [foo] -> [bar] -> [baz] -> [foo]"`,
-    );
-  });
-
-  test("singleton token resolution", () => {
-    const token = createKey<object>();
-    container.bind(token, {
-      factory: () => {
-        return {};
-      },
-      lifecycle: "singleton",
-    });
-    const first = container.get(token);
-    const second = container.get(token);
-    expect(first).toBe(second);
-  });
-
-  test("singleton class resolution", () => {
-    class ContainerConcreteStub {}
-    container.bind(ContainerConcreteStub, { lifecycle: "singleton" });
-
-    const var1 = container.get(ContainerConcreteStub);
-    const var2 = container.get(ContainerConcreteStub);
-    expect(var1).toBe(var2);
-  });
-
-  test("singletonIf doesn't register if binding already registered", () => {
-    const token = createKey<{ type: string }>();
-    container.bind(token, {
-      factory: () => ({ type: "a" }),
-      lifecycle: "singleton",
-    });
-    const firstInstantiation = container.get(token);
-    container.bind(token, {
-      factory: () => ({ type: "b" }),
-      lifecycle: "singleton",
-      ifNotBound: true,
-    });
-    const secondInstantiation = container.get(token);
-    expect(firstInstantiation).toBe(secondInstantiation);
-    expect(firstInstantiation).toEqual({ type: "a" });
-  });
-
-  test("singletonIf does register if binding not registered yet", () => {
-    const token = createKey();
-    const otherToken = createKey<{ type: string }>();
-    container.bind(token, { factory: () => ({}), lifecycle: "singleton" });
-    container.bind(otherToken, {
-      factory: () => ({ type: "a" }),
-      lifecycle: "singleton",
-      ifNotBound: true,
-    });
-    const firstInstantiation = container.get(otherToken);
-    const secondInstantiation = container.get(otherToken);
-    expect(firstInstantiation).toBe(secondInstantiation);
-    expect(firstInstantiation).toEqual({ type: "a" });
-  });
-
-  test("scopedIf", async () => {
-    const token = createKey<string>();
-    container.bind(token, {
-      factory: () => "foo",
+      factory: () => "bar",
       lifecycle: "scoped",
       ifNotBound: true,
     });
-
-    await container.withScope(async () => {
-      expect(container.get(token)).toBe("foo");
-      container.bind(token, {
-        factory: () => "bar",
-        lifecycle: "scoped",
-        ifNotBound: true,
-      });
-      expect(container.get(token)).toBe("foo");
-      expect(container.get(token)).not.toBe("bar");
-    });
+    expect(container.get(token)).toBe("foo");
+    expect(container.get(token)).not.toBe("bar");
   });
+});
 
-  test("auto concrete resolution", () => {
-    class Foo {}
-    expect(container.get(Foo)).toBeInstanceOf(Foo);
-    expect(container.bound(Foo)).toBe(false);
-  });
+test("auto concrete resolution", () => {
+  class Foo {}
+  expect(container.get(Foo)).toBeInstanceOf(Foo);
+  expect(container.bound(Foo)).toBe(false);
+});
 
-  test("bind fails loudly with invalid argument", () => {
-    class Foo {}
+test("abstract to concrete resolution", () => {
+  abstract class Parent {}
+  class Child extends Parent {}
+  class Dependent {
+    constructor(public impl = inject(Parent)) {}
+  }
 
-    expect(() => {
-      // @ts-expect-error asserting error for test
-      container.bind(Foo, { factory: new Foo() });
-    }).toThrowErrorMatchingInlineSnapshot(
-      `"The factory property must be a function (object provided)"`,
-    );
+  container.bind(Parent, Child);
+  const instance = container.get(Dependent);
+  expect(instance.impl).toBeInstanceOf(Child);
+});
 
-    expect(() => {
-      // @ts-expect-error asserting error for test
-      container.bind(Foo, { factory: Foo });
-    }).toThrowErrorMatchingInlineSnapshot(
-      `"The factory property must be a callable factory function (class constructor provided)"`,
-    );
-  });
-
-  test("abstract to concrete resolution", () => {
-    abstract class Parent {}
-    class Child {}
-    class Dependent {
-      constructor(public impl = inject(Parent)) {}
+test("can bind parent classes with required args to child classes without required args", () => {
+  abstract class Parent {
+    constructor(public value: string) {}
+  }
+  class Child extends Parent {
+    constructor() {
+      super("child-value");
     }
+  }
 
-    container.bind(Parent, { factory: () => new Child() });
-    const instance = container.get(Dependent);
-    expect(instance.impl).toBeInstanceOf(Child);
+  class Dependent {
+    constructor(public impl = inject(Parent)) {}
+  }
+
+  container.bind(Parent, Child);
+  const instance = container.get(Dependent);
+  expect(instance.impl).toBeInstanceOf(Child);
+  expect(instance.impl.value).toBe("child-value");
+});
+
+test("runtime error when auto-instantiating a class with required args", () => {
+  class Mandatory {
+    constructor(public value: string) {}
+  }
+
+  class Dependent {
+    constructor(public impl = inject(Mandatory)) {}
+  }
+
+  expect(() => container.get(Dependent)).toThrowError(
+    'Can\'t create an instance of [Mandatory] because it looks like it has required constructor arguments. Either bind it to the container, or ensure that all arguments have default values e.g. constructor(arg = "default")',
+  );
+});
+
+test("can bind an instance using a class with required args as a key", () => {
+  class Mandatory {
+    constructor(public value: string) {}
+  }
+
+  container.instance(Mandatory, new Mandatory("value"));
+  container.instanceIf(Mandatory, new Mandatory("value"));
+});
+
+test("type error on attempting to use a class with mandatory args as an implementation", () => {
+  class Mandatory {
+    constructor(public value: string) {}
+  }
+  const type = createTypeToken<Mandatory>();
+
+  // Can bind with factory
+  container.bind(Mandatory, { factory: () => new Mandatory("value") });
+  // @ts-expect-error -- testing expected error
+  container.bind(Mandatory, Mandatory);
+  // @ts-expect-error -- testing expected error
+  container.bindIf(Mandatory);
+  // @ts-expect-error -- testing expected error
+  container.bindIf(Mandatory, Mandatory);
+  // @ts-expect-error -- testing expected error
+  container.singleton(Mandatory);
+  // @ts-expect-error -- testing expected error
+  container.singleton(Mandatory, Mandatory);
+  // @ts-expect-error -- testing expected error
+  container.singletonIf(Mandatory);
+  // @ts-expect-error -- testing expected error
+  container.singletonIf(Mandatory, Mandatory);
+  // @ts-expect-error -- testing expected error
+  container.scoped(Mandatory);
+  // @ts-expect-error -- testing expected error
+  container.scoped(Mandatory, Mandatory);
+  // @ts-expect-error -- testing expected error
+  container.scopedIf(Mandatory);
+  // @ts-expect-error -- testing expected error
+  container.scopedIf(Mandatory, Mandatory);
+  // type.class requires NoArgConstructor
+  container.bind(type, { class: Mandatory });
+});
+
+test("can bind parent classes with required args to factory functions", () => {
+  class Cls {
+    constructor(public value: string) {}
+  }
+
+  class Dependent {
+    constructor(public impl = inject(Cls)) {}
+  }
+
+  container.bind(Cls, { factory: () => new Cls("factory-value") });
+  const instance = container.get(Dependent);
+  expect(instance.impl).toBeInstanceOf(Cls);
+  expect(instance.impl.value).toBe("factory-value");
+});
+
+test("nested dependency resolution", () => {
+  interface Contract {
+    _?: number;
+  }
+  const Contract = createTypeToken<Contract>("Contract");
+  class Impl implements Contract {}
+  class Dependent {
+    constructor(public impl = inject(Contract)) {}
+  }
+  class NestedDependent {
+    constructor(public inner = inject(Dependent)) {}
+  }
+
+  container.bind(Contract, { factory: () => new Impl() });
+  const instance = container.get(NestedDependent);
+  expect(instance.inner).toBeInstanceOf(Dependent);
+  expect(instance.inner.impl).toBeInstanceOf(Impl);
+});
+
+test("container is passed to resolvers", () => {
+  const token = createTypeToken();
+  container.bind(token, {
+    factory: (c) => {
+      return c;
+    },
   });
+  const c = container.get(token);
+  expect(c).toBe(container);
+});
 
-  test("nested dependency resolution", () => {
-    interface Contract {
-      _?: number;
-    }
-    const Contract = createKey<Contract>({ displayName: "Contract" });
-    class Impl implements Contract {}
-    class Dependent {
-      constructor(public impl = inject(Contract)) {}
-    }
-    class NestedDependent {
-      constructor(public inner = inject(Dependent)) {}
-    }
+test("binding an instance as shared", () => {
+  class Foo {}
+  const bound = new Foo();
+  container.bind(Foo, { instance: bound, lifecycle: "singleton" });
+  expect(container.get(Foo)).toBe(bound);
+  expect(container.getLifecycle(Foo)).toBe("singleton");
+});
 
-    container.bind(Contract, { factory: () => new Impl() });
-    const instance = container.get(NestedDependent);
-    expect(instance.inner).toBeInstanceOf(Dependent);
-    expect(instance.inner.impl).toBeInstanceOf(Impl);
-  });
+test("lifecycle can be omitted when binding an instance", () => {
+  class Foo {}
+  const bound = new Foo();
+  container.bind(Foo, { instance: bound });
+  expect(container.get(Foo)).toBe(bound);
+  expect(container.getLifecycle(Foo)).toBe("singleton");
+});
 
-  test("container is passed to resolvers", () => {
-    const token = createKey();
-    container.bind(token, {
-      factory: (c) => {
-        return c;
-      },
-    });
-    const c = container.get(token);
+test("resolution of default constructor arguments", () => {
+  class Dependency {}
+  class Dependent {
+    constructor(
+      public stub = inject(Dependency),
+      public defaultVal = "Bernie",
+    ) {}
+  }
+
+  const instance = container.get(Dependent);
+  expect(instance.stub).toBeInstanceOf(Dependency);
+  expect(instance.defaultVal).toBe("Bernie");
+});
+
+test("binding or making a class with non-default constructor args produces a type error", () => {
+  class MandatoryArgs {
+    constructor(public foo: string) {}
+  }
+  // Can bind with factory
+  container.bind(MandatoryArgs, { factory: () => new MandatoryArgs("arg") });
+  // Can call get() with any class, runtime error will fire if unbound
+  container.get(MandatoryArgs);
+});
+
+test("error on attempting to auto-resolve an abstract class", () => {
+  interface I {
+    foo: string;
+  }
+  const Parent = createTypeToken<I>("I");
+  expect(() => container.get(Parent)).toThrowErrorMatchingInlineSnapshot(
+    `"Can't create an instance of [I] because no value or factory function was supplied"`,
+  );
+});
+
+test("resolution of class with optional dependency", () => {
+  class OptionalInject {
+    constructor(
+      public noDefault = inject(Dep),
+      public defaultVal = injectOptional(Dep),
+    ) {}
+  }
+
+  const instance = container.get(OptionalInject);
+  expect(instance.noDefault).toBeInstanceOf(Dep);
+  expect(instance.defaultVal).toBe(null);
+
+  container.bind(Dep, { factory: () => new Dep() });
+  const instance2 = container.get(OptionalInject);
+  expect(instance2.defaultVal).toBeInstanceOf(Dep);
+});
+
+test("resolution of class with optional dependency and contextual bindings", () => {
+  class AltDep extends Dep {}
+  class OptionalInject {
+    constructor(
+      public noDefault = inject(Dep),
+      public defaultVal = injectOptional(Dep),
+    ) {}
+  }
+
+  container
+    .when(OptionalInject)
+    .needs(Dep)
+    .create(() => new AltDep());
+  const instance = container.get(OptionalInject);
+  expect(instance.defaultVal).toBeInstanceOf(AltDep);
+});
+
+test("bound", () => {
+  class Foo {}
+  const alias = createTypeToken<Foo>();
+  container.bind(Foo);
+  expect(container.bound(Foo)).toBe(true);
+  expect(container.bound(alias)).toBe(false);
+
+  const container2 = new ContainerImpl();
+  container2.alias({ from: alias, to: Foo });
+  expect(container2.bound(alias)).toBe(true);
+  expect(container2.bound(Foo)).toBe(false);
+});
+
+test("alias clears binding", () => {
+  class Foo {
+    constructor(public string?: string) {}
+  }
+  const token = createTypeToken<Foo>();
+  container.bind(token, { factory: () => new Foo("bound by token") });
+  container.bind(Foo, { factory: () => new Foo("bound by class") });
+  expect(container.get(token).string).toBe("bound by token");
+  expect(container.get(Foo).string).toBe("bound by class");
+
+  container.alias({ from: token, to: Foo });
+  expect(container.get(token).string).toBe("bound by class");
+});
+
+test("rebound listeners", () => {
+  const token = createTypeToken<string>();
+
+  container.bind(token, { factory: () => "a" });
+
+  let fireCount = 0;
+  container.onRebinding(token, (instance, c) => {
+    expect(instance).toBe("b");
     expect(c).toBe(container);
+    ++fireCount;
   });
+  container.bind(token, { factory: () => "b" });
 
-  test("binding an instance as shared", () => {
-    class Foo {}
-    const bound = new Foo();
-    container.bind(Foo, { instance: bound, lifecycle: "singleton" });
-    expect(container.get(Foo)).toBe(bound);
-    expect(container.getLifecycle(Foo)).toBe("singleton");
+  expect(fireCount).toBe(1);
+});
+
+test("rebound listeners only fires if was already bound", () => {
+  const token = createTypeToken<string>();
+
+  let fireCount = 0;
+  container.onRebinding(token, () => {
+    ++fireCount;
   });
+  container.bind(token, { factory: () => "b" });
 
-  test("lifecycle can be omitted when binding an instance", () => {
-    class Foo {}
-    const bound = new Foo();
-    container.bind(Foo, { instance: bound });
-    expect(container.get(Foo)).toBe(bound);
-    expect(container.getLifecycle(Foo)).toBe("singleton");
+  expect(fireCount).toBe(0);
+});
+
+test("rebound listeners on instances", () => {
+  class Foo {}
+
+  container.bind(Foo, { instance: new Foo(), lifecycle: "singleton" });
+
+  let fireCount = 0;
+  container.onRebinding(Foo, () => {
+    ++fireCount;
   });
+  container.bind(Foo, { instance: new Foo(), lifecycle: "singleton" });
 
-  test("resolution of default constructor arguments", () => {
-    class Dependency {}
-    class Dependent {
-      constructor(
-        public stub = inject(Dependency),
-        public defaultVal = "Bernie",
-      ) {}
+  expect(fireCount).toBe(1);
+});
+
+test("rebound listeners on instances only fires if was already bound", () => {
+  class Foo {}
+
+  let fireCount = 0;
+  container.onRebinding(Foo, () => {
+    ++fireCount;
+  });
+  container.bind(Foo, { instance: new Foo(), lifecycle: "singleton" });
+
+  expect(fireCount).toBe(0);
+});
+
+test("binding resolution exception message includes build stack", () => {
+  class A {
+    constructor(public b = inject(B)) {}
+  }
+  class B {
+    constructor(public c = inject(C)) {}
+  }
+  const C = createTypeToken("C");
+
+  expect(() => {
+    container.get(A);
+  }).toThrowErrorMatchingInlineSnapshot(
+    `"Can't create an instance of [C] because no value or factory function was supplied (while building [A] -> [B])"`,
+  );
+});
+
+test("currently resolving", () => {
+  class Foo {
+    key: KeyOrClass | null;
+    constructor() {
+      this.key = container.currentlyResolving();
     }
+  }
 
-    const instance = container.get(Dependent);
-    expect(instance.stub).toBeInstanceOf(Dependency);
-    expect(instance.defaultVal).toBe("Bernie");
-  });
+  expect(new Foo().key).toBe(null);
+  expect(container.get(Foo).key).toBe(Foo);
+  const token = createTypeToken<Foo>();
+  container.bind(token, { factory: () => new Foo() });
+  expect(container.get(token).key).toBe(token);
+  container.bind(Foo);
+  expect(container.get(Foo).key).toBe(Foo);
+});
 
-  test("binding or making a class with non-default constructor args produces a type error", () => {
-    class MandatoryArgs {
-      constructor(public foo: string) {}
-    }
-    // @ts-expect-error asserting error for test
-    container.bind(MandatoryArgs);
-    // @ts-expect-error asserting error for test
-    container.get(MandatoryArgs);
-  });
+test("it throws exception when abstract is same as alias", () => {
+  const token = createTypeToken("tokenName");
+  expect(() => {
+    container.alias({ from: token, to: token });
+  }).toThrowErrorMatchingInlineSnapshot(`"[tokenName] is aliased to itself."`);
+  class Foo {}
+  expect(() => {
+    container.alias({ from: Foo, to: Foo });
+  }).toThrowErrorMatchingInlineSnapshot(`"[Foo] is aliased to itself."`);
+});
 
-  test("error on attempting to auto-resolve an abstract class", () => {
-    interface I {
-      foo: string;
-    }
-    const Parent = createKey<I>({ displayName: "I" });
-    expect(() => container.get(Parent)).toThrowErrorMatchingInlineSnapshot(
-      `"Can't create an instance of [I] because no value or factory function was supplied"`,
-    );
-  });
-
-  test("resolution of class with optional dependency", () => {
-    class OptionalInject {
-      constructor(
-        public noDefault = inject(Dep),
-        public defaultVal = injectOptional(Dep),
-      ) {}
-    }
-
-    const instance = container.get(OptionalInject);
-    expect(instance.noDefault).toBeInstanceOf(Dep);
-    expect(instance.defaultVal).toBe(null);
-
-    container.bind(Dep, { factory: () => new Dep() });
-    const instance2 = container.get(OptionalInject);
-    expect(instance2.defaultVal).toBeInstanceOf(Dep);
-  });
-
-  test("resolution of class with optional dependency and contextual bindings", () => {
-    class AltDep extends Dep {}
-    class OptionalInject {
-      constructor(
-        public noDefault = inject(Dep),
-        public defaultVal = injectOptional(Dep),
-      ) {}
-    }
-
-    container
-      .when(OptionalInject)
-      .needs(Dep)
-      .create(() => new AltDep());
-    const instance = container.get(OptionalInject);
-    expect(instance.defaultVal).toBeInstanceOf(AltDep);
-  });
-
-  test("bound", () => {
-    class Foo {}
-    const alias = createKey<Foo>();
-    container.bind(Foo);
-    expect(container.bound(Foo)).toBe(true);
-    expect(container.bound(alias)).toBe(false);
-
-    const container2 = new Container();
-    container2.alias({ from: alias, to: Foo });
-    expect(container2.bound(alias)).toBe(true);
-    expect(container2.bound(Foo)).toBe(false);
-  });
-
-  test("alias clears binding", () => {
-    class Foo {
-      constructor(public string?: string) {}
-    }
-    const token = createKey<Foo>();
-    container.bind(token, { factory: () => new Foo("bound by token") });
-    container.bind(Foo, { factory: () => new Foo("bound by class") });
-    expect(container.get(token).string).toBe("bound by token");
-    expect(container.get(Foo).string).toBe("bound by class");
-
-    container.alias({ from: token, to: Foo });
-    expect(container.get(token).string).toBe("bound by class");
-  });
-
-  test("rebound listeners", () => {
-    const token = createKey<string>();
-
-    container.bind(token, { factory: () => "a" });
-
-    let fireCount = 0;
-    container.onRebinding(token, (instance, c) => {
-      expect(instance).toBe("b");
-      expect(c).toBe(container);
-      ++fireCount;
-    });
-    container.bind(token, { factory: () => "b" });
-
-    expect(fireCount).toBe(1);
-  });
-
-  test("rebound listeners only fires if was already bound", () => {
-    const token = createKey<string>();
-
-    let fireCount = 0;
-    container.onRebinding(token, () => {
-      ++fireCount;
-    });
-    container.bind(token, { factory: () => "b" });
-
-    expect(fireCount).toBe(0);
-  });
-
-  test("rebound listeners on instances", () => {
-    class Foo {}
-
-    container.bind(Foo, { instance: new Foo(), lifecycle: "singleton" });
-
-    let fireCount = 0;
-    container.onRebinding(Foo, () => {
-      ++fireCount;
-    });
-    container.bind(Foo, { instance: new Foo(), lifecycle: "singleton" });
-
-    expect(fireCount).toBe(1);
-  });
-
-  test("rebound listeners on instances only fires if was already bound", () => {
-    class Foo {}
-
-    let fireCount = 0;
-    container.onRebinding(Foo, () => {
-      ++fireCount;
-    });
-    container.bind(Foo, { instance: new Foo(), lifecycle: "singleton" });
-
-    expect(fireCount).toBe(0);
-  });
-
-  test("binding resolution exception message includes build stack", () => {
-    class A {
-      constructor(public b = inject(B)) {}
-    }
-    class B {
-      constructor(public c = inject(C)) {}
-    }
-    const C = createKey({ displayName: "C" });
-
-    expect(() => {
-      container.get(A);
-    }).toThrowErrorMatchingInlineSnapshot(
-      `"Can't create an instance of [C] because no value or factory function was supplied (while building [A] -> [B])"`,
-    );
-  });
-
-  test("currently resolving", () => {
-    class Foo {
-      key: KeyOrClass | null;
-      constructor() {
-        this.key = container.currentlyResolving();
-      }
-    }
-
-    expect(new Foo().key).toBe(null);
-    expect(container.get(Foo).key).toBe(Foo);
-    const token = createKey<Foo>();
-    container.bind(token, { factory: () => new Foo() });
-    expect(container.get(token).key).toBe(token);
-    container.bind(Foo);
-    expect(container.get(Foo).key).toBe(Foo);
-  });
-
-  test("it throws exception when abstract is same as alias", () => {
-    const token = createKey({ displayName: "tokenName" });
-    expect(() => {
-      container.alias({ from: token, to: token });
-    }).toThrowErrorMatchingInlineSnapshot(`"[tokenName] is aliased to itself."`);
-    class Foo {}
-    expect(() => {
-      container.alias({ from: Foo, to: Foo });
-    }).toThrowErrorMatchingInlineSnapshot(`"[Foo] is aliased to itself."`);
-  });
-
-  test("call method with object and method name", () => {
-    class Foo {
-      getDepName(dep = inject(Dep)) {
-        return dep.name;
-      }
-    }
-
-    const name = container.call(new Foo(), "getDepName");
-
-    expect(name).toBe("default");
-
-    expect(() => new Foo().getDepName()).toThrowErrorMatchingInlineSnapshot(
-      `"Dependencies that use inject() must be created by the container. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`,
-    );
-  });
-
-  test("call closure with dependency injection", () => {
-    const result = container.call(() => {
-      const dep = inject(Dep);
+test("call method with object and method name", () => {
+  class Foo {
+    getDepName(dep = inject(Dep)) {
       return dep.name;
-    });
-
-    expect(result).toBe("default");
-
-    // Without container.call, inject should throw
-    expect(() => {
-      const dep = inject(Dep);
-      return dep.name;
-    }).toThrowErrorMatchingInlineSnapshot(
-      `"Dependencies that use inject() must be created by the container. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`,
-    );
-  });
-
-  test("call closure with custom bound dependency", () => {
-    container.bind(Dep, { factory: () => new Dep("custom") });
-
-    const result = container.call(() => {
-      const dep = inject(Dep);
-      return dep.name;
-    });
-
-    expect(result).toBe("custom");
-  });
-
-  test("call closure returns closure return value", () => {
-    const result = container.call(() => {
-      return { value: 42, nested: { data: "test" } };
-    });
-
-    expect(result).toEqual({ value: 42, nested: { data: "test" } });
-  });
-
-  test("call closure with no dependencies", () => {
-    const result = container.call(() => "hello world");
-    expect(result).toBe("hello world");
-  });
-
-  test("container can catch circular dependency", () => {
-    class Root {
-      constructor(public a: unknown = inject(A)) {}
     }
-    class A {
-      constructor(public b: unknown = inject(B)) {}
-    }
-    class B {
-      constructor(public c: unknown = inject(C)) {}
-    }
-    class C {
-      constructor(public a: unknown = inject(A)) {}
-    }
+  }
 
-    expect(() => container.get(Root)).toThrowErrorMatchingInlineSnapshot(
-      `"Circular dependency detected: [A] -> [B] -> [C] -> [A] (while building [Root] -> [A] -> [B] -> [C])"`,
-    );
+  const name = container.call(new Foo(), "getDepName");
+
+  expect(name).toBe("default");
+
+  expect(() => new Foo().getDepName()).toThrowErrorMatchingInlineSnapshot(
+    `"Dependencies that use inject() must be created by the container. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`,
+  );
+});
+
+test("call closure with dependency injection", () => {
+  const result = container.call(() => {
+    const dep = inject(Dep);
+    return dep.name;
   });
+
+  expect(result).toBe("default");
+
+  // Without container.call, inject should throw
+  expect(() => {
+    const dep = inject(Dep);
+    return dep.name;
+  }).toThrowErrorMatchingInlineSnapshot(
+    `"Dependencies that use inject() must be created by the container. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`,
+  );
+});
+
+test("call closure with custom bound dependency", () => {
+  container.bind(Dep, { factory: () => new Dep("custom") });
+
+  const result = container.call(() => {
+    const dep = inject(Dep);
+    return dep.name;
+  });
+
+  expect(result).toBe("custom");
+});
+
+test("call closure returns closure return value", () => {
+  const result = container.call(() => {
+    return { value: 42, nested: { data: "test" } };
+  });
+
+  expect(result).toEqual({ value: 42, nested: { data: "test" } });
+});
+
+test("call closure with no dependencies", () => {
+  const result = container.call(() => "hello world");
+  expect(result).toBe("hello world");
+});
+
+test("container can catch circular dependency", () => {
+  class Root {
+    constructor(public a: unknown = inject(A)) {}
+  }
+  class A {
+    constructor(public b: unknown = inject(B)) {}
+  }
+  class B {
+    constructor(public c: unknown = inject(C)) {}
+  }
+  class C {
+    constructor(public a: unknown = inject(A)) {}
+  }
+
+  expect(() => container.get(Root)).toThrowErrorMatchingInlineSnapshot(
+    `"Circular dependency detected: [A] -> [B] -> [C] -> [A] (while building [Root] -> [A] -> [B] -> [C])"`,
+  );
 });
 
 describe("Container contextual bindings", () => {
   test("contextual binding can provide different dependencies based on context", () => {
-    const token = createKey<Dep>({ displayName: "Dep" });
+    const token = createTypeToken<Dep>("Dep");
     container.bind(token, { factory: () => new Dep("token") });
 
     class Class extends Dep {
@@ -747,7 +805,7 @@ describe("Container contextual bindings", () => {
     class A {
       constructor(public dep = inject(Dep)) {}
     }
-    const token = createKey<A>();
+    const token = createTypeToken<A>();
     container.bind(token, { factory: () => new A() });
 
     container
@@ -762,8 +820,8 @@ describe("Container contextual bindings", () => {
     class A {
       constructor(public dep = inject(Dep)) {}
     }
-    const alias = createKey<A>();
-    const token = createKey<A>();
+    const alias = createTypeToken<A>();
+    const token = createTypeToken<A>();
     container.bind(token, { factory: () => new A() });
     container.alias({ from: alias, to: token });
 
@@ -779,8 +837,8 @@ describe("Container contextual bindings", () => {
     class A {
       constructor(public dep = inject(Dep)) {}
     }
-    const alias = createKey<A>();
-    const token = createKey<A>();
+    const alias = createTypeToken<A>();
+    const token = createTypeToken<A>();
 
     container
       .when(token)
@@ -794,7 +852,7 @@ describe("Container contextual bindings", () => {
   });
 
   test("can contextually override with null", () => {
-    const token = createKey<Dep | null>();
+    const token = createTypeToken<Dep | null>();
     class B {
       constructor(public dep = inject(token)) {}
     }
@@ -831,11 +889,11 @@ describe("Container contextual bindings", () => {
   });
 
   test("contextual binding works on existing aliased instances", () => {
-    const instance = createKey<Dep>({ displayName: "instance" });
+    const instance = createTypeToken<Dep>("instance");
     container.bind(instance, {
       instance: new Dep("instance"),
     });
-    const alias = createKey<Dep>({ displayName: "alias" });
+    const alias = createTypeToken<Dep>("alias");
     container.alias({ from: alias, to: instance });
 
     class A {
@@ -851,12 +909,12 @@ describe("Container contextual bindings", () => {
   });
 
   test("contextual binding can replace an instance with null", () => {
-    const instance = createKey<Dep | null>({ displayName: "instance" });
+    const instance = createTypeToken<Dep | null>("instance");
     container.bind(instance, {
       instance: new Dep("instance"),
       lifecycle: "singleton",
     });
-    const alias = createKey<Dep | null>({ displayName: "alias" });
+    const alias = createTypeToken<Dep | null>("alias");
     container.alias({ from: alias, to: instance });
 
     class A {
@@ -872,8 +930,8 @@ describe("Container contextual bindings", () => {
   });
 
   test("contextual binding works on new aliased instances", () => {
-    const instance = createKey<Dep>({ displayName: "instance" });
-    const alias = createKey<Dep>({ displayName: "alias" });
+    const instance = createTypeToken<Dep>("instance");
+    const alias = createTypeToken<Dep>("alias");
 
     class A {
       constructor(public dep = inject(alias)) {}
@@ -894,10 +952,10 @@ describe("Container contextual bindings", () => {
   });
 
   test("contextual binding does not pick up stale re-aliased references", () => {
-    const dummy = createKey<Dep>({ displayName: "dummy" });
-    const alias = createKey<Dep>({ displayName: "alias" });
-    const unrelated = createKey<Dep>({ displayName: "unrelated" });
-    const instance = createKey<Dep>({ displayName: "instance" });
+    const dummy = createTypeToken<Dep>("dummy");
+    const alias = createTypeToken<Dep>("alias");
+    const unrelated = createTypeToken<Dep>("unrelated");
+    const instance = createTypeToken<Dep>("instance");
 
     class A {
       constructor(public dep = inject(alias)) {}
@@ -928,7 +986,7 @@ describe("Container contextual bindings", () => {
     class A {
       constructor(public dep = inject(Dep)) {}
     }
-    const stub = createKey<Dep>({ displayName: "stub" });
+    const stub = createTypeToken<Dep>("stub");
 
     container
       .when(A)
@@ -947,7 +1005,7 @@ describe("Container contextual bindings", () => {
       constructor(public dep = inject(Dep)) {}
     }
 
-    const stub = createKey<Dep>({ displayName: "stub" });
+    const stub = createTypeToken<Dep>("stub");
     container.bind(Dep, { factory: () => new Dep("incorrect") });
     container.bind(stub, { factory: () => new Dep("incorrect") });
     container.alias({ from: Dep, to: stub });
@@ -1000,7 +1058,7 @@ describe("Container contextual bindings", () => {
   });
 
   test("contextual binding doesn't override non-contextual resolution of aliases", () => {
-    const stub = createKey<Dep>();
+    const stub = createTypeToken<Dep>();
     container.bind(stub, { instance: new Dep("stub"), lifecycle: "singleton" });
     container.alias({ from: Dep, to: stub });
 
@@ -1022,7 +1080,7 @@ describe("Container contextual bindings", () => {
   });
 
   test("contextually bound instances are not unnecessarily recreated", () => {
-    const otherDep = createKey();
+    const otherDep = createTypeToken();
 
     class A {
       constructor(public dep = inject(otherDep)) {}
@@ -1042,7 +1100,7 @@ describe("Container contextual bindings", () => {
   });
 
   test("container can inject simple variable", () => {
-    const numberToken = createKey<number>();
+    const numberToken = createTypeToken<number>();
 
     class A {
       constructor(public number = inject(numberToken)) {}
@@ -1058,7 +1116,7 @@ describe("Container contextual bindings", () => {
 
   test("contextual binding works with aliased targets", () => {
     container.bind(Dep, { factory: () => new Dep("bound") });
-    const alias = createKey<Dep>({ displayName: "alias" });
+    const alias = createTypeToken<Dep>("alias");
     container.alias({ from: alias, to: IDep });
 
     class A {
@@ -1093,14 +1151,86 @@ describe("Container contextual bindings", () => {
     const result = container.call(new A(), "f");
     expect(result).toBe("contextual");
   });
+
+  test("contextual binding matches stored class when factory is used", () => {
+    interface ILogger {
+      log(msg: string): void;
+    }
+    const ILogger = createTypeToken<ILogger>("ILogger");
+
+    class ConsoleLogger implements ILogger {
+      constructor(public config: string) {}
+      log(_msg: string): void {
+        // no-op for test
+      }
+    }
+
+    class MyService {
+      constructor(public logger = inject(ILogger)) {}
+    }
+
+    // Bind interface to class with factory
+    container.bind(ILogger, {
+      class: ConsoleLogger,
+      factory: () => new ConsoleLogger("default"),
+    });
+
+    // Contextual override using the stored class
+    container
+      .when(MyService)
+      .needs(ConsoleLogger)
+      .create(() => new ConsoleLogger("custom"));
+
+    const service = container.get(MyService);
+    expect(service.logger).toBeInstanceOf(ConsoleLogger);
+    expect((service.logger as ConsoleLogger).config).toBe("custom");
+  });
+
+  test("contextual binding matches alias to stored class when factory is used", () => {
+    interface ILogger {
+      log(msg: string): void;
+    }
+    const ILogger = createTypeToken<ILogger>();
+
+    class ConsoleLogger implements ILogger {
+      constructor(public config: string) {}
+      log(_msg: string): void {
+        // no-op for test
+      }
+    }
+
+    const aliasToConsoleLogger = createTypeToken<ConsoleLogger>();
+
+    class MyService {
+      constructor(public logger = inject(ILogger)) {}
+    }
+
+    // Bind interface to class with factory
+    container.bind(ILogger, {
+      class: ConsoleLogger,
+      factory: () => new ConsoleLogger("default"),
+    });
+
+    container.alias({ from: aliasToConsoleLogger, to: ConsoleLogger });
+
+    // Contextual override using the stored class
+    container
+      .when(MyService)
+      .needs(aliasToConsoleLogger)
+      .create(() => new ConsoleLogger("custom"));
+
+    const service = container.get(MyService);
+    expect(service.logger).toBeInstanceOf(ConsoleLogger);
+    expect((service.logger as ConsoleLogger).config).toBe("custom");
+  });
 });
 
 describe("Container tagging", () => {
   test("container tags", () => {
     class A {}
     class B {}
-    const foo = createKey({ displayName: "foo" });
-    const bar = createKey({ displayName: "bar" });
+    const foo = createTypeToken("foo");
+    const bar = createTypeToken("bar");
 
     container.tag(A, [foo, bar]);
     container.tag(B, [foo]);
@@ -1115,7 +1245,7 @@ describe("Container tagging", () => {
     expect(barResults).toHaveLength(1);
     expect(barResults[0]).toBeInstanceOf(A);
 
-    const container2 = new Container();
+    const container2 = new ContainerImpl();
     container2.tag([A, B], [foo]);
 
     const fooResults2 = [...container2.tagged(foo)];
@@ -1130,7 +1260,7 @@ describe("Container tagging", () => {
     class A extends Dep {}
     class B extends Dep {}
 
-    const foo = createKey({ displayName: "foo" });
+    const foo = createTypeToken("foo");
 
     container.tag(A, foo);
     container.tag(B, foo);
@@ -1149,7 +1279,7 @@ describe("Container tagging", () => {
     class A extends Dep {}
     class B extends Dep {}
 
-    const foo = createKey({ displayName: "foo" });
+    const foo = createTypeToken("foo");
 
     container.tag(A, foo);
     container.tag(B, foo);
@@ -1169,7 +1299,7 @@ describe("Container tagging", () => {
     class A extends Dep {}
     class B extends Dep {}
 
-    const foo = createKey({ displayName: "foo" });
+    const foo = createTypeToken("foo");
 
     container.tag(A, foo);
     container.tag(B, foo);
@@ -1185,7 +1315,7 @@ describe("Container tagging", () => {
 
 describe("Container extend", () => {
   test("extended bindings", () => {
-    const fooKey = createKey<string>({ displayName: "foo" });
+    const fooKey = createTypeToken<string>("foo");
     container.bind(fooKey, { instance: "foo", lifecycle: "singleton" });
     container.extend(fooKey, (old) => {
       return `${old} extended`;
@@ -1193,10 +1323,8 @@ describe("Container extend", () => {
 
     expect(container.get(fooKey)).toBe("foo extended");
 
-    const container2 = new Container();
-    const objKey = createKey<{ name: string; age?: number }>({
-      displayName: "obj",
-    });
+    const container2 = new ContainerImpl();
+    const objKey = createTypeToken<{ name: string; age?: number }>("obj");
 
     container2.bind(objKey, {
       factory: () => {
@@ -1217,7 +1345,7 @@ describe("Container extend", () => {
   });
 
   test("extended bindings work with contextual overrides", () => {
-    const fooKey = createKey<string>({ displayName: "foo" });
+    const fooKey = createTypeToken<string>("foo");
     container.bind(fooKey, { instance: "foo", lifecycle: "singleton" });
     container.extend(fooKey, (old) => {
       return `${old} extended`;
@@ -1243,7 +1371,7 @@ describe("Container extend", () => {
   test("extend instances are preserved", () => {
     type T = Record<string, string>;
 
-    const fooKey = createKey<T>({ displayName: "foo" });
+    const fooKey = createTypeToken<T>("foo");
     container.bind(fooKey, {
       factory: () => {
         const obj: T = {};
@@ -1290,7 +1418,7 @@ describe("Container extend", () => {
   });
 
   test("extend can be called before bind", () => {
-    const fooKey = createKey<string>({ displayName: "foo" });
+    const fooKey = createTypeToken<string>("foo");
     container.extend(fooKey, (old) => {
       return `${old} bar`;
     });
@@ -1302,7 +1430,7 @@ describe("Container extend", () => {
   test("extend instance rebinding callback", () => {
     let testRebind = false;
 
-    const fooKey = createKey<object>({ displayName: "foo" });
+    const fooKey = createTypeToken<object>("foo");
     container.onRebinding(fooKey, () => {
       testRebind = true;
     });
@@ -1318,7 +1446,7 @@ describe("Container extend", () => {
   });
 
   test("can extend transient with null", () => {
-    const token = createKey<string | null>();
+    const token = createTypeToken<string | null>();
     container.bind(token, { instance: "hello" });
     expect(container.get(token)).toBe("hello");
     container.extend(token, () => null);
@@ -1326,7 +1454,7 @@ describe("Container extend", () => {
   });
 
   test("can extend singleton with null", () => {
-    const token = createKey<string | null>();
+    const token = createTypeToken<string | null>();
     const factory = mock(() => "hello");
     container.bind(token, { factory, lifecycle: "singleton" });
     expect(container.get(token)).toBe("hello");
@@ -1343,7 +1471,7 @@ describe("Container extend", () => {
   test("extend bind rebinding callback", () => {
     let testRebind = false;
 
-    const fooKey = createKey<object>({ displayName: "foo" });
+    const fooKey = createTypeToken<object>("foo");
     container.onRebinding(fooKey, () => {
       testRebind = true;
     });
@@ -1365,8 +1493,8 @@ describe("Container extend", () => {
   });
 
   test("extension works on aliased bindings", () => {
-    const somethingKey = createKey<string>();
-    const aliasKey = createKey<string>();
+    const somethingKey = createTypeToken<string>();
+    const aliasKey = createTypeToken<string>();
     container.bind(somethingKey, {
       factory: () => {
         return "some value";
@@ -1382,8 +1510,8 @@ describe("Container extend", () => {
   });
 
   test("extension works on binding that will be aliased later", () => {
-    const somethingKey = createKey<string>();
-    const aliasKey = createKey<string>();
+    const somethingKey = createTypeToken<string>();
+    const aliasKey = createTypeToken<string>();
     container.bind(somethingKey, {
       factory: () => {
         return "some value";
@@ -1399,9 +1527,9 @@ describe("Container extend", () => {
   });
 
   test("extension works on binding that will be deeply aliased later", () => {
-    const somethingKey = createKey();
-    const aliasKey = createKey();
-    const deepAliasKey = createKey();
+    const somethingKey = createTypeToken();
+    const aliasKey = createTypeToken();
+    const deepAliasKey = createTypeToken();
     container.bind(somethingKey, {
       factory: () => {
         return "some value";
@@ -1418,7 +1546,7 @@ describe("Container extend", () => {
   });
 
   test("multiple extends", () => {
-    const fooKey = createKey<string>({ displayName: "foo" });
+    const fooKey = createTypeToken<string>("foo");
     container.bind(fooKey, { instance: "foo", lifecycle: "singleton" });
     container.extend(fooKey, (old) => {
       return `${old} bar`;
@@ -1451,7 +1579,7 @@ describe("Container extend", () => {
     interface I {
       value: string;
     }
-    const I = createKey<I>({ displayName: "I" });
+    const I = createTypeToken<I>("I");
     class Impl implements I {
       constructor(public value: string) {}
     }
@@ -1492,7 +1620,7 @@ describe("Container resolving callbacks", () => {
   });
 
   test("resolving callbacks are called for tokens", () => {
-    const token = createKey<string>();
+    const token = createTypeToken<string>();
     const callback = mock();
     container.onResolving(token, callback);
     container.bind(token, { factory: () => "hello" });
@@ -1506,7 +1634,7 @@ describe("Container resolving callbacks", () => {
     class Other {
       name?: string;
     }
-    const token = createKey<Dep>();
+    const token = createTypeToken<Dep>();
     const callback = mock();
     container.onResolving(Other, callback);
     container.bind(token, { factory: () => new Dep("hello") });
@@ -1517,7 +1645,7 @@ describe("Container resolving callbacks", () => {
 
   test("resolving callbacks are called for type", () => {
     class A {}
-    const token = createKey();
+    const token = createTypeToken();
     const callback = mock();
     container.onResolving(A, callback);
     container.bind(token, { factory: () => new A() });
@@ -1531,7 +1659,7 @@ describe("Container resolving callbacks", () => {
   test("resolving callbacks are called for parent types", () => {
     class Parent {}
     class Child extends Parent {}
-    const token = createKey();
+    const token = createTypeToken();
     const callback = mock();
     container.onResolving(Parent, callback);
     container.bind(token, { factory: () => new Child() });
@@ -1543,7 +1671,7 @@ describe("Container resolving callbacks", () => {
 
   test("resolving callbacks on Object are called for any instance", () => {
     class A {}
-    const token = createKey();
+    const token = createTypeToken();
     const callback = mock();
     container.onResolving(Object, callback);
     container.bind(token, { factory: () => new A() });
@@ -1560,7 +1688,7 @@ describe("Container resolving callbacks", () => {
   test("resolving callbacks are not called for child types", () => {
     class Parent {}
     class Child extends Parent {}
-    const token = createKey();
+    const token = createTypeToken();
     const callback = mock();
     container.onResolving(Child, callback);
     container.bind(token, { factory: () => new Parent() });
@@ -1571,7 +1699,7 @@ describe("Container resolving callbacks", () => {
   });
 
   test("resolving callbacks are called once for singleton concretes", () => {
-    const depKey = createKey<Dep>();
+    const depKey = createTypeToken<Dep>();
     const depCallback = mock();
     const keyCallback = mock();
     container.onResolving(Dep, depCallback);
@@ -1605,7 +1733,7 @@ describe("Container resolving callbacks", () => {
   });
 
   test("resolving callbacks are called when rebind happens", () => {
-    const token = createKey<Dep>();
+    const token = createTypeToken<Dep>();
 
     const resolvingCallback = mock();
     container.onResolving(token, resolvingCallback);
@@ -1633,7 +1761,7 @@ describe("Container resolving callbacks", () => {
   });
 
   test("resolving callbacks aren't called when no re-bindings are registered", () => {
-    const token = createKey<Dep>();
+    const token = createTypeToken<Dep>();
 
     const resolvingCallback = mock();
     container.onResolving(token, resolvingCallback);
@@ -1764,7 +1892,7 @@ describe("Container resolving callbacks", () => {
   });
 
   test("resolving callbacks are called for keys with no binding injected contextually", () => {
-    const token = createKey();
+    const token = createTypeToken();
 
     class A {
       constructor(public dep = inject(token)) {}
@@ -1833,7 +1961,7 @@ describe("Container withScope", () => {
   });
 
   test("scoped type token resolution throws outside scope", () => {
-    const token = createKey({ displayName: "token" });
+    const token = createTypeToken("token");
     container.bind(token, {
       factory: () => {
         return {};
@@ -1847,7 +1975,7 @@ describe("Container withScope", () => {
 
   test("scoped class reference resolution throws outside scope", () => {
     class Foo {}
-    container.bind(Foo, { lifecycle: "scoped" });
+    container.scoped(Foo);
     expect(() => container.get(Foo)).toThrowErrorMatchingInlineSnapshot(
       `"Cannot create [Foo] because it is scoped so can only be accessed within a request or job. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`,
     );
@@ -1855,7 +1983,7 @@ describe("Container withScope", () => {
 
   test("scoped bindings work within withScope", async () => {
     class Database {}
-    container.bind(Database, { lifecycle: "scoped" });
+    container.scoped(Database);
 
     expect(container.getLifecycle(Database)).toBe("scoped");
 
@@ -1873,7 +2001,7 @@ describe("Container withScope", () => {
     class Database {
       constructor(public dep = inject(Dep)) {}
     }
-    container.bind(Database, { lifecycle: "scoped" });
+    container.scoped(Database);
 
     container
       .when(Database)
@@ -1893,7 +2021,7 @@ describe("Container withScope", () => {
 
   test("different scopes get different instances", async () => {
     class Database {}
-    container.bind(Database, { lifecycle: "scoped" });
+    container.scoped(Database);
 
     const [db1, db2] = await Promise.all([
       container.withScope(async () => container.get(Database)),
@@ -1905,7 +2033,7 @@ describe("Container withScope", () => {
 
   test("nested scopes are isolated", async () => {
     class Database {}
-    container.bind(Database, { lifecycle: "scoped" });
+    container.scoped(Database);
 
     await container.withScope(async () => {
       const outerDb = container.get(Database);
@@ -1946,7 +2074,7 @@ describe("Container withScope", () => {
         this.id = ++idCounter;
       }
     }
-    container.bind(Database, { lifecycle: "scoped" });
+    container.scoped(Database);
 
     const results: Database[] = [];
 
@@ -1986,7 +2114,7 @@ describe("Container withScope", () => {
     class Logger {
       logs: string[] = [];
     }
-    container.bind(Logger, { lifecycle: "scoped" });
+    container.scoped(Logger);
 
     async function doWork(message: string) {
       const logger = container.get(Logger);
@@ -2009,8 +2137,8 @@ describe("Container withScope", () => {
     class Scoped {}
     class Transient {}
 
-    container.bind(Singleton, { lifecycle: "singleton" });
-    container.bind(Scoped, { lifecycle: "scoped" });
+    container.singleton(Singleton);
+    container.scoped(Scoped);
     container.bind(Transient);
 
     const results = await container.withScope(async () => {
@@ -2037,7 +2165,7 @@ describe("Container withScope", () => {
       }
     }
     let idCounter = 0;
-    container.bind(Database, { lifecycle: "scoped" });
+    container.scoped(Database);
 
     await container.withScope(async () => {
       const db1 = container.get(Database);
@@ -2066,7 +2194,7 @@ describe("Container withScope", () => {
     class Logger {
       logs: string[] = [];
     }
-    container.bind(Logger, { lifecycle: "scoped" });
+    container.scoped(Logger);
 
     // Start the scope task
     const scopeTask = container.withScope(async () => {
@@ -2114,7 +2242,7 @@ describe("Container withScope", () => {
       }
     }
     let idCounter = 0;
-    container.bind(Database, { lifecycle: "scoped" });
+    container.scoped(Database);
 
     const scope1 = gate.task("scope1");
     const scope2 = gate.task("scope2");
@@ -2177,151 +2305,130 @@ describe("Container withScope", () => {
   });
 });
 
-describe("Container default values", () => {
-  describe("get()", () => {
-    test("returns default when key not bound", () => {
-      const container = new Container();
-      const keyWithDefault = createKey<string>({
-        displayName: "test",
-        default: "defaultValue",
-      });
+describe("Container sugar methods", () => {
+  let bindSpy: ReturnType<typeof spyOn>;
 
-      const result = container.get(keyWithDefault);
-      expect(result).toBe("defaultValue");
-    });
+  beforeEach(() => {
+    bindSpy = spyOn(container, "bind");
+  });
 
-    test("returns bound value over default", () => {
-      const container = new Container();
-      const keyWithDefault = createKey<string>({
-        displayName: "test",
-        default: "defaultValue",
-      });
+  test("bind(key, cls) delegates to bind", () => {
+    container.bind(IDep, Dep);
+    expect(bindSpy).toHaveBeenCalledWith(IDep, { class: Dep });
+  });
 
-      container.bind(keyWithDefault, { instance: "boundValue" });
-
-      const result = container.get(keyWithDefault);
-      expect(result).toBe("boundValue");
-    });
-
-    test("throws for key without explicit default and no binding", () => {
-      const container = new Container();
-      const keyWithoutDefault = createKey<string>({ displayName: "test" });
-
-      // Keys without explicit default should throw
-      expect(() => container.get(keyWithoutDefault)).toThrow(
-        "Can't create an instance of [test] because no value or factory function was supplied",
-      );
-    });
-
-    test("default values work with different types", () => {
-      const container = new Container();
-
-      const numberKey = createKey({ displayName: "num", default: 42 });
-      expect(container.get(numberKey)).toBe(42);
-
-      const boolKey = createKey({ displayName: "bool", default: true });
-      expect(container.get(boolKey)).toBe(true);
-
-      const objectKey = createKey<{ name: string }>({
-        displayName: "obj",
-        default: {
-          name: "default",
-        },
-      });
-      expect(container.get(objectKey)).toEqual({ name: "default" });
-
-      const arrayKey = createKey<number[]>({
-        displayName: "arr",
-        default: [1, 2, 3],
-      });
-      expect(container.get(arrayKey)).toEqual([1, 2, 3]);
-    });
-
-    test("explicit null default does not throw", () => {
-      const container = new Container();
-      const keyWithNullDefault = createKey({
-        displayName: "test",
-        default: null,
-      });
-
-      // Explicit null default should return null, not throw
-      const result = container.get(keyWithNullDefault);
-      expect(result).toBe(null);
-    });
-
-    test("explicit undefined default throws (same as no default)", () => {
-      const container = new Container();
-      const keyWithUndefinedDefault = createKey({
-        displayName: "test",
-        default: undefined,
-      });
-
-      expect(() => container.get(keyWithUndefinedDefault)).toThrow(
-        "Can't create an instance of [test] because no value or factory function was supplied",
-      );
-    });
-
-    test("inferred type of got value with default does not include null", () => {
-      const container = new Container();
-      const keyWithDefault = createKey({
-        displayName: "test",
-        default: "some default",
-      });
-      const value = container.get(keyWithDefault);
-      expectTypeOf(value).toBeString();
-    });
-
-    test("inferred type of got value without default does not include null", () => {
-      const container = new Container();
-      const keyWithoutDefault = createKey<string>({
-        displayName: "test",
-      });
-      container.bind(keyWithoutDefault, { instance: "value" });
-      const value = container.get(keyWithoutDefault);
-      expectTypeOf(value).toBeString();
+  test("bindIf(cls) delegates to bind", () => {
+    container.bindIf(Dep);
+    expect(bindSpy).toHaveBeenCalledWith(Dep, {
+      class: Dep,
+      lifecycle: "transient",
+      ifNotBound: true,
     });
   });
 
-  describe("binding checks with defaults", () => {
-    test("key with default is not considered bound", () => {
-      const container = new Container();
-      const keyWithDefault = createKey<string>({
-        displayName: "test",
-        default: "defaultValue",
-      });
-
-      expect(container.bound(keyWithDefault)).toBe(false);
-
-      // After getting with default, still not bound
-      container.get(keyWithDefault);
-      expect(container.bound(keyWithDefault)).toBe(false);
-
-      // After explicit binding, it is bound
-      container.bind(keyWithDefault, { instance: "bound" });
-      expect(container.bound(keyWithDefault)).toBe(true);
+  test("bindIf(key, cls) delegates to bind", () => {
+    container.bindIf(IDep, Dep);
+    expect(bindSpy).toHaveBeenCalledWith(IDep, {
+      class: Dep,
+      lifecycle: "transient",
+      ifNotBound: true,
     });
   });
 
-  describe("optional injection with defaults", () => {
-    test("optional inject returns default when available", () => {
-      const container = new Container();
-      const keyWithDefault = createKey<string>({
-        displayName: "optional",
-        default: "defaultValue",
-      });
-
-      class OptionalInject {
-        constructor(public defaultVal = injectOptional(keyWithDefault)) {}
-      }
-
-      const instance = container.get(OptionalInject);
-      expect(instance.defaultVal).toBe("defaultValue");
-
-      // After binding, returns the bound value
-      container.bind(keyWithDefault, { instance: "boundValue" });
-      const instance2 = container.get(OptionalInject);
-      expect(instance2.defaultVal).toBe("boundValue");
+  test("singleton(cls) delegates to bind", () => {
+    container.singleton(Dep);
+    expect(bindSpy).toHaveBeenCalledWith(Dep, {
+      class: Dep,
+      lifecycle: "singleton",
+      ifNotBound: false,
     });
+  });
+
+  test("singleton(key, cls) delegates to bind", () => {
+    container.singleton(IDep, Dep);
+    expect(bindSpy).toHaveBeenCalledWith(IDep, {
+      class: Dep,
+      lifecycle: "singleton",
+      ifNotBound: false,
+    });
+  });
+
+  test("singletonIf(cls) delegates to bind", () => {
+    container.singletonIf(Dep);
+    expect(bindSpy).toHaveBeenCalledWith(Dep, {
+      class: Dep,
+      lifecycle: "singleton",
+      ifNotBound: true,
+    });
+  });
+
+  test("singletonIf(key, cls) delegates to bind", () => {
+    container.singletonIf(IDep, Dep);
+    expect(bindSpy).toHaveBeenCalledWith(IDep, {
+      class: Dep,
+      lifecycle: "singleton",
+      ifNotBound: true,
+    });
+  });
+
+  test("scoped(cls) delegates to bind", () => {
+    container.scoped(Dep);
+    expect(bindSpy).toHaveBeenCalledWith(Dep, {
+      class: Dep,
+      lifecycle: "scoped",
+      ifNotBound: false,
+    });
+  });
+
+  test("scoped(key, cls) delegates to bind", () => {
+    container.scoped(IDep, Dep);
+    expect(bindSpy).toHaveBeenCalledWith(IDep, {
+      class: Dep,
+      lifecycle: "scoped",
+      ifNotBound: false,
+    });
+  });
+
+  test("scopedIf(cls) delegates to bind", () => {
+    container.scopedIf(Dep);
+    expect(bindSpy).toHaveBeenCalledWith(Dep, {
+      class: Dep,
+      lifecycle: "scoped",
+      ifNotBound: true,
+    });
+  });
+
+  test("scopedIf(key, cls) delegates to bind", () => {
+    container.scopedIf(IDep, Dep);
+    expect(bindSpy).toHaveBeenCalledWith(IDep, {
+      class: Dep,
+      lifecycle: "scoped",
+      ifNotBound: true,
+    });
+  });
+
+  test("instance(cls, obj) delegates to bind", () => {
+    const obj = new Dep();
+    container.instance(Dep, obj);
+    expect(bindSpy).toHaveBeenCalledWith(Dep, { instance: obj });
+  });
+
+  test("instance(key, obj) delegates to bind", () => {
+    const obj = new Dep();
+    container.instance(IDep, obj);
+    expect(bindSpy).toHaveBeenCalledWith(IDep, { instance: obj });
+  });
+
+  test("instanceIf(cls, obj) delegates to bind", () => {
+    const obj = new Dep();
+    container.instanceIf(Dep, obj);
+    expect(bindSpy).toHaveBeenCalledWith(Dep, { instance: obj, ifNotBound: true });
+  });
+
+  test("instanceIf(key, obj) delegates to bind", () => {
+    const obj = new Dep();
+    container.instanceIf(IDep, obj);
+    expect(bindSpy).toHaveBeenCalledWith(IDep, { instance: obj, ifNotBound: true });
   });
 });
 
@@ -2336,4 +2443,4 @@ class Dep implements IDep {
 interface IDep {
   get name(): string;
 }
-const IDep = createKey<IDep>({ displayName: "IDep" });
+const IDep = createTypeToken<IDep>("IDep");

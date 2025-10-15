@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "fs";
 import { basename } from "path";
-import { isKey } from "../keys";
+import { isTypeToken } from "../container/type-token";
 
 describe("Contracts", () => {
   test("each contract file exports a properly named interface and key", async () => {
@@ -23,7 +23,7 @@ describe("Contracts", () => {
 
       expect(keyExport, `${fileName} should export a key called ${contractName}`).toBeDefined();
       expect(
-        isKey(keyExport),
+        isTypeToken(keyExport),
         `${contractName} value exported from ${fileName} should be a key`,
       ).toBeTrue();
 

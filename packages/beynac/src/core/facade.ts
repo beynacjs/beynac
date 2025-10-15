@@ -24,7 +24,7 @@ export const getFacadeApplication = (): Application | null => {
  *
  * @param key The key to look up in the container
  */
-export function createFacade<T extends object>(key: KeyOrClass<T | undefined>): T {
+export function createFacade<T extends object>(key: KeyOrClass<T | undefined /*FIXME*/>): T {
   let lifecycleChecked = false;
 
   const getInstance = (): UnknownRecord => {
@@ -35,7 +35,7 @@ export function createFacade<T extends object>(key: KeyOrClass<T | undefined>): 
     }
 
     if (!lifecycleChecked) {
-      const lifecycle = application.getLifecycle(key);
+      const lifecycle = application.container.getLifecycle(key);
       if (lifecycle === "transient") {
         throw new Error(
           `Cannot create facade for transient binding ${String(key)}. Facades only support singleton and scoped bindings.`,
@@ -44,7 +44,7 @@ export function createFacade<T extends object>(key: KeyOrClass<T | undefined>): 
       lifecycleChecked = true;
     }
 
-    return application.get(key) as UnknownRecord;
+    return application.container.get(key) as UnknownRecord;
   };
 
   return new Proxy({} as object, {

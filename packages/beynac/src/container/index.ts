@@ -1,9 +1,11 @@
-export {
+export type {
   Container,
-  type FactoryFunction,
-  type InstanceCallback,
-  type Lifecycle,
-} from "./container";
+  FactoryFunction,
+  InstanceCallback,
+  Lifecycle,
+} from "../contracts/Container";
+
+export { ContainerImpl } from "./ContainerImpl";
 
 export type { AnyConstructor as Constructor, NoArgConstructor } from "../utils";
 

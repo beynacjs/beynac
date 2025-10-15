@@ -7,7 +7,7 @@ describe("ApplicationImpl", () => {
   test("events getter uses container resolution", () => {
     const app = new ApplicationImpl();
     // Bind dispatcher as singleton
-    app.bind(Dispatcher, {
+    app.container.bind(Dispatcher, {
       factory: (container) => new DispatcherImpl(container),
       lifecycle: "singleton",
     });

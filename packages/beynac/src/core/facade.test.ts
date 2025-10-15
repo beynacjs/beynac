@@ -35,7 +35,7 @@ describe(createFacade, () => {
   });
 
   test("facade returns same instance for singleton binding", () => {
-    app.bind(MockService, {
+    app.container.bind(MockService, {
       factory: () => new MockService("singleton"),
       lifecycle: "singleton",
     });
@@ -50,14 +50,14 @@ describe(createFacade, () => {
   });
 
   test("facade returns same instance within scope for scoped binding", async () => {
-    app.bind(MockService, {
+    app.container.bind(MockService, {
       factory: () => new MockService(),
       lifecycle: "scoped",
     });
 
     const facade = createFacade(MockService);
 
-    await app.withScope(async () => {
+    await app.container.withScope(async () => {
       expect(facade.callCount).toBe(0);
       facade.getValue();
       expect(facade.callCount).toBe(1);
@@ -68,7 +68,7 @@ describe(createFacade, () => {
 
   test("facade returns different instance in new scope for scoped binding", async () => {
     let instanceCount = 0;
-    app.bind(MockService, {
+    app.container.bind(MockService, {
       factory: () => new MockService(`scoped-${++instanceCount}`),
       lifecycle: "scoped",
     });
@@ -85,7 +85,7 @@ describe(createFacade, () => {
   });
 
   test("facade throws error for transient binding", () => {
-    app.bind(MockService, {
+    app.container.bind(MockService, {
       factory: () => new MockService("transient"),
       lifecycle: "transient",
     });
@@ -96,7 +96,7 @@ describe(createFacade, () => {
   });
 
   test("facade created when global application is null does not fail", () => {
-    app.bind(MockService, {
+    app.container.bind(MockService, {
       factory: () => new MockService("now available"),
       lifecycle: "singleton",
     });
@@ -115,7 +115,7 @@ describe(createFacade, () => {
   });
 
   test("facade handles 'in' operator correctly", () => {
-    app.bind(MockService, {
+    app.container.bind(MockService, {
       factory: () => new MockService("test"),
       lifecycle: "singleton",
     });
@@ -128,7 +128,7 @@ describe(createFacade, () => {
   });
 
   test("facade handles Object.keys correctly", () => {
-    app.bind(MockService, {
+    app.container.bind(MockService, {
       factory: () => new MockService("test"),
       lifecycle: "singleton",
     });
@@ -141,7 +141,7 @@ describe(createFacade, () => {
   });
 
   test("facade handles Object.getOwnPropertyDescriptor correctly", () => {
-    app.bind(MockService, {
+    app.container.bind(MockService, {
       factory: () => new MockService("test"),
       lifecycle: "singleton",
     });

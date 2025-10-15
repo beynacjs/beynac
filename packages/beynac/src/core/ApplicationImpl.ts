@@ -1,4 +1,5 @@
-import { Container } from "../container/container";
+import type { Container } from "../container";
+import { ContainerImpl } from "../container/ContainerImpl";
 import { Cookies, Headers } from "../contracts";
 import { Application } from "../contracts/Application";
 import { Configuration } from "../contracts/Configuration";
@@ -12,69 +13,51 @@ import { CookiesImpl } from "./CookiesImpl";
 import { HeadersImpl } from "./HeadersImpl";
 import { RouterImpl } from "./RouterImpl";
 
-export class ApplicationImpl extends Container implements Application {
+export class ApplicationImpl implements Application {
+  container: Container;
   #bootstrapped = false;
   #config: Configuration;
 
   constructor(config: Configuration = {}) {
-    super();
+    this.container = new ContainerImpl();
     this.#config = config;
   }
 
   bootstrap(): void {
     if (this.#bootstrapped) return;
     this.#bootstrapped = true;
-    this.bind(Router, {
-      factory: () => new RouterImpl(),
-      lifecycle: "singleton",
-    });
-    this.bind(Headers, {
-      factory: () => new HeadersImpl(),
-      lifecycle: "scoped",
-    });
-    this.bind(Cookies, {
-      factory: () => new CookiesImpl(),
-      lifecycle: "scoped",
-    });
-    this.bind(Configuration, {
-      instance: this.#config,
-    });
-    this.bind(Application, {
-      instance: this,
-    });
+    this.container.singleton(Router, RouterImpl);
+    this.container.scoped(Headers, HeadersImpl);
+    this.container.scoped(Cookies, CookiesImpl);
+    this.container.instance(Configuration, this.#config);
+    this.container.instance(Application, this);
     if (this.#config.routes) {
-      this.#config.routes(this.get(Router));
+      this.#config.routes(this.container.get(Router));
     }
     if (this.#config.development && !this.#config.devMode?.suppressAutoRefresh) {
-      this.bind(DevModeAutoRefreshMiddleware, {
-        factory: () => new DevModeAutoRefreshMiddleware(),
-        lifecycle: "singleton",
-      });
-      this.bind(DevModeWatchService, {
-        factory: () => new DevModeWatchService(),
-        lifecycle: "singleton",
-      });
-      this.get(DevModeWatchService);
+      this.container.singleton(DevModeAutoRefreshMiddleware);
+      this.container.singleton(DevModeWatchService);
+      this.container.get(DevModeWatchService).start();
     }
   }
 
   get events(): Dispatcher {
-    return this.get(DispatcherKey);
+    return this.container.get(DispatcherKey);
   }
 
   async handleRequest(request: Request, context: RequestContext): Promise<Response> {
     return this.withRequestContext(context, () => {
-      const router = this.get(Router);
+      const router = this.container.get(Router);
       return router.handle(request);
     });
   }
 
   withRequestContext<R>(context: RequestContext, callback: () => R): R {
-    if (this.hasScope) {
+    if (this.container.hasScope) {
       throw new BeynacError("Can't start a new request scope, we're already handling a request.");
     }
-    return this.withScope(() => {
-      this.bind(RequestContext, { lifecycle: "scoped", factory: () => context });
+    return this.container.withScope(() => {
+      this.container.bind(RequestContext, { lifecycle: "scoped", factory: () => context });
       return callback();
     });
   }

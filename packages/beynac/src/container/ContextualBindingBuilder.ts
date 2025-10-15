@@ -1,48 +1,32 @@
-import type { Container, FactoryFunction } from "./container";
+import type { Container } from "../contracts/Container";
+import type { FactoryFunction } from "./ContainerImpl";
 import type { KeyOrClass } from "./container-key";
 
-type AddCallback<C extends Container> = (
-  need: KeyOrClass,
-  factory: FactoryFunction<unknown, C>,
-) => void;
+type AddCallback = (need: KeyOrClass, factory: FactoryFunction<unknown>) => void;
 
-export class ContextualBindingBuilder<C extends Container> {
+export class ContextualBindingBuilder {
   constructor(
-    private container: C,
-    private add: AddCallback<C>,
+    private container: Container,
+    private add: AddCallback,
   ) {}
 
-  needs<T>(need: KeyOrClass<T>): ContextualBindingBuilderFinal<T, C> {
+  needs<T>(need: KeyOrClass<T>): ContextualBindingBuilderFinal<T> {
     return new ContextualBindingBuilderFinal(this.container, this.add, need);
   }
 }
 
-/**
- * Class for building contextual bindings in the container
- */
-class ContextualBindingBuilderFinal<T, C extends Container> {
+class ContextualBindingBuilderFinal<T> {
   constructor(
-    private container: C,
-    private add: AddCallback<C>,
+    private container: Container,
+    private add: AddCallback,
     private need: KeyOrClass,
   ) {}
 
-  /**
-   * Define the implementation for the contextual binding.
-   *
-   * @param key The implementation
-   */
-  give(key: KeyOrClass<T | undefined>): void {
-    type Factory = FactoryFunction<unknown, C>;
-    this.add(this.need, (() => this.container.get(key)) as Factory);
+  give(key: KeyOrClass<T>): void {
+    this.add(this.need, (() => this.container.get(key)) as FactoryFunction<unknown>);
   }
 
-  /**
-   * Define the implementation for the contextual binding.
-   *
-   * @param key The implementation
-   */
-  create(factory: FactoryFunction<T, C>): void {
-    this.add(this.need, factory);
+  create(factory: FactoryFunction<T>): void {
+    this.add(this.need, factory as FactoryFunction<unknown>);
   }
 }

@@ -1,4 +1,4 @@
-import type { Container } from "../container/container";
+import type { Container } from "../contracts/Container";
 import type { Dispatcher } from "../contracts/Dispatcher";
 import { AnyConstructor, getPrototypeChain, SetMultiMap } from "../utils";
 

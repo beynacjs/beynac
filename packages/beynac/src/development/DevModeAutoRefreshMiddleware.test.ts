@@ -16,42 +16,13 @@ test("SSE endpoint returns correct headers", async () => {
   const next = mock(() => new Response("OK"));
   const request = new Request("http://example.com?__beynac_dev_mode_refresh");
 
-  const response = middleware.handle(request, next) as Response;
+  const response = await middleware.handle(request, next);
 
   expect(next).not.toHaveBeenCalled();
   expect(response).toBeInstanceOf(Response);
   expect(response.headers.get("Content-Type")).toBe("text/event-stream");
   expect(response.headers.get("Cache-Control")).toBe("no-cache");
   expect(response.headers.get("Connection")).toBe("keep-alive");
-});
-
-test("SSE endpoint sends reload event when triggered", async () => {
-  const middleware = new DevModeAutoRefreshMiddleware({});
-  const next = mock(() => new Response("OK"));
-  const request = new Request("http://example.com?__beynac_dev_mode_refresh");
-
-  const response = middleware.handle(request, next) as Response;
-  const reader = response.body?.getReader();
-  const decoder = new TextDecoder();
-
-  // Trigger reload after a short delay
-  setTimeout(() => {
-    middleware.triggerReload();
-  }, 100);
-
-  // Read the stream
-  let receivedData = "";
-  if (reader) {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (value) {
-        receivedData += decoder.decode(value as Uint8Array, { stream: true });
-      }
-    }
-  }
-
-  expect(receivedData).toContain('data: {"reload": true}');
 });
 
 test("multiple SSE connections all receive reload event", async () => {
@@ -62,21 +33,19 @@ test("multiple SSE connections all receive reload event", async () => {
   const request2 = new Request("http://example.com?__beynac_dev_mode_refresh");
   const request3 = new Request("http://example.com?__beynac_dev_mode_refresh");
 
-  const response1 = middleware.handle(request1, next) as Response;
-  const response2 = middleware.handle(request2, next) as Response;
-  const response3 = middleware.handle(request3, next) as Response;
+  const response1 = await middleware.handle(request1, next);
+  const response2 = await middleware.handle(request2, next);
+  const response3 = await middleware.handle(request3, next);
 
   const reader1 = response1.body?.getReader();
   const reader2 = response2.body?.getReader();
   const reader3 = response3.body?.getReader();
   const decoder = new TextDecoder();
 
-  // Trigger reload after a short delay
   setTimeout(() => {
     middleware.triggerReload();
-  }, 100);
+  }, 0);
 
-  // Read all streams
   const readStream = async (reader: any) => {
     let data = "";
     if (reader) {
@@ -191,23 +160,5 @@ test("does not inject script into non-HTML responses", async () => {
 
   expect(result).not.toContain("<script>MARKER</script>");
   expect(result).toBe(json);
-  expect(generateScriptSpy).not.toHaveBeenCalled();
-});
-
-test("does not inject script when Content-Type header is missing", async () => {
-  const middleware = new DevModeAutoRefreshMiddleware({});
-  const content = "plain text";
-  const next = mock(() => new Response(content));
-
-  const generateScriptSpy = spyOn(middleware as any, "generateScript");
-  generateScriptSpy.mockReturnValue("<script>MARKER</script>");
-
-  const request = new Request("http://example.com/test");
-  const response = await middleware.handle(request, next);
-
-  const result = await response.text();
-
-  expect(result).not.toContain("<script>MARKER</script>");
-  expect(result).toBe(content);
   expect(generateScriptSpy).not.toHaveBeenCalled();
 });

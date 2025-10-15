@@ -10,15 +10,15 @@ export class ContextImpl implements Context {
     this.parent = parent ?? null;
   }
 
-  get<T>(key: Key<T>): Exclude<T | null, undefined> {
+  get<T>(key: Key<T>): Exclude<T, undefined> | null {
     if (this.localValues.has(key)) {
       const result = this.localValues.get(key);
-      return result as Exclude<T | null, undefined>;
+      return result as Exclude<T, undefined>;
     }
     if (this.parent) {
       return this.parent.get(key);
     }
-    return (key.default ?? null) as Exclude<T | null, undefined>;
+    return (key.default ?? null) as Exclude<T, undefined> | null;
   }
 
   set<T>(key: Key<T>, value: T): void {

@@ -1,13 +1,8 @@
 import { BeynacError } from "../error";
-import { isKey, type Key } from "../keys";
-import { NoArgConstructor } from "../utils";
 import { getKeyName, type KeyOrClass } from "./container-key";
 import { NO_VALUE, type NoValue } from "./no-value";
 
 const invalidInjectMessage = `Dependencies that use inject() must be created by the container. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms`;
-
-export function inject<T>(token: Key<T>): Exclude<T, undefined>;
-export function inject<T>(token: NoArgConstructor<T>): T;
 
 /**
  * Inject a dependency into a class constructor. Use this method with JavaScript
@@ -27,7 +22,7 @@ export function inject<T>(token: NoArgConstructor<T>): T;
  * // in your tests: you can supply a mock dependency
  * const instance = new MyClass(new MockEmailService());
  */
-export function inject<T>(arg: KeyOrClass<T>): Exclude<T, undefined> {
+export function inject<T>(arg: KeyOrClass<T>): T {
   if (!_currentInjectHandler) {
     throw new BeynacError(invalidInjectMessage);
   }
@@ -35,11 +30,8 @@ export function inject<T>(arg: KeyOrClass<T>): Exclude<T, undefined> {
   if (result === NO_VALUE) {
     throw new BeynacError(`Required dependency ${getKeyName(arg)} not found`);
   }
-  return result as Exclude<T, undefined>;
+  return result;
 }
-
-export function injectOptional<T>(token: Key<T>): Exclude<T, undefined> | null;
-export function injectOptional<T>(token: NoArgConstructor<T>): T | null;
 
 /**
  * Inject an optional dependency into a class constructor. Use like `inject()`.
@@ -58,19 +50,15 @@ export function injectOptional<T>(token: NoArgConstructor<T>): T | null;
  * // in your tests: you can supply a mock dependency
  * const instance = new MyClass(new MockEmailService());
  */
-export function injectOptional<T>(arg: KeyOrClass<T>): Exclude<T, undefined> | null {
+export function injectOptional<T>(arg: KeyOrClass<T>): T | null {
   if (!_currentInjectHandler) {
     throw new BeynacError(invalidInjectMessage);
   }
   let result: unknown = _currentInjectHandler(arg, true);
   if (result === NO_VALUE) {
-    if (isKey(arg)) {
-      result = arg.default;
-    } else {
-      result = null;
-    }
+    result = null;
   }
-  return (result ?? null) as Exclude<T, undefined>;
+  return (result ?? null) as T;
 }
 
 type InjectHandler = <T>(arg: KeyOrClass<T>, optional: boolean) => T | NoValue;

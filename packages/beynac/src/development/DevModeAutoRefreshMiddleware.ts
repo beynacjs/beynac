@@ -18,60 +18,52 @@ export class DevModeAutoRefreshMiddleware implements Middleware {
     this.reloadListeners.clear();
   }
 
-  handle(
+  async handle(
     request: Request,
     next: (request: Request) => Response | Promise<Response>,
-  ): Response | Promise<Response> {
+  ): Promise<Response> {
     const url = new URL(request.url);
 
-    // Handle SSE endpoint
     if (url.searchParams.has("__beynac_dev_mode_refresh")) {
-      return this.handleSSERequest();
+      return this.#handleSSERequest();
     }
 
-    // Get response from next middleware/handler
-    const response = next(request);
-
-    // Only inject script into HTML responses
-    if (response instanceof Promise) {
-      return response.then((r) => this.maybeInjectScript(r));
+    const response = await next(request);
+    const contentType = response.headers.get("Content-Type");
+    if (contentType?.includes("text/html")) {
+      return this.#injectScript(response);
     }
-    return this.maybeInjectScript(response);
+    return response;
   }
 
-  private handleSSERequest(): Response {
+  #handleSSERequest(): Response {
     const encoder = new TextEncoder();
     let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+    let listener: ((reload: boolean) => void) | null = null;
 
     const heartbeatMs = this.config.devMode?.autoRefreshHeartbeatMs ?? 15000;
     const reloadListeners = this.reloadListeners;
 
     const stream = new ReadableStream({
       start(controller) {
-        let isClosed = false;
-
-        const cleanup = () => {
-          if (isClosed) return;
-          isClosed = true;
-          if (heartbeatInterval) clearInterval(heartbeatInterval);
-        };
-
-        // Send heartbeat periodically to keep connection alive
+        controller.enqueue(encoder.encode(":heartbeat\n\n"));
         heartbeatInterval = setInterval(() => {
-          if (!isClosed) {
-            controller.enqueue(encoder.encode(":heartbeat\n\n"));
-          }
+          controller.enqueue(encoder.encode(":heartbeat\n\n"));
         }, heartbeatMs);
 
-        // Listener for reload events
-        const listener = () => {
-          cleanup();
+        listener = () => {
           controller.enqueue(encoder.encode('data: {"reload": true}\n\n'));
-          reloadListeners.delete(listener);
-          controller.close();
         };
 
         reloadListeners.add(listener);
+      },
+      cancel() {
+        if (heartbeatInterval) {
+          clearInterval(heartbeatInterval);
+        }
+        if (listener) {
+          reloadListeners.delete(listener);
+        }
       },
     });
 
@@ -84,25 +76,16 @@ export class DevModeAutoRefreshMiddleware implements Middleware {
     });
   }
 
-  private maybeInjectScript(response: Response): Response {
-    const contentType = response.headers.get("Content-Type");
-    if (!contentType || !contentType.includes("text/html")) {
-      return response;
-    }
-
-    return this.injectScript(response);
-  }
-
-  private injectScript(response: Response): Response {
+  #injectScript(response: Response): Response {
     const script = this.generateScript();
     const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
 
-    const reader = response.body?.getReader();
+    const body = response.body as ReadableStream<Uint8Array> | null;
+    const reader = body?.getReader();
     const writer = writable.getWriter();
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
 
-    let buffer = "";
     let injected = false;
 
     void (async () => {
@@ -117,47 +100,30 @@ export class DevModeAutoRefreshMiddleware implements Middleware {
           if (done) break;
           if (!value) continue;
 
-          const chunk: Uint8Array = value;
-          buffer += decoder.decode(chunk, { stream: true });
-
-          // Try to inject before </body> or </html>
           if (!injected) {
-            const bodyMatch = buffer.match(/<\/body>/i);
-            const htmlMatch = buffer.match(/<\/html>/i);
+            let chunk = decoder.decode(value, { stream: true });
 
-            if (bodyMatch?.index !== undefined) {
-              const index = bodyMatch.index;
-              const before = buffer.substring(0, index);
-              const after = buffer.substring(index);
-              await writer.write(encoder.encode(before + script + after));
-              buffer = "";
-              injected = true;
-            } else if (htmlMatch?.index !== undefined) {
-              const index = htmlMatch.index;
-              const before = buffer.substring(0, index);
-              const after = buffer.substring(index);
-              await writer.write(encoder.encode(before + script + after));
-              buffer = "";
-              injected = true;
-            } else if (buffer.length > 1000) {
-              // Flush buffer if it gets too large without finding a match
-              await writer.write(encoder.encode(buffer));
-              buffer = "";
-            }
+            const injectBefore = (tag: RegExp) => {
+              if (injected) return;
+
+              const match = chunk.match(tag);
+              if (match?.index !== undefined) {
+                injected = true;
+                chunk = chunk.substring(0, match.index) + script + chunk.substring(match.index);
+              }
+            };
+
+            injectBefore(/<\/body>/i);
+            injectBefore(/<\/html>/i);
+
+            await writer.write(encoder.encode(chunk));
           } else {
-            // chunk is Uint8Array, safe to write
-            await writer.write(chunk);
+            await writer.write(value);
           }
         }
 
-        // Write any remaining buffer
-        if (buffer) {
-          if (!injected) {
-            // No </body> or </html> found, inject at end
-            await writer.write(encoder.encode(buffer + script));
-          } else {
-            await writer.write(encoder.encode(buffer));
-          }
+        if (!injected) {
+          await writer.write(encoder.encode(script));
         }
 
         await writer.close();
@@ -174,22 +140,34 @@ export class DevModeAutoRefreshMiddleware implements Middleware {
   }
 
   private generateScript(): string {
-    return `
+    return /*ts*/ `
 <script>
 (function() {
   const eventSource = new EventSource('?__beynac_dev_mode_refresh');
+  let firstConnection = true;
 
   eventSource.onmessage = function(event) {
     const data = JSON.parse(event.data);
     if (data.reload) {
+      console.log('[Beynac] Dev mode detected file changes, reloading...');
       eventSource.close();
       location.reload();
+    }
+  };
+
+  eventSource.onopen = function() {
+    if (firstConnection) {
+      console.log('[Beynac] Dev mode enabled, watching for changes');
+      firstConnection = false;
+    } else {
+      console.log('[Beynac] Dev mode connection re-established, watching for changes');
     }
   };
 
   eventSource.onerror = function() {
     console.log('[Beynac] Dev mode connection lost, reconnecting...');
   };
+  
 })();
 </script>`;
   }

@@ -1,5 +1,5 @@
-import type { Key } from "../keys";
-import { createKey } from "../keys";
+import type { TypeToken } from "../container/type-token";
+import { createTypeToken } from "../container/type-token";
 
 /**
  * Provides access to request headers
@@ -58,6 +58,4 @@ export interface Headers {
   set(name: string, value: string): void;
 }
 
-export const Headers: Key<Headers | undefined> = createKey<Headers>({
-  displayName: "Headers",
-});
+export const Headers: TypeToken<Headers> = createTypeToken<Headers>("Headers");

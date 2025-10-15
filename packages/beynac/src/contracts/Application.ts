@@ -1,12 +1,18 @@
-import { Container } from "../container";
-import type { Key } from "../keys";
-import { createKey } from "../keys";
+import type { Container } from "../container";
+import type { TypeToken } from "../container/type-token";
+import { createTypeToken } from "../container/type-token";
+import type { Dispatcher } from "./Dispatcher";
 import { RequestContext } from "./RequestContext";
 
 /**
  * Application contract for handling HTTP requests
  */
-export interface Application extends Container {
+export interface Application {
+  /**
+   * Public container for dependency injection
+   */
+  container: Container;
+
   /**
    * Handle an incoming HTTP request. The request will be routed to the
    * appropriate handler and will go through the middleware pipeline.
@@ -21,8 +27,11 @@ export interface Application extends Container {
    * require access to headers and cookies.
    */
   withRequestContext<R>(context: RequestContext, callback: () => R): R;
+
+  /**
+   * Accessor for the event dispatcher
+   */
+  readonly events: Dispatcher;
 }
 
-export const Application: Key<Application | undefined> = createKey<Application>({
-  displayName: "Application",
-});
+export const Application: TypeToken<Application> = createTypeToken<Application>("Application");

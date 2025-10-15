@@ -1,7 +1,7 @@
+import type { TypeToken } from "../container/type-token";
+import { createTypeToken } from "../container/type-token";
 import type { Controller } from "../core/Controller";
 import type { MiddlewareReference } from "../core/Middleware";
-import type { Key } from "../keys";
-import { createKey } from "../keys";
 import type { NoArgConstructor } from "../utils";
 
 /**
@@ -103,6 +103,4 @@ export interface Router {
   handle(request: Request): Promise<Response>;
 }
 
-export const Router: Key<Router | undefined> = createKey<Router>({
-  displayName: "Router",
-});
+export const Router: TypeToken<Router> = createTypeToken<Router>("Router");

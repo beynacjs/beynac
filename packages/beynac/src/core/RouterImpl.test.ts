@@ -1,7 +1,7 @@
 import { expect, expectTypeOf, test } from "bun:test";
 import { inject } from "../container";
+import { createTypeToken } from "../container/type-token";
 import { Router } from "../contracts/Router";
-import { createKey } from "../keys";
 import { ApplicationImpl } from "./ApplicationImpl";
 import { Controller } from "./Controller";
 import { RouterImpl } from "./RouterImpl";
@@ -89,7 +89,7 @@ test("handles controller class routes", async () => {
 test("class controller can use dependency injection", async () => {
   const { router, app } = createRouter();
 
-  const messageKey = createKey<string>();
+  const messageKey = createTypeToken<string>();
 
   class InjectedController implements Controller {
     constructor(private message = inject(messageKey)) {}
@@ -99,7 +99,7 @@ test("class controller can use dependency injection", async () => {
     }
   }
 
-  app.bind(messageKey, { instance: "injected" });
+  app.container.bind(messageKey, { instance: "injected" });
   router.get("/hello", InjectedController);
 
   const response = await router.handle(new Request("http://example.com/hello"));
@@ -230,7 +230,7 @@ test("executes nested middleware in correct order", async () => {
     },
   );
 
-  app.bind(Router, { factory: () => router, lifecycle: "singleton" });
+  app.container.bind(Router, { factory: () => router, lifecycle: "singleton" });
 
   await router.handle(new Request("http://example.com/test"));
 
@@ -255,7 +255,7 @@ test("middleware can short-circuit by not calling next", async () => {
     },
   );
 
-  app.bind(Router, { factory: () => router, lifecycle: "singleton" });
+  app.container.bind(Router, { factory: () => router, lifecycle: "singleton" });
 
   const request = new Request("http://example.com/test");
   const response = await router.handle(request);
@@ -291,7 +291,7 @@ test("middleware can modify request", async () => {
     },
   );
 
-  app.bind(Router, { factory: () => router, lifecycle: "singleton" });
+  app.container.bind(Router, { factory: () => router, lifecycle: "singleton" });
 
   const request = new Request("http://example.com/test");
   const response = await router.handle(request);
@@ -311,7 +311,7 @@ test("handles async controller", async () => {
 
   router.get("/async", AsyncController);
 
-  app.bind(Router, { factory: () => router, lifecycle: "singleton" });
+  app.container.bind(Router, { factory: () => router, lifecycle: "singleton" });
 
   const request = new Request("http://example.com/async");
   const response = await router.handle(request);
@@ -342,7 +342,7 @@ test("handles synchronous middleware", async () => {
     },
   );
 
-  app.bind(Router, { factory: () => router, lifecycle: "singleton" });
+  app.container.bind(Router, { factory: () => router, lifecycle: "singleton" });
 
   const request = new Request("http://example.com/test");
   const response = await router.handle(request);

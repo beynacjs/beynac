@@ -1,5 +1,5 @@
 /**
- * A token representing an arbitrary type with optional default value
+ * A typed key, used to look up a value in various contexts
  */
 export type Key<T = unknown> = {
   readonly default: T | undefined;
@@ -20,22 +20,18 @@ class KeyImpl<T> implements Key<T> {
   }
 }
 
-export const isKey = (value: unknown): value is Key => value instanceof KeyImpl;
-
 /**
- * Create a token that allows typescript types that don't normally have a
- * runtime value associated (like interfaces) to be resolved in the IoC
- * container.
+ * Create a typed key, used to look up a value in various contexts
  *
  * @example
- * export interface Ship {
- *     sail(): void;
- * }
- * // the convention is to use the same name for the type and the token
- * export const Ship = key<Ship>({ displayName: "Ship" });
+ * // Inferred type of port is Key<number | undefined> since it has no default value
+ * export const port = key<number>();
  *
- * // With default value
- * export const Port = key({ displayName: "Port", default: 3000 });
+ * // With default value - the type will be inferred as Key<number>
+ * export const port = key({ default: 3000 });
+ *
+ * // Optional name for debugging
+ * export const port = key<number>({ displayName: "port" });
  *
  * @param options.displayName - A name to
  */

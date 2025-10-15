@@ -1,5 +1,5 @@
-import type { Key } from "../keys";
-import { createKey } from "../keys";
+import type { TypeToken } from "../container/type-token";
+import { createTypeToken } from "../container/type-token";
 import { CookieAttributes } from "./RequestContext";
 
 export interface Cookies {
@@ -60,6 +60,4 @@ export interface Cookies {
   set(name: string, value: string, options?: CookieAttributes): void;
 }
 
-export const Cookies: Key<Cookies | undefined> = createKey<Cookies>({
-  displayName: "Cookies",
-});
+export const Cookies: TypeToken<Cookies> = createTypeToken<Cookies>("Cookies");

@@ -3,4 +3,4 @@ export const SPECIAL_NODE: unique symbol = Symbol("special-node");
 export type SpecialNode = { [SPECIAL_NODE]: unknown };
 
 export const isSpecialNode = (node: unknown): boolean =>
-  (node as { [SPECIAL_NODE]?: boolean })?.[SPECIAL_NODE] != null;
+  (node as SpecialNode)?.[SPECIAL_NODE] != null;

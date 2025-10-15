@@ -13,6 +13,7 @@ When I ask questions, answer briefly to minimise time taken to read response. I'
 - In particular, try to avoid use of `any`. Use `unknown` where possible. When an assignment breaks type checking, think carefully about how to write the code in a type safe way. If this really isn't possible, avoid `foo = bar as any`, use `foo = bar as TheCorrectType`
 - When writing tests, pass the function or class under test to the first argument describe, e.g. `describe(myFunc, ...)` not `describe("myFunc", ...)`
 - in bun, expect never returns a promise, do not `await expect(...)` just use `expect(...)`
+- Use #truePrivate methods over typescript style `private method()`
 
 ## Soft port process
 

@@ -86,7 +86,7 @@ export class RouterImpl implements Router {
 
     const finalHandler = (req: Request): Response | Promise<Response> => {
       if (typeof handler === "function") {
-        handler = this.app.get(handler);
+        handler = this.app.container.get(handler);
       }
 
       return handler.handle(req, params);
@@ -102,7 +102,7 @@ export class RouterImpl implements Router {
   ): Response | Promise<Response> {
     const middlewareInstances = middlewareRefs.map((ref) => {
       if (typeof ref === "function") {
-        return this.app.get(ref);
+        return this.app.container.get(ref);
       }
       return ref;
     });
