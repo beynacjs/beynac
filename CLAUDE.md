@@ -16,6 +16,10 @@ When I ask questions, answer briefly to minimise time taken to read response. I'
 - Use #truePrivate methods over typescript style `private method()`
 - Our codebase is compiled with --isolatedDeclarations, so you can't pass undefined to an optional parameter. If this causes compile errors, the fix is to add undefined to the type, e.g. {optional?: string | undefined}
 
+## Testing guidelines
+
+- When asserting types, use `expectTypeOf(value).toEqualTypeOf<Expected>()` instead of the deprecated `expectTypeOf(value).toMatchTypeOf<Expected>()`
+
 ## Soft port process
 
 When asked to follow the "soft port process", you will be given a reference to a TypeScript file. The TypeScript file will contain PHP syntax methods, wrapped in a template string to prevent syntax errors.
