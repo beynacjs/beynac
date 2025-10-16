@@ -105,24 +105,28 @@ function translateRouteSyntax(path: string): string {
 
   // Validate: reject colons (reserved for rou3 internal use)
   if (path.includes(":")) {
-    throw new Error(`Route path "${path}" contains colon characters. Use {param} syntax instead of :param.`);
+    throw new Error(
+      `Route path "${path}" contains colon characters. Use {param} syntax instead of :param.`,
+    );
   }
 
   // Validate: detect wrong wildcard order {param...}
   if (/\{[^}]+\.\.\.\}/.test(path)) {
-    throw new Error(`Route path "${path}" has incorrect wildcard syntax. Use {...param} not {param...}.`);
+    throw new Error(
+      `Route path "${path}" has incorrect wildcard syntax. Use {...param} not {param...}.`,
+    );
   }
 
   // Validate: parameters must be whole path segments
   // Check for text before opening brace (except at start or after /, .)
-  if (/[^\/\.]\{/.test(path)) {
+  if (/[^/.]\{/.test(path)) {
     throw new Error(
       `Route path "${path}" has invalid parameter syntax. Parameters must capture whole path segments, not partial segments. Use /{param}/ not /text{param}/.`,
     );
   }
 
   // Check for text after closing brace (except at end or before /, .)
-  if (/\}[^\/\.]/.test(path)) {
+  if (/\}[^/.]/.test(path)) {
     throw new Error(
       `Route path "${path}" has invalid parameter syntax. Parameters must capture whole path segments, not partial segments. Use /{param}/ not /{param}text/.`,
     );
@@ -135,6 +139,25 @@ function translateRouteSyntax(path: string): string {
   path = path.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g, ":$1");
 
   return path;
+}
+
+/**
+ * Convert a domain pattern to path format for rou3 matching
+ * Input: ":subdomain.example.com" (already in rou3 format)
+ * Output: "/:subdomain/example/com/"
+ */
+function translateDomainToPath(domain: string): string {
+  // Convert dots to slashes and wrap with slashes
+  return "/" + domain.replace(/\./g, "/") + "/";
+}
+
+/**
+ * Convert a hostname to path format for matching
+ * Input: "acme.example.com"
+ * Output: "/acme/example/com/"
+ */
+function hostnameToPath(hostname: string): string {
+  return "/" + hostname.replace(/\./g, "/") + "/";
 }
 
 // ============================================================================
@@ -165,7 +188,9 @@ type ExtractRouteParams<T extends string> =
 type ExtractDomainAndPathParams<
   Domain extends string | undefined,
   Path extends string,
-> = Domain extends string ? ExtractRouteParams<Domain> | ExtractRouteParams<Path> : ExtractRouteParams<Path>;
+> = Domain extends string
+  ? ExtractRouteParams<Domain> | ExtractRouteParams<Path>
+  : ExtractRouteParams<Path>;
 
 /**
  * Extract the NameParamsMap from Routes
@@ -365,10 +390,11 @@ export class RouterV2 {
     // Register route for each HTTP method
     for (const method of route.methods) {
       if (route.domainPattern) {
-        // For domain routes, we use a special prefix marker that rou3 can match
-        // We'll validate the actual domain pattern manually in #match
-        // Use a marker that won't conflict with normal paths: "\x00" + path
-        addRoute(this.router, method, `\x00${route.path}`, { route });
+        // For domain routes, encode domain as path segments so rou3 can match naturally
+        // Example: ":subdomain.example.com" + "/users/:id" -> "/:subdomain/example/com//users/:id"
+        const domainPath = translateDomainToPath(route.domainPattern);
+        const fullPath = domainPath + route.path;
+        addRoute(this.router, method, fullPath, { route });
       } else {
         // Register path only: "/path" (has leading slash)
         addRoute(this.router, method, route.path, { route });
@@ -394,32 +420,14 @@ export class RouterV2 {
   }
 
   #match(method: string, path: string, hostname: string) {
-    // Try domain-specific route first using null byte prefix: "\x00/users"
-    let result = findRoute(this.router, method, `\x00${path}`);
-
-    // If we found a domain route, verify the hostname matches the domain pattern
-    if (result) {
-      const route = result.data.route;
-      if (route.domainPattern) {
-        // Extract domain params and check if hostname matches pattern
-        const domainParams = this.#extractDomainParams(hostname, route.domainPattern);
-
-        // If extraction failed (returned empty object for parameterized pattern), hostname doesn't match
-        const hasParams = /:/.test(route.domainPattern);
-        const paramsExtracted = Object.keys(domainParams).length > 0;
-
-        if (hasParams && !paramsExtracted) {
-          // Domain pattern has params but we couldn't extract them - no match
-          result = undefined;
-        } else if (!hasParams && !this.#domainMatches(hostname, route.domainPattern)) {
-          // Static domain that doesn't match
-          result = undefined;
-        }
-      }
-    }
+    // Try domain-specific route first by encoding hostname as path
+    // Example: "acme.example.com" + "/users" -> "/acme/example/com//users"
+    const hostnamePath = hostnameToPath(hostname);
+    const fullPath = hostnamePath + path;
+    let result = findRoute(this.router, method, fullPath);
 
     if (!result) {
-      // Fallback to domain-agnostic route: "/users"
+      // Fallback to domain-agnostic route: just the path "/users"
       result = findRoute(this.router, method, path);
     }
 
@@ -429,14 +437,9 @@ export class RouterV2 {
 
     const data = result.data;
     const route = data.route;
-    let params = result.params || {};
+    const params = result.params || {};
 
-    // Extract domain parameters if route has a domain pattern
-    if (route.domainPattern) {
-      params = { ...params, ...this.#extractDomainParams(hostname, route.domainPattern) };
-    }
-
-    // Check parameter constraints
+    // Check parameter constraints (rou3 extracts all params automatically now!)
     if (!this.#checkConstraints(route, params)) {
       return undefined;
     }
@@ -445,33 +448,6 @@ export class RouterV2 {
       route,
       params,
     };
-  }
-
-  #domainMatches(hostname: string, pattern: string): boolean {
-    return hostname === pattern;
-  }
-
-  #extractDomainParams(hostname: string, pattern: string): Record<string, string> {
-    const params: Record<string, string> = {};
-    const paramNames: string[] = [];
-
-    // Convert :param to regex capture groups
-    const regexPattern = pattern.replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, (_, name) => {
-      paramNames.push(name);
-      return "([^.]+)";
-    });
-
-    const regex = new RegExp(`^${regexPattern}$`);
-    const match = hostname.match(regex);
-
-    if (match) {
-      // Extract captured groups into params
-      for (let i = 0; i < paramNames.length; i++) {
-        params[paramNames[i]] = match[i + 1];
-      }
-    }
-
-    return params;
   }
 
   #checkConstraints(route: RouteDefinition, params: Record<string, string>): boolean {
@@ -642,7 +618,9 @@ type RouteMethodFunction = <
   path: Path,
   handler: RouteHandler,
   options?: RouteOptions<Name> & { domain?: Domain },
-) => [Name] extends [never] ? Routes<{}> : Routes<{ [K in Name]: ExtractDomainAndPathParams<Domain, Path> }>;
+) => [Name] extends [never]
+  ? Routes<{}>
+  : Routes<{ [K in Name]: ExtractDomainAndPathParams<Domain, Path> }>;
 
 export const get: RouteMethodFunction = (path, handler, options) =>
   createRoute("GET", path, handler, options);
@@ -673,7 +651,9 @@ export function match<
   path: Path,
   handler: RouteHandler,
   options?: RouteOptions<Name> & { domain?: Domain },
-): [Name] extends [never] ? Routes<{}> : Routes<{ [K in Name]: ExtractDomainAndPathParams<Domain, Path> }> {
+): [Name] extends [never]
+  ? Routes<{}>
+  : Routes<{ [K in Name]: ExtractDomainAndPathParams<Domain, Path> }> {
   return createRoute(methods, path, handler, options);
 }
 
@@ -685,7 +665,9 @@ export function any<
   path: Path,
   handler: RouteHandler,
   options?: RouteOptions<Name> & { domain?: Domain },
-): [Name] extends [never] ? Routes<{}> : Routes<{ [K in Name]: ExtractDomainAndPathParams<Domain, Path> }> {
+): [Name] extends [never]
+  ? Routes<{}>
+  : Routes<{ [K in Name]: ExtractDomainAndPathParams<Domain, Path> }> {
   const methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"];
   return match(methods, path, handler, options);
 }
