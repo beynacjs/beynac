@@ -1,7 +1,6 @@
-import type { KeyOrClass } from "../container/container-key";
+import type { KeyOrClass, TypeToken } from "../container/container-key";
+import { createTypeToken } from "../container/container-key";
 import type { ContextualBindingBuilder } from "../container/ContextualBindingBuilder";
-import type { TypeToken } from "../container/type-token";
-import { createTypeToken } from "../container/type-token";
 import type { MethodNamesWithNoRequiredArgs, NoArgConstructor } from "../utils";
 
 /**

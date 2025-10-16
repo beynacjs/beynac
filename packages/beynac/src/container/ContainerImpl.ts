@@ -9,11 +9,10 @@ import {
   type AnyConstructor,
   type NoArgConstructor,
 } from "../utils";
-import { getKeyName, type KeyOrClass } from "./container-key";
+import { getKeyName, type KeyOrClass, type TypeToken } from "./container-key";
 import { ContextualBindingBuilder } from "./ContextualBindingBuilder";
 import { _getInjectHandler, _setInjectHandler } from "./inject";
 import { NO_VALUE, type NoValue } from "./no-value";
-import { type TypeToken } from "./type-token";
 
 export type FactoryFunction<T> = (container: Container) => {
   [K in keyof T]: T[K];

@@ -1,5 +1,6 @@
 import { describe, expect, expectTypeOf, test } from "bun:test";
 import { ContainerImpl } from "../container/ContainerImpl";
+import { createTypeToken } from "../container/container-key";
 import type { Controller } from "./Controller";
 import type { Middleware } from "./Middleware";
 import {
@@ -196,6 +197,28 @@ describe(RouterV2, () => {
 
     const response = await router.handle(new Request("http://example.com/test"));
     expect(await response.text()).toBe("From controller class");
+  });
+
+  test("controller class can use dependency injection", async () => {
+    const { router, container } = createRouter();
+
+    // Create a type token for dependency
+    const messageKey = createTypeToken<string>();
+    container.bind(messageKey, { instance: "injected message" });
+
+    class InjectedController implements Controller {
+      constructor(private message: string = container.get(messageKey)) {}
+
+      handle(): Response {
+        return new Response(this.message);
+      }
+    }
+
+    const route = get("/hello", InjectedController);
+    router.register(route);
+
+    const response = await router.handle(new Request("http://example.com/hello"));
+    expect(await response.text()).toBe("injected message");
   });
 
   test("handles async controller", async () => {

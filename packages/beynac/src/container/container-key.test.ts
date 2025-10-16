@@ -1,7 +1,5 @@
-/** @jsxRuntime automatic **/
-/** @jsxImportSource . **/
 import { describe, expectTypeOf, it } from "bun:test";
-import { type TypeToken, createTypeToken } from "./type-token";
+import { type TypeToken, createTypeToken } from "./container-key";
 
 describe("type tokens", () => {
   it("createTypeToken() with no arguments infers TypeToken<unknown>", () => {

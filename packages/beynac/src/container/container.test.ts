@@ -3,8 +3,8 @@ import type { Container } from "../contracts/Container";
 import { asyncGate } from "../test-utils";
 import { ContainerImpl } from "./ContainerImpl";
 import type { KeyOrClass } from "./container-key";
+import { createTypeToken } from "./container-key";
 import { inject, injectOptional } from "./inject";
-import { createTypeToken } from "./type-token";
 
 let container: Container;
 

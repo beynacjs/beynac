@@ -1,5 +1,5 @@
-import type { TypeToken } from "../container/type-token";
-import { createTypeToken } from "../container/type-token";
+import type { TypeToken } from "../container/container-key";
+import { createTypeToken } from "../container/container-key";
 import { AnyConstructor } from "../utils";
 
 /**

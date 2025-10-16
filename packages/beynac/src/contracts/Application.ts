@@ -1,6 +1,6 @@
 import type { Container } from "../container";
-import type { TypeToken } from "../container/type-token";
-import { createTypeToken } from "../container/type-token";
+import type { TypeToken } from "../container/container-key";
+import { createTypeToken } from "../container/container-key";
 import type { Dispatcher } from "./Dispatcher";
 import { RequestContext } from "./RequestContext";
 

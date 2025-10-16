@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "fs";
 import { basename } from "path";
-import { isTypeToken } from "../container/type-token";
+import { isTypeToken } from "../container/container-key";
 
 describe("Contracts", () => {
   test("each contract file exports a properly named interface and key", async () => {

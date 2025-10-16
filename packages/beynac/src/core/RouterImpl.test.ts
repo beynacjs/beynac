@@ -1,6 +1,6 @@
 import { expect, expectTypeOf, test } from "bun:test";
 import { inject } from "../container";
-import { createTypeToken } from "../container/type-token";
+import { createTypeToken } from "../container/container-key";
 import { Router } from "../contracts/Router";
 import { ApplicationImpl } from "./ApplicationImpl";
 import { Controller } from "./Controller";
