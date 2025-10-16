@@ -949,3 +949,106 @@ describe("multi-method routes", () => {
     }
   });
 });
+
+// ============================================================================
+// Route URL Generation
+// ============================================================================
+
+describe("route URL generation", () => {
+  test("generates URL for named route without parameters", () => {
+    const { router } = createRouter();
+
+    const route = get("/users", {
+      handle() {
+        return new Response();
+      },
+    }).name("users.index");
+
+    router.register([route]);
+
+    expect(router.routeUrl("users.index")).toBe("/users");
+  });
+
+  test("generates URL for named route with parameters", () => {
+    const { router } = createRouter();
+
+    const route = get("/users/:id", {
+      handle() {
+        return new Response();
+      },
+    }).name("users.show");
+
+    router.register([route]);
+
+    expect(router.routeUrl("users.show", { id: 123 })).toBe("/users/123");
+    expect(router.routeUrl("users.show", { id: "abc" })).toBe("/users/abc");
+  });
+
+  test("generates URL for route with multiple parameters", () => {
+    const { router } = createRouter();
+
+    const route = get("/posts/:postId/comments/:commentId", {
+      handle() {
+        return new Response();
+      },
+    }).name("posts.comments.show");
+
+    router.register([route]);
+
+    expect(router.routeUrl("posts.comments.show", { postId: 42, commentId: 7 })).toBe(
+      "/posts/42/comments/7",
+    );
+  });
+
+  test("throws error for non-existent route name", () => {
+    const { router } = createRouter();
+
+    expect(() => router.routeUrl("non.existent")).toThrow('Route "non.existent" not found');
+  });
+
+  test("generates URLs for routes in groups with namePrefix", () => {
+    const { router } = createRouter();
+
+    const routes = group({ prefix: "/admin", namePrefix: "admin." }, [
+      get("/dashboard", {
+        handle() {
+          return new Response();
+        },
+      }).name("dashboard"),
+      get("/users/:id", {
+        handle() {
+          return new Response();
+        },
+      }).name("users.show"),
+    ]);
+
+    router.register([routes]);
+
+    expect(router.routeUrl("admin.dashboard")).toBe("/admin/dashboard");
+    expect(router.routeUrl("admin.users.show", { id: 456 })).toBe("/admin/users/456");
+  });
+
+  test("generates URLs for routes in nested groups", () => {
+    const { router } = createRouter();
+
+    const userRoutes = group({ prefix: "/users", namePrefix: "users." }, [
+      get("/", {
+        handle() {
+          return new Response();
+        },
+      }).name("index"),
+      get("/:id", {
+        handle() {
+          return new Response();
+        },
+      }).name("show"),
+    ]);
+
+    const apiRoutes = group({ prefix: "/api", namePrefix: "api." }, [userRoutes]);
+
+    router.register([apiRoutes]);
+
+    expect(router.routeUrl("api.users.index")).toBe("/api/users");
+    expect(router.routeUrl("api.users.show", { id: 789 })).toBe("/api/users/789");
+  });
+});

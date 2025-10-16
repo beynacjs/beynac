@@ -23,58 +23,182 @@ interface ParameterConstraint {
 }
 
 /**
- * A route definition with type-tracked name
+ * Configuration for creating a route
  */
-export interface Route<Name extends string = never> {
-  readonly __name: Name;
-
-  /** Assign a name to this route */
-  name<const N extends string>(name: N): Route<N>;
-
-  /** Add middleware to this route */
-  middleware(middleware: MiddlewareReference | MiddlewareReference[]): Route<Name>;
-
-  /** Apply regex constraint to a parameter */
-  where(param: string, pattern: string | RegExp): Route<Name>;
-
-  /** Constraint: parameter must be numeric */
-  whereNumber(param: string): Route<Name>;
-
-  /** Constraint: parameter must be alphabetic */
-  whereAlpha(param: string): Route<Name>;
-
-  /** Constraint: parameter must be alphanumeric */
-  whereAlphaNumeric(param: string): Route<Name>;
-
-  /** Constraint: parameter must be UUID v4 */
-  whereUuid(param: string): Route<Name>;
-
-  /** Constraint: parameter must be ULID */
-  whereUlid(param: string): Route<Name>;
-
-  /** Constraint: parameter must be one of the given values */
-  whereIn(param: string, values: readonly string[]): Route<Name>;
-
-  /** Restrict route to specific domain/subdomain pattern */
-  domain(pattern: string): Route<Name>;
+interface RouteConfig {
+  methods: readonly string[];
+  path: string;
+  handler: RouteHandler | ((request: Request) => Response | Promise<Response>);
+  routeName?: string;
+  middlewareStack?: MiddlewareReference[];
+  constraints?: ParameterConstraint[];
+  domainPattern?: string;
+  redirect?: { to: string; status: number };
+  isFallback?: boolean;
+  viewResponse?: Response;
 }
 
 /**
- * A collection of routes with aggregated name types
+ * A route with type-tracked name
  */
-export interface RouteGroup<Names extends string = never> {
-  readonly __names: Names;
+export class Route<Name extends string = never> {
+  readonly __name!: Name;
+
+  methods: readonly string[];
+  path: string;
+  handler: RouteHandler | ((request: Request) => Response | Promise<Response>);
+  routeName?: string;
+  middlewareStack: MiddlewareReference[];
+  constraints: ParameterConstraint[];
+  domainPattern?: string;
+  redirect?: { to: string; status: number };
+  isFallback: boolean;
+  viewResponse?: Response;
+
+  constructor(config: RouteConfig) {
+    this.methods = config.methods;
+    this.path = config.path;
+    this.handler = config.handler;
+    if (config.routeName !== undefined) this.routeName = config.routeName;
+    this.middlewareStack = config.middlewareStack ?? [];
+    this.constraints = config.constraints ?? [];
+    if (config.domainPattern !== undefined) this.domainPattern = config.domainPattern;
+    if (config.redirect !== undefined) this.redirect = config.redirect;
+    this.isFallback = config.isFallback ?? false;
+    if (config.viewResponse !== undefined) this.viewResponse = config.viewResponse;
+  }
+
+  #copy<N extends string = Name>(overrides: Partial<RouteConfig> = {}): Route<N> {
+    const newConfig: RouteConfig = {
+      methods: overrides.methods ?? this.methods,
+      path: overrides.path ?? this.path,
+      handler: overrides.handler ?? this.handler,
+      middlewareStack: overrides.middlewareStack ?? this.middlewareStack,
+      constraints: overrides.constraints ?? this.constraints,
+    };
+    const routeName = overrides.routeName ?? this.routeName;
+    if (routeName !== undefined) {
+      newConfig.routeName = routeName;
+    }
+    const domainPattern = overrides.domainPattern ?? this.domainPattern;
+    if (domainPattern !== undefined) {
+      newConfig.domainPattern = domainPattern;
+    }
+    const redirect = overrides.redirect ?? this.redirect;
+    if (redirect !== undefined) {
+      newConfig.redirect = redirect;
+    }
+    const isFallback = overrides.isFallback ?? this.isFallback;
+    if (isFallback !== undefined) {
+      newConfig.isFallback = isFallback;
+    }
+    const viewResponse = overrides.viewResponse ?? this.viewResponse;
+    if (viewResponse !== undefined) {
+      newConfig.viewResponse = viewResponse;
+    }
+    // Type assertion needed: Route constructor returns Route<never> but we need Route<N>
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- Route constructor defaults to Route<never>, assertion needed for generic type parameter
+    return new Route(newConfig) as Route<N>;
+  }
+
+  /** Assign a name to this route */
+  name<const N extends string>(name: N): Route<N> {
+    return this.#copy<N>({ routeName: name });
+  }
+
+  /** Add middleware to this route */
+  middleware(middleware: MiddlewareReference | MiddlewareReference[]): Route<Name> {
+    return this.#copy({
+      middlewareStack: [...this.middlewareStack, ...arrayWrap(middleware)],
+    });
+  }
+
+  /** Apply regex constraint to a parameter */
+  where(param: string, pattern: string | RegExp): Route<Name> {
+    const regex = typeof pattern === "string" ? new RegExp(pattern) : pattern;
+    return this.#copy({
+      constraints: [...this.constraints, { param, pattern: regex }],
+    });
+  }
+
+  /** Constraint: parameter must be numeric */
+  whereNumber(param: string): Route<Name> {
+    return this.where(param, /^\d+$/);
+  }
+
+  /** Constraint: parameter must be alphabetic */
+  whereAlpha(param: string): Route<Name> {
+    return this.where(param, /^[a-zA-Z]+$/);
+  }
+
+  /** Constraint: parameter must be alphanumeric */
+  whereAlphaNumeric(param: string): Route<Name> {
+    return this.where(param, /^[a-zA-Z0-9]+$/);
+  }
+
+  /** Constraint: parameter must be UUID v4 */
+  whereUuid(param: string): Route<Name> {
+    return this.where(
+      param,
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+  }
+
+  /** Constraint: parameter must be ULID */
+  whereUlid(param: string): Route<Name> {
+    return this.where(param, /^[0-9A-HJKMNP-TV-Z]{26}$/i);
+  }
+
+  /** Constraint: parameter must be one of the given values */
+  whereIn(param: string, values: readonly string[]): Route<Name> {
+    const pattern = new RegExp(`^(${values.join("|")})$`);
+    return this.where(param, pattern);
+  }
+
+  /** Restrict route to specific domain/subdomain pattern */
+  domain(pattern: string): Route<Name> {
+    return this.#copy({ domainPattern: pattern });
+  }
+
+  /** Apply group options to this route */
+  applyGroupOptions(options: RouteGroupOptions<string>): Route<string> {
+    let result: Route<string> = this as unknown as Route<string>;
+
+    // Apply prefix
+    if (options.prefix) {
+      const prefix = options.prefix.startsWith("/") ? options.prefix : `/${options.prefix}`;
+      const path = this.path === "/" ? prefix : `${prefix}${this.path}`;
+      result = result.#copy({ path });
+    }
+
+    // Apply name prefix
+    if (options.namePrefix && result.routeName) {
+      result = result.#copy({ routeName: `${options.namePrefix}${result.routeName}` });
+    }
+
+    // Apply middleware
+    if (options.middleware) {
+      result = result.middleware(options.middleware);
+    }
+
+    // Apply domain
+    if (options.domain) {
+      result = result.domain(options.domain);
+    }
+
+    return result;
+  }
 }
 
 /**
  * Options for route groups
  */
-export interface RouteGroupOptions {
+export interface RouteGroupOptions<NamePrefix extends string = ""> {
   /** URI prefix for all routes in group */
   prefix?: string;
 
   /** Name prefix for all routes in group (e.g., "admin.") */
-  namePrefix?: string;
+  namePrefix?: NamePrefix;
 
   /** Middleware applied to all routes in group */
   middleware?: MiddlewareReference | MiddlewareReference[];
@@ -92,210 +216,40 @@ export interface RouteOptions<Name extends string = never> {
   domain?: string;
 }
 
-// ============================================================================
-// Internal Route Definition
-// ============================================================================
-
-/**
- * Internal representation of a route with all its configuration
- */
-class RouteDefinition {
-  constructor(
-    public methods: readonly string[],
-    public path: string,
-    public handler: RouteHandler | ((request: Request) => Response | Promise<Response>),
-    public routeName: string | undefined = undefined,
-    public middlewareStack: MiddlewareReference[] = [],
-    public constraints: ParameterConstraint[] = [],
-    public domainPattern: string | undefined = undefined,
-    public isRedirect = false,
-    public redirectTo: string | undefined = undefined,
-    public redirectStatus: number | undefined = undefined,
-    public isFallback = false,
-    public viewResponse: Response | undefined = undefined,
-  ) {}
-
-  /**
-   * Create a copy of this route definition with modified properties
-   */
-  #copy(overrides: Partial<RouteDefinition>): RouteDefinition {
-    return new RouteDefinition(
-      overrides.methods ?? this.methods,
-      overrides.path ?? this.path,
-      overrides.handler ?? this.handler,
-      overrides.routeName ?? this.routeName,
-      overrides.middlewareStack ?? this.middlewareStack,
-      overrides.constraints ?? this.constraints,
-      overrides.domainPattern ?? this.domainPattern,
-      overrides.isRedirect ?? this.isRedirect,
-      overrides.redirectTo ?? this.redirectTo,
-      overrides.redirectStatus ?? this.redirectStatus,
-      overrides.isFallback ?? this.isFallback,
-      overrides.viewResponse ?? this.viewResponse,
-    );
-  }
-
-  withName(name: string): RouteDefinition {
-    return this.#copy({ routeName: name });
-  }
-
-  withMiddleware(middleware: MiddlewareReference | MiddlewareReference[]): RouteDefinition {
-    return this.#copy({
-      middlewareStack: [...this.middlewareStack, ...arrayWrap(middleware)],
-    });
-  }
-
-  withConstraint(param: string, pattern: RegExp): RouteDefinition {
-    return this.#copy({
-      constraints: [...this.constraints, { param, pattern }],
-    });
-  }
-
-  withDomain(pattern: string): RouteDefinition {
-    return this.#copy({ domainPattern: pattern });
-  }
-
-  /**
-   * Apply group options to this route definition
-   */
-  applyGroupOptions(options: RouteGroupOptions): RouteDefinition {
-    let result = this as RouteDefinition;
-
-    // Apply prefix
-    if (options.prefix) {
-      const prefix = options.prefix.startsWith("/") ? options.prefix : `/${options.prefix}`;
-      const path = this.path === "/" ? prefix : `${prefix}${this.path}`;
-      result = result.#copy({ path });
-    }
-
-    // Apply name prefix
-    if (options.namePrefix && result.routeName) {
-      result = result.withName(`${options.namePrefix}${result.routeName}`);
-    }
-
-    // Apply middleware
-    if (options.middleware) {
-      result = result.withMiddleware(options.middleware);
-    }
-
-    // Apply domain
-    if (options.domain) {
-      result = result.withDomain(options.domain);
-    }
-
-    return result;
-  }
-}
-
-// ============================================================================
-// Public Route Implementation
-// ============================================================================
-
-/**
- * Public-facing immutable Route object
- */
-class RouteImpl<Name extends string = never> implements Route<Name> {
-  readonly __name!: Name;
-
-  constructor(private definition: RouteDefinition) {}
-
-  name<const N extends string>(name: N): Route<N> {
-    return new RouteImpl(this.definition.withName(name)) as Route<N>;
-  }
-
-  middleware(middleware: MiddlewareReference | MiddlewareReference[]): Route<Name> {
-    return new RouteImpl(this.definition.withMiddleware(middleware));
-  }
-
-  where(param: string, pattern: string | RegExp): Route<Name> {
-    const regex = typeof pattern === "string" ? new RegExp(pattern) : pattern;
-    return new RouteImpl(this.definition.withConstraint(param, regex));
-  }
-
-  whereNumber(param: string): Route<Name> {
-    return this.where(param, /^\d+$/);
-  }
-
-  whereAlpha(param: string): Route<Name> {
-    return this.where(param, /^[a-zA-Z]+$/);
-  }
-
-  whereAlphaNumeric(param: string): Route<Name> {
-    return this.where(param, /^[a-zA-Z0-9]+$/);
-  }
-
-  whereUuid(param: string): Route<Name> {
-    return this.where(
-      param,
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-    );
-  }
-
-  whereUlid(param: string): Route<Name> {
-    return this.where(param, /^[0-9A-HJKMNP-TV-Z]{26}$/i);
-  }
-
-  whereIn(param: string, values: readonly string[]): Route<Name> {
-    const pattern = new RegExp(`^(${values.join("|")})$`);
-    return this.where(param, pattern);
-  }
-
-  domain(pattern: string): Route<Name> {
-    return new RouteImpl(this.definition.withDomain(pattern));
-  }
-
-  /** Internal method to get the route definition */
-  _getDefinition(): RouteDefinition {
-    return this.definition;
-  }
-}
-
-// ============================================================================
-// Route Group Implementation
-// ============================================================================
-
 /**
  * Collection of routes with aggregated names
  */
-class RouteGroupImpl<Names extends string = never> implements RouteGroup<Names> {
+export class RouteGroup<Names extends string = never> {
   readonly __names!: Names;
 
   constructor(
-    private routes: (RouteImpl<string> | RouteGroupImpl<string>)[],
-    private options: RouteGroupOptions = {},
+    private routes: readonly (Route<string> | RouteGroup<string>)[],
+    private options: RouteGroupOptions<string> = {},
   ) {}
 
-  /** Internal method to get all route definitions */
-  _getDefinitions(): RouteDefinition[] {
-    const definitions: RouteDefinition[] = [];
+  /** Internal method to get all routes */
+  _getRoutes(): Route<string>[] {
+    const allRoutes: Route<string>[] = [];
 
     for (const route of this.routes) {
-      if (route instanceof RouteImpl) {
-        const def = route._getDefinition();
-        definitions.push(def.applyGroupOptions(this.options));
-      } else if (route instanceof RouteGroupImpl) {
-        // Recursively get definitions from nested groups and apply current group options
-        const nestedDefs = route._getDefinitions();
-        for (const nestedDef of nestedDefs) {
-          definitions.push(nestedDef.applyGroupOptions(this.options));
+      if (route instanceof Route) {
+        allRoutes.push(route.applyGroupOptions(this.options));
+      } else if (route instanceof RouteGroup) {
+        // Recursively get routes from nested groups and apply current group options
+        const nestedRoutes = route._getRoutes();
+        for (const nestedRoute of nestedRoutes) {
+          allRoutes.push(nestedRoute.applyGroupOptions(this.options));
         }
       }
     }
 
-    return definitions;
+    return allRoutes;
   }
 }
 
 // ============================================================================
 // Router Implementation
 // ============================================================================
-
-/**
- * Data stored with each route in rou3
- */
-interface RouteData {
-  definition: RouteDefinition;
-}
 
 /**
  * Global parameter constraints
@@ -306,38 +260,44 @@ const globalConstraints = new Map<string, RegExp>();
  * RouterV2 - New routing implementation
  */
 export class RouterV2 {
-  private router: RouterContext<RouteData>;
-  private fallbackRoute: RouteDefinition | undefined;
+  private router: RouterContext<{ route: Route<string> }>;
+  private fallbackRoute: Route<string> | undefined;
+  private namedRoutes = new Map<string, Route<string>>();
 
   constructor(private container: Container) {
-    this.router = createRouter<RouteData>();
+    this.router = createRouter<{ route: Route<string> }>();
   }
 
   /**
    * Register routes with the router
    */
   register(routes: (Route<string> | RouteGroup<string>)[]): void {
-    for (const route of routes) {
-      if (route instanceof RouteImpl) {
-        this.#registerDefinition(route._getDefinition());
-      } else if (route instanceof RouteGroupImpl) {
-        for (const def of route._getDefinitions()) {
-          this.#registerDefinition(def);
+    for (const item of routes) {
+      if (item instanceof Route) {
+        this.#registerRoute(item);
+      } else if (item instanceof RouteGroup) {
+        for (const route of item._getRoutes()) {
+          this.#registerRoute(route);
         }
       }
     }
   }
 
-  #registerDefinition(def: RouteDefinition): void {
+  #registerRoute(route: Route<string>): void {
     // Handle fallback routes separately
-    if (def.isFallback) {
-      this.fallbackRoute = def;
+    if (route.isFallback) {
+      this.fallbackRoute = route;
       return;
     }
 
+    // Track named routes for URL generation
+    if (route.routeName) {
+      this.namedRoutes.set(route.routeName, route);
+    }
+
     // Register route for each HTTP method
-    for (const method of def.methods) {
-      addRoute(this.router, method, def.path, { definition: def });
+    for (const method of route.methods) {
+      addRoute(this.router, method, route.path, { route });
     }
   }
 
@@ -359,7 +319,7 @@ export class RouterV2 {
       return new Response("Not Found", { status: 404 });
     }
 
-    return this.#executeRoute(match.definition, request, match.params);
+    return this.#executeRoute(match.route, request, match.params);
   }
 
   #match(method: string, path: string, hostname: string) {
@@ -369,22 +329,22 @@ export class RouterV2 {
     }
 
     const data = result.data;
-    const def = data.definition;
+    const route = data.route;
 
     // Check domain constraint
-    if (def.domainPattern && !this.#matchDomain(hostname, def.domainPattern)) {
+    if (route.domainPattern && !this.#matchDomain(hostname, route.domainPattern)) {
       return undefined;
     }
 
     const params = result.params || {};
 
     // Check parameter constraints
-    if (!this.#checkConstraints(def, params)) {
+    if (!this.#checkConstraints(route, params)) {
       return undefined;
     }
 
     return {
-      definition: def,
+      route,
       params,
     };
   }
@@ -396,9 +356,9 @@ export class RouterV2 {
     return regex.test(hostname);
   }
 
-  #checkConstraints(def: RouteDefinition, params: Record<string, string>): boolean {
+  #checkConstraints(route: Route<string>, params: Record<string, string>): boolean {
     // Check route-specific constraints
-    for (const constraint of def.constraints) {
+    for (const constraint of route.constraints) {
       const value = params[constraint.param];
       if (value && !constraint.pattern.test(value)) {
         return false;
@@ -417,27 +377,27 @@ export class RouterV2 {
   }
 
   async #executeRoute(
-    def: RouteDefinition,
+    route: Route<string>,
     request: Request,
     params: Record<string, string>,
   ): Promise<Response> {
     // Handle redirects
-    if (def.isRedirect && def.redirectTo) {
+    if (route.redirect) {
       return new Response(null, {
-        status: def.redirectStatus || 302,
-        headers: { Location: def.redirectTo },
+        status: route.redirect.status,
+        headers: { Location: route.redirect.to },
       });
     }
 
     // Handle view routes
-    if (def.viewResponse) {
-      return def.viewResponse;
+    if (route.viewResponse) {
+      return route.viewResponse;
     }
 
     // Execute middleware pipeline
     const finalHandler = async (req: Request): Promise<Response> => {
       let handler: RouteHandler | ((request: Request) => Response | Promise<Response>) =
-        def.handler;
+        route.handler;
 
       // Instantiate controller if it's a class
       if (typeof handler === "function" && "prototype" in handler) {
@@ -453,7 +413,7 @@ export class RouterV2 {
       return (handler as Controller).handle(req, params);
     };
 
-    return this.#executeMiddlewarePipeline(def.middlewareStack, request, finalHandler);
+    return this.#executeMiddlewarePipeline(route.middlewareStack, request, finalHandler);
   }
 
   async #executeMiddlewarePipeline(
@@ -479,6 +439,29 @@ export class RouterV2 {
 
     return next(request);
   }
+
+  /**
+   * Generate a URL from a named route
+   * @param name The route name
+   * @param params Optional parameters to fill in route placeholders
+   * @returns The generated URL path
+   * @throws Error if the route name is not found
+   */
+  routeUrl(name: string, params: Record<string, string | number> = {}): string {
+    const route = this.namedRoutes.get(name);
+    if (!route) {
+      throw new Error(`Route "${name}" not found`);
+    }
+
+    let path = route.path;
+
+    // Replace parameter placeholders with provided values
+    for (const [key, value] of Object.entries(params)) {
+      path = path.replace(`:${key}`, String(value));
+    }
+
+    return path;
+  }
 }
 
 // ============================================================================
@@ -490,6 +473,13 @@ export class RouterV2 {
  */
 type ExtractNames<Routes extends readonly (Route<string> | RouteGroup<string>)[]> =
   Routes[number] extends Route<infer Name> | RouteGroup<infer Name> ? Name : never;
+
+/**
+ * Helper type to prepend a prefix to all names in a union
+ */
+type PrependPrefix<Names extends string, Prefix extends string> = Prefix extends ""
+  ? Names
+  : `${Prefix}${Names}`;
 
 // --- HTTP Method Routes ---
 
@@ -503,8 +493,11 @@ function createRoute<const Name extends string = never>(
   options?: RouteOptions<Name>,
 ): Route<Name> {
   const methods = typeof method === "string" ? [method] : method;
-  const def = new RouteDefinition(methods, path, handler);
-  let route: Route<Name> = new RouteImpl<Name>(def);
+  let route = new Route({
+    methods,
+    path,
+    handler,
+  });
   if (options?.name) {
     route = route.name(options.name);
   }
@@ -514,7 +507,7 @@ function createRoute<const Name extends string = never>(
   if (options?.domain) {
     route = route.domain(options.domain);
   }
-  return route;
+  return route as Route<Name>;
 }
 
 /**
@@ -573,19 +566,12 @@ export function any<const Name extends string = never>(
 const placeholderHandler: (request: Request) => Response = () => new Response();
 
 export function redirect(from: string, to: string, status = 302): Route<never> {
-  const def = new RouteDefinition(
-    ["GET"],
-    from,
-    placeholderHandler,
-    undefined,
-    [],
-    [],
-    undefined,
-    true,
-    to,
-    status,
-  );
-  return new RouteImpl(def);
+  return new Route({
+    methods: ["GET"],
+    path: from,
+    handler: placeholderHandler,
+    redirect: { to, status },
+  });
 }
 
 export function permanentRedirect(from: string, to: string): Route<never> {
@@ -593,20 +579,12 @@ export function permanentRedirect(from: string, to: string): Route<never> {
 }
 
 export function fallback(handler: RouteHandler): Route<never> {
-  const def = new RouteDefinition(
-    ["GET"],
-    "/*",
+  return new Route({
+    methods: ["GET"],
+    path: "/*",
     handler,
-    undefined,
-    [],
-    [],
-    undefined,
-    false,
-    undefined,
-    undefined,
-    true,
-  );
-  return new RouteImpl(def);
+    isFallback: true,
+  });
 }
 
 export function view(path: string, content: string | Response): Route<never> {
@@ -615,31 +593,25 @@ export function view(path: string, content: string | Response): Route<never> {
       ? new Response(content, { headers: { "Content-Type": "text/html" } })
       : content;
 
-  const def = new RouteDefinition(
-    ["GET"],
+  return new Route({
+    methods: ["GET"],
     path,
-    placeholderHandler,
-    undefined,
-    [],
-    [],
-    undefined,
-    false,
-    undefined,
-    undefined,
-    false,
-    response,
-  );
-  return new RouteImpl(def);
+    handler: placeholderHandler,
+    viewResponse: response,
+  });
 }
 
 // --- Route Grouping ---
 
-export function group<const Routes extends readonly (Route<string> | RouteGroup<string>)[]>(
-  options: RouteGroupOptions,
+export function group<
+  const Routes extends readonly (Route<string> | RouteGroup<string>)[],
+  const NamePrefix extends string = "",
+>(
+  options: RouteGroupOptions<NamePrefix>,
   routesOrCallback: Routes | (() => Routes),
-): RouteGroup<ExtractNames<Routes>> {
+): RouteGroup<PrependPrefix<ExtractNames<Routes>, NamePrefix>> {
   const routes = typeof routesOrCallback === "function" ? routesOrCallback() : routesOrCallback;
-  return new RouteGroupImpl(routes as (RouteImpl<string> | RouteGroupImpl<string>)[], options);
+  return new RouteGroup(routes, options);
 }
 
 // --- Global Configuration ---
