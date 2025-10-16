@@ -18,7 +18,6 @@ import {
   options,
   patch,
   pattern,
-  permanentRedirect,
   post,
   put,
   redirect,
@@ -1301,36 +1300,48 @@ describe("domain routing", () => {
 // ============================================================================
 
 describe("special routes", () => {
-  test("redirect route returns 302", async () => {
+  test("redirect returns 303 by default (changes to GET)", async () => {
     const { router } = createRouter();
 
-    const route = redirect("/old", "/new");
+    const route = any("/old", redirect("/new"));
     router.register(route);
 
     const response = await router.handle(new Request("http://example.com/old"));
-    expect(response.status).toBe(302);
+    expect(response.status).toBe(303);
     expect(response.headers.get("Location")).toBe("/new");
   });
 
-  test("redirect with custom status", async () => {
+  test("redirect with preserveHttpMethod returns 307", async () => {
     const { router } = createRouter();
 
-    const route = redirect("/old", "/new", 307);
+    const route = post("/old-api", redirect("/new-api", { preserveHttpMethod: true }));
     router.register(route);
 
-    const response = await router.handle(new Request("http://example.com/old"));
+    const response = await router.handle(new Request("http://example.com/old-api", { method: "POST" }));
     expect(response.status).toBe(307);
+    expect(response.headers.get("Location")).toBe("/new-api");
   });
 
-  test("permanentRedirect returns 301", async () => {
+  test("redirect with permanent returns 303 (permanent but changes to GET)", async () => {
     const { router } = createRouter();
 
-    const route = permanentRedirect("/old", "/new");
+    const route = get("/moved", redirect("/here", { permanent: true }));
     router.register(route);
 
-    const response = await router.handle(new Request("http://example.com/old"));
-    expect(response.status).toBe(301);
-    expect(response.headers.get("Location")).toBe("/new");
+    const response = await router.handle(new Request("http://example.com/moved"));
+    expect(response.status).toBe(303);
+    expect(response.headers.get("Location")).toBe("/here");
+  });
+
+  test("redirect with permanent and preserveHttpMethod returns 308", async () => {
+    const { router } = createRouter();
+
+    const route = any("/api/v1", redirect("/api/v2", { permanent: true, preserveHttpMethod: true }));
+    router.register(route);
+
+    const response = await router.handle(new Request("http://example.com/api/v1"));
+    expect(response.status).toBe(308);
+    expect(response.headers.get("Location")).toBe("/api/v2");
   });
 
   test("catch-all wildcard route captures unmatched requests", async () => {

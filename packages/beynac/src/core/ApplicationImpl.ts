@@ -5,20 +5,22 @@ import { Application } from "../contracts/Application";
 import { Configuration } from "../contracts/Configuration";
 import { Dispatcher as DispatcherKey, type Dispatcher } from "../contracts/Dispatcher";
 import { RequestContext } from "../contracts/RequestContext";
-import { Router } from "../contracts/Router";
 import { DevModeAutoRefreshMiddleware } from "../development/DevModeAutoRefreshMiddleware";
 import { DevModeWatchService } from "../development/DevModeWatchService";
 import { BeynacError } from "../error";
 import { CookiesImpl } from "./CookiesImpl";
 import { HeadersImpl } from "./HeadersImpl";
-import { RouterImpl } from "./RouterImpl";
+import { group, RouteRegistry, RouterV2, type UrlFunction } from "./RouterV2";
 
-export class ApplicationImpl implements Application {
+export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
+  implements Application<RouteParams>
+{
   container: Container;
   #bootstrapped = false;
-  #config: Configuration;
+  #config: Configuration<RouteParams>;
+  #routeRegistry: RouteRegistry<RouteParams> | null = null;
 
-  constructor(config: Configuration = {}) {
+  constructor(config: Configuration<RouteParams> = {}) {
     this.container = new ContainerImpl();
     this.#config = config;
   }
@@ -26,16 +28,39 @@ export class ApplicationImpl implements Application {
   bootstrap(): void {
     if (this.#bootstrapped) return;
     this.#bootstrapped = true;
-    this.container.singleton(Router, RouterImpl);
+
+    // Bind core services
     this.container.scoped(Headers, HeadersImpl);
     this.container.scoped(Cookies, CookiesImpl);
     this.container.instance(Configuration, this.#config);
     this.container.instance(Application, this);
+
+    // Create and bind RouterV2
+    this.container.bind(RouterV2, {
+      factory: () => new RouterV2(this.container),
+      lifecycle: "singleton",
+    });
+
+    // Register routes with dev mode middleware if needed
     if (this.#config.routes) {
-      this.#config.routes(this.container.get(Router));
+      const router = this.container.get(RouterV2);
+
+      // Wrap routes with dev mode middleware if enabled
+      if (this.#config.development && !this.#config.devMode?.suppressAutoRefresh) {
+        const wrappedRoutes = group({ middleware: DevModeAutoRefreshMiddleware }, [
+          this.#config.routes,
+        ]);
+        router.register(wrappedRoutes);
+      } else {
+        router.register(this.#config.routes);
+      }
+
+      // Create route registry for URL generation
+      this.#routeRegistry = new RouteRegistry(this.#config.routes);
     }
+
+    // Start dev mode watch service
     if (this.#config.development && !this.#config.devMode?.suppressAutoRefresh) {
-      this.container.singleton(DevModeAutoRefreshMiddleware);
       this.container.singleton(DevModeWatchService);
       this.container.get(DevModeWatchService).start();
     }
@@ -45,9 +70,16 @@ export class ApplicationImpl implements Application {
     return this.container.get(DispatcherKey);
   }
 
+  url: UrlFunction<RouteParams> = (name, ...args) => {
+    if (!this.#routeRegistry) {
+      throw new BeynacError("No routes configured. Cannot generate URLs.");
+    }
+    return this.#routeRegistry.url(name, ...args);
+  };
+
   async handleRequest(request: Request, context: RequestContext): Promise<Response> {
     return this.withRequestContext(context, () => {
-      const router = this.container.get(Router);
+      const router = this.container.get(RouterV2);
       return router.handle(request);
     });
   }

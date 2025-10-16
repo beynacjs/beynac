@@ -1,13 +1,14 @@
 import type { Container } from "../container";
 import type { TypeToken } from "../container/container-key";
 import { createTypeToken } from "../container/container-key";
+import type { UrlFunction } from "../core/RouterV2";
 import type { Dispatcher } from "./Dispatcher";
 import { RequestContext } from "./RequestContext";
 
 /**
  * Application contract for handling HTTP requests
  */
-export interface Application {
+export interface Application<RouteParams extends Record<string, string> = {}> {
   /**
    * Public container for dependency injection
    */
@@ -32,6 +33,11 @@ export interface Application {
    * Accessor for the event dispatcher
    */
   readonly events: Dispatcher;
+
+  /**
+   * Generate a URL for a named route with type-safe parameters
+   */
+  url: UrlFunction<RouteParams>;
 }
 
 export const Application: TypeToken<Application> = createTypeToken<Application>("Application");

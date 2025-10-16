@@ -39,7 +39,6 @@ export interface RouteDefinition {
   withoutMiddleware: MiddlewareReference[];
   constraints: ParameterConstraint[];
   domainPattern?: string | undefined;
-  redirect?: { to: string; status: number } | undefined;
 }
 
 /**
@@ -495,14 +494,6 @@ export class RouterV2 {
     request: Request,
     params: Record<string, string>,
   ): Promise<Response> {
-    // Handle redirects
-    if (route.redirect) {
-      return new Response(null, {
-        status: route.redirect.status,
-        headers: { Location: route.redirect.to },
-      });
-    }
-
     // Execute middleware pipeline
     const finalHandler = async (req: Request): Promise<Response> => {
       let handler: RouteHandler = route.handler;
@@ -688,34 +679,59 @@ export function any<
   return match(methods, path, handler, options);
 }
 
-// --- Special Routes ---
+// --- Redirect Helper ---
 
-export function redirect<const Path extends string>(
-  from: Path,
+/**
+ * Create a redirect controller
+ *
+ * @param to - The URL to redirect to
+ * @param options - Redirect options
+ * @param options.permanent - If true, uses permanent redirect status (default: false)
+ * @param options.preserveHttpMethod - If true, preserves HTTP method (default: false)
+ *
+ * Status codes used:
+ * - 303 See Other: Temporary, changes to GET (default)
+ * - 307 Temporary Redirect: Temporary, preserves method
+ * - 308 Permanent Redirect: Permanent, preserves method
+ *
+ * @example
+ * // Basic redirect - changes to GET
+ * any('/old', redirect('/new'))
+ *
+ * // Preserve HTTP method
+ * post('/old-api', redirect('/new-api', { preserveHttpMethod: true }))
+ *
+ * // Permanent redirect
+ * get('/moved', redirect('/here', { permanent: true }))
+ *
+ * // Permanent + preserve method
+ * any('/api/v1', redirect('/api/v2', { permanent: true, preserveHttpMethod: true }))
+ */
+export function redirect(
   to: string,
-  status = 302,
-): Routes<{}> {
-  // Translate user-facing syntax to rou3 internal syntax
-  const translatedPath = translateRouteSyntax(from);
+  options?: { permanent?: boolean; preserveHttpMethod?: boolean },
+): Controller {
+  const status = getRedirectStatus(options?.permanent ?? false, options?.preserveHttpMethod ?? false);
 
-  const route: RouteDefinition = {
-    methods: ["GET"],
-    path: translatedPath,
-    handler: {
-      handle() {
-        return new Response(null, { status, headers: { Location: to } });
-      },
+  return {
+    handle() {
+      return new Response(null, {
+        status,
+        headers: { Location: to },
+      });
     },
-    middleware: [],
-    withoutMiddleware: [],
-    constraints: [],
-    redirect: { to, status },
   };
-  return createRoutes([route]);
 }
 
-export function permanentRedirect<const Path extends string>(from: Path, to: string): Routes<{}> {
-  return redirect(from, to, 301);
+/**
+ * Determine the appropriate HTTP redirect status code
+ */
+function getRedirectStatus(permanent: boolean, preserveMethod: boolean): number {
+  if (permanent && preserveMethod) return 308; // Permanent Redirect (preserves method)
+  if (!permanent && preserveMethod) return 307; // Temporary Redirect (preserves method)
+  // For both permanent and temporary without preserveMethod, use 303
+  // 303 explicitly says "change to GET" which is what we want
+  return 303; // See Other (changes to GET)
 }
 
 // --- Route Grouping ---

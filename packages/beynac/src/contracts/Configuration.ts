@@ -1,8 +1,8 @@
-import { Router } from ".";
 import type { TypeToken } from "../container/container-key";
 import { createTypeToken } from "../container/container-key";
+import type { Routes } from "../core/RouterV2";
 
-export interface Configuration {
+export interface Configuration<RouteParams extends Record<string, string> = {}> {
   /**
    * Enable development mode.
    *
@@ -17,9 +17,9 @@ export interface Configuration {
   development?: boolean | undefined;
 
   /**
-   * A function that registers routes
+   * Route definitions for the application
    */
-  routes?: (route: Router) => void;
+  routes?: Routes<RouteParams>;
 
   /**
    * Development mode options
