@@ -87,23 +87,80 @@ export interface RouteGroupOptions<NamePrefix extends string = ""> extends BaseR
 }
 
 // ============================================================================
+// Syntax Translation
+// ============================================================================
+
+/**
+ * Validate and translate user-facing route syntax to rou3's internal syntax
+ * User syntax: {param} and {...path}
+ * rou3 syntax: :param and **:path
+ */
+function translateRouteSyntax(path: string): string {
+  // Validate: reject asterisks (could leak through to rou3)
+  if (path.includes("*")) {
+    throw new Error(
+      `Route path "${path}" contains asterisk characters. Use {...param} for wildcard routes instead of ** or *.`,
+    );
+  }
+
+  // Validate: reject colons (reserved for rou3 internal use)
+  if (path.includes(":")) {
+    throw new Error(`Route path "${path}" contains colon characters. Use {param} syntax instead of :param.`);
+  }
+
+  // Validate: detect wrong wildcard order {param...}
+  if (/\{[^}]+\.\.\.\}/.test(path)) {
+    throw new Error(`Route path "${path}" has incorrect wildcard syntax. Use {...param} not {param...}.`);
+  }
+
+  // Validate: parameters must be whole path segments
+  // Check for text before opening brace (except at start or after /, .)
+  if (/[^\/\.]\{/.test(path)) {
+    throw new Error(
+      `Route path "${path}" has invalid parameter syntax. Parameters must capture whole path segments, not partial segments. Use /{param}/ not /text{param}/.`,
+    );
+  }
+
+  // Check for text after closing brace (except at end or before /, .)
+  if (/\}[^\/\.]/.test(path)) {
+    throw new Error(
+      `Route path "${path}" has invalid parameter syntax. Parameters must capture whole path segments, not partial segments. Use /{param}/ not /{param}text/.`,
+    );
+  }
+
+  // Translate {...param} to **:param (wildcard)
+  path = path.replace(/\{\.\.\.([a-zA-Z_][a-zA-Z0-9_]*)\}/g, "**:$1");
+
+  // Translate {param} to :param (regular parameter)
+  path = path.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g, ":$1");
+
+  return path;
+}
+
+// ============================================================================
 // Type Helper Utilities
 // ============================================================================
 
 /**
  * Extract parameter names from a path pattern
- * "/users/:id/:name" -> "id" | "name"
+ * "/users/{id}/{name}" -> "id" | "name"
+ * "/files/{...path}" -> "path"
+ * "/users/{id}/files/{...path}" -> "id" | "path"
  * "/users" -> never
  */
-type ExtractRouteParams<T extends string> = T extends `${infer _Start}:${infer Param}/${infer Rest}`
-  ? Param | ExtractRouteParams<`/${Rest}`>
-  : T extends `${infer _Start}:${infer Param}`
-    ? Param
+type ExtractRouteParams<T extends string> =
+  // First try to match regular {param} at the beginning
+  T extends `${infer Before}{${infer Param}}${infer After}`
+    ? // Check if this is actually a wildcard {...param}
+      Param extends `...${infer WildcardParam}`
+      ? WildcardParam | ExtractRouteParams<`${Before}${After}`>
+      : // Regular param
+        Param | ExtractRouteParams<`${Before}${After}`>
     : never;
 
 /**
  * Extract parameters from both domain and path, returning union of both
- * Domain: ":account.example.com", Path: "/users/:id" -> "account" | "id"
+ * Domain: "{account}.example.com", Path: "/users/{id}" -> "account" | "id"
  */
 type ExtractDomainAndPathParams<
   Domain extends string | undefined,
@@ -243,6 +300,7 @@ export class RouteRegistry<Params extends Record<string, string> = {}> {
         let path = route.path;
 
         // Replace parameters in both domain and path
+        // Note: paths are stored internally in rou3 format (:param, **:param)
         for (const [key, value] of Object.entries(params)) {
           const stringValue = String(value);
           // Replace in domain
@@ -257,6 +315,7 @@ export class RouteRegistry<Params extends Record<string, string> = {}> {
       }
 
       // No domain - return path only
+      // Note: paths are stored internally in rou3 format (:param, **:param)
       let path = route.path;
       for (const [key, value] of Object.entries(params)) {
         // Replace wildcard parameters (**:key) and regular parameters (:key)
@@ -546,6 +605,10 @@ function createRoute<
   : Routes<{ [K in Name]: ExtractDomainAndPathParams<Domain, Path> }> {
   const methods = typeof method === "string" ? [method] : method;
 
+  // Translate user-facing syntax to rou3 internal syntax
+  const translatedPath = translateRouteSyntax(path);
+  const translatedDomain = options?.domain ? translateRouteSyntax(options.domain) : undefined;
+
   // Convert where constraints to ParameterConstraint[]
   const constraints: ParameterConstraint[] = [];
   if (options?.where) {
@@ -556,13 +619,13 @@ function createRoute<
 
   const route: RouteDefinition = {
     methods,
-    path,
+    path: translatedPath,
     handler,
     routeName: options?.name,
     middleware: options?.middleware ? arrayWrap(options.middleware) : [],
     withoutMiddleware: options?.withoutMiddleware ? arrayWrap(options.withoutMiddleware) : [],
     constraints,
-    domainPattern: options?.domain,
+    domainPattern: translatedDomain,
   };
 
   return createRoutes([route]) as any;
@@ -634,9 +697,12 @@ export function redirect<const Path extends string>(
   to: string,
   status = 302,
 ): Routes<{}> {
+  // Translate user-facing syntax to rou3 internal syntax
+  const translatedPath = translateRouteSyntax(from);
+
   const route: RouteDefinition = {
     methods: ["GET"],
-    path: from,
+    path: translatedPath,
     handler: {
       handle() {
         return new Response(null, { status, headers: { Location: to } });
@@ -693,6 +759,10 @@ export function group<
 > {
   const childrenArray = typeof children === "function" ? children() : children;
 
+  // Translate prefix if present
+  const translatedPrefix = options.prefix ? translateRouteSyntax(options.prefix) : undefined;
+  const translatedDomain = options.domain ? translateRouteSyntax(options.domain) : undefined;
+
   // Convert group options constraints to ParameterConstraint[]
   const groupConstraints: ParameterConstraint[] = [];
   if (options.where) {
@@ -705,7 +775,7 @@ export function group<
   const groupWithout = options.withoutMiddleware ? arrayWrap(options.withoutMiddleware) : [];
 
   // Validate that wildcard prefixes don't have non-empty child paths
-  if (options.prefix && /\*\*/.test(options.prefix)) {
+  if (translatedPrefix && /\*\*/.test(translatedPrefix)) {
     for (const childRoutes of childrenArray) {
       for (const route of childRoutes.routes) {
         if (route.path !== "" && route.path !== "/") {
@@ -724,10 +794,10 @@ export function group<
   for (const childRoutes of childrenArray) {
     for (const route of childRoutes.routes) {
       // Check for domain conflicts
-      if (options.domain && route.domainPattern && options.domain !== route.domainPattern) {
+      if (translatedDomain && route.domainPattern && translatedDomain !== route.domainPattern) {
         throw new Error(
           `Domain conflict: route "${route.routeName || route.path}" specifies domain "${route.domainPattern}" ` +
-            `but is inside a group with domain "${options.domain}". Nested routes cannot override parent domain.`,
+            `but is inside a group with domain "${translatedDomain}". Nested routes cannot override parent domain.`,
         );
       }
 
@@ -756,12 +826,12 @@ export function group<
 
       flatRoutes.push({
         ...route,
-        path: applyPathPrefix(options.prefix, route.path),
+        path: applyPathPrefix(translatedPrefix, route.path),
         routeName: applyNamePrefix(options.namePrefix, route.routeName),
         middleware: finalMiddleware,
         withoutMiddleware: [...groupWithout, ...routeWithout],
         constraints: [...groupConstraints, ...route.constraints],
-        domainPattern: options.domain ?? route.domainPattern,
+        domainPattern: translatedDomain ?? route.domainPattern,
       });
     }
   }

@@ -140,7 +140,7 @@ describe(RouterV2, () => {
   test("handles route parameters", async () => {
     const { router } = createRouter();
 
-    const route = get("/user/:id", {
+    const route = get("/user/{id}", {
       handle(_req, params) {
         return new Response(`User ID: ${params.id}`);
       },
@@ -155,7 +155,7 @@ describe(RouterV2, () => {
   test("handles multiple route parameters", async () => {
     const { router } = createRouter();
 
-    const route = get("/posts/:postId/comments/:commentId", {
+    const route = get("/posts/{postId}/comments/{commentId}", {
       handle(_req, params) {
         return new Response(`Post: ${params.postId}, Comment: ${params.commentId}`);
       },
@@ -224,7 +224,7 @@ describe("named routes", () => {
     const { router } = createRouter();
 
     const route = get(
-      "/users/:id",
+      "/users/{id}",
       {
         handle(_req, params) {
           return new Response(`User ${params.id}`);
@@ -787,7 +787,7 @@ describe("route groups", () => {
         { name: "index" },
       ),
       get(
-        "/:id",
+        "/{id}",
         {
           handle(_req, params) {
             return new Response(`User ${params.id}`);
@@ -840,7 +840,7 @@ describe("parameter constraints", () => {
     const { router } = createRouter();
 
     const route = get(
-      "/user/:id",
+      "/user/{id}",
       {
         handle(_req, params) {
           return new Response(`User ${params.id}`);
@@ -862,7 +862,7 @@ describe("parameter constraints", () => {
     const { router } = createRouter();
 
     const route = get(
-      "/category/:slug",
+      "/category/{slug}",
       {
         handle(_req, params) {
           return new Response(`Category ${params.slug}`);
@@ -884,7 +884,7 @@ describe("parameter constraints", () => {
     const { router } = createRouter();
 
     const route = get(
-      "/post/:slug",
+      "/post/{slug}",
       {
         handle(_req, params) {
           return new Response(`Post ${params.slug}`);
@@ -906,7 +906,7 @@ describe("parameter constraints", () => {
     const { router } = createRouter();
 
     const route = get(
-      "/resource/:uuid",
+      "/resource/{uuid}",
       {
         handle(_req, params) {
           return new Response(`Resource ${params.uuid}`);
@@ -929,7 +929,7 @@ describe("parameter constraints", () => {
     const { router } = createRouter();
 
     const route = get(
-      "/item/:ulid",
+      "/item/{ulid}",
       {
         handle(_req, params) {
           return new Response(`Item ${params.ulid}`);
@@ -952,7 +952,7 @@ describe("parameter constraints", () => {
     const { router } = createRouter();
 
     const route = get(
-      "/status/:type",
+      "/status/{type}",
       {
         handle(_req, params) {
           return new Response(`Status ${params.type}`);
@@ -974,7 +974,7 @@ describe("parameter constraints", () => {
     const { router } = createRouter();
 
     const route = get(
-      "/year/:year",
+      "/year/{year}",
       {
         handle(_req, params) {
           return new Response(`Year ${params.year}`);
@@ -996,7 +996,7 @@ describe("parameter constraints", () => {
     const { router } = createRouter();
 
     const route = get(
-      "/posts/:postId/comments/:commentId",
+      "/posts/{postId}/comments/{commentId}",
       {
         handle(_req, params) {
           return new Response(`Post ${params.postId}, Comment ${params.commentId}`);
@@ -1025,13 +1025,13 @@ describe("global patterns", () => {
 
     const { router } = createRouter();
 
-    const route1 = get("/user/:id", {
+    const route1 = get("/user/{id}", {
       handle(_req, params) {
         return new Response(`User ${params.id}`);
       },
     });
 
-    const route2 = get("/post/:id", {
+    const route2 = get("/post/{id}", {
       handle(_req, params) {
         return new Response(`Post ${params.id}`);
       },
@@ -1090,7 +1090,7 @@ describe("domain routing", () => {
           return new Response(`Tenant: ${params.tenant}`);
         },
       },
-      { domain: ":tenant.example.com" },
+      { domain: "{tenant}.example.com" },
     );
 
     router.register(route);
@@ -1159,7 +1159,7 @@ describe("domain routing", () => {
           return new Response(`Account: ${params.account}`);
         },
       },
-      { domain: ":account.example.com" },
+      { domain: "{account}.example.com" },
     );
 
     router.register(route);
@@ -1178,7 +1178,7 @@ describe("domain routing", () => {
           return new Response(`Sub: ${params.subdomain}, Region: ${params.region}`);
         },
       },
-      { domain: ":subdomain.:region.example.com" },
+      { domain: "{subdomain}.{region}.example.com" },
     );
 
     router.register(route);
@@ -1191,13 +1191,13 @@ describe("domain routing", () => {
     const { router } = createRouter();
 
     const route = get(
-      "/users/:id",
+      "/users/{id}",
       {
         handle(_req, params) {
           return new Response(`Account: ${params.account}, User: ${params.id}`);
         },
       },
-      { domain: ":account.example.com" },
+      { domain: "{account}.example.com" },
     );
 
     router.register(route);
@@ -1310,8 +1310,8 @@ describe("special routes", () => {
     expect(response.headers.get("Location")).toBe("/new");
   });
 
-  test("catch-all route handles unmatched requests", async () => {
-    const { router } = createRouter();
+  test("catch-all wildcard route captures unmatched requests", async () => {
+    const { router} = createRouter();
 
     const mainRoute = get("/home", {
       handle() {
@@ -1319,20 +1319,21 @@ describe("special routes", () => {
       },
     });
 
-    const catchAllRoute = get("/*", {
-      handle() {
-        return new Response("Custom 404", { status: 404 });
+    const catchAllRoute = get("/fallback/{...rest}", {
+      handle(_req, params) {
+        return new Response(`Catch-all: ${params.rest}`, { status: 404 });
       },
     });
 
-    router.register(group({}, [mainRoute, catchAllRoute]));
+    router.register(mainRoute);
+    router.register(catchAllRoute);
 
     const response1 = await router.handle(new Request("http://example.com/home"));
     expect(await response1.text()).toBe("Home");
 
-    const response2 = await router.handle(new Request("http://example.com/notfound"));
+    const response2 = await router.handle(new Request("http://example.com/fallback/notfound/deep/path"));
     expect(response2.status).toBe(404);
-    expect(await response2.text()).toBe("Custom 404");
+    expect(await response2.text()).toBe("Catch-all: notfound/deep/path");
   });
 });
 
@@ -1341,10 +1342,10 @@ describe("special routes", () => {
 // ============================================================================
 
 describe("wildcard routes", () => {
-  test("unnamed wildcard matches any subpath", async () => {
+  test("named wildcard matches any subpath", async () => {
     const { router } = createRouter();
 
-    const route = get("/files/**", {
+    const route = get("/files/{...rest}", {
       handle() {
         return new Response("File handler");
       },
@@ -1367,7 +1368,7 @@ describe("wildcard routes", () => {
   test("named wildcard captures remaining path", async () => {
     const { router } = createRouter();
 
-    const route = get("/files/**:path", {
+    const route = get("/files/{...path}", {
       handle(_req, params) {
         return new Response(`Path: ${params.path}`);
       },
@@ -1387,7 +1388,7 @@ describe("wildcard routes", () => {
   test("named wildcard with prefix parameters", async () => {
     const { router } = createRouter();
 
-    const route = get("/users/:userId/files/**:path", {
+    const route = get("/users/{userId}/files/{...path}", {
       handle(_req, params) {
         return new Response(`User: ${params.userId}, Path: ${params.path}`);
       },
@@ -1405,7 +1406,7 @@ describe("wildcard routes", () => {
     const { router } = createRouter();
 
     const routes = group({ prefix: "/api" }, [
-      get("/**:path", {
+      get("/{...path}", {
         handle(_req, params) {
           return new Response(`API Path: ${params.path}`);
         },
@@ -1420,7 +1421,7 @@ describe("wildcard routes", () => {
 
   test("wildcard URL generation", () => {
     const route = get(
-      "/files/**:path",
+      "/files/{...path}",
       {
         handle() {
           return new Response();
@@ -1439,7 +1440,7 @@ describe("wildcard routes", () => {
 
   test("wildcard with regular params URL generation", () => {
     const route = get(
-      "/users/:userId/files/**:path",
+      "/users/{userId}/files/{...path}",
       {
         handle() {
           return new Response();
@@ -1457,7 +1458,7 @@ describe("wildcard routes", () => {
 
   test("type inference for named wildcards", () => {
     const route = get(
-      "/files/**:path",
+      "/files/{...path}",
       {
         handle() {
           return new Response();
@@ -1472,7 +1473,7 @@ describe("wildcard routes", () => {
 
   test("type inference for wildcard with regular params", () => {
     const route = get(
-      "/users/:userId/files/**:path",
+      "/users/{userId}/files/{...path}",
       {
         handle() {
           return new Response();
@@ -1487,7 +1488,7 @@ describe("wildcard routes", () => {
 
   test("wildcard in group prefix throws error for non-empty child paths", () => {
     expect(() => {
-      group({ prefix: "/files/**:path" }, [
+      group({ prefix: "/files/{...path}" }, [
         get("/view", {
           handle() {
             return new Response();
@@ -1495,7 +1496,7 @@ describe("wildcard routes", () => {
         }),
       ]);
     }).toThrow(
-      'Route "/view" will never match because its parent group has a wildcard "/files/**:path". All routes within a wildcard group must have empty paths.',
+      'Route "/view" will never match because its parent group has a wildcard "/files/{...path}". All routes within a wildcard group must have empty paths.',
     );
 
     expect(() => {
@@ -1507,7 +1508,7 @@ describe("wildcard routes", () => {
         }),
       ]);
     }).toThrow(
-      'Route "/action" will never match because its parent group has a wildcard "/api/**". All routes within a wildcard group must have empty paths.',
+      'Route path "/api/**" contains asterisk characters. Use {...param} for wildcard routes instead of ** or *.',
     );
   });
 
@@ -1515,7 +1516,7 @@ describe("wildcard routes", () => {
     const { router } = createRouter();
 
     // This is allowed - empty path means the route is exactly the prefix
-    const routes = group({ prefix: "/files/**:path" }, [
+    const routes = group({ prefix: "/files/{...path}" }, [
       get("", {
         handle(_req, params) {
           return new Response(`GET: ${params.path}`);
@@ -1537,6 +1538,86 @@ describe("wildcard routes", () => {
       new Request("http://example.com/files/a/b/c", { method: "POST" }),
     );
     expect(await response2.text()).toBe("POST: a/b/c");
+  });
+
+  test("rejects partial segment parameters with text before", () => {
+    expect(() => {
+      get("/foo/x{param}", {
+        handle() {
+          return new Response();
+        },
+      });
+    }).toThrow(
+      'Route path "/foo/x{param}" has invalid parameter syntax. Parameters must capture whole path segments, not partial segments. Use /{param}/ not /text{param}/.',
+    );
+  });
+
+  test("rejects partial segment parameters with text after", () => {
+    expect(() => {
+      get("/foo/{param}x", {
+        handle() {
+          return new Response();
+        },
+      });
+    }).toThrow(
+      'Route path "/foo/{param}x" has invalid parameter syntax. Parameters must capture whole path segments, not partial segments. Use /{param}/ not /{param}text/.',
+    );
+  });
+
+  test("rejects partial segment parameters in domains with text before", () => {
+    expect(() => {
+      get(
+        "/users",
+        {
+          handle() {
+            return new Response();
+          },
+        },
+        { domain: "my-{param}.example.com" },
+      );
+    }).toThrow(
+      'Route path "my-{param}.example.com" has invalid parameter syntax. Parameters must capture whole path segments, not partial segments. Use /{param}/ not /text{param}/.',
+    );
+  });
+
+  test("rejects partial segment parameters in domains with text after", () => {
+    expect(() => {
+      get(
+        "/users",
+        {
+          handle() {
+            return new Response();
+          },
+        },
+        { domain: "{param}x.example.com" },
+      );
+    }).toThrow(
+      'Route path "{param}x.example.com" has invalid parameter syntax. Parameters must capture whole path segments, not partial segments. Use /{param}/ not /{param}text/.',
+    );
+  });
+
+  test("rejects partial segment parameters mid-path", () => {
+    expect(() => {
+      get("/x{param}/bar", {
+        handle() {
+          return new Response();
+        },
+      });
+    }).toThrow(
+      'Route path "/x{param}/bar" has invalid parameter syntax. Parameters must capture whole path segments, not partial segments. Use /{param}/ not /text{param}/.',
+    );
+  });
+
+  test("rejects partial segment wildcard parameters", () => {
+    expect(() => {
+      get("/files/prefix{...path}", {
+        handle() {
+          return new Response();
+        },
+      });
+    }).toThrow(
+      'Route path "/files/prefix{...path}" has invalid parameter syntax. Parameters must capture whole path segments, not partial segments. Use /{param}/ not /text{param}/.',
+    );
   });
 });
 
@@ -1615,7 +1696,7 @@ describe("route URL generation", () => {
 
   test("generates URL for named route with parameters", () => {
     const route = get(
-      "/users/:id",
+      "/users/{id}",
       {
         handle() {
           return new Response();
@@ -1632,7 +1713,7 @@ describe("route URL generation", () => {
 
   test("generates URL for route with multiple parameters", () => {
     const route = get(
-      "/posts/:postId/comments/:commentId",
+      "/posts/{postId}/comments/{commentId}",
       {
         handle() {
           return new Response();
@@ -1676,7 +1757,7 @@ describe("route URL generation", () => {
         { name: "dashboard" },
       ),
       get(
-        "/users/:id",
+        "/users/{id}",
         {
           handle() {
             return new Response();
@@ -1704,7 +1785,7 @@ describe("route URL generation", () => {
         { name: "index" },
       ),
       get(
-        "/:id",
+        "/{id}",
         {
           handle() {
             return new Response();
@@ -1724,7 +1805,7 @@ describe("route URL generation", () => {
 
   test("generates protocol-relative URL for routes with static domain", () => {
     const route = get(
-      "/users/:id",
+      "/users/{id}",
       {
         handle() {
           return new Response();
@@ -1743,7 +1824,7 @@ describe("route URL generation", () => {
 
   test("generates protocol-relative URL with domain parameters", () => {
     const route = get(
-      "/users/:id",
+      "/users/{id}",
       {
         handle() {
           return new Response();
@@ -1751,7 +1832,7 @@ describe("route URL generation", () => {
       },
       {
         name: "users.show",
-        domain: ":account.example.com",
+        domain: "{account}.example.com",
       },
     );
 
@@ -1764,7 +1845,7 @@ describe("route URL generation", () => {
 
   test("uses same param in both domain and path", () => {
     const route = get(
-      "/orgs/:org/users",
+      "/orgs/{org}/users",
       {
         handle() {
           return new Response();
@@ -1772,7 +1853,7 @@ describe("route URL generation", () => {
       },
       {
         name: "users.index",
-        domain: ":org.example.com",
+        domain: "{org}.example.com",
       },
     );
 
@@ -1808,7 +1889,7 @@ describe("RouteRegistry typed method", () => {
   test("generates URL for route with single parameter", () => {
     const routes = group({ namePrefix: "users." }, [
       get(
-        "/users/:id",
+        "/users/{id}",
         {
           handle() {
             return new Response();
@@ -1827,7 +1908,7 @@ describe("RouteRegistry typed method", () => {
   test("generates URL for route with multiple parameters", () => {
     const routes = group({ namePrefix: "posts." }, [
       get(
-        "/posts/:postId/comments/:commentId",
+        "/posts/{postId}/comments/{commentId}",
         {
           handle() {
             return new Response();
@@ -1856,7 +1937,7 @@ describe("RouteRegistry typed method", () => {
         { name: "index" },
       ),
       get(
-        "/:id",
+        "/{id}",
         {
           handle() {
             return new Response();
@@ -1922,7 +2003,7 @@ describe("RouteRegistry typed method", () => {
   test("type inference: route with single parameter", () => {
     const routes = group({ namePrefix: "users." }, [
       get(
-        "/users/:id",
+        "/users/{id}",
         {
           handle() {
             return new Response();
@@ -1944,7 +2025,7 @@ describe("RouteRegistry typed method", () => {
   test("type inference: route with multiple parameters", () => {
     const routes = group({ namePrefix: "posts." }, [
       get(
-        "/posts/:postId/comments/:commentId",
+        "/posts/{postId}/comments/{commentId}",
         {
           handle() {
             return new Response();
@@ -1974,7 +2055,7 @@ describe("RouteRegistry typed method", () => {
         { name: "index" },
       ),
       get(
-        "/users/:id",
+        "/users/{id}",
         {
           handle() {
             return new Response();
@@ -1983,7 +2064,7 @@ describe("RouteRegistry typed method", () => {
         { name: "show" },
       ),
       get(
-        "/users/:id/posts/:postId",
+        "/users/{id}/posts/{postId}",
         {
           handle() {
             return new Response();
@@ -2021,7 +2102,7 @@ describe("RouteRegistry typed method", () => {
         { name: "index" },
       ),
       get(
-        "/:id",
+        "/{id}",
         {
           handle() {
             return new Response();
@@ -2059,7 +2140,7 @@ describe("RouteRegistry typed method", () => {
         { name: "index" },
       ),
       get(
-        "/posts/:id",
+        "/posts/{id}",
         {
           handle() {
             return new Response();
