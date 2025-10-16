@@ -260,7 +260,6 @@ describe("named routes", () => {
 // ============================================================================
 
 describe("middleware", () => {
-
   test("executes middleware with options parameter", async () => {
     const { router } = createRouter();
     const log: string[] = [];
@@ -293,6 +292,15 @@ describe("middleware", () => {
     const { router } = createRouter();
     const log: string[] = [];
 
+    const middleware0: Middleware = {
+      handle(request, next) {
+        log.push("m0:before");
+        const response = next(request);
+        log.push("m0:after");
+        return response;
+      },
+    };
+
     const middleware1: Middleware = {
       handle(request, next) {
         log.push("m1:before");
@@ -311,21 +319,286 @@ describe("middleware", () => {
       },
     };
 
-    const route = get(
-      "/test",
-      {
+    const routes = group({ middleware: middleware0 }, [
+      get(
+        "/test",
+        {
+          handle() {
+            log.push("handler");
+            return new Response("OK");
+          },
+        },
+        { middleware: [middleware1, middleware2] },
+      ),
+    ]);
+
+    router.register(routes);
+
+    await router.handle(new Request("http://example.com/test"));
+    expect(log).toEqual([
+      "m0:before",
+      "m1:before",
+      "m2:before",
+      "handler",
+      "m2:after",
+      "m1:after",
+      "m0:after",
+    ]);
+  });
+
+  test("withoutMiddleware removes parent group middleware", async () => {
+    const { router } = createRouter();
+    const log: string[] = [];
+
+    const middleware1: Middleware = {
+      handle(request, next) {
+        log.push("m1");
+        return next(request);
+      },
+    };
+
+    const middleware2: Middleware = {
+      handle(request, next) {
+        log.push("m2");
+        return next(request);
+      },
+    };
+
+    const routes = group({ middleware: [middleware1, middleware2] }, [
+      get(
+        "/test",
+        {
+          handle() {
+            log.push("handler");
+            return new Response("OK");
+          },
+        },
+        { withoutMiddleware: middleware1 },
+      ),
+    ]);
+
+    router.register(routes);
+
+    await router.handle(new Request("http://example.com/test"));
+    expect(log).toEqual(["m2", "handler"]);
+  });
+
+  test("withoutMiddleware works in nested groups", async () => {
+    const { router } = createRouter();
+    const log: string[] = [];
+
+    const middleware1: Middleware = {
+      handle(request, next) {
+        log.push("m1");
+        return next(request);
+      },
+    };
+
+    const middleware2: Middleware = {
+      handle(request, next) {
+        log.push("m2");
+        return next(request);
+      },
+    };
+
+    const middleware3: Middleware = {
+      handle(request, next) {
+        log.push("m3");
+        return next(request);
+      },
+    };
+
+    const innerRoutes = group({ withoutMiddleware: middleware1, middleware: middleware3 }, [
+      get("/test", {
         handle() {
           log.push("handler");
           return new Response("OK");
         },
-      },
-      { middleware: [middleware1, middleware2] },
-    );
+      }),
+    ]);
 
-    router.register(route);
+    const outerRoutes = group({ middleware: [middleware1, middleware2] }, [innerRoutes]);
+
+    router.register(outerRoutes);
 
     await router.handle(new Request("http://example.com/test"));
-    expect(log).toEqual(["m1:before", "m2:before", "handler", "m2:after", "m1:after"]);
+    expect(log).toEqual(["m2", "m3", "handler"]);
+  });
+
+  test("route middleware can re-add previously removed middleware", async () => {
+    const { router } = createRouter();
+    const log: string[] = [];
+
+    const middleware1: Middleware = {
+      handle(request, next) {
+        log.push("m1");
+        return next(request);
+      },
+    };
+
+    const middleware2: Middleware = {
+      handle(request, next) {
+        log.push("m2");
+        return next(request);
+      },
+    };
+
+    const innerRoutes = group({ withoutMiddleware: middleware1 }, [
+      get(
+        "/test",
+        {
+          handle() {
+            log.push("handler");
+            return new Response("OK");
+          },
+        },
+        { middleware: middleware1 },
+      ),
+    ]);
+
+    const outerRoutes = group({ middleware: [middleware1, middleware2] }, [innerRoutes]);
+
+    router.register(outerRoutes);
+
+    await router.handle(new Request("http://example.com/test"));
+    expect(log).toEqual(["m2", "m1", "handler"]);
+  });
+
+  test("group with both middleware and withoutMiddleware for same middleware", async () => {
+    const { router } = createRouter();
+    const log: string[] = [];
+
+    const middleware1: Middleware = {
+      handle(request, next) {
+        log.push("m1");
+        return next(request);
+      },
+    };
+
+    const middleware2: Middleware = {
+      handle(request, next) {
+        log.push("m2");
+        return next(request);
+      },
+    };
+
+    const innerRoutes = group(
+      { withoutMiddleware: middleware1, middleware: [middleware1, middleware2] },
+      [
+        get("/test", {
+          handle() {
+            log.push("handler");
+            return new Response("OK");
+          },
+        }),
+      ],
+    );
+
+    const outerRoutes = group({ middleware: middleware1 }, [innerRoutes]);
+
+    router.register(outerRoutes);
+
+    await router.handle(new Request("http://example.com/test"));
+    expect(log).toEqual(["m1", "m2", "handler"]);
+  });
+
+  test("multiple withoutMiddleware at different levels", async () => {
+    const { router } = createRouter();
+    const log: string[] = [];
+
+    const middleware1: Middleware = {
+      handle(request, next) {
+        log.push("m1");
+        return next(request);
+      },
+    };
+
+    const middleware2: Middleware = {
+      handle(request, next) {
+        log.push("m2");
+        return next(request);
+      },
+    };
+
+    const middleware3: Middleware = {
+      handle(request, next) {
+        log.push("m3");
+        return next(request);
+      },
+    };
+
+    const middleware4: Middleware = {
+      handle(request, next) {
+        log.push("m4");
+        return next(request);
+      },
+    };
+
+    const innerRoutes = group({ withoutMiddleware: middleware1 }, [
+      get(
+        "/test",
+        {
+          handle() {
+            log.push("handler");
+            return new Response("OK");
+          },
+        },
+        { withoutMiddleware: middleware2, middleware: middleware4 },
+      ),
+    ]);
+
+    const outerRoutes = group({ middleware: [middleware1, middleware2, middleware3] }, [
+      innerRoutes,
+    ]);
+
+    router.register(outerRoutes);
+
+    await router.handle(new Request("http://example.com/test"));
+    expect(log).toEqual(["m3", "m4", "handler"]);
+  });
+
+  test("withoutMiddleware with array of middleware", async () => {
+    const { router } = createRouter();
+    const log: string[] = [];
+
+    const middleware1: Middleware = {
+      handle(request, next) {
+        log.push("m1");
+        return next(request);
+      },
+    };
+
+    const middleware2: Middleware = {
+      handle(request, next) {
+        log.push("m2");
+        return next(request);
+      },
+    };
+
+    const middleware3: Middleware = {
+      handle(request, next) {
+        log.push("m3");
+        return next(request);
+      },
+    };
+
+    const routes = group({ middleware: [middleware1, middleware2, middleware3] }, [
+      get(
+        "/test",
+        {
+          handle() {
+            log.push("handler");
+            return new Response("OK");
+          },
+        },
+        { withoutMiddleware: [middleware1, middleware3] },
+      ),
+    ]);
+
+    router.register(routes);
+
+    await router.handle(new Request("http://example.com/test"));
+    expect(log).toEqual(["m2", "handler"]);
   });
 
   test("middleware can short-circuit", async () => {
@@ -501,7 +774,7 @@ describe("route groups", () => {
   });
 
   test("supports nested groups", async () => {
-    const { router} = createRouter();
+    const { router } = createRouter();
 
     const userRoutes = group({ prefix: "/users", namePrefix: "users." }, [
       get(
@@ -1186,7 +1459,9 @@ describe("RouteRegistry typed method", () => {
 
     const registry = new RouteRegistry(routes);
 
-    expect(() => registry.url("users.nonexistent" as any)).toThrow('Route "users.nonexistent" not found');
+    expect(() => registry.url("users.nonexistent" as any)).toThrow(
+      'Route "users.nonexistent" not found',
+    );
   });
 
   // ============================================================================

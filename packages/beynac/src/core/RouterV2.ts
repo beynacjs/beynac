@@ -36,6 +36,7 @@ export interface RouteDefinition {
   handler: RouteHandler;
   routeName?: string | undefined;
   middleware: MiddlewareReference[];
+  withoutMiddleware: MiddlewareReference[];
   constraints: ParameterConstraint[];
   domainPattern?: string | undefined;
   redirect?: { to: string; status: number } | undefined;
@@ -55,6 +56,9 @@ export interface Routes<Params extends Record<string, string> = {}> {
 export interface BaseRouteOptions {
   /** Middleware applied to route(s) */
   middleware?: MiddlewareReference | MiddlewareReference[];
+
+  /** Middleware to exclude from parent groups */
+  withoutMiddleware?: MiddlewareReference | MiddlewareReference[];
 
   /** Domain pattern constraint */
   domain?: string;
@@ -461,6 +465,7 @@ function createRoute<const Path extends string, const Name extends string = neve
     handler,
     routeName: options?.name,
     middleware: options?.middleware ? arrayWrap(options.middleware) : [],
+    withoutMiddleware: options?.withoutMiddleware ? arrayWrap(options.withoutMiddleware) : [],
     constraints,
     domainPattern: options?.domain,
   };
@@ -531,6 +536,7 @@ export function redirect<const Path extends string>(
       },
     },
     middleware: [],
+    withoutMiddleware: [],
     constraints: [],
     redirect: { to, status },
   };
@@ -589,17 +595,38 @@ export function group<
   }
 
   const groupMiddleware = options.middleware ? arrayWrap(options.middleware) : [];
+  const groupWithout = options.withoutMiddleware ? arrayWrap(options.withoutMiddleware) : [];
 
   // Flatten immediately - process all child routes
   const flatRoutes: RouteDefinition[] = [];
 
   for (const childRoutes of childrenArray) {
     for (const route of childRoutes.routes) {
+      // Start with group middleware
+      let finalMiddleware = [...groupMiddleware];
+
+      // Remove group's withoutMiddleware (but not if they're in group's middleware - same level wins)
+      finalMiddleware = finalMiddleware.filter((m) => !groupWithout.includes(m) || groupMiddleware.includes(m));
+
+      // Get route's middleware and withoutMiddleware
+      const routeMiddleware = route.middleware;
+      const routeWithout = route.withoutMiddleware;
+
+      // Remove route's withoutMiddleware (but not if they're in route's middleware - same level wins)
+      finalMiddleware = finalMiddleware.filter((m) => !routeWithout.includes(m) || routeMiddleware.includes(m));
+
+      // Remove any middleware that's already in routeMiddleware to avoid duplicates when we add them
+      finalMiddleware = finalMiddleware.filter((m) => !routeMiddleware.includes(m));
+
+      // Add route middleware (these can re-add previously excluded middleware)
+      finalMiddleware = [...finalMiddleware, ...routeMiddleware];
+
       flatRoutes.push({
         ...route,
         path: applyPathPrefix(options.prefix, route.path),
         routeName: applyNamePrefix(options.namePrefix, route.routeName),
-        middleware: [...groupMiddleware, ...route.middleware],
+        middleware: finalMiddleware,
+        withoutMiddleware: [...groupWithout, ...routeWithout],
         constraints: [...groupConstraints, ...route.constraints],
         domainPattern: options.domain ?? route.domainPattern,
       });
