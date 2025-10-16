@@ -10,7 +10,7 @@ import { DevModeWatchService } from "../development/DevModeWatchService";
 import { BeynacError } from "../error";
 import { CookiesImpl } from "./CookiesImpl";
 import { HeadersImpl } from "./HeadersImpl";
-import { group, RouteRegistry, RouterV2, type UrlFunction } from "./RouterV2";
+import { group, RouteRegistry, Router, type UrlFunction } from "../router";
 
 export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
   implements Application<RouteParams>
@@ -35,15 +35,15 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
     this.container.instance(Configuration, this.#config);
     this.container.instance(Application, this);
 
-    // Create and bind RouterV2
-    this.container.bind(RouterV2, {
-      factory: () => new RouterV2(this.container),
+    // Create and bind Router
+    this.container.bind(Router, {
+      factory: () => new Router(this.container),
       lifecycle: "singleton",
     });
 
     // Register routes with dev mode middleware if needed
     if (this.#config.routes) {
-      const router = this.container.get(RouterV2);
+      const router = this.container.get(Router);
 
       // Wrap routes with dev mode middleware if enabled
       if (this.#config.development && !this.#config.devMode?.suppressAutoRefresh) {
@@ -79,7 +79,7 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 
   async handleRequest(request: Request, context: RequestContext): Promise<Response> {
     return this.withRequestContext(context, () => {
-      const router = this.container.get(RouterV2);
+      const router = this.container.get(Router);
       return router.handle(request);
     });
   }

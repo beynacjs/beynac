@@ -14,6 +14,7 @@ When I ask questions, answer briefly to minimise time taken to read response. I'
 - When writing tests, pass the function or class under test to the first argument describe, e.g. `describe(myFunc, ...)` not `describe("myFunc", ...)`
 - in bun, expect never returns a promise, do not `await expect(...)` just use `expect(...)`
 - Use #truePrivate methods over typescript style `private method()`
+- Our codebase is compiled with --isolatedDeclarations, so you can't pass undefined to an optional parameter. If this causes compile errors, the fix is to add undefined to the type, e.g. {optional?: string | undefined}
 
 ## Soft port process
 

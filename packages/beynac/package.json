@@ -37,6 +37,10 @@
     "./view/jsx-dev-runtime": {
       "types": "./dist/view/jsx-dev-runtime.d.ts",
       "import": "./dist/view/jsx-dev-runtime.js"
+    },
+    "./router": {
+      "types": "./dist/router/index.d.ts",
+      "import": "./dist/router/index.js"
     }
   },
   "scripts": {

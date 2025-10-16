@@ -21,10 +21,10 @@ export {
   isUlid,
   isIn,
   RouteRegistry,
-  RouterV2,
+  Router,
   type Routes,
   type RouteHandler,
   type RouteOptions,
   type RouteGroupOptions,
   type UrlFunction,
-} from "./core/RouterV2";
+} from "./router";

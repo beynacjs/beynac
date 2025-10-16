@@ -1,6 +1,6 @@
 import type { TypeToken } from "../container/container-key";
 import { createTypeToken } from "../container/container-key";
-import type { Routes } from "../core/RouterV2";
+import type { Routes } from "../router";
 
 export interface Configuration<RouteParams extends Record<string, string> = {}> {
   /**

@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { Dispatcher } from "../contracts/Dispatcher";
 import { RequestContext } from "../contracts/RequestContext";
+import { get, group } from "../router";
 import { ApplicationImpl } from "./ApplicationImpl";
 import { DispatcherImpl } from "./DispatcherImpl";
-import { get, group } from "./RouterV2";
 
 describe("ApplicationImpl", () => {
   test("events getter uses container resolution", () => {

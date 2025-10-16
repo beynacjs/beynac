@@ -1,8 +1,8 @@
 import { describe, expect, expectTypeOf, test } from "bun:test";
 import { ContainerImpl } from "../container/ContainerImpl";
 import { createTypeToken } from "../container/container-key";
-import type { Controller } from "./Controller";
-import type { Middleware } from "./Middleware";
+import type { Controller } from "../core/Controller";
+import type { Middleware } from "../core/Middleware";
 import {
   any,
   delete_,
@@ -22,13 +22,13 @@ import {
   put,
   redirect,
   RouteRegistry,
-  RouterV2,
+  Router,
   type Routes,
-} from "./RouterV2";
+} from "./index";
 
 function createRouter() {
   const container = new ContainerImpl();
-  const router = new RouterV2(container);
+  const router = new Router(container);
   return { router, container };
 }
 
@@ -36,7 +36,7 @@ function createRouter() {
 // Basic Route Registration
 // ============================================================================
 
-describe(RouterV2, () => {
+describe(Router, () => {
   test("handles basic GET route", async () => {
     const { router } = createRouter();
 
