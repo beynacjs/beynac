@@ -51,9 +51,10 @@ export interface RouteOptions<Name extends string = never> extends BaseRouteOpti
 /**
  * Options for route groups
  */
-export interface RouteGroupOptions<NamePrefix extends string = ""> extends BaseRouteOptions {
+export interface RouteGroupOptions<NamePrefix extends string = "", PathPrefix extends string = "">
+  extends BaseRouteOptions {
   /** Path prefix for all routes in group */
-  prefix?: string;
+  prefix?: PathPrefix;
 
   /** Name prefix for all routes in group (e.g., "admin.") */
   namePrefix?: NamePrefix;

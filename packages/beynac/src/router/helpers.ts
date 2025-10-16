@@ -332,12 +332,13 @@ function applyNamePrefix(prefix: string | undefined, name: string | undefined): 
 /**
  * Group routes with shared options - flattens immediately
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function group<
   const Children extends readonly Routes<any>[],
-  const PathPrefix extends string = "",
   const NamePrefix extends string = "",
+  const PathPrefix extends string = "",
 >(
-  options: RouteGroupOptions<NamePrefix> & { prefix?: PathPrefix },
+  options: RouteGroupOptions<NamePrefix, PathPrefix>,
   children: Children | (() => Children),
 ): Routes<
   PrependNamePrefix<
