@@ -1170,6 +1170,210 @@ describe("special routes", () => {
 });
 
 // ============================================================================
+// Wildcard Routes
+// ============================================================================
+
+describe("wildcard routes", () => {
+  test("unnamed wildcard matches any subpath", async () => {
+    const { router } = createRouter();
+
+    const route = get("/files/**", {
+      handle() {
+        return new Response("File handler");
+      },
+    });
+
+    router.register(route);
+
+    const response1 = await router.handle(new Request("http://example.com/files/a"));
+    expect(await response1.text()).toBe("File handler");
+
+    const response2 = await router.handle(new Request("http://example.com/files/a/b/c"));
+    expect(await response2.text()).toBe("File handler");
+
+    const response3 = await router.handle(
+      new Request("http://example.com/files/documents/2024/report.pdf"),
+    );
+    expect(await response3.text()).toBe("File handler");
+  });
+
+  test("named wildcard captures remaining path", async () => {
+    const { router } = createRouter();
+
+    const route = get("/files/**:path", {
+      handle(_req, params) {
+        return new Response(`Path: ${params.path}`);
+      },
+    });
+
+    router.register(route);
+
+    const response1 = await router.handle(new Request("http://example.com/files/document.pdf"));
+    expect(await response1.text()).toBe("Path: document.pdf");
+
+    const response2 = await router.handle(
+      new Request("http://example.com/files/docs/2024/report.pdf"),
+    );
+    expect(await response2.text()).toBe("Path: docs/2024/report.pdf");
+  });
+
+  test("named wildcard with prefix parameters", async () => {
+    const { router } = createRouter();
+
+    const route = get("/users/:userId/files/**:path", {
+      handle(_req, params) {
+        return new Response(`User: ${params.userId}, Path: ${params.path}`);
+      },
+    });
+
+    router.register(route);
+
+    const response = await router.handle(
+      new Request("http://example.com/users/123/files/photos/vacation.jpg"),
+    );
+    expect(await response.text()).toBe("User: 123, Path: photos/vacation.jpg");
+  });
+
+  test("wildcards in route groups", async () => {
+    const { router } = createRouter();
+
+    const routes = group({ prefix: "/api" }, [
+      get("/**:path", {
+        handle(_req, params) {
+          return new Response(`API Path: ${params.path}`);
+        },
+      }),
+    ]);
+
+    router.register(routes);
+
+    const response = await router.handle(new Request("http://example.com/api/v1/users/list"));
+    expect(await response.text()).toBe("API Path: v1/users/list");
+  });
+
+  test("wildcard URL generation", () => {
+    const route = get(
+      "/files/**:path",
+      {
+        handle() {
+          return new Response();
+        },
+      },
+      { name: "files.show" },
+    );
+
+    const registry = new RouteRegistry(route);
+
+    expect(registry.url("files.show", { path: "document.pdf" })).toBe("/files/document.pdf");
+    expect(registry.url("files.show", { path: "docs/2024/report.pdf" })).toBe(
+      "/files/docs/2024/report.pdf",
+    );
+  });
+
+  test("wildcard with regular params URL generation", () => {
+    const route = get(
+      "/users/:userId/files/**:path",
+      {
+        handle() {
+          return new Response();
+        },
+      },
+      { name: "users.files" },
+    );
+
+    const registry = new RouteRegistry(route);
+
+    expect(registry.url("users.files", { userId: 123, path: "photos/pic.jpg" })).toBe(
+      "/users/123/files/photos/pic.jpg",
+    );
+  });
+
+  test("type inference for named wildcards", () => {
+    const route = get(
+      "/files/**:path",
+      {
+        handle() {
+          return new Response();
+        },
+      },
+      { name: "files" },
+    );
+
+    // Should infer "path" param name
+    expectTypeOf(route).toMatchTypeOf<Routes<{ files: "path" }>>();
+  });
+
+  test("type inference for wildcard with regular params", () => {
+    const route = get(
+      "/users/:userId/files/**:path",
+      {
+        handle() {
+          return new Response();
+        },
+      },
+      { name: "users.files" },
+    );
+
+    // Should infer both param names
+    expectTypeOf(route).toMatchTypeOf<Routes<{ "users.files": "userId" | "path" }>>();
+  });
+
+  test("wildcard in group prefix throws error for non-empty child paths", () => {
+    expect(() => {
+      group({ prefix: "/files/**:path" }, [
+        get("/view", {
+          handle() {
+            return new Response();
+          },
+        }),
+      ]);
+    }).toThrow(
+      'Route "/view" will never match because its parent group has a wildcard "/files/**:path". All routes within a wildcard group must have empty paths.',
+    );
+
+    expect(() => {
+      group({ prefix: "/api/**" }, [
+        get("/action", {
+          handle() {
+            return new Response();
+          },
+        }),
+      ]);
+    }).toThrow(
+      'Route "/action" will never match because its parent group has a wildcard "/api/**". All routes within a wildcard group must have empty paths.',
+    );
+  });
+
+  test("wildcard in group prefix allows empty child paths", async () => {
+    const { router } = createRouter();
+
+    // This is allowed - empty path means the route is exactly the prefix
+    const routes = group({ prefix: "/files/**:path" }, [
+      get("", {
+        handle(_req, params) {
+          return new Response(`GET: ${params.path}`);
+        },
+      }),
+      post("", {
+        handle(_req, params) {
+          return new Response(`POST: ${params.path}`);
+        },
+      }),
+    ]);
+
+    router.register(routes);
+
+    const response1 = await router.handle(new Request("http://example.com/files/doc/file.txt"));
+    expect(await response1.text()).toBe("GET: doc/file.txt");
+
+    const response2 = await router.handle(
+      new Request("http://example.com/files/a/b/c", { method: "POST" }),
+    );
+    expect(await response2.text()).toBe("POST: a/b/c");
+  });
+});
+
+// ============================================================================
 // Multi-Method Routes
 // ============================================================================
 

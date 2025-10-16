@@ -229,6 +229,8 @@ export class RouteRegistry<Params extends Record<string, string> = {}> {
       const params = args[0] || {};
       let path = route.path;
       for (const [key, value] of Object.entries(params)) {
+        // Replace wildcard parameters (**:key) and regular parameters (:key)
+        path = path.replace(`**:${key}`, String(value));
         path = path.replace(`:${key}`, String(value));
       }
       return path;
@@ -427,6 +429,8 @@ export class RouterV2 {
 
     // Replace parameter placeholders with provided values
     for (const [key, value] of Object.entries(params)) {
+      // Replace wildcard parameters (**:key) and regular parameters (:key)
+      path = path.replace(`**:${key}`, String(value));
       path = path.replace(`:${key}`, String(value));
     }
 
@@ -597,6 +601,20 @@ export function group<
   const groupMiddleware = options.middleware ? arrayWrap(options.middleware) : [];
   const groupWithout = options.withoutMiddleware ? arrayWrap(options.withoutMiddleware) : [];
 
+  // Validate that wildcard prefixes don't have non-empty child paths
+  if (options.prefix && /\*\*/.test(options.prefix)) {
+    for (const childRoutes of childrenArray) {
+      for (const route of childRoutes.routes) {
+        if (route.path !== "" && route.path !== "/") {
+          throw new Error(
+            `Route "${route.path}" will never match because its parent group has a wildcard "${options.prefix}". ` +
+              `All routes within a wildcard group must have empty paths.`,
+          );
+        }
+      }
+    }
+  }
+
   // Flatten immediately - process all child routes
   const flatRoutes: RouteDefinition[] = [];
 
@@ -606,14 +624,18 @@ export function group<
       let finalMiddleware = [...groupMiddleware];
 
       // Remove group's withoutMiddleware (but not if they're in group's middleware - same level wins)
-      finalMiddleware = finalMiddleware.filter((m) => !groupWithout.includes(m) || groupMiddleware.includes(m));
+      finalMiddleware = finalMiddleware.filter(
+        (m) => !groupWithout.includes(m) || groupMiddleware.includes(m),
+      );
 
       // Get route's middleware and withoutMiddleware
       const routeMiddleware = route.middleware;
       const routeWithout = route.withoutMiddleware;
 
       // Remove route's withoutMiddleware (but not if they're in route's middleware - same level wins)
-      finalMiddleware = finalMiddleware.filter((m) => !routeWithout.includes(m) || routeMiddleware.includes(m));
+      finalMiddleware = finalMiddleware.filter(
+        (m) => !routeWithout.includes(m) || routeMiddleware.includes(m),
+      );
 
       // Remove any middleware that's already in routeMiddleware to avoid duplicates when we add them
       finalMiddleware = finalMiddleware.filter((m) => !routeMiddleware.includes(m));
