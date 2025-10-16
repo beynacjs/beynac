@@ -1,0 +1,951 @@
+import { describe, expect, expectTypeOf, test } from "bun:test";
+import { ContainerImpl } from "../container/ContainerImpl";
+import type { Controller } from "./Controller";
+import type { Middleware } from "./Middleware";
+import {
+  any,
+  delete_,
+  fallback,
+  get,
+  group,
+  match,
+  options,
+  patch,
+  pattern,
+  permanentRedirect,
+  post,
+  put,
+  redirect,
+  RouterV2,
+  view,
+  type Route,
+  type RouteGroup,
+} from "./RouterV2";
+
+function createRouter() {
+  const container = new ContainerImpl();
+  const router = new RouterV2(container);
+  return { router, container };
+}
+
+// ============================================================================
+// Basic Route Registration
+// ============================================================================
+
+describe(RouterV2, () => {
+  test("handles basic GET route", async () => {
+    const { router } = createRouter();
+
+    const route = get("/hello", {
+      handle() {
+        return new Response("Hello World");
+      },
+    });
+
+    router.register([route]);
+
+    const response = await router.handle(new Request("http://example.com/hello"));
+    expect(await response.text()).toBe("Hello World");
+  });
+
+  test("handles POST route", async () => {
+    const { router } = createRouter();
+
+    const route = post("/submit", {
+      handle() {
+        return new Response("Submitted");
+      },
+    });
+
+    router.register([route]);
+
+    const response = await router.handle(
+      new Request("http://example.com/submit", { method: "POST" }),
+    );
+    expect(await response.text()).toBe("Submitted");
+  });
+
+  test("handles PUT route", async () => {
+    const { router } = createRouter();
+
+    const route = put("/update", {
+      handle() {
+        return new Response("Updated");
+      },
+    });
+
+    router.register([route]);
+
+    const response = await router.handle(
+      new Request("http://example.com/update", { method: "PUT" }),
+    );
+    expect(await response.text()).toBe("Updated");
+  });
+
+  test("handles PATCH route", async () => {
+    const { router } = createRouter();
+
+    const route = patch("/patch", {
+      handle() {
+        return new Response("Patched");
+      },
+    });
+
+    router.register([route]);
+
+    const response = await router.handle(
+      new Request("http://example.com/patch", { method: "PATCH" }),
+    );
+    expect(await response.text()).toBe("Patched");
+  });
+
+  test("handles DELETE route", async () => {
+    const { router } = createRouter();
+
+    const route = delete_("/delete", {
+      handle() {
+        return new Response("Deleted");
+      },
+    });
+
+    router.register([route]);
+
+    const response = await router.handle(
+      new Request("http://example.com/delete", { method: "DELETE" }),
+    );
+    expect(await response.text()).toBe("Deleted");
+  });
+
+  test("handles OPTIONS route", async () => {
+    const { router } = createRouter();
+
+    const route = options("/cors", {
+      handle() {
+        return new Response(null, { status: 204 });
+      },
+    });
+
+    router.register([route]);
+
+    const response = await router.handle(
+      new Request("http://example.com/cors", { method: "OPTIONS" }),
+    );
+    expect(response.status).toBe(204);
+  });
+
+  test("handles route parameters", async () => {
+    const { router } = createRouter();
+
+    const route = get("/user/:id", {
+      handle(_req, params) {
+        return new Response(`User ID: ${params.id}`);
+      },
+    });
+
+    router.register([route]);
+
+    const response = await router.handle(new Request("http://example.com/user/123"));
+    expect(await response.text()).toBe("User ID: 123");
+  });
+
+  test("handles multiple route parameters", async () => {
+    const { router } = createRouter();
+
+    const route = get("/posts/:postId/comments/:commentId", {
+      handle(_req, params) {
+        return new Response(`Post: ${params.postId}, Comment: ${params.commentId}`);
+      },
+    });
+
+    router.register([route]);
+
+    const response = await router.handle(new Request("http://example.com/posts/42/comments/7"));
+    expect(await response.text()).toBe("Post: 42, Comment: 7");
+  });
+
+  test("returns 404 for unmatched route", async () => {
+    const { router } = createRouter();
+
+    const route = get("/hello", {
+      handle() {
+        return new Response("Hello");
+      },
+    });
+
+    router.register([route]);
+
+    const response = await router.handle(new Request("http://example.com/notfound"));
+    expect(response.status).toBe(404);
+  });
+
+  test("handles controller class", async () => {
+    class TestController implements Controller {
+      handle(_request: Request, _params: Record<string, string>): Response {
+        return new Response("From controller class");
+      }
+    }
+
+    const { router } = createRouter();
+
+    const route = get("/test", TestController);
+    router.register([route]);
+
+    const response = await router.handle(new Request("http://example.com/test"));
+    expect(await response.text()).toBe("From controller class");
+  });
+
+  test("handles async controller", async () => {
+    const { router } = createRouter();
+
+    const route = get("/async", {
+      async handle() {
+        await Promise.resolve();
+        return new Response("Async response");
+      },
+    });
+
+    router.register([route]);
+
+    const response = await router.handle(new Request("http://example.com/async"));
+    expect(await response.text()).toBe("Async response");
+  });
+});
+
+// ============================================================================
+// Named Routes
+// ============================================================================
+
+describe("named routes", () => {
+  test("can name route with fluent API", async () => {
+    const { router } = createRouter();
+
+    const route = get("/users", {
+      handle() {
+        return new Response("Users");
+      },
+    }).name("users.index");
+
+    router.register([route]);
+
+    const response = await router.handle(new Request("http://example.com/users"));
+    expect(await response.text()).toBe("Users");
+  });
+
+  test("can name route with options parameter", async () => {
+    const { router } = createRouter();
+
+    const route = get(
+      "/users/:id",
+      {
+        handle(_req, params) {
+          return new Response(`User ${params.id}`);
+        },
+      },
+      { name: "users.show" },
+    );
+
+    router.register([route]);
+
+    const response = await router.handle(new Request("http://example.com/users/123"));
+    expect(await response.text()).toBe("User 123");
+  });
+
+  test("type inference for named routes", () => {
+    const route1 = get("/users", {
+      handle() {
+        return new Response();
+      },
+    }).name("users.index");
+
+    expectTypeOf(route1).toEqualTypeOf<Route<"users.index">>();
+
+    const route2 = get(
+      "/posts",
+      {
+        handle() {
+          return new Response();
+        },
+      },
+      { name: "posts.index" },
+    );
+
+    expectTypeOf(route2).toEqualTypeOf<Route<"posts.index">>();
+  });
+});
+
+// ============================================================================
+// Middleware
+// ============================================================================
+
+describe("middleware", () => {
+  test("executes middleware with fluent API", async () => {
+    const { router } = createRouter();
+    const log: string[] = [];
+
+    const middleware: Middleware = {
+      handle(request, next) {
+        log.push("middleware:before");
+        const response = next(request);
+        log.push("middleware:after");
+        return response;
+      },
+    };
+
+    const route = get("/test", {
+      handle() {
+        log.push("handler");
+        return new Response("OK");
+      },
+    }).middleware(middleware);
+
+    router.register([route]);
+
+    await router.handle(new Request("http://example.com/test"));
+    expect(log).toEqual(["middleware:before", "handler", "middleware:after"]);
+  });
+
+  test("executes middleware with options parameter", async () => {
+    const { router } = createRouter();
+    const log: string[] = [];
+
+    const middleware: Middleware = {
+      handle(request, next) {
+        log.push("middleware");
+        return next(request);
+      },
+    };
+
+    const route = get(
+      "/test",
+      {
+        handle() {
+          log.push("handler");
+          return new Response("OK");
+        },
+      },
+      { name: "test", middleware },
+    );
+
+    router.register([route]);
+
+    await router.handle(new Request("http://example.com/test"));
+    expect(log).toEqual(["middleware", "handler"]);
+  });
+
+  test("executes multiple middleware in correct order", async () => {
+    const { router } = createRouter();
+    const log: string[] = [];
+
+    const middleware1: Middleware = {
+      handle(request, next) {
+        log.push("m1:before");
+        const response = next(request);
+        log.push("m1:after");
+        return response;
+      },
+    };
+
+    const middleware2: Middleware = {
+      handle(request, next) {
+        log.push("m2:before");
+        const response = next(request);
+        log.push("m2:after");
+        return response;
+      },
+    };
+
+    const route = get("/test", {
+      handle() {
+        log.push("handler");
+        return new Response("OK");
+      },
+    })
+      .middleware(middleware1)
+      .middleware(middleware2);
+
+    router.register([route]);
+
+    await router.handle(new Request("http://example.com/test"));
+    expect(log).toEqual(["m1:before", "m2:before", "handler", "m2:after", "m1:after"]);
+  });
+
+  test("middleware can short-circuit", async () => {
+    const { router } = createRouter();
+
+    const authMiddleware: Middleware = {
+      handle(_request, _next) {
+        return new Response("Unauthorized", { status: 401 });
+      },
+    };
+
+    const route = get("/protected", {
+      handle() {
+        return new Response("Should not be called");
+      },
+    }).middleware(authMiddleware);
+
+    router.register([route]);
+
+    const response = await router.handle(new Request("http://example.com/protected"));
+    expect(response.status).toBe(401);
+    expect(await response.text()).toBe("Unauthorized");
+  });
+
+  test("middleware can modify request", async () => {
+    const { router } = createRouter();
+
+    const middleware: Middleware = {
+      handle(request, next) {
+        const headers = new Headers(request.headers);
+        headers.set("X-Custom", "Modified");
+        const modifiedRequest = new Request(request.url, {
+          method: request.method,
+          headers,
+        });
+        return next(modifiedRequest);
+      },
+    };
+
+    const route = get("/test", {
+      handle(req) {
+        return new Response(req.headers.get("X-Custom") || "Not found");
+      },
+    }).middleware(middleware);
+
+    router.register([route]);
+
+    const response = await router.handle(new Request("http://example.com/test"));
+    expect(await response.text()).toBe("Modified");
+  });
+});
+
+// ============================================================================
+// Route Groups
+// ============================================================================
+
+describe("route groups", () => {
+  test("applies prefix to routes", async () => {
+    const { router } = createRouter();
+
+    const routes = group({ prefix: "/admin" }, [
+      get("/dashboard", {
+        handle() {
+          return new Response("Dashboard");
+        },
+      }),
+      get("/users", {
+        handle() {
+          return new Response("Users");
+        },
+      }),
+    ]);
+
+    router.register([routes]);
+
+    const response1 = await router.handle(new Request("http://example.com/admin/dashboard"));
+    expect(await response1.text()).toBe("Dashboard");
+
+    const response2 = await router.handle(new Request("http://example.com/admin/users"));
+    expect(await response2.text()).toBe("Users");
+  });
+
+  test("applies namePrefix to route names", () => {
+    const routes = group({ namePrefix: "admin." }, [
+      get("/dashboard", {
+        handle() {
+          return new Response();
+        },
+      }).name("dashboard"),
+      get("/users", {
+        handle() {
+          return new Response();
+        },
+      }).name("users"),
+    ]);
+
+    expectTypeOf(routes).toEqualTypeOf<RouteGroup<"admin.dashboard" | "admin.users">>();
+  });
+
+  test("applies middleware to all routes in group", async () => {
+    const { router } = createRouter();
+    const log: string[] = [];
+
+    const middleware: Middleware = {
+      handle(request, next) {
+        log.push("group-middleware");
+        return next(request);
+      },
+    };
+
+    const routes = group({ prefix: "/api", middleware }, [
+      get("/v1", {
+        handle() {
+          log.push("v1");
+          return new Response("V1");
+        },
+      }),
+      get("/v2", {
+        handle() {
+          log.push("v2");
+          return new Response("V2");
+        },
+      }),
+    ]);
+
+    router.register([routes]);
+
+    log.length = 0;
+    await router.handle(new Request("http://example.com/api/v1"));
+    expect(log).toEqual(["group-middleware", "v1"]);
+
+    log.length = 0;
+    await router.handle(new Request("http://example.com/api/v2"));
+    expect(log).toEqual(["group-middleware", "v2"]);
+  });
+
+  test("applies domain to all routes in group", async () => {
+    const { router } = createRouter();
+
+    const routes = group({ domain: "api.example.com" }, [
+      get("/status", {
+        handle() {
+          return new Response("API Status");
+        },
+      }),
+    ]);
+
+    router.register([routes]);
+
+    const response1 = await router.handle(new Request("http://api.example.com/status"));
+    expect(await response1.text()).toBe("API Status");
+
+    const response2 = await router.handle(new Request("http://example.com/status"));
+    expect(response2.status).toBe(404);
+  });
+
+  test("supports nested groups", async () => {
+    const { router } = createRouter();
+
+    const userRoutes = group({ prefix: "/users", namePrefix: "users." }, [
+      get("/", {
+        handle() {
+          return new Response("Users Index");
+        },
+      }).name("index"),
+      get("/:id", {
+        handle(_req, params) {
+          return new Response(`User ${params.id}`);
+        },
+      }).name("show"),
+    ]);
+
+    const apiRoutes = group({ prefix: "/api", namePrefix: "api." }, [userRoutes]);
+
+    router.register([apiRoutes]);
+
+    const response1 = await router.handle(new Request("http://example.com/api/users/"));
+    expect(await response1.text()).toBe("Users Index");
+
+    const response2 = await router.handle(new Request("http://example.com/api/users/123"));
+    expect(await response2.text()).toBe("User 123");
+
+    // Type check
+    expectTypeOf(apiRoutes).toEqualTypeOf<RouteGroup<"api.users.index" | "api.users.show">>();
+  });
+
+  test("group with callback function", async () => {
+    const { router } = createRouter();
+
+    const routes = group({ prefix: "/admin" }, () => [
+      get("/dashboard", {
+        handle() {
+          return new Response("Dashboard");
+        },
+      }),
+    ]);
+
+    router.register([routes]);
+
+    const response = await router.handle(new Request("http://example.com/admin/dashboard"));
+    expect(await response.text()).toBe("Dashboard");
+  });
+});
+
+// ============================================================================
+// Parameter Constraints
+// ============================================================================
+
+describe("parameter constraints", () => {
+  test("whereNumber constraint", async () => {
+    const { router } = createRouter();
+
+    const route = get("/user/:id", {
+      handle(_req, params) {
+        return new Response(`User ${params.id}`);
+      },
+    }).whereNumber("id");
+
+    router.register([route]);
+
+    const response1 = await router.handle(new Request("http://example.com/user/123"));
+    expect(await response1.text()).toBe("User 123");
+
+    const response2 = await router.handle(new Request("http://example.com/user/abc"));
+    expect(response2.status).toBe(404);
+  });
+
+  test("whereAlpha constraint", async () => {
+    const { router } = createRouter();
+
+    const route = get("/category/:slug", {
+      handle(_req, params) {
+        return new Response(`Category ${params.slug}`);
+      },
+    }).whereAlpha("slug");
+
+    router.register([route]);
+
+    const response1 = await router.handle(new Request("http://example.com/category/news"));
+    expect(await response1.text()).toBe("Category news");
+
+    const response2 = await router.handle(new Request("http://example.com/category/news123"));
+    expect(response2.status).toBe(404);
+  });
+
+  test("whereAlphaNumeric constraint", async () => {
+    const { router } = createRouter();
+
+    const route = get("/post/:slug", {
+      handle(_req, params) {
+        return new Response(`Post ${params.slug}`);
+      },
+    }).whereAlphaNumeric("slug");
+
+    router.register([route]);
+
+    const response1 = await router.handle(new Request("http://example.com/post/post123"));
+    expect(await response1.text()).toBe("Post post123");
+
+    const response2 = await router.handle(new Request("http://example.com/post/post-123"));
+    expect(response2.status).toBe(404);
+  });
+
+  test("whereUuid constraint", async () => {
+    const { router } = createRouter();
+
+    const route = get("/resource/:uuid", {
+      handle(_req, params) {
+        return new Response(`Resource ${params.uuid}`);
+      },
+    }).whereUuid("uuid");
+
+    router.register([route]);
+
+    const validUuid = "550e8400-e29b-41d4-a716-446655440000";
+    const response1 = await router.handle(new Request(`http://example.com/resource/${validUuid}`));
+    expect(await response1.text()).toBe(`Resource ${validUuid}`);
+
+    const response2 = await router.handle(new Request("http://example.com/resource/not-a-uuid"));
+    expect(response2.status).toBe(404);
+  });
+
+  test("whereUlid constraint", async () => {
+    const { router } = createRouter();
+
+    const route = get("/item/:ulid", {
+      handle(_req, params) {
+        return new Response(`Item ${params.ulid}`);
+      },
+    }).whereUlid("ulid");
+
+    router.register([route]);
+
+    const validUlid = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
+    const response1 = await router.handle(new Request(`http://example.com/item/${validUlid}`));
+    expect(await response1.text()).toBe(`Item ${validUlid}`);
+
+    const response2 = await router.handle(new Request("http://example.com/item/not-a-ulid"));
+    expect(response2.status).toBe(404);
+  });
+
+  test("whereIn constraint", async () => {
+    const { router } = createRouter();
+
+    const route = get("/status/:type", {
+      handle(_req, params) {
+        return new Response(`Status ${params.type}`);
+      },
+    }).whereIn("type", ["active", "inactive", "pending"]);
+
+    router.register([route]);
+
+    const response1 = await router.handle(new Request("http://example.com/status/active"));
+    expect(await response1.text()).toBe("Status active");
+
+    const response2 = await router.handle(new Request("http://example.com/status/deleted"));
+    expect(response2.status).toBe(404);
+  });
+
+  test("where with custom regex", async () => {
+    const { router } = createRouter();
+
+    const route = get("/year/:year", {
+      handle(_req, params) {
+        return new Response(`Year ${params.year}`);
+      },
+    }).where("year", /^(19|20)\d{2}$/);
+
+    router.register([route]);
+
+    const response1 = await router.handle(new Request("http://example.com/year/2024"));
+    expect(await response1.text()).toBe("Year 2024");
+
+    const response2 = await router.handle(new Request("http://example.com/year/3024"));
+    expect(response2.status).toBe(404);
+  });
+
+  test("multiple constraints on same route", async () => {
+    const { router } = createRouter();
+
+    const route = get("/posts/:postId/comments/:commentId", {
+      handle(_req, params) {
+        return new Response(`Post ${params.postId}, Comment ${params.commentId}`);
+      },
+    })
+      .whereNumber("postId")
+      .whereNumber("commentId");
+
+    router.register([route]);
+
+    const response1 = await router.handle(new Request("http://example.com/posts/123/comments/456"));
+    expect(await response1.text()).toBe("Post 123, Comment 456");
+
+    const response2 = await router.handle(new Request("http://example.com/posts/abc/comments/456"));
+    expect(response2.status).toBe(404);
+  });
+});
+
+// ============================================================================
+// Global Patterns
+// ============================================================================
+
+describe("global patterns", () => {
+  test("applies global pattern to all matching parameters", async () => {
+    pattern("id", /^\d+$/);
+
+    const { router } = createRouter();
+
+    const route1 = get("/user/:id", {
+      handle(_req, params) {
+        return new Response(`User ${params.id}`);
+      },
+    });
+
+    const route2 = get("/post/:id", {
+      handle(_req, params) {
+        return new Response(`Post ${params.id}`);
+      },
+    });
+
+    router.register([route1, route2]);
+
+    const response1 = await router.handle(new Request("http://example.com/user/123"));
+    expect(await response1.text()).toBe("User 123");
+
+    const response2 = await router.handle(new Request("http://example.com/user/abc"));
+    expect(response2.status).toBe(404);
+
+    const response3 = await router.handle(new Request("http://example.com/post/456"));
+    expect(await response3.text()).toBe("Post 456");
+
+    const response4 = await router.handle(new Request("http://example.com/post/xyz"));
+    expect(response4.status).toBe(404);
+  });
+});
+
+// ============================================================================
+// Domain Routing
+// ============================================================================
+
+describe("domain routing", () => {
+  test("matches routes on specific domain", async () => {
+    const { router } = createRouter();
+
+    const route = get("/api", {
+      handle() {
+        return new Response("API");
+      },
+    }).domain("api.example.com");
+
+    router.register([route]);
+
+    const response1 = await router.handle(new Request("http://api.example.com/api"));
+    expect(await response1.text()).toBe("API");
+
+    const response2 = await router.handle(new Request("http://example.com/api"));
+    expect(response2.status).toBe(404);
+  });
+
+  test("supports subdomain parameters", async () => {
+    const { router } = createRouter();
+
+    const route = get("/dashboard", {
+      handle() {
+        return new Response("Tenant Dashboard");
+      },
+    }).domain("{tenant}.example.com");
+
+    router.register([route]);
+
+    const response1 = await router.handle(new Request("http://acme.example.com/dashboard"));
+    expect(await response1.text()).toBe("Tenant Dashboard");
+
+    const response2 = await router.handle(new Request("http://widgets.example.com/dashboard"));
+    expect(await response2.text()).toBe("Tenant Dashboard");
+
+    const response3 = await router.handle(new Request("http://example.com/dashboard"));
+    expect(response3.status).toBe(404);
+  });
+});
+
+// ============================================================================
+// Special Routes
+// ============================================================================
+
+describe("special routes", () => {
+  test("redirect route returns 302", async () => {
+    const { router } = createRouter();
+
+    const route = redirect("/old", "/new");
+    router.register([route]);
+
+    const response = await router.handle(new Request("http://example.com/old"));
+    expect(response.status).toBe(302);
+    expect(response.headers.get("Location")).toBe("/new");
+  });
+
+  test("redirect with custom status", async () => {
+    const { router } = createRouter();
+
+    const route = redirect("/old", "/new", 307);
+    router.register([route]);
+
+    const response = await router.handle(new Request("http://example.com/old"));
+    expect(response.status).toBe(307);
+  });
+
+  test("permanentRedirect returns 301", async () => {
+    const { router } = createRouter();
+
+    const route = permanentRedirect("/old", "/new");
+    router.register([route]);
+
+    const response = await router.handle(new Request("http://example.com/old"));
+    expect(response.status).toBe(301);
+    expect(response.headers.get("Location")).toBe("/new");
+  });
+
+  test("fallback route handles unmatched requests", async () => {
+    const { router } = createRouter();
+
+    const mainRoute = get("/home", {
+      handle() {
+        return new Response("Home");
+      },
+    });
+
+    const fallbackRoute = fallback({
+      handle() {
+        return new Response("Custom 404", { status: 404 });
+      },
+    });
+
+    router.register([mainRoute, fallbackRoute]);
+
+    const response1 = await router.handle(new Request("http://example.com/home"));
+    expect(await response1.text()).toBe("Home");
+
+    const response2 = await router.handle(new Request("http://example.com/notfound"));
+    expect(response2.status).toBe(404);
+    expect(await response2.text()).toBe("Custom 404");
+  });
+
+  test("view route returns static response", async () => {
+    const { router } = createRouter();
+
+    const route = view("/maintenance", "Under Maintenance");
+    router.register([route]);
+
+    const response = await router.handle(new Request("http://example.com/maintenance"));
+    expect(await response.text()).toBe("Under Maintenance");
+    expect(response.headers.get("Content-Type")).toBe("text/html");
+  });
+
+  test("view route with Response object", async () => {
+    const { router } = createRouter();
+
+    const customResponse = new Response("Service Unavailable", {
+      status: 503,
+      headers: { "Retry-After": "3600" },
+    });
+
+    const route = view("/maintenance", customResponse);
+    router.register([route]);
+
+    const response = await router.handle(new Request("http://example.com/maintenance"));
+    expect(response.status).toBe(503);
+    expect(response.headers.get("Retry-After")).toBe("3600");
+  });
+});
+
+// ============================================================================
+// Multi-Method Routes
+// ============================================================================
+
+describe("multi-method routes", () => {
+  test("match() accepts multiple HTTP methods", async () => {
+    const { router } = createRouter();
+
+    const route = match(["GET", "POST"], "/form", {
+      handle(req) {
+        return new Response(`Method: ${req.method}`);
+      },
+    });
+
+    router.register([route]);
+
+    const response1 = await router.handle(
+      new Request("http://example.com/form", { method: "GET" }),
+    );
+    expect(await response1.text()).toBe("Method: GET");
+
+    const response2 = await router.handle(
+      new Request("http://example.com/form", { method: "POST" }),
+    );
+    expect(await response2.text()).toBe("Method: POST");
+
+    const response3 = await router.handle(
+      new Request("http://example.com/form", { method: "PUT" }),
+    );
+    expect(response3.status).toBe(404);
+  });
+
+  test("any() accepts all HTTP methods", async () => {
+    const { router } = createRouter();
+
+    const route = any("/catchall", {
+      handle(req) {
+        return new Response(`Method: ${req.method}`);
+      },
+    });
+
+    router.register([route]);
+
+    const methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"];
+
+    for (const method of methods) {
+      const response = await router.handle(new Request("http://example.com/catchall", { method }));
+      expect(await response.text()).toBe(`Method: ${method}`);
+    }
+  });
+});
