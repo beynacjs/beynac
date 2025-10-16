@@ -102,6 +102,15 @@ type ExtractRouteParams<T extends string> = T extends `${infer _Start}:${infer P
     : never;
 
 /**
+ * Extract parameters from both domain and path, returning union of both
+ * Domain: ":account.example.com", Path: "/users/:id" -> "account" | "id"
+ */
+type ExtractDomainAndPathParams<
+  Domain extends string | undefined,
+  Path extends string,
+> = Domain extends string ? ExtractRouteParams<Domain> | ExtractRouteParams<Path> : ExtractRouteParams<Path>;
+
+/**
  * Extract the NameParamsMap from Routes
  */
 type ExtractMap<T> = T extends Routes<infer Map> ? Map : {};
@@ -227,6 +236,27 @@ export class RouteRegistry<Params extends Record<string, string> = {}> {
       }
 
       const params = args[0] || {};
+
+      // If route has domain, generate protocol-relative URL
+      if (route.domainPattern) {
+        let domain = route.domainPattern;
+        let path = route.path;
+
+        // Replace parameters in both domain and path
+        for (const [key, value] of Object.entries(params)) {
+          const stringValue = String(value);
+          // Replace in domain
+          domain = domain.replace(`**:${key}`, stringValue);
+          domain = domain.replace(`:${key}`, stringValue);
+          // Replace in path
+          path = path.replace(`**:${key}`, stringValue);
+          path = path.replace(`:${key}`, stringValue);
+        }
+
+        return `//${domain}${path}`;
+      }
+
+      // No domain - return path only
       let path = route.path;
       for (const [key, value] of Object.entries(params)) {
         // Replace wildcard parameters (**:key) and regular parameters (:key)
@@ -275,7 +305,15 @@ export class RouterV2 {
 
     // Register route for each HTTP method
     for (const method of route.methods) {
-      addRoute(this.router, method, route.path, { route });
+      if (route.domainPattern) {
+        // For domain routes, we use a special prefix marker that rou3 can match
+        // We'll validate the actual domain pattern manually in #match
+        // Use a marker that won't conflict with normal paths: "\x00" + path
+        addRoute(this.router, method, `\x00${route.path}`, { route });
+      } else {
+        // Register path only: "/path" (has leading slash)
+        addRoute(this.router, method, route.path, { route });
+      }
     }
   }
 
@@ -297,20 +335,47 @@ export class RouterV2 {
   }
 
   #match(method: string, path: string, hostname: string) {
-    const result = findRoute(this.router, method, path);
+    // Try domain-specific route first using null byte prefix: "\x00/users"
+    let result = findRoute(this.router, method, `\x00${path}`);
+
+    // If we found a domain route, verify the hostname matches the domain pattern
+    if (result) {
+      const route = result.data.route;
+      if (route.domainPattern) {
+        // Extract domain params and check if hostname matches pattern
+        const domainParams = this.#extractDomainParams(hostname, route.domainPattern);
+
+        // If extraction failed (returned empty object for parameterized pattern), hostname doesn't match
+        const hasParams = /:/.test(route.domainPattern);
+        const paramsExtracted = Object.keys(domainParams).length > 0;
+
+        if (hasParams && !paramsExtracted) {
+          // Domain pattern has params but we couldn't extract them - no match
+          result = undefined;
+        } else if (!hasParams && !this.#domainMatches(hostname, route.domainPattern)) {
+          // Static domain that doesn't match
+          result = undefined;
+        }
+      }
+    }
+
+    if (!result) {
+      // Fallback to domain-agnostic route: "/users"
+      result = findRoute(this.router, method, path);
+    }
+
     if (!result) {
       return undefined;
     }
 
     const data = result.data;
     const route = data.route;
+    let params = result.params || {};
 
-    // Check domain constraint
-    if (route.domainPattern && !this.#matchDomain(hostname, route.domainPattern)) {
-      return undefined;
+    // Extract domain parameters if route has a domain pattern
+    if (route.domainPattern) {
+      params = { ...params, ...this.#extractDomainParams(hostname, route.domainPattern) };
     }
-
-    const params = result.params || {};
 
     // Check parameter constraints
     if (!this.#checkConstraints(route, params)) {
@@ -323,11 +388,31 @@ export class RouterV2 {
     };
   }
 
-  #matchDomain(hostname: string, pattern: string): boolean {
-    // Convert pattern to regex, replacing {param} with capture groups
-    const regexPattern = pattern.replace(/\{([^}]+)\}/g, "([^.]+)");
+  #domainMatches(hostname: string, pattern: string): boolean {
+    return hostname === pattern;
+  }
+
+  #extractDomainParams(hostname: string, pattern: string): Record<string, string> {
+    const params: Record<string, string> = {};
+    const paramNames: string[] = [];
+
+    // Convert :param to regex capture groups
+    const regexPattern = pattern.replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, (_, name) => {
+      paramNames.push(name);
+      return "([^.]+)";
+    });
+
     const regex = new RegExp(`^${regexPattern}$`);
-    return regex.test(hostname);
+    const match = hostname.match(regex);
+
+    if (match) {
+      // Extract captured groups into params
+      for (let i = 0; i < paramNames.length; i++) {
+        params[paramNames[i]] = match[i + 1];
+      }
+    }
+
+    return params;
   }
 
   #checkConstraints(route: RouteDefinition, params: Record<string, string>): boolean {
@@ -447,12 +532,18 @@ export class RouterV2 {
 /**
  * Helper to create a route with common logic
  */
-function createRoute<const Path extends string, const Name extends string = never>(
+function createRoute<
+  const Path extends string,
+  const Name extends string = never,
+  const Domain extends string | undefined = undefined,
+>(
   method: string | readonly string[],
   path: Path,
   handler: RouteHandler,
-  options?: RouteOptions<Name>,
-): [Name] extends [never] ? Routes<{}> : Routes<{ [K in Name]: ExtractRouteParams<Path> }> {
+  options?: RouteOptions<Name> & { domain?: Domain },
+): [Name] extends [never]
+  ? Routes<{}>
+  : Routes<{ [K in Name]: ExtractDomainAndPathParams<Domain, Path> }> {
   const methods = typeof method === "string" ? [method] : method;
 
   // Convert where constraints to ParameterConstraint[]
@@ -480,11 +571,15 @@ function createRoute<const Path extends string, const Name extends string = neve
 /**
  * Type for HTTP method route functions
  */
-type RouteMethodFunction = <const Path extends string, const Name extends string = never>(
+type RouteMethodFunction = <
+  const Path extends string,
+  const Name extends string = never,
+  const Domain extends string | undefined = undefined,
+>(
   path: Path,
   handler: RouteHandler,
-  options?: RouteOptions<Name>,
-) => [Name] extends [never] ? Routes<{}> : Routes<{ [K in Name]: ExtractRouteParams<Path> }>;
+  options?: RouteOptions<Name> & { domain?: Domain },
+) => [Name] extends [never] ? Routes<{}> : Routes<{ [K in Name]: ExtractDomainAndPathParams<Domain, Path> }>;
 
 export const get: RouteMethodFunction = (path, handler, options) =>
   createRoute("GET", path, handler, options);
@@ -506,20 +601,28 @@ export const options: RouteMethodFunction = (path, handler, options) =>
 
 // --- Multi-Method Routes ---
 
-export function match<const Path extends string, const Name extends string = never>(
+export function match<
+  const Path extends string,
+  const Name extends string = never,
+  const Domain extends string | undefined = undefined,
+>(
   methods: readonly string[],
   path: Path,
   handler: RouteHandler,
-  options?: RouteOptions<Name>,
-): [Name] extends [never] ? Routes<{}> : Routes<{ [K in Name]: ExtractRouteParams<Path> }> {
+  options?: RouteOptions<Name> & { domain?: Domain },
+): [Name] extends [never] ? Routes<{}> : Routes<{ [K in Name]: ExtractDomainAndPathParams<Domain, Path> }> {
   return createRoute(methods, path, handler, options);
 }
 
-export function any<const Path extends string, const Name extends string = never>(
+export function any<
+  const Path extends string,
+  const Name extends string = never,
+  const Domain extends string | undefined = undefined,
+>(
   path: Path,
   handler: RouteHandler,
-  options?: RouteOptions<Name>,
-): [Name] extends [never] ? Routes<{}> : Routes<{ [K in Name]: ExtractRouteParams<Path> }> {
+  options?: RouteOptions<Name> & { domain?: Domain },
+): [Name] extends [never] ? Routes<{}> : Routes<{ [K in Name]: ExtractDomainAndPathParams<Domain, Path> }> {
   const methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"];
   return match(methods, path, handler, options);
 }
@@ -620,6 +723,14 @@ export function group<
 
   for (const childRoutes of childrenArray) {
     for (const route of childRoutes.routes) {
+      // Check for domain conflicts
+      if (options.domain && route.domainPattern && options.domain !== route.domainPattern) {
+        throw new Error(
+          `Domain conflict: route "${route.routeName || route.path}" specifies domain "${route.domainPattern}" ` +
+            `but is inside a group with domain "${options.domain}". Nested routes cannot override parent domain.`,
+        );
+      }
+
       // Start with group middleware
       let finalMiddleware = [...groupMiddleware];
 

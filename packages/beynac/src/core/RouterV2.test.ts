@@ -1086,23 +1086,190 @@ describe("domain routing", () => {
     const route = get(
       "/dashboard",
       {
-        handle() {
-          return new Response("Tenant Dashboard");
+        handle(_req, params) {
+          return new Response(`Tenant: ${params.tenant}`);
         },
       },
-      { domain: "{tenant}.example.com" },
+      { domain: ":tenant.example.com" },
     );
 
     router.register(route);
 
     const response1 = await router.handle(new Request("http://acme.example.com/dashboard"));
-    expect(await response1.text()).toBe("Tenant Dashboard");
+    expect(await response1.text()).toBe("Tenant: acme");
 
     const response2 = await router.handle(new Request("http://widgets.example.com/dashboard"));
-    expect(await response2.text()).toBe("Tenant Dashboard");
+    expect(await response2.text()).toBe("Tenant: widgets");
 
     const response3 = await router.handle(new Request("http://example.com/dashboard"));
     expect(response3.status).toBe(404);
+  });
+
+  test("throws error when child route has different domain than parent group", () => {
+    expect(() => {
+      group({ domain: "api.example.com" }, [
+        get(
+          "/users",
+          {
+            handle() {
+              return new Response();
+            },
+          },
+          { domain: "admin.example.com" },
+        ),
+      ]);
+    }).toThrow(/Domain conflict/);
+  });
+
+  test("allows same domain on parent group and child route", () => {
+    expect(() => {
+      group({ domain: "api.example.com" }, [
+        get(
+          "/users",
+          {
+            handle() {
+              return new Response();
+            },
+          },
+          { domain: "api.example.com" },
+        ),
+      ]);
+    }).not.toThrow();
+  });
+
+  test("allows child without domain when parent has domain", () => {
+    expect(() => {
+      group({ domain: "api.example.com" }, [
+        get("/users", {
+          handle() {
+            return new Response();
+          },
+        }),
+      ]);
+    }).not.toThrow();
+  });
+
+  test("extracts single domain parameter", async () => {
+    const { router } = createRouter();
+
+    const route = get(
+      "/users",
+      {
+        handle(_req, params) {
+          return new Response(`Account: ${params.account}`);
+        },
+      },
+      { domain: ":account.example.com" },
+    );
+
+    router.register(route);
+
+    const response = await router.handle(new Request("http://acme.example.com/users"));
+    expect(await response.text()).toBe("Account: acme");
+  });
+
+  test("extracts multiple domain parameters", async () => {
+    const { router } = createRouter();
+
+    const route = get(
+      "/",
+      {
+        handle(_req, params) {
+          return new Response(`Sub: ${params.subdomain}, Region: ${params.region}`);
+        },
+      },
+      { domain: ":subdomain.:region.example.com" },
+    );
+
+    router.register(route);
+
+    const response = await router.handle(new Request("http://api.us.example.com/"));
+    expect(await response.text()).toBe("Sub: api, Region: us");
+  });
+
+  test("domain params don't interfere with path params", async () => {
+    const { router } = createRouter();
+
+    const route = get(
+      "/users/:id",
+      {
+        handle(_req, params) {
+          return new Response(`Account: ${params.account}, User: ${params.id}`);
+        },
+      },
+      { domain: ":account.example.com" },
+    );
+
+    router.register(route);
+
+    const response = await router.handle(new Request("http://acme.example.com/users/123"));
+    expect(await response.text()).toBe("Account: acme, User: 123");
+  });
+
+  test("domain-specific route takes precedence over domain-agnostic", async () => {
+    const { router } = createRouter();
+    let domainCalled = false;
+    let generalCalled = false;
+
+    router.register(
+      get("/users", {
+        handle() {
+          generalCalled = true;
+          return new Response("general");
+        },
+      }),
+    );
+
+    router.register(
+      get(
+        "/users",
+        {
+          handle() {
+            domainCalled = true;
+            return new Response("domain");
+          },
+        },
+        { domain: "api.example.com" },
+      ),
+    );
+
+    await router.handle(new Request("http://api.example.com/users"));
+
+    expect(domainCalled).toBe(true);
+    expect(generalCalled).toBe(false);
+  });
+
+  test("falls back to domain-agnostic when domain doesn't match", async () => {
+    const { router } = createRouter();
+    let domainCalled = false;
+    let generalCalled = false;
+
+    router.register(
+      get("/users", {
+        handle() {
+          generalCalled = true;
+          return new Response("general");
+        },
+      }),
+    );
+
+    router.register(
+      get(
+        "/users",
+        {
+          handle() {
+            domainCalled = true;
+            return new Response("domain");
+          },
+        },
+        { domain: "api.example.com" },
+      ),
+    );
+
+    await router.handle(new Request("http://other.example.com/users"));
+
+    expect(generalCalled).toBe(true);
+    expect(domainCalled).toBe(false);
   });
 });
 
@@ -1553,6 +1720,65 @@ describe("route URL generation", () => {
 
     expect(registry.url("api.users.index")).toBe("/api/users");
     expect(registry.url("api.users.show", { id: 789 })).toBe("/api/users/789");
+  });
+
+  test("generates protocol-relative URL for routes with static domain", () => {
+    const route = get(
+      "/users/:id",
+      {
+        handle() {
+          return new Response();
+        },
+      },
+      {
+        name: "users.show",
+        domain: "api.example.com",
+      },
+    );
+
+    const registry = new RouteRegistry(route);
+
+    expect(registry.url("users.show", { id: 123 })).toBe("//api.example.com/users/123");
+  });
+
+  test("generates protocol-relative URL with domain parameters", () => {
+    const route = get(
+      "/users/:id",
+      {
+        handle() {
+          return new Response();
+        },
+      },
+      {
+        name: "users.show",
+        domain: ":account.example.com",
+      },
+    );
+
+    const registry = new RouteRegistry(route);
+
+    expect(registry.url("users.show", { account: "acme", id: 123 } as any)).toBe(
+      "//acme.example.com/users/123",
+    );
+  });
+
+  test("uses same param in both domain and path", () => {
+    const route = get(
+      "/orgs/:org/users",
+      {
+        handle() {
+          return new Response();
+        },
+      },
+      {
+        name: "users.index",
+        domain: ":org.example.com",
+      },
+    );
+
+    const registry = new RouteRegistry(route);
+
+    expect(registry.url("users.index", { org: "acme" })).toBe("//acme.example.com/orgs/acme/users");
   });
 });
 
