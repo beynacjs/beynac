@@ -96,6 +96,8 @@ export interface RouteGroupOptions<NamePrefix extends string = ""> extends BaseR
  * rou3 syntax: :param and **:path
  */
 function translateRouteSyntax(path: string): string {
+  const originalPath = path;
+
   // Validate: reject asterisks (could leak through to rou3)
   if (path.includes("*")) {
     throw new Error(
@@ -138,26 +140,35 @@ function translateRouteSyntax(path: string): string {
   // Translate {param} to :param (regular parameter)
   path = path.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g, ":$1");
 
+  // Validate: any remaining curly braces are invalid
+  if (path.includes("{") || path.includes("}")) {
+    throw new Error(
+      `Route path "${originalPath}" contains invalid curly braces. ` +
+        `Curly braces can only be used for parameters like {param} or {...wildcard}.`,
+    );
+  }
+
   return path;
 }
 
 /**
  * Convert a domain pattern to path format for rou3 matching
  * Input: ":subdomain.example.com" (already in rou3 format)
- * Output: "/:subdomain/example/com/"
+ * Output: "{/:subdomain/example/com/}"
  */
 function translateDomainToPath(domain: string): string {
-  // Convert dots to slashes and wrap with slashes
-  return "/" + domain.replace(/\./g, "/") + "/";
+  // Convert dots to slashes and wrap with curly braces
+  return "{/" + domain.replace(/\./g, "/") + "/}";
 }
 
 /**
  * Convert a hostname to path format for matching
  * Input: "acme.example.com"
- * Output: "/acme/example/com/"
+ * Output: "{/acme/example/com/}"
  */
 function hostnameToPath(hostname: string): string {
-  return "/" + hostname.replace(/\./g, "/") + "/";
+  // Convert dots to slashes and wrap with curly braces
+  return "{/" + hostname.replace(/\./g, "/") + "/}";
 }
 
 // ============================================================================
@@ -206,7 +217,7 @@ type Prettify<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 /**
  * Merge an array of Routes via intersection, then prettify
  */
-type MergeChildren<Children extends readonly any[]> = Prettify<
+type MergeChildren<Children extends readonly unknown[]> = Prettify<
   Children extends readonly [infer First, ...infer Rest]
     ? ExtractMap<First> & MergeChildren<Rest>
     : {}
@@ -375,7 +386,7 @@ export class RouterV2 {
   /**
    * Register routes with the router
    */
-  register(routes: Routes<any>): void {
+  register(routes: Routes): void {
     for (const route of routes.routes) {
       this.#registerRoute(route);
     }
@@ -581,6 +592,11 @@ function createRoute<
   : Routes<{ [K in Name]: ExtractDomainAndPathParams<Domain, Path> }> {
   const methods = typeof method === "string" ? [method] : method;
 
+  // Validate: path must start with "/" or be empty string
+  if (path !== "" && !path.startsWith("/")) {
+    throw new Error(`Route path "${path}" must start with "/" or be empty string.`);
+  }
+
   // Translate user-facing syntax to rou3 internal syntax
   const translatedPath = translateRouteSyntax(path);
   const translatedDomain = options?.domain ? translateRouteSyntax(options.domain) : undefined;
@@ -740,6 +756,11 @@ export function group<
   >
 > {
   const childrenArray = typeof children === "function" ? children() : children;
+
+  // Validate: prefix must start with "/" if provided
+  if (options.prefix && !options.prefix.startsWith("/")) {
+    throw new Error(`Group prefix "${options.prefix}" must start with "/".`);
+  }
 
   // Translate prefix if present
   const translatedPrefix = options.prefix ? translateRouteSyntax(options.prefix) : undefined;

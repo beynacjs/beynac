@@ -1311,7 +1311,7 @@ describe("special routes", () => {
   });
 
   test("catch-all wildcard route captures unmatched requests", async () => {
-    const { router} = createRouter();
+    const { router } = createRouter();
 
     const mainRoute = get("/home", {
       handle() {
@@ -1331,7 +1331,9 @@ describe("special routes", () => {
     const response1 = await router.handle(new Request("http://example.com/home"));
     expect(await response1.text()).toBe("Home");
 
-    const response2 = await router.handle(new Request("http://example.com/fallback/notfound/deep/path"));
+    const response2 = await router.handle(
+      new Request("http://example.com/fallback/notfound/deep/path"),
+    );
     expect(response2.status).toBe(404);
     expect(await response2.text()).toBe("Catch-all: notfound/deep/path");
   });
@@ -1838,7 +1840,7 @@ describe("route URL generation", () => {
 
     const registry = new RouteRegistry(route);
 
-    expect(registry.url("users.show", { account: "acme", id: 123 } as any)).toBe(
+    expect(registry.url("users.show", { account: "acme", id: 123 })).toBe(
       "//acme.example.com/users/123",
     );
   });
@@ -2312,7 +2314,7 @@ describe("domain routing with domain-as-path encoding", () => {
 
     const registry = new RouteRegistry(route);
 
-    expect(registry.url("users.show", { subdomain: "acme", id: 123 } as any)).toBe(
+    expect(registry.url("users.show", { subdomain: "acme", id: 123 })).toBe(
       "//acme.example.com/users/123",
     );
   });
@@ -2333,7 +2335,7 @@ describe("domain routing with domain-as-path encoding", () => {
 
     const registry = new RouteRegistry(route);
 
-    expect(registry.url("users.show", { subdomain: "widgets", id: 456 } as any)).toBe(
+    expect(registry.url("users.show", { subdomain: "widgets", id: 456 })).toBe(
       "//widgets.example.com/users/456",
     );
   });
@@ -2439,5 +2441,99 @@ describe("domain routing with domain-as-path encoding", () => {
 
     const response = await router.handle(new Request("http://x.y.z.example.com/"));
     expect(await response.text()).toBe("A: x, B: y, C: z");
+  });
+});
+
+// ============================================================================
+// Curly Brace Validation
+// ============================================================================
+
+describe("curly brace validation", () => {
+  // Helper function to test that a path throws an error related to braces/parameters
+  function expectPathToThrow(path: string) {
+    expect(() => {
+      get(path, {
+        handle() {
+          return new Response();
+        },
+      });
+    }).toThrow();
+  }
+
+  // Helper function to test that a domain throws an error related to braces/parameters
+  function expectDomainToThrow(domain: string) {
+    expect(() => {
+      get(
+        "/users",
+        {
+          handle() {
+            return new Response();
+          },
+        },
+        { domain },
+      );
+    }).toThrow();
+  }
+
+  test("rejects invalid curly brace patterns", () => {
+    // Opening brace without closing
+    expectPathToThrow("/{param");
+
+    // Closing brace without opening
+    expectPathToThrow("/param}");
+
+    // Wrong order braces
+    expectPathToThrow("/foo/}{param}/");
+
+    // Nested braces
+    expectPathToThrow("/{{param}}");
+
+    // Empty braces
+    expectPathToThrow("/foo/{}/bar");
+
+    // Space inside braces
+    expectPathToThrow("/{ param}");
+
+    // Trailing brace after parameters removed
+    expectPathToThrow("/foo/{param}/bar/}");
+
+    // Mismatched wildcard braces
+    expectPathToThrow("/{...param");
+
+    // Unmatched brace in domain (opening)
+    expectDomainToThrow("{tenant.example.com");
+
+    // Unmatched brace in domain (closing)
+    expectDomainToThrow("tenant}.example.com");
+  });
+
+  test("allows valid parameter syntax", () => {
+    expect(() => {
+      get("/users/{id}", {
+        handle() {
+          return new Response();
+        },
+      });
+    }).not.toThrow();
+
+    expect(() => {
+      get("/files/{...path}", {
+        handle() {
+          return new Response();
+        },
+      });
+    }).not.toThrow();
+
+    expect(() => {
+      get(
+        "/users",
+        {
+          handle() {
+            return new Response();
+          },
+        },
+        { domain: "{tenant}.example.com" },
+      );
+    }).not.toThrow();
   });
 });
