@@ -1,34 +1,35 @@
 // Public types
 export type {
-  Routes,
+  RouteConstraint,
+  RouteGroupOptions,
   RouteHandler,
   RouteOptions,
-  RouteGroupOptions,
-  RouteConstraint,
+  Routes,
   UrlFunction,
 } from "./public-types";
 
 // Router and registry
-export { Router, RouteRegistry } from "./Router";
+export { Router } from "./Router";
+export { RouteRegistry } from "./RouteRegistry";
 
 // Helper functions and constraints
 export {
-  get,
-  post,
-  put,
-  patch,
-  delete_,
-  options,
-  match,
   any,
-  redirect,
+  delete as delete,
+  delete_,
+  get,
   group,
-  pattern,
-  isNumber,
   isAlpha,
   isAlphaNumeric,
-  isUuid,
-  isUlid,
   isIn,
-  delete as delete,
+  isNumber,
+  isUlid,
+  isUuid,
+  match,
+  options,
+  patch,
+  pattern,
+  post,
+  put,
+  redirect,
 } from "./helpers";

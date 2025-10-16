@@ -8,9 +8,9 @@ import { RequestContext } from "../contracts/RequestContext";
 import { DevModeAutoRefreshMiddleware } from "../development/DevModeAutoRefreshMiddleware";
 import { DevModeWatchService } from "../development/DevModeWatchService";
 import { BeynacError } from "../error";
+import { group, Router, RouteRegistry, type UrlFunction } from "../router";
 import { CookiesImpl } from "./CookiesImpl";
 import { HeadersImpl } from "./HeadersImpl";
-import { group, RouteRegistry, Router, type UrlFunction } from "../router";
 
 export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
   implements Application<RouteParams>

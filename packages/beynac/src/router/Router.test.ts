@@ -21,8 +21,8 @@ import {
   post,
   put,
   redirect,
-  RouteRegistry,
   Router,
+  RouteRegistry,
   type Routes,
 } from "./index";
 
@@ -1317,7 +1317,9 @@ describe("special routes", () => {
     const route = post("/old-api", redirect("/new-api", { preserveHttpMethod: true }));
     router.register(route);
 
-    const response = await router.handle(new Request("http://example.com/old-api", { method: "POST" }));
+    const response = await router.handle(
+      new Request("http://example.com/old-api", { method: "POST" }),
+    );
     expect(response.status).toBe(307);
     expect(response.headers.get("Location")).toBe("/new-api");
   });
@@ -1336,7 +1338,10 @@ describe("special routes", () => {
   test("redirect with permanent and preserveHttpMethod returns 308", async () => {
     const { router } = createRouter();
 
-    const route = any("/api/v1", redirect("/api/v2", { permanent: true, preserveHttpMethod: true }));
+    const route = any(
+      "/api/v1",
+      redirect("/api/v2", { permanent: true, preserveHttpMethod: true }),
+    );
     router.register(route);
 
     const response = await router.handle(new Request("http://example.com/api/v1"));

@@ -1,15 +1,9 @@
-import type { Controller } from "../core/Controller";
 import type { MiddlewareReference } from "../core/Middleware";
-import type { NoArgConstructor } from "../utils";
+import type { RouteDefinition, RouteHandler } from "./internal-types";
 
 // ============================================================================
 // Public Types
 // ============================================================================
-
-/**
- * A route handler can be a Controller instance or class constructor
- */
-export type RouteHandler = Controller | NoArgConstructor<Controller>;
 
 /**
  * Route constraint - can be RegExp or validation function
@@ -21,7 +15,7 @@ export type RouteConstraint = RegExp | ((value: string) => boolean);
  */
 export interface Routes<Params extends Record<string, string> = {}> {
   readonly __nameParamsMap?: Params; // Phantom type for type inference
-  readonly routes: readonly RouteDefinition[]; // Flat array of route definitions
+  readonly routes: readonly RouteDefinition[]; // Flat array of route definitions (internal structure)
 }
 
 /**
@@ -40,6 +34,11 @@ export interface BaseRouteOptions {
   /** Parameter constraints */
   where?: Record<string, RouteConstraint>;
 }
+
+// Re-export internal types for use within the router package
+// RouteDefinition is not exported from index.ts so it remains internal
+// RouteHandler IS exported from index.ts as it's part of the public API
+export type { RouteDefinition, RouteHandler };
 
 /**
  * Options for individual routes
@@ -71,32 +70,6 @@ export type UrlFunction<Params extends Record<string, string>> = <N extends keyo
     ? [] | [params?: ParamsObject<Params[N]>]
     : [params: ParamsObject<Params[N]>]
 ) => string;
-
-// ============================================================================
-// Internal Types (not exported)
-// ============================================================================
-
-/**
- * Parameter constraint definition
- */
-export interface ParameterConstraint {
-  param: string;
-  pattern: RouteConstraint;
-}
-
-/**
- * A single route definition (pure data, no methods)
- */
-export interface RouteDefinition {
-  methods: readonly string[];
-  path: string;
-  handler: RouteHandler;
-  routeName?: string | undefined;
-  middleware: MiddlewareReference[];
-  withoutMiddleware: MiddlewareReference[];
-  constraints: ParameterConstraint[];
-  domainPattern?: string | undefined;
-}
 
 // ============================================================================
 // Helper Types (not exported)

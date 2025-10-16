@@ -1,30 +1,28 @@
 import type { Controller } from "../core/Controller";
 import { arrayWrap } from "../utils";
+import type { ParameterConstraint, RouteDefinition, RouteHandler } from "./internal-types";
 import type {
   AddPrefixParams,
   ExtractDomainAndPathParams,
   ExtractRouteParams,
   MergeChildren,
-  ParameterConstraint,
   PrependNamePrefix,
   RouteConstraint,
-  RouteDefinition,
   RouteGroupOptions,
-  RouteHandler,
   RouteOptions,
   Routes,
 } from "./public-types";
 
 // ============================================================================
-// Syntax Translation
+// Syntax Validation
 // ============================================================================
 
 /**
- * Validate and translate user-facing route syntax to rou3's internal syntax
+ * Validate user-facing route syntax
  * User syntax: {param} and {...path}
- * rou3 syntax: :param and **:path
+ * This validates early so users get immediate feedback
  */
-function translateRouteSyntax(path: string): string {
+function validateRouteSyntax(path: string): void {
   const originalPath = path;
 
   // Validate: reject asterisks (could leak through to rou3)
@@ -63,21 +61,29 @@ function translateRouteSyntax(path: string): string {
     );
   }
 
-  // Translate {...param} to **:param (wildcard)
-  path = path.replace(/\{\.\.\.([a-zA-Z_][a-zA-Z0-9_]*)\}/g, "**:$1");
+  // Validate parameter names: {...param} and {param}
+  const wildcardParams = path.match(/\{\.\.\.([a-zA-Z_][a-zA-Z0-9_]*)\}/g);
+  const regularParams = path.match(/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g);
 
-  // Translate {param} to :param (regular parameter)
-  path = path.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g, ":$1");
+  // Validate: any remaining curly braces after extracting valid params are invalid
+  let testPath = path;
+  if (wildcardParams) {
+    for (const param of wildcardParams) {
+      testPath = testPath.replace(param, "");
+    }
+  }
+  if (regularParams) {
+    for (const param of regularParams) {
+      testPath = testPath.replace(param, "");
+    }
+  }
 
-  // Validate: any remaining curly braces are invalid
-  if (path.includes("{") || path.includes("}")) {
+  if (testPath.includes("{") || testPath.includes("}")) {
     throw new Error(
       `Route path "${originalPath}" contains invalid curly braces. ` +
         `Curly braces can only be used for parameters like {param} or {...wildcard}.`,
     );
   }
-
-  return path;
 }
 
 // ============================================================================
@@ -144,9 +150,11 @@ function createRoute<
     throw new Error(`Route path "${path}" must start with "/" or be empty string.`);
   }
 
-  // Translate user-facing syntax to rou3 internal syntax
-  const translatedPath = translateRouteSyntax(path);
-  const translatedDomain = options?.domain ? translateRouteSyntax(options.domain) : undefined;
+  // Validate syntax early for immediate feedback
+  validateRouteSyntax(path);
+  if (options?.domain) {
+    validateRouteSyntax(options.domain);
+  }
 
   // Convert where constraints to ParameterConstraint[]
   const constraints: ParameterConstraint[] = [];
@@ -158,16 +166,19 @@ function createRoute<
 
   const route: RouteDefinition = {
     methods,
-    path: translatedPath,
+    path, // Store user syntax: {param} and {...wildcard}
     handler,
     routeName: options?.name,
     middleware: options?.middleware ? arrayWrap(options.middleware) : [],
     withoutMiddleware: options?.withoutMiddleware ? arrayWrap(options.withoutMiddleware) : [],
     constraints,
-    domainPattern: translatedDomain,
+    domainPattern: options?.domain, // Store user syntax
   };
 
-  return createRoutes([route]) as any;
+  // Type assertion needed because TypeScript can't infer the complex conditional return type
+  return createRoutes([route]) as [Name] extends [never]
+    ? Routes<{}>
+    : Routes<{ [K in Name]: ExtractDomainAndPathParams<Domain, Path> }>;
 }
 
 /**
@@ -271,7 +282,10 @@ export function redirect(
   to: string,
   options?: { permanent?: boolean; preserveHttpMethod?: boolean },
 ): Controller {
-  const status = getRedirectStatus(options?.permanent ?? false, options?.preserveHttpMethod ?? false);
+  const status = getRedirectStatus(
+    options?.permanent ?? false,
+    options?.preserveHttpMethod ?? false,
+  );
 
   return {
     handle() {
@@ -340,9 +354,16 @@ export function group<
     throw new Error(`Group prefix "${options.prefix}" must start with "/".`);
   }
 
-  // Translate prefix if present
-  const translatedPrefix = options.prefix ? translateRouteSyntax(options.prefix) : undefined;
-  const translatedDomain = options.domain ? translateRouteSyntax(options.domain) : undefined;
+  // Validate syntax early for immediate feedback
+  if (options.prefix) {
+    validateRouteSyntax(options.prefix);
+  }
+  if (options.domain) {
+    validateRouteSyntax(options.domain);
+  }
+
+  const prefix = options.prefix;
+  const domain = options.domain;
 
   // Convert group options constraints to ParameterConstraint[]
   const groupConstraints: ParameterConstraint[] = [];
@@ -356,12 +377,12 @@ export function group<
   const groupWithout = options.withoutMiddleware ? arrayWrap(options.withoutMiddleware) : [];
 
   // Validate that wildcard prefixes don't have non-empty child paths
-  if (translatedPrefix && /\*\*/.test(translatedPrefix)) {
+  if (prefix && /\{\.\.\./.test(prefix)) {
     for (const childRoutes of childrenArray) {
       for (const route of childRoutes.routes) {
         if (route.path !== "" && route.path !== "/") {
           throw new Error(
-            `Route "${route.path}" will never match because its parent group has a wildcard "${options.prefix}". ` +
+            `Route "${route.path}" will never match because its parent group has a wildcard "${prefix}". ` +
               `All routes within a wildcard group must have empty paths.`,
           );
         }
@@ -375,10 +396,10 @@ export function group<
   for (const childRoutes of childrenArray) {
     for (const route of childRoutes.routes) {
       // Check for domain conflicts
-      if (translatedDomain && route.domainPattern && translatedDomain !== route.domainPattern) {
+      if (domain && route.domainPattern && domain !== route.domainPattern) {
         throw new Error(
           `Domain conflict: route "${route.routeName || route.path}" specifies domain "${route.domainPattern}" ` +
-            `but is inside a group with domain "${translatedDomain}". Nested routes cannot override parent domain.`,
+            `but is inside a group with domain "${domain}". Nested routes cannot override parent domain.`,
         );
       }
 
@@ -407,16 +428,19 @@ export function group<
 
       flatRoutes.push({
         ...route,
-        path: applyPathPrefix(translatedPrefix, route.path),
+        path: applyPathPrefix(prefix, route.path),
         routeName: applyNamePrefix(options.namePrefix, route.routeName),
         middleware: finalMiddleware,
         withoutMiddleware: [...groupWithout, ...routeWithout],
         constraints: [...groupConstraints, ...route.constraints],
-        domainPattern: translatedDomain ?? route.domainPattern,
+        domainPattern: domain ?? route.domainPattern,
       });
     }
   }
 
+  // Type assertion needed because TypeScript can't statically verify the complex conditional return type at definition time,
+  // but the runtime behavior correctly produces the expected type structure
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return createRoutes(flatRoutes) as any;
 }
 
