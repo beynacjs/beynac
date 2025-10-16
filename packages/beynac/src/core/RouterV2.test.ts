@@ -21,6 +21,7 @@ import {
   post,
   put,
   redirect,
+  RouteRegistry,
   RouterV2,
   type Routes,
 } from "./RouterV2";
@@ -953,8 +954,6 @@ describe("multi-method routes", () => {
 
 describe("route URL generation", () => {
   test("generates URL for named route without parameters", () => {
-    const { router } = createRouter();
-
     const route = get(
       "/users",
       {
@@ -965,14 +964,12 @@ describe("route URL generation", () => {
       { name: "users.index" },
     );
 
-    router.register(route);
+    const registry = new RouteRegistry(route);
 
-    expect(router.routeUrl("users.index")).toBe("/users");
+    expect(registry.url("users.index")).toBe("/users");
   });
 
   test("generates URL for named route with parameters", () => {
-    const { router } = createRouter();
-
     const route = get(
       "/users/:id",
       {
@@ -983,15 +980,13 @@ describe("route URL generation", () => {
       { name: "users.show" },
     );
 
-    router.register(route);
+    const registry = new RouteRegistry(route);
 
-    expect(router.routeUrl("users.show", { id: 123 })).toBe("/users/123");
-    expect(router.routeUrl("users.show", { id: "abc" })).toBe("/users/abc");
+    expect(registry.url("users.show", { id: 123 })).toBe("/users/123");
+    expect(registry.url("users.show", { id: "abc" })).toBe("/users/abc");
   });
 
   test("generates URL for route with multiple parameters", () => {
-    const { router } = createRouter();
-
     const route = get(
       "/posts/:postId/comments/:commentId",
       {
@@ -1002,22 +997,30 @@ describe("route URL generation", () => {
       { name: "posts.comments.show" },
     );
 
-    router.register(route);
+    const registry = new RouteRegistry(route);
 
-    expect(router.routeUrl("posts.comments.show", { postId: 42, commentId: 7 })).toBe(
+    expect(registry.url("posts.comments.show", { postId: 42, commentId: 7 })).toBe(
       "/posts/42/comments/7",
     );
   });
 
   test("throws error for non-existent route name", () => {
-    const { router } = createRouter();
+    const route = get(
+      "/users",
+      {
+        handle() {
+          return new Response();
+        },
+      },
+      { name: "users.index" },
+    );
 
-    expect(() => router.routeUrl("non.existent")).toThrow('Route "non.existent" not found');
+    const registry = new RouteRegistry(route);
+
+    expect(() => registry.url("non.existent" as any)).toThrow('Route "non.existent" not found');
   });
 
   test("generates URLs for routes in groups with namePrefix", () => {
-    const { router } = createRouter();
-
     const routes = group({ prefix: "/admin", namePrefix: "admin." }, [
       get(
         "/dashboard",
@@ -1039,15 +1042,13 @@ describe("route URL generation", () => {
       ),
     ]);
 
-    router.register(routes);
+    const registry = new RouteRegistry(routes);
 
-    expect(router.routeUrl("admin.dashboard")).toBe("/admin/dashboard");
-    expect(router.routeUrl("admin.users.show", { id: 456 })).toBe("/admin/users/456");
+    expect(registry.url("admin.dashboard")).toBe("/admin/dashboard");
+    expect(registry.url("admin.users.show", { id: 456 })).toBe("/admin/users/456");
   });
 
   test("generates URLs for routes in nested groups", () => {
-    const { router } = createRouter();
-
     const userRoutes = group({ prefix: "/users", namePrefix: "users." }, [
       get(
         "/",
@@ -1071,18 +1072,18 @@ describe("route URL generation", () => {
 
     const apiRoutes = group({ prefix: "/api", namePrefix: "api." }, [userRoutes]);
 
-    router.register(apiRoutes);
+    const registry = new RouteRegistry(apiRoutes);
 
-    expect(router.routeUrl("api.users.index")).toBe("/api/users");
-    expect(router.routeUrl("api.users.show", { id: 789 })).toBe("/api/users/789");
+    expect(registry.url("api.users.index")).toBe("/api/users");
+    expect(registry.url("api.users.show", { id: 789 })).toBe("/api/users/789");
   });
 });
 
 // ============================================================================
-// Typed RouteGroup.url() Method
+// RouteRegistry Typed Method
 // ============================================================================
 
-describe("RouteGroup.url() typed method", () => {
+describe("RouteRegistry typed method", () => {
   test("generates URL for route without parameters", () => {
     const routes = group({ namePrefix: "users." }, [
       get(
@@ -1096,7 +1097,9 @@ describe("RouteGroup.url() typed method", () => {
       ),
     ]);
 
-    expect(routes.url("users.index")).toBe("/users");
+    const registry = new RouteRegistry(routes);
+
+    expect(registry.url("users.index")).toBe("/users");
   });
 
   test("generates URL for route with single parameter", () => {
@@ -1112,8 +1115,10 @@ describe("RouteGroup.url() typed method", () => {
       ),
     ]);
 
-    expect(routes.url("users.show", { id: 123 })).toBe("/users/123");
-    expect(routes.url("users.show", { id: "abc" })).toBe("/users/abc");
+    const registry = new RouteRegistry(routes);
+
+    expect(registry.url("users.show", { id: 123 })).toBe("/users/123");
+    expect(registry.url("users.show", { id: "abc" })).toBe("/users/abc");
   });
 
   test("generates URL for route with multiple parameters", () => {
@@ -1129,7 +1134,9 @@ describe("RouteGroup.url() typed method", () => {
       ),
     ]);
 
-    expect(routes.url("posts.comments", { postId: 42, commentId: 7 })).toBe(
+    const registry = new RouteRegistry(routes);
+
+    expect(registry.url("posts.comments", { postId: 42, commentId: 7 })).toBe(
       "/posts/42/comments/7",
     );
   });
@@ -1158,8 +1165,10 @@ describe("RouteGroup.url() typed method", () => {
 
     const apiRoutes = group({ prefix: "/api", namePrefix: "api." }, [userRoutes]);
 
-    expect(apiRoutes.url("api.users.index")).toBe("/api/users");
-    expect(apiRoutes.url("api.users.show", { id: 789 })).toBe("/api/users/789");
+    const registry = new RouteRegistry(apiRoutes);
+
+    expect(registry.url("api.users.index")).toBe("/api/users");
+    expect(registry.url("api.users.show", { id: 789 })).toBe("/api/users/789");
   });
 
   test("throws error for non-existent route name", () => {
@@ -1175,7 +1184,9 @@ describe("RouteGroup.url() typed method", () => {
       ),
     ]);
 
-    expect(() => routes.url("users.nonexistent" as any)).toThrow('Route "users.nonexistent" not found');
+    const registry = new RouteRegistry(routes);
+
+    expect(() => registry.url("users.nonexistent" as any)).toThrow('Route "users.nonexistent" not found');
   });
 
   // ============================================================================
@@ -1199,7 +1210,8 @@ describe("RouteGroup.url() typed method", () => {
     expectTypeOf(routes).toMatchTypeOf<Routes<{ "users.index": never }>>();
 
     // This should compile
-    routes.url("users.index");
+    const registry = new RouteRegistry(routes);
+    registry.url("users.index");
   });
 
   test("type inference: route with single parameter", () => {
@@ -1219,8 +1231,9 @@ describe("RouteGroup.url() typed method", () => {
     expectTypeOf(routes).toMatchTypeOf<Routes<{ "users.show": "id" }>>();
 
     // These should compile
-    routes.url("users.show", { id: "123" });
-    routes.url("users.show", { id: 456 });
+    const registry = new RouteRegistry(routes);
+    registry.url("users.show", { id: "123" });
+    registry.url("users.show", { id: 456 });
   });
 
   test("type inference: route with multiple parameters", () => {
@@ -1240,7 +1253,8 @@ describe("RouteGroup.url() typed method", () => {
     expectTypeOf(routes).toMatchTypeOf<Routes<{ "posts.comments": "postId" | "commentId" }>>();
 
     // This should compile
-    routes.url("posts.comments", { postId: "1", commentId: "2" });
+    const registry = new RouteRegistry(routes);
+    registry.url("posts.comments", { postId: "1", commentId: "2" });
   });
 
   test("type inference: multiple routes with different params", () => {
@@ -1284,9 +1298,10 @@ describe("RouteGroup.url() typed method", () => {
     >();
 
     // All these should compile
-    routes.url("users.index");
-    routes.url("users.show", { id: "123" });
-    routes.url("users.posts", { id: "1", postId: "2" });
+    const registry = new RouteRegistry(routes);
+    registry.url("users.index");
+    registry.url("users.show", { id: "123" });
+    registry.url("users.posts", { id: "1", postId: "2" });
   });
 
   test("type inference: nested groups propagate name prefix", () => {
@@ -1322,8 +1337,9 @@ describe("RouteGroup.url() typed method", () => {
     >();
 
     // These should compile
-    apiRoutes.url("api.users.index");
-    apiRoutes.url("api.users.show", { id: "789" });
+    const registry = new RouteRegistry(apiRoutes);
+    registry.url("api.users.index");
+    registry.url("api.users.show", { id: "789" });
   });
 
   test("type inference: mixed groups and routes", () => {
@@ -1371,8 +1387,9 @@ describe("RouteGroup.url() typed method", () => {
     >();
 
     // All these should compile
-    routes.url("admin.dashboard");
-    routes.url("admin.posts.index");
-    routes.url("admin.posts.show", { id: "123" });
+    const registry = new RouteRegistry(routes);
+    registry.url("admin.dashboard");
+    registry.url("admin.posts.index");
+    registry.url("admin.posts.show", { id: "123" });
   });
 });

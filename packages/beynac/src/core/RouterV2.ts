@@ -44,17 +44,9 @@ export interface RouteDefinition {
 /**
  * Collection of routes with type-tracked name→params map
  */
-export interface Routes<NameParamsMap extends Record<string, string> = {}> {
-  readonly __nameParamsMap?: NameParamsMap; // Phantom type for type inference
+export interface Routes<Params extends Record<string, string> = {}> {
+  readonly __nameParamsMap?: Params; // Phantom type for type inference
   readonly routes: readonly RouteDefinition[]; // Flat array of route definitions
-
-  /** Generate a URL from a named route */
-  url<N extends keyof NameParamsMap & string>(
-    name: N,
-    ...args: NameParamsMap[N] extends never
-      ? [] | [params?: ParamsObject<NameParamsMap[N]>]
-      : [params: ParamsObject<NameParamsMap[N]>]
-  ): string;
 }
 
 /**
@@ -154,6 +146,18 @@ type PrependNamePrefix<
  */
 type ParamsObject<U extends string> = U extends never ? {} : { [K in U]: string | number };
 
+/**
+ * Type-safe URL generation function
+ * - Routes without params: url("route.name")
+ * - Routes with params: url("route.name", { id: 123 }) - params required by TypeScript
+ */
+export type UrlFunction<Params extends Record<string, string>> = <N extends keyof Params & string>(
+  name: N,
+  ...args: Params[N] extends never
+    ? [] | [params?: ParamsObject<Params[N]>]
+    : [params: ParamsObject<Params[N]>]
+) => string;
+
 // ============================================================================
 // Constraint Helpers
 // ============================================================================
@@ -168,7 +172,8 @@ export const isAlpha: RegExp = /^[a-zA-Z]+$/;
 export const isAlphaNumeric: RegExp = /^[a-zA-Z0-9]+$/;
 
 /** Constraint: parameter must be UUID v4 */
-export const isUuid: RegExp = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export const isUuid: RegExp =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /** Constraint: parameter must be ULID */
 export const isUlid: RegExp = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
@@ -185,18 +190,34 @@ export function isIn(values: readonly string[]): RegExp {
 /**
  * Create a Routes collection from an array of RouteDefinition
  */
-function createRoutes<NameParamsMap extends Record<string, string> = {}>(
+function createRoutes<Params extends Record<string, string> = {}>(
   routes: RouteDefinition[],
-): Routes<NameParamsMap> {
-  return {
-    routes,
-    url<N extends keyof NameParamsMap & string>(
-      name: N,
-      ...args: NameParamsMap[N] extends never
-        ? [] | [params?: ParamsObject<NameParamsMap[N]>]
-        : [params: ParamsObject<NameParamsMap[N]>]
-    ): string {
-      const route = routes.find((r) => r.routeName === name);
+): Routes<Params> {
+  return { routes };
+}
+
+// ============================================================================
+// Route Registry
+// ============================================================================
+
+/**
+ * Registry for named routes with type-safe URL generation
+ */
+export class RouteRegistry<Params extends Record<string, string> = {}> {
+  readonly url: UrlFunction<Params>;
+  private namedRoutes = new Map<string, RouteDefinition>();
+
+  constructor(routes: Routes<Params>) {
+    // Build map of named routes
+    for (const route of routes.routes) {
+      if (route.routeName) {
+        this.namedRoutes.set(route.routeName, route);
+      }
+    }
+
+    // Create type-safe URL generation function
+    this.url = (name, ...args) => {
+      const route = this.namedRoutes.get(name);
       if (!route) {
         throw new Error(`Route "${name}" not found`);
       }
@@ -207,8 +228,8 @@ function createRoutes<NameParamsMap extends Record<string, string> = {}>(
         path = path.replace(`:${key}`, String(value));
       }
       return path;
-    },
-  };
+    };
+  }
 }
 
 // ============================================================================
@@ -516,10 +537,7 @@ export function redirect<const Path extends string>(
   return createRoutes([route]);
 }
 
-export function permanentRedirect<const Path extends string>(
-  from: Path,
-  to: string,
-): Routes<{}> {
+export function permanentRedirect<const Path extends string>(from: Path, to: string): Routes<{}> {
   return redirect(from, to, 301);
 }
 
