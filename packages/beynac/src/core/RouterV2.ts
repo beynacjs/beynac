@@ -1,5 +1,6 @@
 import { addRoute, createRouter, findRoute, RouterContext } from "rou3";
 import type { Container } from "../container";
+import { RouteParams } from "../contracts/Router";
 import type { NoArgConstructor } from "../utils";
 import { arrayWrap } from "../utils";
 import type { Controller } from "./Controller";
@@ -8,7 +9,7 @@ import type { MiddlewareReference } from "./Middleware";
 // ============================================================================
 // Type Definitions
 // ============================================================================
-
+type Foo = Record<never, string>;
 /**
  * A route handler can be a Controller instance or class constructor
  */
@@ -39,10 +40,11 @@ interface RouteConfig {
 }
 
 /**
- * A route with type-tracked name
+ * A route with type-tracked name and path
  */
-export class Route<Name extends string = never> {
+export class Route<Name extends string = never, Path extends string = string> {
   readonly __name!: Name;
+  readonly __path!: Path;
 
   methods: readonly string[];
   path: string;
@@ -68,7 +70,9 @@ export class Route<Name extends string = never> {
     if (config.viewResponse !== undefined) this.viewResponse = config.viewResponse;
   }
 
-  #copy<N extends string = Name>(overrides: Partial<RouteConfig> = {}): Route<N> {
+  #copy<N extends string = Name, P extends string = Path>(
+    overrides: Partial<RouteConfig> = {},
+  ): Route<N, P> {
     const newConfig: RouteConfig = {
       methods: overrides.methods ?? this.methods,
       path: overrides.path ?? this.path,
@@ -96,25 +100,25 @@ export class Route<Name extends string = never> {
     if (viewResponse !== undefined) {
       newConfig.viewResponse = viewResponse;
     }
-    // Type assertion needed: Route constructor returns Route<never> but we need Route<N>
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- Route constructor defaults to Route<never>, assertion needed for generic type parameter
-    return new Route(newConfig) as Route<N>;
+    // Type assertion needed: Route constructor returns Route<never, string> but we need Route<N, P>
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- Route constructor defaults to Route<never>, assertion needed for generic type parameters
+    return new Route(newConfig) as Route<N, P>;
   }
 
   /** Assign a name to this route */
-  name<const N extends string>(name: N): Route<N> {
-    return this.#copy<N>({ routeName: name });
+  name<const N extends string>(name: N): Route<N, Path> {
+    return this.#copy<N, Path>({ routeName: name });
   }
 
   /** Add middleware to this route */
-  middleware(middleware: MiddlewareReference | MiddlewareReference[]): Route<Name> {
+  middleware(middleware: MiddlewareReference | MiddlewareReference[]): Route<Name, Path> {
     return this.#copy({
       middlewareStack: [...this.middlewareStack, ...arrayWrap(middleware)],
     });
   }
 
   /** Apply regex constraint to a parameter */
-  where(param: string, pattern: string | RegExp): Route<Name> {
+  where(param: string, pattern: string | RegExp): Route<Name, Path> {
     const regex = typeof pattern === "string" ? new RegExp(pattern) : pattern;
     return this.#copy({
       constraints: [...this.constraints, { param, pattern: regex }],
@@ -122,22 +126,22 @@ export class Route<Name extends string = never> {
   }
 
   /** Constraint: parameter must be numeric */
-  whereNumber(param: string): Route<Name> {
+  whereNumber(param: string): Route<Name, Path> {
     return this.where(param, /^\d+$/);
   }
 
   /** Constraint: parameter must be alphabetic */
-  whereAlpha(param: string): Route<Name> {
+  whereAlpha(param: string): Route<Name, Path> {
     return this.where(param, /^[a-zA-Z]+$/);
   }
 
   /** Constraint: parameter must be alphanumeric */
-  whereAlphaNumeric(param: string): Route<Name> {
+  whereAlphaNumeric(param: string): Route<Name, Path> {
     return this.where(param, /^[a-zA-Z0-9]+$/);
   }
 
   /** Constraint: parameter must be UUID v4 */
-  whereUuid(param: string): Route<Name> {
+  whereUuid(param: string): Route<Name, Path> {
     return this.where(
       param,
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
@@ -145,24 +149,24 @@ export class Route<Name extends string = never> {
   }
 
   /** Constraint: parameter must be ULID */
-  whereUlid(param: string): Route<Name> {
+  whereUlid(param: string): Route<Name, Path> {
     return this.where(param, /^[0-9A-HJKMNP-TV-Z]{26}$/i);
   }
 
   /** Constraint: parameter must be one of the given values */
-  whereIn(param: string, values: readonly string[]): Route<Name> {
+  whereIn(param: string, values: readonly string[]): Route<Name, Path> {
     const pattern = new RegExp(`^(${values.join("|")})$`);
     return this.where(param, pattern);
   }
 
   /** Restrict route to specific domain/subdomain pattern */
-  domain(pattern: string): Route<Name> {
+  domain(pattern: string): Route<Name, Path> {
     return this.#copy({ domainPattern: pattern });
   }
 
   /** Apply group options to this route */
-  applyGroupOptions(options: RouteGroupOptions<string>): Route<string> {
-    let result: Route<string> = this as unknown as Route<string>;
+  applyGroupOptions(options: RouteGroupOptions<string>): Route<string, string> {
+    let result: Route<string, string> = this as unknown as Route<string, string>;
 
     // Apply prefix
     if (options.prefix) {
@@ -216,20 +220,69 @@ export interface RouteOptions<Name extends string = never> {
   domain?: string;
 }
 
+// ============================================================================
+// Type Helper Utilities
+// ============================================================================
+
 /**
- * Collection of routes with aggregated names
+ * Convert union to intersection type
+ * Used for merging multiple route maps into one
  */
-export class RouteGroup<Names extends string = never> {
-  readonly __names!: Names;
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void
+  ? I
+  : never;
+
+/**
+ * Extract name→params map from a single route
+ */
+type RouteToMap<R> =
+  R extends Route<infer N, infer P> ? (N extends never ? {} : { [K in N]: RouteParams<P> }) : {};
+
+/**
+ * Merge all route maps from an array of routes/groups
+ */
+type MergeRouteInfo<Routes extends readonly any[]> = UnionToIntersection<
+  Routes[number] extends Route<any, any>
+    ? RouteToMap<Routes[number]>
+    : Routes[number] extends RouteGroup<infer M>
+      ? M
+      : {}
+>;
+
+/**
+ * Prepend a prefix to all keys in a map
+ */
+type PrependPrefixToMap<Map extends Record<string, any>, Prefix extends string> = Prefix extends ""
+  ? Map
+  : {
+      [K in keyof Map as K extends string ? `${Prefix}${K}` : never]: Map[K];
+    };
+
+/**
+ * Widen parameter values from string to string | number for url() method convenience
+ */
+type WidenParams<ParamsMap extends Record<string, any>> = {
+  [K in keyof ParamsMap]: {
+    [P in keyof ParamsMap[K]]: string | number;
+  };
+};
+
+/**
+ * Collection of routes with aggregated name→params map
+ */
+export class RouteGroup<
+  NameParamsMap extends Record<string, Record<string, string | number>> = Record<never, never>,
+> {
+  readonly __nameParamsMap!: NameParamsMap;
 
   constructor(
-    private routes: readonly (Route<string> | RouteGroup<string>)[],
+    private routes: readonly (Route<string, string> | RouteGroup<any>)[],
     private options: RouteGroupOptions<string> = {},
   ) {}
 
   /** Internal method to get all routes */
-  _getRoutes(): Route<string>[] {
-    const allRoutes: Route<string>[] = [];
+  _getRoutes(): Route<string, string>[] {
+    const allRoutes: Route<string, string>[] = [];
 
     for (const route of this.routes) {
       if (route instanceof Route) {
@@ -244,6 +297,27 @@ export class RouteGroup<Names extends string = never> {
     }
 
     return allRoutes;
+  }
+
+  /** Generate a URL from a named route in this group */
+  url<N extends keyof NameParamsMap & string>(
+    name: N,
+    ...args: {} extends NameParamsMap[N]
+      ? [params?: WidenParams<NameParamsMap>[N]]
+      : [params: WidenParams<NameParamsMap>[N]]
+  ): string {
+    const routes = this._getRoutes();
+    const route = routes.find((r) => r.routeName === name);
+    if (!route) {
+      throw new Error(`Route "${name}" not found`);
+    }
+
+    const params = args[0] || {};
+    let path = route.path;
+    for (const [key, value] of Object.entries(params)) {
+      path = path.replace(`:${key}`, String(value));
+    }
+    return path;
   }
 }
 
@@ -260,18 +334,18 @@ const globalConstraints = new Map<string, RegExp>();
  * RouterV2 - New routing implementation
  */
 export class RouterV2 {
-  private router: RouterContext<{ route: Route<string> }>;
-  private fallbackRoute: Route<string> | undefined;
-  private namedRoutes = new Map<string, Route<string>>();
+  private router: RouterContext<{ route: Route<string, string> }>;
+  private fallbackRoute: Route<string, string> | undefined;
+  private namedRoutes = new Map<string, Route<string, string>>();
 
   constructor(private container: Container) {
-    this.router = createRouter<{ route: Route<string> }>();
+    this.router = createRouter<{ route: Route<string, string> }>();
   }
 
   /**
    * Register routes with the router
    */
-  register(routes: (Route<string> | RouteGroup<string>)[]): void {
+  register(routes: (Route<string, string> | RouteGroup<any>)[]): void {
     for (const item of routes) {
       if (item instanceof Route) {
         this.#registerRoute(item);
@@ -283,7 +357,7 @@ export class RouterV2 {
     }
   }
 
-  #registerRoute(route: Route<string>): void {
+  #registerRoute(route: Route<string, string>): void {
     // Handle fallback routes separately
     if (route.isFallback) {
       this.fallbackRoute = route;
@@ -356,7 +430,7 @@ export class RouterV2 {
     return regex.test(hostname);
   }
 
-  #checkConstraints(route: Route<string>, params: Record<string, string>): boolean {
+  #checkConstraints(route: Route<string, string>, params: Record<string, string>): boolean {
     // Check route-specific constraints
     for (const constraint of route.constraints) {
       const value = params[constraint.param];
@@ -377,7 +451,7 @@ export class RouterV2 {
   }
 
   async #executeRoute(
-    route: Route<string>,
+    route: Route<string, string>,
     request: Request,
     params: Record<string, string>,
   ): Promise<Response> {
@@ -468,32 +542,19 @@ export class RouterV2 {
 // Global Helper Functions
 // ============================================================================
 
-/**
- * Helper type to extract all route names from an array
- */
-type ExtractNames<Routes extends readonly (Route<string> | RouteGroup<string>)[]> =
-  Routes[number] extends Route<infer Name> | RouteGroup<infer Name> ? Name : never;
-
-/**
- * Helper type to prepend a prefix to all names in a union
- */
-type PrependPrefix<Names extends string, Prefix extends string> = Prefix extends ""
-  ? Names
-  : `${Prefix}${Names}`;
-
 // --- HTTP Method Routes ---
 
 /**
  * Helper to create a route with common logic
  */
-function createRoute<const Name extends string = never>(
+function createRoute<const Path extends string, const Name extends string = never>(
   method: string | readonly string[],
-  path: string,
+  path: Path,
   handler: RouteHandler,
   options?: RouteOptions<Name>,
-): Route<Name> {
+): Route<Name, Path> {
   const methods = typeof method === "string" ? [method] : method;
-  let route = new Route({
+  let route: Route<any, Path> = new Route({
     methods,
     path,
     handler,
@@ -507,17 +568,17 @@ function createRoute<const Name extends string = never>(
   if (options?.domain) {
     route = route.domain(options.domain);
   }
-  return route as Route<Name>;
+  return route as Route<Name, Path>;
 }
 
 /**
  * Type for HTTP method route functions
  */
-type RouteMethodFunction = <const Name extends string = never>(
-  path: string,
+type RouteMethodFunction = <const Path extends string, const Name extends string = never>(
+  path: Path,
   handler: RouteHandler,
   options?: RouteOptions<Name>,
-) => Route<Name>;
+) => Route<Name, Path>;
 
 export const get: RouteMethodFunction = (path, handler, options) =>
   createRoute("GET", path, handler, options);
@@ -539,20 +600,20 @@ export const options: RouteMethodFunction = (path, handler, options) =>
 
 // --- Multi-Method Routes ---
 
-export function match<const Name extends string = never>(
+export function match<const Path extends string, const Name extends string = never>(
   methods: readonly string[],
-  path: string,
+  path: Path,
   handler: RouteHandler,
   options?: RouteOptions<Name>,
-): Route<Name> {
+): Route<Name, Path> {
   return createRoute(methods, path, handler, options);
 }
 
-export function any<const Name extends string = never>(
-  path: string,
+export function any<const Path extends string, const Name extends string = never>(
+  path: Path,
   handler: RouteHandler,
   options?: RouteOptions<Name>,
-): Route<Name> {
+): Route<Name, Path> {
   const methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"];
   return match(methods, path, handler, options);
 }
@@ -565,7 +626,11 @@ export function any<const Name extends string = never>(
  */
 const placeholderHandler: (request: Request) => Response = () => new Response();
 
-export function redirect(from: string, to: string, status = 302): Route<never> {
+export function redirect<const Path extends string>(
+  from: Path,
+  to: string,
+  status = 302,
+): Route<never, Path> {
   return new Route({
     methods: ["GET"],
     path: from,
@@ -574,11 +639,14 @@ export function redirect(from: string, to: string, status = 302): Route<never> {
   });
 }
 
-export function permanentRedirect(from: string, to: string): Route<never> {
+export function permanentRedirect<const Path extends string>(
+  from: Path,
+  to: string,
+): Route<never, Path> {
   return redirect(from, to, 301);
 }
 
-export function fallback(handler: RouteHandler): Route<never> {
+export function fallback(handler: RouteHandler): Route<never, "/*"> {
   return new Route({
     methods: ["GET"],
     path: "/*",
@@ -587,7 +655,10 @@ export function fallback(handler: RouteHandler): Route<never> {
   });
 }
 
-export function view(path: string, content: string | Response): Route<never> {
+export function view<const Path extends string>(
+  path: Path,
+  content: string | Response,
+): Route<never, Path> {
   const response =
     typeof content === "string"
       ? new Response(content, { headers: { "Content-Type": "text/html" } })
@@ -604,12 +675,12 @@ export function view(path: string, content: string | Response): Route<never> {
 // --- Route Grouping ---
 
 export function group<
-  const Routes extends readonly (Route<string> | RouteGroup<string>)[],
+  const Routes extends readonly (Route<any, any> | RouteGroup<any>)[],
   const NamePrefix extends string = "",
 >(
   options: RouteGroupOptions<NamePrefix>,
   routesOrCallback: Routes | (() => Routes),
-): RouteGroup<PrependPrefix<ExtractNames<Routes>, NamePrefix>> {
+): RouteGroup<PrependPrefixToMap<MergeRouteInfo<Routes>, NamePrefix>> {
   const routes = typeof routesOrCallback === "function" ? routesOrCallback() : routesOrCallback;
   return new RouteGroup(routes, options);
 }

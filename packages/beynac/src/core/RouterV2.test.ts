@@ -1052,3 +1052,237 @@ describe("route URL generation", () => {
     expect(router.routeUrl("api.users.show", { id: 789 })).toBe("/api/users/789");
   });
 });
+
+// ============================================================================
+// Typed RouteGroup.url() Method
+// ============================================================================
+
+describe("RouteGroup.url() typed method", () => {
+  test("generates URL for route without parameters", () => {
+    const routes = group({ namePrefix: "users." }, [
+      get("/users", {
+        handle() {
+          return new Response();
+        },
+      }).name("index"),
+    ]);
+
+    expect(routes.url("users.index")).toBe("/users");
+  });
+
+  test("generates URL for route with single parameter", () => {
+    const routes = group({ namePrefix: "users." }, [
+      get("/users/:id", {
+        handle() {
+          return new Response();
+        },
+      }).name("show"),
+    ]);
+
+    expect(routes.url("users.show", { id: 123 })).toBe("/users/123");
+    expect(routes.url("users.show", { id: "abc" })).toBe("/users/abc");
+  });
+
+  test("generates URL for route with multiple parameters", () => {
+    const routes = group({ namePrefix: "posts." }, [
+      get("/posts/:postId/comments/:commentId", {
+        handle() {
+          return new Response();
+        },
+      }).name("comments"),
+    ]);
+
+    expect(routes.url("posts.comments", { postId: 42, commentId: 7 })).toBe(
+      "/posts/42/comments/7",
+    );
+  });
+
+  test("works with nested groups", () => {
+    const userRoutes = group({ prefix: "/users", namePrefix: "users." }, [
+      get("/", {
+        handle() {
+          return new Response();
+        },
+      }).name("index"),
+      get("/:id", {
+        handle() {
+          return new Response();
+        },
+      }).name("show"),
+    ]);
+
+    const apiRoutes = group({ prefix: "/api", namePrefix: "api." }, [userRoutes]);
+
+    expect(apiRoutes.url("api.users.index")).toBe("/api/users");
+    expect(apiRoutes.url("api.users.show", { id: 789 })).toBe("/api/users/789");
+  });
+
+  test("throws error for non-existent route name", () => {
+    const routes = group({ namePrefix: "users." }, [
+      get("/users", {
+        handle() {
+          return new Response();
+        },
+      }).name("index"),
+    ]);
+
+    expect(() => routes.url("users.nonexistent" as any)).toThrow('Route "users.nonexistent" not found');
+  });
+
+  // ============================================================================
+  // Type Safety Tests
+  // ============================================================================
+
+  test("type inference: route without parameters", () => {
+    const routes = group({ namePrefix: "users." }, [
+      get("/users", {
+        handle() {
+          return new Response();
+        },
+      }).name("index"),
+    ]);
+
+    // Should infer empty params object
+    expectTypeOf(routes).toMatchTypeOf<RouteGroup<{ "users.index": {} }>>();
+
+    // These should compile
+    routes.url("users.index");
+    routes.url("users.index", {});
+  });
+
+  test("type inference: route with single parameter", () => {
+    const routes = group({ namePrefix: "users." }, [
+      get("/users/:id", {
+        handle() {
+          return new Response();
+        },
+      }).name("show"),
+    ]);
+
+    // Should infer { id: string }
+    expectTypeOf(routes).toMatchTypeOf<RouteGroup<{ "users.show": { id: string } }>>();
+
+    // These should compile
+    routes.url("users.show", { id: "123" });
+    routes.url("users.show", { id: 456 });
+  });
+
+  test("type inference: route with multiple parameters", () => {
+    const routes = group({ namePrefix: "posts." }, [
+      get("/posts/:postId/comments/:commentId", {
+        handle() {
+          return new Response();
+        },
+      }).name("comments"),
+    ]);
+
+    // Should infer both params
+    expectTypeOf(routes).toMatchTypeOf<
+      RouteGroup<{ "posts.comments": { postId: string; commentId: string } }>
+    >();
+
+    // This should compile
+    routes.url("posts.comments", { postId: "1", commentId: "2" });
+  });
+
+  test("type inference: multiple routes with different params", () => {
+    const routes = group({ namePrefix: "users." }, [
+      get("/users", {
+        handle() {
+          return new Response();
+        },
+      }).name("index"),
+      get("/users/:id", {
+        handle() {
+          return new Response();
+        },
+      }).name("show"),
+      get("/users/:id/posts/:postId", {
+        handle() {
+          return new Response();
+        },
+      }).name("posts"),
+    ]);
+
+    // Should infer all route names and their params
+    expectTypeOf(routes).toMatchTypeOf<
+      RouteGroup<{
+        "users.index": {};
+        "users.show": { id: string };
+        "users.posts": { id: string; postId: string };
+      }>
+    >();
+
+    // All these should compile
+    routes.url("users.index");
+    routes.url("users.show", { id: "123" });
+    routes.url("users.posts", { id: "1", postId: "2" });
+  });
+
+  test("type inference: nested groups propagate name prefix", () => {
+    const userRoutes = group({ prefix: "/users", namePrefix: "users." }, [
+      get("/", {
+        handle() {
+          return new Response();
+        },
+      }).name("index"),
+      get("/:id", {
+        handle() {
+          return new Response();
+        },
+      }).name("show"),
+    ]);
+
+    const apiRoutes = group({ prefix: "/api", namePrefix: "api." }, [userRoutes]);
+
+    // Should infer prefixed names
+    expectTypeOf(apiRoutes).toMatchTypeOf<
+      RouteGroup<{
+        "api.users.index": {};
+        "api.users.show": { id: string };
+      }>
+    >();
+
+    // These should compile
+    apiRoutes.url("api.users.index");
+    apiRoutes.url("api.users.show", { id: "789" });
+  });
+
+  test("type inference: mixed groups and routes", () => {
+    const postRoutes = group({ namePrefix: "posts." }, [
+      get("/posts", {
+        handle() {
+          return new Response();
+        },
+      }).name("index"),
+      get("/posts/:id", {
+        handle() {
+          return new Response();
+        },
+      }).name("show"),
+    ]);
+
+    const routes = group({ namePrefix: "admin." }, [
+      get("/dashboard", {
+        handle() {
+          return new Response();
+        },
+      }).name("dashboard"),
+      postRoutes,
+    ]);
+
+    // Should merge both direct routes and nested group routes
+    expectTypeOf(routes).toMatchTypeOf<
+      RouteGroup<{
+        "admin.dashboard": {};
+        "admin.posts.index": {};
+        "admin.posts.show": { id: string };
+      }>
+    >();
+
+    // All these should compile
+    routes.url("admin.dashboard");
+    routes.url("admin.posts.index");
+    routes.url("admin.posts.show", { id: "123" });
+  });
+});
