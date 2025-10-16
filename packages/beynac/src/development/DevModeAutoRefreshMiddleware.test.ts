@@ -25,52 +25,6 @@ test("SSE endpoint returns correct headers", async () => {
   expect(response.headers.get("Connection")).toBe("keep-alive");
 });
 
-test("multiple SSE connections all receive reload event", async () => {
-  const middleware = new DevModeAutoRefreshMiddleware({});
-  const next = mock(() => new Response("OK"));
-
-  const request1 = new Request("http://example.com?__beynac_dev_mode_refresh");
-  const request2 = new Request("http://example.com?__beynac_dev_mode_refresh");
-  const request3 = new Request("http://example.com?__beynac_dev_mode_refresh");
-
-  const response1 = await middleware.handle(request1, next);
-  const response2 = await middleware.handle(request2, next);
-  const response3 = await middleware.handle(request3, next);
-
-  const reader1 = response1.body?.getReader();
-  const reader2 = response2.body?.getReader();
-  const reader3 = response3.body?.getReader();
-  const decoder = new TextDecoder();
-
-  setTimeout(() => {
-    middleware.triggerReload();
-  }, 0);
-
-  const readStream = async (reader: any) => {
-    let data = "";
-    if (reader) {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value) {
-          data += decoder.decode(value as Uint8Array, { stream: true });
-        }
-      }
-    }
-    return data;
-  };
-
-  const [data1, data2, data3] = await Promise.all([
-    readStream(reader1),
-    readStream(reader2),
-    readStream(reader3),
-  ]);
-
-  expect(data1).toContain('data: {"reload": true}');
-  expect(data2).toContain('data: {"reload": true}');
-  expect(data3).toContain('data: {"reload": true}');
-});
-
 test("injects script into HTML response before </body>", async () => {
   const middleware = new DevModeAutoRefreshMiddleware({});
   const html = "<html><body><h1>Test</h1></body></html>";

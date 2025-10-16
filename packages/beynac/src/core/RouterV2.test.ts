@@ -5,9 +5,14 @@ import type { Middleware } from "./Middleware";
 import {
   any,
   delete_,
-  fallback,
   get,
   group,
+  isAlpha,
+  isAlphaNumeric,
+  isIn,
+  isNumber,
+  isUlid,
+  isUuid,
   match,
   options,
   patch,
@@ -17,9 +22,7 @@ import {
   put,
   redirect,
   RouterV2,
-  view,
-  type Route,
-  type RouteGroup,
+  type Routes,
 } from "./RouterV2";
 
 function createRouter() {
@@ -42,7 +45,7 @@ describe(RouterV2, () => {
       },
     });
 
-    router.register([route]);
+    router.register(route);
 
     const response = await router.handle(new Request("http://example.com/hello"));
     expect(await response.text()).toBe("Hello World");
@@ -57,7 +60,7 @@ describe(RouterV2, () => {
       },
     });
 
-    router.register([route]);
+    router.register(route);
 
     const response = await router.handle(
       new Request("http://example.com/submit", { method: "POST" }),
@@ -74,7 +77,7 @@ describe(RouterV2, () => {
       },
     });
 
-    router.register([route]);
+    router.register(route);
 
     const response = await router.handle(
       new Request("http://example.com/update", { method: "PUT" }),
@@ -91,7 +94,7 @@ describe(RouterV2, () => {
       },
     });
 
-    router.register([route]);
+    router.register(route);
 
     const response = await router.handle(
       new Request("http://example.com/patch", { method: "PATCH" }),
@@ -108,7 +111,7 @@ describe(RouterV2, () => {
       },
     });
 
-    router.register([route]);
+    router.register(route);
 
     const response = await router.handle(
       new Request("http://example.com/delete", { method: "DELETE" }),
@@ -125,7 +128,7 @@ describe(RouterV2, () => {
       },
     });
 
-    router.register([route]);
+    router.register(route);
 
     const response = await router.handle(
       new Request("http://example.com/cors", { method: "OPTIONS" }),
@@ -142,7 +145,7 @@ describe(RouterV2, () => {
       },
     });
 
-    router.register([route]);
+    router.register(route);
 
     const response = await router.handle(new Request("http://example.com/user/123"));
     expect(await response.text()).toBe("User ID: 123");
@@ -157,7 +160,7 @@ describe(RouterV2, () => {
       },
     });
 
-    router.register([route]);
+    router.register(route);
 
     const response = await router.handle(new Request("http://example.com/posts/42/comments/7"));
     expect(await response.text()).toBe("Post: 42, Comment: 7");
@@ -172,7 +175,7 @@ describe(RouterV2, () => {
       },
     });
 
-    router.register([route]);
+    router.register(route);
 
     const response = await router.handle(new Request("http://example.com/notfound"));
     expect(response.status).toBe(404);
@@ -188,7 +191,7 @@ describe(RouterV2, () => {
     const { router } = createRouter();
 
     const route = get("/test", TestController);
-    router.register([route]);
+    router.register(route);
 
     const response = await router.handle(new Request("http://example.com/test"));
     expect(await response.text()).toBe("From controller class");
@@ -204,7 +207,7 @@ describe(RouterV2, () => {
       },
     });
 
-    router.register([route]);
+    router.register(route);
 
     const response = await router.handle(new Request("http://example.com/async"));
     expect(await response.text()).toBe("Async response");
@@ -216,21 +219,6 @@ describe(RouterV2, () => {
 // ============================================================================
 
 describe("named routes", () => {
-  test("can name route with fluent API", async () => {
-    const { router } = createRouter();
-
-    const route = get("/users", {
-      handle() {
-        return new Response("Users");
-      },
-    }).name("users.index");
-
-    router.register([route]);
-
-    const response = await router.handle(new Request("http://example.com/users"));
-    expect(await response.text()).toBe("Users");
-  });
-
   test("can name route with options parameter", async () => {
     const { router } = createRouter();
 
@@ -244,21 +232,14 @@ describe("named routes", () => {
       { name: "users.show" },
     );
 
-    router.register([route]);
+    router.register(route);
 
     const response = await router.handle(new Request("http://example.com/users/123"));
     expect(await response.text()).toBe("User 123");
   });
 
   test("type inference for named routes", () => {
-    const route1 = get("/users", {
-      handle() {
-        return new Response();
-      },
-    }).name("users.index");
-
-    expectTypeOf(route1).toEqualTypeOf<Route<"users.index">>();
-
+    // Type inference only works when name is set at creation time
     const route2 = get(
       "/posts",
       {
@@ -269,7 +250,7 @@ describe("named routes", () => {
       { name: "posts.index" },
     );
 
-    expectTypeOf(route2).toEqualTypeOf<Route<"posts.index">>();
+    expectTypeOf(route2).toMatchTypeOf<Routes<{ "posts.index": never }>>();
   });
 });
 
@@ -278,31 +259,6 @@ describe("named routes", () => {
 // ============================================================================
 
 describe("middleware", () => {
-  test("executes middleware with fluent API", async () => {
-    const { router } = createRouter();
-    const log: string[] = [];
-
-    const middleware: Middleware = {
-      handle(request, next) {
-        log.push("middleware:before");
-        const response = next(request);
-        log.push("middleware:after");
-        return response;
-      },
-    };
-
-    const route = get("/test", {
-      handle() {
-        log.push("handler");
-        return new Response("OK");
-      },
-    }).middleware(middleware);
-
-    router.register([route]);
-
-    await router.handle(new Request("http://example.com/test"));
-    expect(log).toEqual(["middleware:before", "handler", "middleware:after"]);
-  });
 
   test("executes middleware with options parameter", async () => {
     const { router } = createRouter();
@@ -326,7 +282,7 @@ describe("middleware", () => {
       { name: "test", middleware },
     );
 
-    router.register([route]);
+    router.register(route);
 
     await router.handle(new Request("http://example.com/test"));
     expect(log).toEqual(["middleware", "handler"]);
@@ -354,16 +310,18 @@ describe("middleware", () => {
       },
     };
 
-    const route = get("/test", {
-      handle() {
-        log.push("handler");
-        return new Response("OK");
+    const route = get(
+      "/test",
+      {
+        handle() {
+          log.push("handler");
+          return new Response("OK");
+        },
       },
-    })
-      .middleware(middleware1)
-      .middleware(middleware2);
+      { middleware: [middleware1, middleware2] },
+    );
 
-    router.register([route]);
+    router.register(route);
 
     await router.handle(new Request("http://example.com/test"));
     expect(log).toEqual(["m1:before", "m2:before", "handler", "m2:after", "m1:after"]);
@@ -378,13 +336,17 @@ describe("middleware", () => {
       },
     };
 
-    const route = get("/protected", {
-      handle() {
-        return new Response("Should not be called");
+    const route = get(
+      "/protected",
+      {
+        handle() {
+          return new Response("Should not be called");
+        },
       },
-    }).middleware(authMiddleware);
+      { middleware: authMiddleware },
+    );
 
-    router.register([route]);
+    router.register(route);
 
     const response = await router.handle(new Request("http://example.com/protected"));
     expect(response.status).toBe(401);
@@ -406,13 +368,17 @@ describe("middleware", () => {
       },
     };
 
-    const route = get("/test", {
-      handle(req) {
-        return new Response(req.headers.get("X-Custom") || "Not found");
+    const route = get(
+      "/test",
+      {
+        handle(req) {
+          return new Response(req.headers.get("X-Custom") || "Not found");
+        },
       },
-    }).middleware(middleware);
+      { middleware },
+    );
 
-    router.register([route]);
+    router.register(route);
 
     const response = await router.handle(new Request("http://example.com/test"));
     expect(await response.text()).toBe("Modified");
@@ -440,7 +406,7 @@ describe("route groups", () => {
       }),
     ]);
 
-    router.register([routes]);
+    router.register(routes);
 
     const response1 = await router.handle(new Request("http://example.com/admin/dashboard"));
     expect(await response1.text()).toBe("Dashboard");
@@ -451,19 +417,29 @@ describe("route groups", () => {
 
   test("applies namePrefix to route names", () => {
     const routes = group({ namePrefix: "admin." }, [
-      get("/dashboard", {
-        handle() {
-          return new Response();
+      get(
+        "/dashboard",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("dashboard"),
-      get("/users", {
-        handle() {
-          return new Response();
+        { name: "dashboard" },
+      ),
+      get(
+        "/users",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("users"),
+        { name: "users" },
+      ),
     ]);
 
-    expectTypeOf(routes).toEqualTypeOf<RouteGroup<"admin.dashboard" | "admin.users">>();
+    expectTypeOf(routes).toMatchTypeOf<
+      Routes<{ "admin.dashboard": never; "admin.users": never }>
+    >();
   });
 
   test("applies middleware to all routes in group", async () => {
@@ -492,7 +468,7 @@ describe("route groups", () => {
       }),
     ]);
 
-    router.register([routes]);
+    router.register(routes);
 
     log.length = 0;
     await router.handle(new Request("http://example.com/api/v1"));
@@ -514,7 +490,7 @@ describe("route groups", () => {
       }),
     ]);
 
-    router.register([routes]);
+    router.register(routes);
 
     const response1 = await router.handle(new Request("http://api.example.com/status"));
     expect(await response1.text()).toBe("API Status");
@@ -524,24 +500,32 @@ describe("route groups", () => {
   });
 
   test("supports nested groups", async () => {
-    const { router } = createRouter();
+    const { router} = createRouter();
 
     const userRoutes = group({ prefix: "/users", namePrefix: "users." }, [
-      get("/", {
-        handle() {
-          return new Response("Users Index");
+      get(
+        "/",
+        {
+          handle() {
+            return new Response("Users Index");
+          },
         },
-      }).name("index"),
-      get("/:id", {
-        handle(_req, params) {
-          return new Response(`User ${params.id}`);
+        { name: "index" },
+      ),
+      get(
+        "/:id",
+        {
+          handle(_req, params) {
+            return new Response(`User ${params.id}`);
+          },
         },
-      }).name("show"),
+        { name: "show" },
+      ),
     ]);
 
     const apiRoutes = group({ prefix: "/api", namePrefix: "api." }, [userRoutes]);
 
-    router.register([apiRoutes]);
+    router.register(apiRoutes);
 
     const response1 = await router.handle(new Request("http://example.com/api/users/"));
     expect(await response1.text()).toBe("Users Index");
@@ -550,7 +534,9 @@ describe("route groups", () => {
     expect(await response2.text()).toBe("User 123");
 
     // Type check
-    expectTypeOf(apiRoutes).toEqualTypeOf<RouteGroup<"api.users.index" | "api.users.show">>();
+    expectTypeOf(apiRoutes).toMatchTypeOf<
+      Routes<{ "api.users.index": never; "api.users.show": "id" }>
+    >();
   });
 
   test("group with callback function", async () => {
@@ -564,7 +550,7 @@ describe("route groups", () => {
       }),
     ]);
 
-    router.register([routes]);
+    router.register(routes);
 
     const response = await router.handle(new Request("http://example.com/admin/dashboard"));
     expect(await response.text()).toBe("Dashboard");
@@ -579,13 +565,17 @@ describe("parameter constraints", () => {
   test("whereNumber constraint", async () => {
     const { router } = createRouter();
 
-    const route = get("/user/:id", {
-      handle(_req, params) {
-        return new Response(`User ${params.id}`);
+    const route = get(
+      "/user/:id",
+      {
+        handle(_req, params) {
+          return new Response(`User ${params.id}`);
+        },
       },
-    }).whereNumber("id");
+      { where: { id: isNumber } },
+    );
 
-    router.register([route]);
+    router.register(route);
 
     const response1 = await router.handle(new Request("http://example.com/user/123"));
     expect(await response1.text()).toBe("User 123");
@@ -597,13 +587,17 @@ describe("parameter constraints", () => {
   test("whereAlpha constraint", async () => {
     const { router } = createRouter();
 
-    const route = get("/category/:slug", {
-      handle(_req, params) {
-        return new Response(`Category ${params.slug}`);
+    const route = get(
+      "/category/:slug",
+      {
+        handle(_req, params) {
+          return new Response(`Category ${params.slug}`);
+        },
       },
-    }).whereAlpha("slug");
+      { where: { slug: isAlpha } },
+    );
 
-    router.register([route]);
+    router.register(route);
 
     const response1 = await router.handle(new Request("http://example.com/category/news"));
     expect(await response1.text()).toBe("Category news");
@@ -615,13 +609,17 @@ describe("parameter constraints", () => {
   test("whereAlphaNumeric constraint", async () => {
     const { router } = createRouter();
 
-    const route = get("/post/:slug", {
-      handle(_req, params) {
-        return new Response(`Post ${params.slug}`);
+    const route = get(
+      "/post/:slug",
+      {
+        handle(_req, params) {
+          return new Response(`Post ${params.slug}`);
+        },
       },
-    }).whereAlphaNumeric("slug");
+      { where: { slug: isAlphaNumeric } },
+    );
 
-    router.register([route]);
+    router.register(route);
 
     const response1 = await router.handle(new Request("http://example.com/post/post123"));
     expect(await response1.text()).toBe("Post post123");
@@ -633,13 +631,17 @@ describe("parameter constraints", () => {
   test("whereUuid constraint", async () => {
     const { router } = createRouter();
 
-    const route = get("/resource/:uuid", {
-      handle(_req, params) {
-        return new Response(`Resource ${params.uuid}`);
+    const route = get(
+      "/resource/:uuid",
+      {
+        handle(_req, params) {
+          return new Response(`Resource ${params.uuid}`);
+        },
       },
-    }).whereUuid("uuid");
+      { where: { uuid: isUuid } },
+    );
 
-    router.register([route]);
+    router.register(route);
 
     const validUuid = "550e8400-e29b-41d4-a716-446655440000";
     const response1 = await router.handle(new Request(`http://example.com/resource/${validUuid}`));
@@ -652,13 +654,17 @@ describe("parameter constraints", () => {
   test("whereUlid constraint", async () => {
     const { router } = createRouter();
 
-    const route = get("/item/:ulid", {
-      handle(_req, params) {
-        return new Response(`Item ${params.ulid}`);
+    const route = get(
+      "/item/:ulid",
+      {
+        handle(_req, params) {
+          return new Response(`Item ${params.ulid}`);
+        },
       },
-    }).whereUlid("ulid");
+      { where: { ulid: isUlid } },
+    );
 
-    router.register([route]);
+    router.register(route);
 
     const validUlid = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
     const response1 = await router.handle(new Request(`http://example.com/item/${validUlid}`));
@@ -671,13 +677,17 @@ describe("parameter constraints", () => {
   test("whereIn constraint", async () => {
     const { router } = createRouter();
 
-    const route = get("/status/:type", {
-      handle(_req, params) {
-        return new Response(`Status ${params.type}`);
+    const route = get(
+      "/status/:type",
+      {
+        handle(_req, params) {
+          return new Response(`Status ${params.type}`);
+        },
       },
-    }).whereIn("type", ["active", "inactive", "pending"]);
+      { where: { type: isIn(["active", "inactive", "pending"]) } },
+    );
 
-    router.register([route]);
+    router.register(route);
 
     const response1 = await router.handle(new Request("http://example.com/status/active"));
     expect(await response1.text()).toBe("Status active");
@@ -689,13 +699,17 @@ describe("parameter constraints", () => {
   test("where with custom regex", async () => {
     const { router } = createRouter();
 
-    const route = get("/year/:year", {
-      handle(_req, params) {
-        return new Response(`Year ${params.year}`);
+    const route = get(
+      "/year/:year",
+      {
+        handle(_req, params) {
+          return new Response(`Year ${params.year}`);
+        },
       },
-    }).where("year", /^(19|20)\d{2}$/);
+      { where: { year: /^(19|20)\d{2}$/ } },
+    );
 
-    router.register([route]);
+    router.register(route);
 
     const response1 = await router.handle(new Request("http://example.com/year/2024"));
     expect(await response1.text()).toBe("Year 2024");
@@ -707,15 +721,17 @@ describe("parameter constraints", () => {
   test("multiple constraints on same route", async () => {
     const { router } = createRouter();
 
-    const route = get("/posts/:postId/comments/:commentId", {
-      handle(_req, params) {
-        return new Response(`Post ${params.postId}, Comment ${params.commentId}`);
+    const route = get(
+      "/posts/:postId/comments/:commentId",
+      {
+        handle(_req, params) {
+          return new Response(`Post ${params.postId}, Comment ${params.commentId}`);
+        },
       },
-    })
-      .whereNumber("postId")
-      .whereNumber("commentId");
+      { where: { postId: isNumber, commentId: isNumber } },
+    );
 
-    router.register([route]);
+    router.register(route);
 
     const response1 = await router.handle(new Request("http://example.com/posts/123/comments/456"));
     expect(await response1.text()).toBe("Post 123, Comment 456");
@@ -747,7 +763,7 @@ describe("global patterns", () => {
       },
     });
 
-    router.register([route1, route2]);
+    router.register(group({}, [route1, route2]));
 
     const response1 = await router.handle(new Request("http://example.com/user/123"));
     expect(await response1.text()).toBe("User 123");
@@ -771,13 +787,17 @@ describe("domain routing", () => {
   test("matches routes on specific domain", async () => {
     const { router } = createRouter();
 
-    const route = get("/api", {
-      handle() {
-        return new Response("API");
+    const route = get(
+      "/api",
+      {
+        handle() {
+          return new Response("API");
+        },
       },
-    }).domain("api.example.com");
+      { domain: "api.example.com" },
+    );
 
-    router.register([route]);
+    router.register(route);
 
     const response1 = await router.handle(new Request("http://api.example.com/api"));
     expect(await response1.text()).toBe("API");
@@ -789,13 +809,17 @@ describe("domain routing", () => {
   test("supports subdomain parameters", async () => {
     const { router } = createRouter();
 
-    const route = get("/dashboard", {
-      handle() {
-        return new Response("Tenant Dashboard");
+    const route = get(
+      "/dashboard",
+      {
+        handle() {
+          return new Response("Tenant Dashboard");
+        },
       },
-    }).domain("{tenant}.example.com");
+      { domain: "{tenant}.example.com" },
+    );
 
-    router.register([route]);
+    router.register(route);
 
     const response1 = await router.handle(new Request("http://acme.example.com/dashboard"));
     expect(await response1.text()).toBe("Tenant Dashboard");
@@ -817,7 +841,7 @@ describe("special routes", () => {
     const { router } = createRouter();
 
     const route = redirect("/old", "/new");
-    router.register([route]);
+    router.register(route);
 
     const response = await router.handle(new Request("http://example.com/old"));
     expect(response.status).toBe(302);
@@ -828,7 +852,7 @@ describe("special routes", () => {
     const { router } = createRouter();
 
     const route = redirect("/old", "/new", 307);
-    router.register([route]);
+    router.register(route);
 
     const response = await router.handle(new Request("http://example.com/old"));
     expect(response.status).toBe(307);
@@ -838,14 +862,14 @@ describe("special routes", () => {
     const { router } = createRouter();
 
     const route = permanentRedirect("/old", "/new");
-    router.register([route]);
+    router.register(route);
 
     const response = await router.handle(new Request("http://example.com/old"));
     expect(response.status).toBe(301);
     expect(response.headers.get("Location")).toBe("/new");
   });
 
-  test("fallback route handles unmatched requests", async () => {
+  test("catch-all route handles unmatched requests", async () => {
     const { router } = createRouter();
 
     const mainRoute = get("/home", {
@@ -854,13 +878,13 @@ describe("special routes", () => {
       },
     });
 
-    const fallbackRoute = fallback({
+    const catchAllRoute = get("/*", {
       handle() {
         return new Response("Custom 404", { status: 404 });
       },
     });
 
-    router.register([mainRoute, fallbackRoute]);
+    router.register(group({}, [mainRoute, catchAllRoute]));
 
     const response1 = await router.handle(new Request("http://example.com/home"));
     expect(await response1.text()).toBe("Home");
@@ -868,33 +892,6 @@ describe("special routes", () => {
     const response2 = await router.handle(new Request("http://example.com/notfound"));
     expect(response2.status).toBe(404);
     expect(await response2.text()).toBe("Custom 404");
-  });
-
-  test("view route returns static response", async () => {
-    const { router } = createRouter();
-
-    const route = view("/maintenance", "Under Maintenance");
-    router.register([route]);
-
-    const response = await router.handle(new Request("http://example.com/maintenance"));
-    expect(await response.text()).toBe("Under Maintenance");
-    expect(response.headers.get("Content-Type")).toBe("text/html");
-  });
-
-  test("view route with Response object", async () => {
-    const { router } = createRouter();
-
-    const customResponse = new Response("Service Unavailable", {
-      status: 503,
-      headers: { "Retry-After": "3600" },
-    });
-
-    const route = view("/maintenance", customResponse);
-    router.register([route]);
-
-    const response = await router.handle(new Request("http://example.com/maintenance"));
-    expect(response.status).toBe(503);
-    expect(response.headers.get("Retry-After")).toBe("3600");
   });
 });
 
@@ -912,7 +909,7 @@ describe("multi-method routes", () => {
       },
     });
 
-    router.register([route]);
+    router.register(route);
 
     const response1 = await router.handle(
       new Request("http://example.com/form", { method: "GET" }),
@@ -939,7 +936,7 @@ describe("multi-method routes", () => {
       },
     });
 
-    router.register([route]);
+    router.register(route);
 
     const methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"];
 
@@ -958,13 +955,17 @@ describe("route URL generation", () => {
   test("generates URL for named route without parameters", () => {
     const { router } = createRouter();
 
-    const route = get("/users", {
-      handle() {
-        return new Response();
+    const route = get(
+      "/users",
+      {
+        handle() {
+          return new Response();
+        },
       },
-    }).name("users.index");
+      { name: "users.index" },
+    );
 
-    router.register([route]);
+    router.register(route);
 
     expect(router.routeUrl("users.index")).toBe("/users");
   });
@@ -972,13 +973,17 @@ describe("route URL generation", () => {
   test("generates URL for named route with parameters", () => {
     const { router } = createRouter();
 
-    const route = get("/users/:id", {
-      handle() {
-        return new Response();
+    const route = get(
+      "/users/:id",
+      {
+        handle() {
+          return new Response();
+        },
       },
-    }).name("users.show");
+      { name: "users.show" },
+    );
 
-    router.register([route]);
+    router.register(route);
 
     expect(router.routeUrl("users.show", { id: 123 })).toBe("/users/123");
     expect(router.routeUrl("users.show", { id: "abc" })).toBe("/users/abc");
@@ -987,13 +992,17 @@ describe("route URL generation", () => {
   test("generates URL for route with multiple parameters", () => {
     const { router } = createRouter();
 
-    const route = get("/posts/:postId/comments/:commentId", {
-      handle() {
-        return new Response();
+    const route = get(
+      "/posts/:postId/comments/:commentId",
+      {
+        handle() {
+          return new Response();
+        },
       },
-    }).name("posts.comments.show");
+      { name: "posts.comments.show" },
+    );
 
-    router.register([route]);
+    router.register(route);
 
     expect(router.routeUrl("posts.comments.show", { postId: 42, commentId: 7 })).toBe(
       "/posts/42/comments/7",
@@ -1010,19 +1019,27 @@ describe("route URL generation", () => {
     const { router } = createRouter();
 
     const routes = group({ prefix: "/admin", namePrefix: "admin." }, [
-      get("/dashboard", {
-        handle() {
-          return new Response();
+      get(
+        "/dashboard",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("dashboard"),
-      get("/users/:id", {
-        handle() {
-          return new Response();
+        { name: "dashboard" },
+      ),
+      get(
+        "/users/:id",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("users.show"),
+        { name: "users.show" },
+      ),
     ]);
 
-    router.register([routes]);
+    router.register(routes);
 
     expect(router.routeUrl("admin.dashboard")).toBe("/admin/dashboard");
     expect(router.routeUrl("admin.users.show", { id: 456 })).toBe("/admin/users/456");
@@ -1032,21 +1049,29 @@ describe("route URL generation", () => {
     const { router } = createRouter();
 
     const userRoutes = group({ prefix: "/users", namePrefix: "users." }, [
-      get("/", {
-        handle() {
-          return new Response();
+      get(
+        "/",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("index"),
-      get("/:id", {
-        handle() {
-          return new Response();
+        { name: "index" },
+      ),
+      get(
+        "/:id",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("show"),
+        { name: "show" },
+      ),
     ]);
 
     const apiRoutes = group({ prefix: "/api", namePrefix: "api." }, [userRoutes]);
 
-    router.register([apiRoutes]);
+    router.register(apiRoutes);
 
     expect(router.routeUrl("api.users.index")).toBe("/api/users");
     expect(router.routeUrl("api.users.show", { id: 789 })).toBe("/api/users/789");
@@ -1060,11 +1085,15 @@ describe("route URL generation", () => {
 describe("RouteGroup.url() typed method", () => {
   test("generates URL for route without parameters", () => {
     const routes = group({ namePrefix: "users." }, [
-      get("/users", {
-        handle() {
-          return new Response();
+      get(
+        "/users",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("index"),
+        { name: "index" },
+      ),
     ]);
 
     expect(routes.url("users.index")).toBe("/users");
@@ -1072,11 +1101,15 @@ describe("RouteGroup.url() typed method", () => {
 
   test("generates URL for route with single parameter", () => {
     const routes = group({ namePrefix: "users." }, [
-      get("/users/:id", {
-        handle() {
-          return new Response();
+      get(
+        "/users/:id",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("show"),
+        { name: "show" },
+      ),
     ]);
 
     expect(routes.url("users.show", { id: 123 })).toBe("/users/123");
@@ -1085,11 +1118,15 @@ describe("RouteGroup.url() typed method", () => {
 
   test("generates URL for route with multiple parameters", () => {
     const routes = group({ namePrefix: "posts." }, [
-      get("/posts/:postId/comments/:commentId", {
-        handle() {
-          return new Response();
+      get(
+        "/posts/:postId/comments/:commentId",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("comments"),
+        { name: "comments" },
+      ),
     ]);
 
     expect(routes.url("posts.comments", { postId: 42, commentId: 7 })).toBe(
@@ -1099,16 +1136,24 @@ describe("RouteGroup.url() typed method", () => {
 
   test("works with nested groups", () => {
     const userRoutes = group({ prefix: "/users", namePrefix: "users." }, [
-      get("/", {
-        handle() {
-          return new Response();
+      get(
+        "/",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("index"),
-      get("/:id", {
-        handle() {
-          return new Response();
+        { name: "index" },
+      ),
+      get(
+        "/:id",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("show"),
+        { name: "show" },
+      ),
     ]);
 
     const apiRoutes = group({ prefix: "/api", namePrefix: "api." }, [userRoutes]);
@@ -1119,11 +1164,15 @@ describe("RouteGroup.url() typed method", () => {
 
   test("throws error for non-existent route name", () => {
     const routes = group({ namePrefix: "users." }, [
-      get("/users", {
-        handle() {
-          return new Response();
+      get(
+        "/users",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("index"),
+        { name: "index" },
+      ),
     ]);
 
     expect(() => routes.url("users.nonexistent" as any)).toThrow('Route "users.nonexistent" not found');
@@ -1135,32 +1184,39 @@ describe("RouteGroup.url() typed method", () => {
 
   test("type inference: route without parameters", () => {
     const routes = group({ namePrefix: "users." }, [
-      get("/users", {
-        handle() {
-          return new Response();
+      get(
+        "/users",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("index"),
+        { name: "index" },
+      ),
     ]);
 
-    // Should infer empty params object
-    expectTypeOf(routes).toMatchTypeOf<RouteGroup<{ "users.index": {} }>>();
+    // Should infer never for no params
+    expectTypeOf(routes).toMatchTypeOf<Routes<{ "users.index": never }>>();
 
-    // These should compile
+    // This should compile
     routes.url("users.index");
-    routes.url("users.index", {});
   });
 
   test("type inference: route with single parameter", () => {
     const routes = group({ namePrefix: "users." }, [
-      get("/users/:id", {
-        handle() {
-          return new Response();
+      get(
+        "/users/:id",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("show"),
+        { name: "show" },
+      ),
     ]);
 
-    // Should infer { id: string }
-    expectTypeOf(routes).toMatchTypeOf<RouteGroup<{ "users.show": { id: string } }>>();
+    // Should infer "id" param name
+    expectTypeOf(routes).toMatchTypeOf<Routes<{ "users.show": "id" }>>();
 
     // These should compile
     routes.url("users.show", { id: "123" });
@@ -1169,17 +1225,19 @@ describe("RouteGroup.url() typed method", () => {
 
   test("type inference: route with multiple parameters", () => {
     const routes = group({ namePrefix: "posts." }, [
-      get("/posts/:postId/comments/:commentId", {
-        handle() {
-          return new Response();
+      get(
+        "/posts/:postId/comments/:commentId",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("comments"),
+        { name: "comments" },
+      ),
     ]);
 
-    // Should infer both params
-    expectTypeOf(routes).toMatchTypeOf<
-      RouteGroup<{ "posts.comments": { postId: string; commentId: string } }>
-    >();
+    // Should infer both param names as union
+    expectTypeOf(routes).toMatchTypeOf<Routes<{ "posts.comments": "postId" | "commentId" }>>();
 
     // This should compile
     routes.url("posts.comments", { postId: "1", commentId: "2" });
@@ -1187,29 +1245,41 @@ describe("RouteGroup.url() typed method", () => {
 
   test("type inference: multiple routes with different params", () => {
     const routes = group({ namePrefix: "users." }, [
-      get("/users", {
-        handle() {
-          return new Response();
+      get(
+        "/users",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("index"),
-      get("/users/:id", {
-        handle() {
-          return new Response();
+        { name: "index" },
+      ),
+      get(
+        "/users/:id",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("show"),
-      get("/users/:id/posts/:postId", {
-        handle() {
-          return new Response();
+        { name: "show" },
+      ),
+      get(
+        "/users/:id/posts/:postId",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("posts"),
+        { name: "posts" },
+      ),
     ]);
 
-    // Should infer all route names and their params
+    // Should infer all route names and their param unions
     expectTypeOf(routes).toMatchTypeOf<
-      RouteGroup<{
-        "users.index": {};
-        "users.show": { id: string };
-        "users.posts": { id: string; postId: string };
+      Routes<{
+        "users.index": never;
+        "users.show": "id";
+        "users.posts": "id" | "postId";
       }>
     >();
 
@@ -1221,25 +1291,33 @@ describe("RouteGroup.url() typed method", () => {
 
   test("type inference: nested groups propagate name prefix", () => {
     const userRoutes = group({ prefix: "/users", namePrefix: "users." }, [
-      get("/", {
-        handle() {
-          return new Response();
+      get(
+        "/",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("index"),
-      get("/:id", {
-        handle() {
-          return new Response();
+        { name: "index" },
+      ),
+      get(
+        "/:id",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("show"),
+        { name: "show" },
+      ),
     ]);
 
     const apiRoutes = group({ prefix: "/api", namePrefix: "api." }, [userRoutes]);
 
-    // Should infer prefixed names
+    // Should infer prefixed names and params
     expectTypeOf(apiRoutes).toMatchTypeOf<
-      RouteGroup<{
-        "api.users.index": {};
-        "api.users.show": { id: string };
+      Routes<{
+        "api.users.index": never;
+        "api.users.show": "id";
       }>
     >();
 
@@ -1250,33 +1328,45 @@ describe("RouteGroup.url() typed method", () => {
 
   test("type inference: mixed groups and routes", () => {
     const postRoutes = group({ namePrefix: "posts." }, [
-      get("/posts", {
-        handle() {
-          return new Response();
+      get(
+        "/posts",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("index"),
-      get("/posts/:id", {
-        handle() {
-          return new Response();
+        { name: "index" },
+      ),
+      get(
+        "/posts/:id",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("show"),
+        { name: "show" },
+      ),
     ]);
 
     const routes = group({ namePrefix: "admin." }, [
-      get("/dashboard", {
-        handle() {
-          return new Response();
+      get(
+        "/dashboard",
+        {
+          handle() {
+            return new Response();
+          },
         },
-      }).name("dashboard"),
+        { name: "dashboard" },
+      ),
       postRoutes,
     ]);
 
     // Should merge both direct routes and nested group routes
     expectTypeOf(routes).toMatchTypeOf<
-      RouteGroup<{
-        "admin.dashboard": {};
-        "admin.posts.index": {};
-        "admin.posts.show": { id: string };
+      Routes<{
+        "admin.dashboard": never;
+        "admin.posts.index": never;
+        "admin.posts.show": "id";
       }>
     >();
 
