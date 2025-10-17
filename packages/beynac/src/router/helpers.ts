@@ -1,14 +1,16 @@
 import type { Controller } from "../core/Controller";
 import { arrayWrap } from "../utils";
-import type { ParameterConstraint, RouteDefinition, RouteHandler } from "./internal-types";
 import type {
   ExtractDomainAndPathParams,
   GroupedRoutes,
+  ParameterConstraint,
   RouteConstraint,
+  RouteDefinition,
   RouteGroupOptions,
+  RouteHandler,
   RouteOptions,
   Routes,
-} from "./public-types";
+} from "./router-types";
 
 // ============================================================================
 // Syntax Validation

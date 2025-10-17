@@ -1,8 +1,7 @@
 import type { Container } from "../container";
 import type { MiddlewareReference } from "../core/Middleware";
-import type { RouteDefinition, RouteMatcher } from "./internal-types";
-import type { Routes } from "./public-types";
 import { Rou3RouteMatcher } from "./Rou3RouteMatcher";
+import type { RouteDefinition, RouteMatcher, Routes } from "./router-types";
 
 // ============================================================================
 // Router Implementation

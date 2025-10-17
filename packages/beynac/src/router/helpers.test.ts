@@ -98,7 +98,7 @@ describe("route groups", () => {
 
     // Verify it creates a valid Routes object
     expect(routes.routes).toHaveLength(1);
-    expect(routes.routes[0].path).toBe("/dashboard");
+    expect(routes.routes[0].path).toBe("/dashboard/{page}");
     expect(routes.routes[0].routeName).toBe("dashboard");
 
     // Type inference should work

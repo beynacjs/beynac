@@ -1,6 +1,6 @@
 import { addRoute, createRouter, findRoute, type RouterContext } from "rou3";
 import { globalConstraints } from "./helpers";
-import type { RouteDefinition, RouteMatch, RouteMatcher } from "./internal-types";
+import type { RouteDefinition, RouteMatch, RouteMatcher } from "./router-types";
 
 // ============================================================================
 // Syntax Translation

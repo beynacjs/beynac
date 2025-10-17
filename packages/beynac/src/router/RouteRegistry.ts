@@ -1,5 +1,4 @@
-import type { RouteDefinition } from "./internal-types";
-import type { Routes, UrlFunction } from "./public-types";
+import type { RouteDefinition, Routes, UrlFunction } from "./router-types";
 
 // ============================================================================
 // Route Registry

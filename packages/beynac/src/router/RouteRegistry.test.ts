@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, test } from "bun:test";
 import { get, group } from "./helpers";
-import type { Routes } from "./public-types";
+import type { Routes } from "./router-types";
 import { RouteRegistry } from "./RouteRegistry";
 
 // ============================================================================

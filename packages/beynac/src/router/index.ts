@@ -1,12 +1,11 @@
 // Public types
 export type {
-  RouteConstraint,
   RouteGroupOptions,
   RouteHandler,
   RouteOptions,
   Routes,
   UrlFunction,
-} from "./public-types";
+} from "./router-types";
 
 // Router and registry
 export { Router } from "./Router";

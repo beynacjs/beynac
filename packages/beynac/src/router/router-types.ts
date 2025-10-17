@@ -1,14 +1,10 @@
+import type { Controller } from "../core/Controller";
 import type { MiddlewareReference } from "../core/Middleware";
-import type { RouteDefinition, RouteHandler } from "./internal-types";
+import type { NoArgConstructor } from "../utils";
 
 // ============================================================================
-// Public Types
+// Public Types (exported from router/index.ts)
 // ============================================================================
-
-/**
- * Route constraint - can be RegExp or validation function
- */
-export type RouteConstraint = RegExp | ((value: string) => boolean);
 
 /**
  * Collection of routes with type-tracked name→params map
@@ -35,11 +31,6 @@ export interface BaseRouteOptions {
   where?: Record<string, RouteConstraint>;
 }
 
-// Re-export internal types for use within the router package
-// RouteDefinition is not exported from index.ts so it remains internal
-// RouteHandler IS exported from index.ts as it's part of the public API
-export type { RouteDefinition, RouteHandler };
-
 /**
  * Options for individual routes
  */
@@ -61,6 +52,11 @@ export interface RouteGroupOptions<NamePrefix extends string = "", PathPrefix ex
 }
 
 /**
+ * A route handler can be a Controller instance or class constructor
+ */
+export type RouteHandler = Controller | NoArgConstructor<Controller>;
+
+/**
  * Type-safe URL generation function
  * - Routes without params: url("route.name")
  * - Routes with params: url("route.name", { id: 123 }) - params required by TypeScript
@@ -73,7 +69,67 @@ export type UrlFunction<Params extends Record<string, string>> = <N extends keyo
 ) => string;
 
 // ============================================================================
-// Helper Types (not exported)
+// Internal Types (not exported from router/index.ts)
+// ============================================================================
+
+/**
+ * Route constraint - can be RegExp or validation function
+ */
+export type RouteConstraint = RegExp | ((value: string) => boolean);
+
+/**
+ * Parameter constraint definition
+ */
+export interface ParameterConstraint {
+  param: string;
+  pattern: RouteConstraint;
+}
+
+/**
+ * A single route definition (pure data, no methods)
+ * Stores user-facing syntax: {param} and {...wildcard}
+ */
+export interface RouteDefinition {
+  methods: readonly string[];
+  path: string;
+  handler: RouteHandler;
+  routeName?: string | undefined;
+  middleware: MiddlewareReference[];
+  withoutMiddleware: MiddlewareReference[];
+  constraints: ParameterConstraint[];
+  domainPattern?: string | undefined;
+}
+
+/**
+ * Result of matching a route
+ */
+export interface RouteMatch {
+  route: RouteDefinition;
+  params: Record<string, string>;
+}
+
+/**
+ * Interface for route matching implementations
+ * Abstracts the underlying routing engine (rou3, etc.)
+ */
+export interface RouteMatcher {
+  /**
+   * Register a route definition with the matcher
+   */
+  register(route: RouteDefinition): void;
+
+  /**
+   * Find a matching route for the given request
+   * @param method HTTP method
+   * @param path Request path
+   * @param hostname Request hostname (for domain routing)
+   * @returns RouteMatch if found, undefined otherwise
+   */
+  match(method: string, path: string, hostname: string): RouteMatch | undefined;
+}
+
+// ============================================================================
+// Type Helper Utilities (internal, used for type inference)
 // ============================================================================
 
 /**
@@ -146,12 +202,15 @@ export type PrependNamePrefix<
       [K in keyof Map as K extends string ? `${Prefix}${K}` : never]: Map[K];
     };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- `any` was the only way I could get type checking to work here
+type GroupChildren = readonly Routes<any>[];
+
 /**
  * Compute the Routes type for a group with optional name/path prefixes
  * Handles merging children, applying path prefix params, and prepending name prefix
  */
 export type GroupedRoutes<
-  Children extends readonly Routes<any>[], // eslint-disable-line @typescript-eslint/no-explicit-any -- Required for Routes array constraint
+  Children extends GroupChildren,
   NamePrefix extends string = "",
   PathPrefix extends string = "",
 > = Routes<
