@@ -332,7 +332,6 @@ function applyNamePrefix(prefix: string | undefined, name: string | undefined): 
 /**
  * Group routes with shared options - flattens immediately
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function group<
   const Children extends readonly Routes<any>[],
   const NamePrefix extends string = "",

@@ -1,4 +1,5 @@
 import { describe, expect, expectTypeOf, test } from "bun:test";
+import { mockController } from "../test-utils";
 import { get, group, type Routes } from "./index";
 
 // ============================================================================
@@ -8,15 +9,7 @@ import { get, group, type Routes } from "./index";
 describe("named routes", () => {
   test("type inference for named routes", () => {
     // Type inference only works when name is set at creation time
-    const route2 = get(
-      "/posts",
-      {
-        handle() {
-          return new Response();
-        },
-      },
-      { name: "posts.index" },
-    );
+    const route2 = get("/posts", mockController(), { name: "posts.index" });
 
     expectTypeOf(route2).toEqualTypeOf<Routes<{ "posts.index": never }>>();
   });
@@ -29,15 +22,7 @@ describe("named routes", () => {
 describe("route groups", () => {
   test("applies namePrefix to route names", () => {
     const routes = group({ namePrefix: "admin." }, [
-      get(
-        "/dashboard",
-        {
-          handle() {
-            return new Response();
-          },
-        },
-        { name: "dashboard" },
-      ),
+      get("/dashboard", mockController(), { name: "dashboard" }),
       get(
         "/users",
         {

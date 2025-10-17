@@ -56,9 +56,6 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
       } else {
         router.register(this.#config.routes);
       }
-
-      // Create route registry for URL generation
-      this.#routeRegistry = new RouteRegistry(this.#config.routes);
     }
 
     // Start dev mode watch service
@@ -73,7 +70,7 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 
   url: UrlFunction<RouteParams> = (name, ...args) => {
     if (!this.#routeRegistry) {
-      throw new BeynacError("No routes configured. Cannot generate URLs.");
+      this.#routeRegistry = new RouteRegistry(this.#config.routes);
     }
     return this.#routeRegistry.url(name, ...args);
   };

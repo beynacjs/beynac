@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { Dispatcher } from "../contracts/Dispatcher";
 import { RequestContext } from "../contracts/RequestContext";
 import { get, group } from "../router";
+import { mockController } from "../test-utils";
 import { ApplicationImpl } from "./ApplicationImpl";
 import { DispatcherImpl } from "./DispatcherImpl";
 
@@ -25,24 +26,10 @@ describe("ApplicationImpl", () => {
 
   test("url() generates URLs for named routes", () => {
     const routes = group({}, [
-      get(
-        "/users/{id}",
-        {
-          handle() {
-            return new Response();
-          },
-        },
-        { name: "users.show" },
-      ),
-      get(
-        "/posts/{postId}/comments/{commentId}",
-        {
-          handle() {
-            return new Response();
-          },
-        },
-        { name: "posts.comments.show" },
-      ),
+      get("/users/{id}", mockController(), { name: "users.show" }),
+      get("/posts/{postId}/comments/{commentId}", mockController(), {
+        name: "posts.comments.show",
+      }),
     ]);
 
     const app = new ApplicationImpl({ routes });
@@ -56,24 +43,8 @@ describe("ApplicationImpl", () => {
 
   test("url() is type-safe with route parameters", () => {
     const routes = group({}, [
-      get(
-        "/users/{id}",
-        {
-          handle() {
-            return new Response();
-          },
-        },
-        { name: "users.show" },
-      ),
-      get(
-        "/posts",
-        {
-          handle() {
-            return new Response();
-          },
-        },
-        { name: "posts.index" },
-      ),
+      get("/users/{id}", mockController(), { name: "users.show" }),
+      get("/posts", mockController(), { name: "posts.index" }),
     ]);
 
     const app = new ApplicationImpl({ routes });
@@ -97,19 +68,8 @@ describe("ApplicationImpl", () => {
     }
   });
 
-  test("url() throws when no routes configured", () => {
-    const app = new ApplicationImpl({});
-    app.bootstrap();
-
-    expect(() => app.url("any.route" as never)).toThrow("No routes configured");
-  });
-
   test("handles HTTP request through RouterV2", async () => {
-    const routes = get("/hello", {
-      handle() {
-        return new Response("Hello World");
-      },
-    });
+    const routes = get("/hello", mockController({ responseText: "Hello World" }));
 
     const app = new ApplicationImpl({ routes });
     app.bootstrap();
@@ -131,11 +91,7 @@ describe("ApplicationImpl", () => {
   });
 
   test("returns 404 for unmatched routes", async () => {
-    const routes = get("/hello", {
-      handle() {
-        return new Response("Hello");
-      },
-    });
+    const routes = get("/hello", mockController());
 
     const app = new ApplicationImpl({ routes });
     app.bootstrap();

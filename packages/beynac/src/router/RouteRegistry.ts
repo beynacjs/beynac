@@ -12,9 +12,9 @@ export class RouteRegistry<Params extends Record<string, string> = {}> {
   readonly url: UrlFunction<Params>;
   private namedRoutes = new Map<string, RouteDefinition>();
 
-  constructor(routes: Routes<Params>) {
+  constructor(routes?: Routes<Params>) {
     // Build map of named routes
-    for (const route of routes.routes) {
+    for (const route of routes?.routes ?? []) {
       if (route.routeName) {
         this.namedRoutes.set(route.routeName, route);
       }
