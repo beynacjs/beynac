@@ -87,6 +87,12 @@ test("handles route parameters", async () => {
   expect(controller.params).toEqual({ id: "123" });
 });
 
+test("handles route parameters starting with digits", async () => {
+  router.register(get("/item/{0id}/detail/{1name}", controller));
+  await handle("/item/abc123/detail/xyz789");
+  expect(controller.params).toEqual({ "0id": "abc123", "1name": "xyz789" });
+});
+
 test("handles multiple route parameters", async () => {
   router.register(get("/posts/{postId}/comments/{commentId}", controller));
   await handle("/posts/42/comments/7");
@@ -319,7 +325,20 @@ describe("middleware", () => {
     router.register(outerRoutes);
     await handle("/test");
 
-    expect(middlewareLog).toEqual(["M1", "M2"]);
+    // At same level, withoutMiddleware wins - M1 is excluded
+    expect(middlewareLog).toEqual(["M2"]);
+  });
+
+  test("route with both middleware and withoutMiddleware for same middleware", async () => {
+    const M1 = mockMiddlewareClass("M1");
+    const M2 = mockMiddlewareClass("M2");
+
+    router.register(get("/test", controller, { middleware: [M1, M2], withoutMiddleware: M1 }));
+
+    await handle("/test");
+
+    // At same level, withoutMiddleware wins - M1 is excluded
+    expect(middlewareLog).toEqual(["M2"]);
   });
 
   test("multiple withoutMiddleware at different levels", async () => {
@@ -679,6 +698,23 @@ describe("parameter constraints", () => {
     // Second route should reject non-numeric id
     const response2 = await handle("/admin/xyz/edit");
     expect(response2.status).toBe(404);
+  });
+
+  test("route-level constraints override group-level constraints", async () => {
+    router.register(
+      group({ where: { id: "numeric" } }, [
+        get("/post/{id}", controller, { where: { id: "uuid" } }),
+      ]),
+    );
+
+    // Should match uuid, not numeric (route overrides group)
+    const validUuid = "550e8400-e29b-41d4-a716-446655440000";
+    await handle(`/post/${validUuid}`);
+    expect(controller.params).toEqual({ id: validUuid });
+
+    // Should reject numeric (group constraint was overridden)
+    const response = await handle("/post/123");
+    expect(response.status).toBe(404);
   });
 });
 

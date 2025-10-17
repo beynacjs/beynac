@@ -87,14 +87,6 @@ export type BuiltInRouteConstraint = "numeric" | "alphanumeric" | "uuid" | "ulid
 export type RouteConstraint = BuiltInRouteConstraint | RegExp | ((value: string) => boolean);
 
 /**
- * Parameter constraint definition
- */
-export interface ParameterConstraint {
-  param: string;
-  constraint: RouteConstraint;
-}
-
-/**
  * A single route definition (pure data, no methods)
  * Stores user-facing syntax: {param} and {...wildcard}
  */
@@ -105,8 +97,8 @@ export interface RouteDefinition {
   routeName?: string | undefined;
   middleware: MiddlewareReference[];
   withoutMiddleware: MiddlewareReference[];
-  constraints: ParameterConstraint[];
-  globalConstraints: ParameterConstraint[];
+  constraints: Record<string, RouteConstraint>;
+  globalConstraints: Record<string, RouteConstraint>;
   domainPattern?: string | undefined;
 }
 

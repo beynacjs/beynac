@@ -4,7 +4,6 @@ import type {
   ExtractDomainAndPathParams,
   GroupChildren,
   GroupedRoutes,
-  ParameterConstraint,
   RouteConstraint,
   RouteDefinition,
   RouteGroupOptions,
@@ -12,50 +11,7 @@ import type {
   RouteOptions,
   Routes,
 } from "./router-types";
-
-function validateRouteSyntax(path: string): void {
-  const originalPath = path;
-
-  if (path.includes("*")) {
-    throw new Error(
-      `Route path "${path}" contains asterisk characters. Use {...param} for wildcard routes instead of ** or *.`,
-    );
-  }
-
-  if (path.includes(":")) {
-    throw new Error(
-      `Route path "${path}" contains colon characters. Use {param} syntax instead of :param.`,
-    );
-  }
-
-  if (/\{[^}]+\.\.\.\}/.test(path)) {
-    throw new Error(
-      `Route path "${path}" has incorrect wildcard syntax. Use {...param} not {param...}.`,
-    );
-  }
-
-  if (/\{\.\.\.([a-zA-Z_][a-zA-Z0-9_]*)\}./.test(path)) {
-    throw new Error(
-      `Route path "${path}" has wildcard parameter in non-terminal position. ` +
-        `Wildcards can only appear at the end of a path, like /files/{...path}, not /files/{...path}/something.`,
-    );
-  }
-
-  if (/[^/.]\{/.test(path) || /\}[^/.]/.test(path)) {
-    throw new Error(
-      `Route path "${path}" has invalid parameter syntax. Parameters must capture whole path segments, not partial segments. Use /{param}/ not /text{param}/ or /{param}text/.`,
-    );
-  }
-
-  // Any remaining curly braces after extracting valid params are invalid
-  const pathWithoutValidPlaceholders = path.replaceAll(/\{(\.\.\.)?\w+\}/g, "");
-  if (pathWithoutValidPlaceholders.includes("{") || pathWithoutValidPlaceholders.includes("}")) {
-    throw new Error(
-      `Route path "${originalPath}" contains invalid curly braces. ` +
-        `Curly braces can only be used for parameters like {param} or {...wildcard}.`,
-    );
-  }
-}
+import { validateRouteSyntax } from "./syntax";
 
 /**
  * Create a constraint that matches one of the given values
@@ -86,39 +42,30 @@ function createRoute<
     throw new Error(`Route path "${path}" must start with "/" or be empty string.`);
   }
 
-  // Validate syntax early for immediate feedback
   validateRouteSyntax(path);
   if (options?.domain) {
     validateRouteSyntax(options.domain);
   }
 
-  // Convert where constraints to ParameterConstraint[]
-  const constraints: ParameterConstraint[] = [];
-  if (options?.where) {
-    for (const [param, constraint] of Object.entries(options.where)) {
-      if (constraint) {
-        constraints.push({ param, constraint: constraint as RouteConstraint });
-      }
-    }
-  }
+  const constraints: Record<string, RouteConstraint> = options?.where
+    ? (options.where as Record<string, RouteConstraint>)
+    : {};
 
-  // Convert globalPatterns to ParameterConstraint[]
-  const globalConstraints: ParameterConstraint[] = [];
-  if (options?.globalPatterns) {
-    for (const [param, constraint] of Object.entries(options.globalPatterns)) {
-      if (constraint) {
-        globalConstraints.push({ param, constraint });
-      }
-    }
-  }
+  // Get globalPatterns as object
+  const globalConstraints: Record<string, RouteConstraint> = options?.globalPatterns || {};
+
+  const withoutMiddleware = options?.withoutMiddleware ? arrayWrap(options.withoutMiddleware) : [];
+  const middleware = (options?.middleware ? arrayWrap(options.middleware) : []).filter(
+    (m) => !withoutMiddleware.includes(m),
+  );
 
   const route: RouteDefinition = {
     methods,
     path, // Store user syntax: {param} and {...wildcard}
     handler,
     routeName: options?.name,
-    middleware: options?.middleware ? arrayWrap(options.middleware) : [],
-    withoutMiddleware: options?.withoutMiddleware ? arrayWrap(options.withoutMiddleware) : [],
+    middleware,
+    withoutMiddleware,
     constraints,
     globalConstraints,
     domainPattern: options?.domain, // Store user syntax
@@ -307,30 +254,18 @@ export function group<
   // strip "/" suffix to prevent double slash since all routes start with a slash
   const prefix = options.prefix?.replace(/\/$/, "");
 
-  (!here) in review!;
+  // Get group options constraints as object
+  const constraints: Record<string, RouteConstraint> = options?.where
+    ? (options.where as Record<string, RouteConstraint>)
+    : {};
 
-  // Convert group options constraints to ParameterConstraint[]
-  const groupConstraints: ParameterConstraint[] = [];
-  if (options.where) {
-    for (const [param, constraint] of Object.entries(options.where)) {
-      if (constraint) {
-        groupConstraints.push({ param, constraint: constraint as RouteConstraint });
-      }
-    }
-  }
+  // Get group options globalPatterns as object
+  const groupGlobalConstraints: Record<string, RouteConstraint> = options?.globalPatterns || {};
 
-  // Convert group options globalPatterns to ParameterConstraint[]
-  const groupGlobalConstraints: ParameterConstraint[] = [];
-  if (options.globalPatterns) {
-    for (const [param, constraint] of Object.entries(options.globalPatterns)) {
-      if (constraint) {
-        groupGlobalConstraints.push({ param, constraint });
-      }
-    }
-  }
-
-  const groupMiddleware = options.middleware ? arrayWrap(options.middleware) : [];
   const groupWithout = options.withoutMiddleware ? arrayWrap(options.withoutMiddleware) : [];
+  const groupMiddleware = (options.middleware ? arrayWrap(options.middleware) : []).filter(
+    (m) => !groupWithout.includes(m),
+  );
 
   // Validate: no wildcards in group prefixes
   if (prefix && /\{\.\.\./.test(prefix)) {
@@ -352,38 +287,25 @@ export function group<
         );
       }
 
-      // Start with group middleware
-      let finalMiddleware = [...groupMiddleware];
-
-      // Remove group's withoutMiddleware (but not if they're in group's middleware - same level wins)
-      finalMiddleware = finalMiddleware.filter(
-        (m) => !groupWithout.includes(m) || groupMiddleware.includes(m),
-      );
-
-      // Get route's middleware and withoutMiddleware
-      const routeMiddleware = route.middleware;
-      const routeWithout = route.withoutMiddleware;
-
-      // Remove route's withoutMiddleware (but not if they're in route's middleware - same level wins)
-      finalMiddleware = finalMiddleware.filter(
-        (m) => !routeWithout.includes(m) || routeMiddleware.includes(m),
-      );
-
-      // Remove any middleware that's already in routeMiddleware to avoid duplicates when we add them
-      finalMiddleware = finalMiddleware.filter((m) => !routeMiddleware.includes(m));
-
-      // Add route middleware (these can re-add previously excluded middleware)
-      finalMiddleware = [...finalMiddleware, ...routeMiddleware];
+      // Merge group and route middleware
+      // - Include group middleware not excluded by route's withoutMiddleware
+      // - Append route middleware (may re-add previously excluded middleware)
+      // - Remove duplicates
+      const combined = [
+        ...groupMiddleware.filter((m) => !route.withoutMiddleware.includes(m)),
+        ...route.middleware,
+      ];
+      const finalMiddleware = combined.filter((m, index, arr) => arr.indexOf(m) === index);
 
       flatRoutes.push({
         ...route,
         path: applyPathPrefix(prefix, route.path),
         routeName: applyNamePrefix(options.namePrefix, route.routeName),
         middleware: finalMiddleware,
-        withoutMiddleware: [...groupWithout, ...routeWithout],
-        constraints: [...groupConstraints, ...route.constraints],
-        globalConstraints: [...groupGlobalConstraints, ...route.globalConstraints],
-        domainPattern: domain ?? route.domainPattern,
+        withoutMiddleware: [...groupWithout, ...route.withoutMiddleware],
+        constraints: { ...constraints, ...route.constraints },
+        globalConstraints: { ...groupGlobalConstraints, ...route.globalConstraints },
+        domainPattern: options?.domain ?? route.domainPattern,
       });
     }
   }

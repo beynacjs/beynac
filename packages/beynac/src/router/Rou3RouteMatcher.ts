@@ -1,12 +1,13 @@
 import { addRoute, createRouter, findRoute, type RouterContext } from "rou3";
 import type { RouteDefinition, RouteMatch, RouteMatcher } from "./router-types";
+import { PARAM_PATTERN, WILDCARD_PARAM_PATTERN } from "./syntax";
 
 function translateRouteSyntax(path: string): string {
   // Translate {...param} to **:param (wildcard)
-  path = path.replace(/\{\.\.\.([a-zA-Z_][a-zA-Z0-9_]*)\}/g, "**:$1");
+  path = path.replace(WILDCARD_PARAM_PATTERN, "**:$1");
 
   // Translate {param} to :param (regular parameter)
-  path = path.replace(/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g, ":$1");
+  path = path.replace(PARAM_PATTERN, ":$1");
 
   return path;
 }

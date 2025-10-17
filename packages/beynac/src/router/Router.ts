@@ -42,7 +42,7 @@ export class Router {
   #checkConstraints(route: RouteDefinition, params: Record<string, string>): boolean {
     // Check route-specific constraints (from 'where')
     // These MUST match - 404 if parameter doesn't exist or validation fails
-    for (const { param, constraint } of route.constraints) {
+    for (const [param, constraint] of Object.entries(route.constraints)) {
       const value = params[param];
       if (value == null) return false;
       if (!matchConstraint(constraint, value)) return false;
@@ -50,7 +50,7 @@ export class Router {
 
     // Check global pattern constraints (from 'globalPatterns')
     // These only validate if the parameter exists
-    for (const { param, constraint } of route.globalConstraints) {
+    for (const [param, constraint] of Object.entries(route.globalConstraints)) {
       const value = params[param];
       if (value != null && !matchConstraint(constraint, value)) return false;
     }
