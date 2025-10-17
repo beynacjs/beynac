@@ -333,12 +333,13 @@ function applyNamePrefix(prefix: string | undefined, name: string | undefined): 
  * Group routes with shared options - flattens immediately
  */
 export function group<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any --
   const Children extends readonly Routes<any>[],
   const NamePrefix extends string = "",
   const PathPrefix extends string = "",
 >(
   options: RouteGroupOptions<NamePrefix, PathPrefix>,
-  children: Children | (() => Children),
+  children: Children,
 ): Routes<
   PrependNamePrefix<
     ExtractRouteParams<PathPrefix> extends never
@@ -347,8 +348,6 @@ export function group<
     NamePrefix
   >
 > {
-  const childrenArray = typeof children === "function" ? children() : children;
-
   // Validate: prefix must start with "/" if provided
   if (options.prefix && !options.prefix.startsWith("/")) {
     throw new Error(`Group prefix "${options.prefix}" must start with "/".`);
@@ -378,7 +377,7 @@ export function group<
 
   // Validate that wildcard prefixes don't have non-empty child paths
   if (prefix && /\{\.\.\./.test(prefix)) {
-    for (const childRoutes of childrenArray) {
+    for (const childRoutes of children) {
       for (const route of childRoutes.routes) {
         if (route.path !== "" && route.path !== "/") {
           throw new Error(
@@ -393,7 +392,7 @@ export function group<
   // Flatten immediately - process all child routes
   const flatRoutes: RouteDefinition[] = [];
 
-  for (const childRoutes of childrenArray) {
+  for (const childRoutes of children) {
     for (const route of childRoutes.routes) {
       // Check for domain conflicts
       if (domain && route.domainPattern && domain !== route.domainPattern) {

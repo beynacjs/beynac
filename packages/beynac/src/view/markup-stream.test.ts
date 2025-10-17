@@ -1034,7 +1034,7 @@ describe("error handling", () => {
 describe("renderResponse", () => {
   test("renders content to Response object with default headers", async () => {
     const stream = new MarkupStream("div", { id: "test" }, ["Hello World"]);
-    const response = renderResponse(stream);
+    const response = await renderResponse(stream);
 
     expect(response).toBeInstanceOf(Response);
     expect(response.status).toBe(200);
@@ -1044,7 +1044,7 @@ describe("renderResponse", () => {
 
   test("accepts custom status code", async () => {
     const stream = new MarkupStream("div", null, ["Created"]);
-    const response = renderResponse(stream, { status: 201 });
+    const response = await renderResponse(stream, { status: 201 });
 
     expect(response.status).toBe(201);
     expect(await response.text()).toBe("<div>Created</div>");
@@ -1052,7 +1052,7 @@ describe("renderResponse", () => {
 
   test("accepts custom headers while preserving Content-Type", async () => {
     const stream = new MarkupStream("p", null, ["Test"]);
-    const response = renderResponse(stream, {
+    const response = await renderResponse(stream, {
       headers: {
         "X-Custom-Header": "custom-value",
       },
@@ -1065,7 +1065,7 @@ describe("renderResponse", () => {
 
   test("accepts custom Headers object while preserving Content-Type", async () => {
     const stream = new MarkupStream("p", null, ["Test"]);
-    const response = renderResponse(stream, {
+    const response = await renderResponse(stream, {
       headers: new Headers({
         "x-custom-header": "custom-value",
       }),
@@ -1078,7 +1078,7 @@ describe("renderResponse", () => {
 
   test("allows overriding Content-Type header", async () => {
     const stream = new MarkupStream("svg", { xmlns: "http://www.w3.org/2000/svg" }, []);
-    const response = renderResponse(stream, {
+    const response = await renderResponse(stream, {
       headers: {
         "Content-Type": "image/svg+xml",
       },
@@ -1090,7 +1090,7 @@ describe("renderResponse", () => {
 
   test("allows overriding Content-Type header with Headers object", async () => {
     const stream = new MarkupStream("svg", { xmlns: "http://www.w3.org/2000/svg" }, []);
-    const response = renderResponse(stream, {
+    const response = await renderResponse(stream, {
       headers: {
         "CONTENT-TYPE": "image/svg+xml",
       },
@@ -1102,7 +1102,7 @@ describe("renderResponse", () => {
 
   test("uses xml mode for Content-Type", async () => {
     const stream = new MarkupStream("root", null, [new MarkupStream("child", null, [])]);
-    const response = renderResponse(stream, { mode: "xml" });
+    const response = await renderResponse(stream, { mode: "xml" });
 
     expect(response.headers.get("Content-Type")).toBe("application/xml; charset=utf-8");
     expect(await response.text()).toBe("<root><child /></root>");
@@ -1110,7 +1110,7 @@ describe("renderResponse", () => {
 
   test("passes mode to render for xml self-closing tags", async () => {
     const stream = new MarkupStream("root", null, []);
-    const response = renderResponse(stream, { mode: "xml" });
+    const response = await renderResponse(stream, { mode: "xml" });
 
     expect(await response.text()).toBe("<root />");
   });
@@ -1121,7 +1121,7 @@ describe("renderResponse", () => {
       Promise.resolve("async content"),
       " after",
     ]);
-    const response = renderResponse(stream);
+    const response = await renderResponse(stream);
 
     expect(response.status).toBe(200);
     expect(await response.text()).toBe("<div>before async content after</div>");
@@ -1140,7 +1140,7 @@ describe("renderResponse", () => {
       " after",
     ]);
 
-    const response = renderResponse(stream);
+    const response = await renderResponse(stream);
 
     // Start reading response body asynchronously
     const reader = response.body?.getReader();
@@ -1181,7 +1181,7 @@ describe("renderResponse", () => {
       new MarkupStream("body", null, [new MarkupStream("h1", null, ["Welcome"])]),
     ]);
 
-    const response = renderResponse(content, { status: 200 });
+    const response = await renderResponse(content, { status: 200 });
 
     expect(response).toBeInstanceOf(Response);
     expect(response.status).toBe(200);

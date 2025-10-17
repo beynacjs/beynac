@@ -792,23 +792,6 @@ describe("route groups", () => {
       Routes<{ "api.users.index": never; "api.users.show": "id" }>
     >();
   });
-
-  test("group with callback function", async () => {
-    const { router } = createRouter();
-
-    const routes = group({ prefix: "/admin" }, () => [
-      get("/dashboard", {
-        handle() {
-          return new Response("Dashboard");
-        },
-      }),
-    ]);
-
-    router.register(routes);
-
-    const response = await router.handle(new Request("http://example.com/admin/dashboard"));
-    expect(await response.text()).toBe("Dashboard");
-  });
 });
 
 // ============================================================================
