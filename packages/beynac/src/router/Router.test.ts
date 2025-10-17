@@ -167,27 +167,26 @@ test("handles async controller", async () => {
 });
 
 describe("middleware", () => {
-  const mockMiddlewareClass = (name: string) => {
+  const mockMiddlewareClass = (name: string, logBeforeAfter = false) => {
     class MockMiddleware implements Middleware {
-      handle(
+      async handle(
         ctx: ControllerContext,
         next: (ctx: ControllerContext) => Response | Promise<Response>,
-      ): Response | Promise<Response> {
-        middlewareLog.push(name);
-        return next(ctx);
+      ): Promise<Response> {
+        if (logBeforeAfter) {
+          middlewareLog.push(`${name}:before`);
+        } else {
+          middlewareLog.push(name);
+        }
+        const result = await next(ctx);
+        if (logBeforeAfter) {
+          middlewareLog.push(`${name}:after`);
+        }
+        return result;
       }
     }
     return MockMiddleware;
   };
-
-  const mockMiddleware = (name: string): Middleware => ({
-    handle: mock(async (ctx, next) => {
-      middlewareLog.push(`${name}:before`);
-      const response = await next(ctx);
-      middlewareLog.push(`${name}:after`);
-      return response;
-    }),
-  });
 
   let middlewareLog: string[] = [];
   beforeEach(() => {
@@ -195,26 +194,35 @@ describe("middleware", () => {
   });
 
   test("executes middleware with context", async () => {
-    const middleware: Middleware = {
-      handle: mock((ctx, next) => {
+    const handleMock = mock(
+      (ctx: ControllerContext, next: (ctx: ControllerContext) => Response | Promise<Response>) => {
         expect(ctx.request).toBeInstanceOf(Request);
         expect(ctx.params).toEqual({ page: "foo" });
         return next(ctx);
-      }),
-    };
+      },
+    );
 
-    router.register(get("/test/{page}", controller, { name: "test", middleware }));
+    class TestMiddleware implements Middleware {
+      handle(
+        ctx: ControllerContext,
+        next: (ctx: ControllerContext) => Response | Promise<Response>,
+      ): Response | Promise<Response> {
+        return handleMock(ctx, next);
+      }
+    }
+
+    router.register(get("/test/{page}", controller, { name: "test", middleware: TestMiddleware }));
 
     await handle("/test/foo");
-    expect(middleware.handle).toHaveBeenCalledTimes(1);
+    expect(handleMock).toHaveBeenCalledTimes(1);
   });
 
   test("executes multiple middleware in correct order", async () => {
-    const middleware0 = mockMiddleware("m0");
+    const middleware0 = mockMiddlewareClass("m0", true);
 
-    const middleware1 = mockMiddleware("m1");
+    const middleware1 = mockMiddlewareClass("m1", true);
 
-    const middleware2 = mockMiddleware("m2");
+    const middleware2 = mockMiddlewareClass("m2", true);
 
     router.register(
       group({ middleware: middleware0 }, [
@@ -241,25 +249,6 @@ describe("middleware", () => {
       "m1:after",
       "m0:after",
     ]);
-  });
-
-  test("withoutMiddleware works with instances", async () => {
-    const middleware1 = mockMiddleware("m1");
-
-    const middleware2 = mockMiddleware("m2");
-
-    const middleware3 = mockMiddleware("m3");
-
-    router.register(
-      group({ middleware: [middleware1, middleware2, middleware3] }, [
-        get("/test", controller, { withoutMiddleware: middleware2 }),
-      ]),
-    );
-
-    await handle("/test");
-    expect(middleware1.handle).toHaveBeenCalledTimes(1);
-    expect(middleware2.handle).not.toHaveBeenCalled();
-    expect(middleware3.handle).toHaveBeenCalledTimes(1);
   });
 
   test("withoutMiddleware works with classes", async () => {
@@ -374,13 +363,16 @@ describe("middleware", () => {
   });
 
   test("middleware can short-circuit", async () => {
-    const authMiddleware: Middleware = {
-      handle(_ctx, _next) {
+    class AuthMiddleware implements Middleware {
+      handle(
+        _ctx: ControllerContext,
+        _next: (ctx: ControllerContext) => Response | Promise<Response>,
+      ): Response {
         return new Response("Unauthorized");
-      },
-    };
+      }
+    }
 
-    const route = get("/protected", controller, { middleware: authMiddleware });
+    const route = get("/protected", controller, { middleware: AuthMiddleware });
 
     router.register(route);
 
@@ -390,8 +382,11 @@ describe("middleware", () => {
   });
 
   test("middleware can replace request", async () => {
-    const middleware: Middleware = {
-      handle(ctx, next) {
+    class ModifyRequestMiddleware implements Middleware {
+      handle(
+        ctx: ControllerContext,
+        next: (ctx: ControllerContext) => Response | Promise<Response>,
+      ): Response | Promise<Response> {
         const headers = new Headers(ctx.request.headers);
         headers.set("X-Custom", "Modified");
         const modifiedRequest = new Request(ctx.request.url, {
@@ -400,8 +395,8 @@ describe("middleware", () => {
         });
         const modifiedCtx = { ...ctx, request: modifiedRequest };
         return next(modifiedCtx);
-      },
-    };
+      }
+    }
 
     const route = get(
       "/test",
@@ -410,13 +405,42 @@ describe("middleware", () => {
           return new Response(request.headers.get("X-Custom") || "Not found");
         },
       },
-      { middleware },
+      { middleware: ModifyRequestMiddleware },
     );
 
     router.register(route);
 
     const response = await router.handle(new Request("http://example.com/test"));
     expect(await response.text()).toBe("Modified");
+  });
+
+  test("applies middleware to all routes in group", async () => {
+    const M = mockMiddlewareClass("group-middleware");
+
+    const routes = group({ prefix: "/api", middleware: M }, [
+      get("/v1", {
+        handle() {
+          middlewareLog.push("v1");
+          return new Response("V1");
+        },
+      }),
+      get("/v2", {
+        handle() {
+          middlewareLog.push("v2");
+          return new Response("V2");
+        },
+      }),
+    ]);
+
+    router.register(routes);
+
+    middlewareLog.length = 0;
+    await router.handle(new Request("http://example.com/api/v1"));
+    expect(middlewareLog).toEqual(["group-middleware", "v1"]);
+
+    middlewareLog.length = 0;
+    await router.handle(new Request("http://example.com/api/v2"));
+    expect(middlewareLog).toEqual(["group-middleware", "v2"]);
   });
 });
 
@@ -438,42 +462,6 @@ describe("route groups", () => {
 
     await router.handle(new Request("http://example.com/admin/users"));
     expect(mc2.handle).toHaveBeenCalledTimes(1);
-  });
-
-  test("applies middleware to all routes in group", async () => {
-    const log: string[] = [];
-
-    const middleware: Middleware = {
-      handle(ctx, next) {
-        log.push("group-middleware");
-        return next(ctx);
-      },
-    };
-
-    const routes = group({ prefix: "/api", middleware }, [
-      get("/v1", {
-        handle() {
-          log.push("v1");
-          return new Response("V1");
-        },
-      }),
-      get("/v2", {
-        handle() {
-          log.push("v2");
-          return new Response("V2");
-        },
-      }),
-    ]);
-
-    router.register(routes);
-
-    log.length = 0;
-    await router.handle(new Request("http://example.com/api/v1"));
-    expect(log).toEqual(["group-middleware", "v1"]);
-
-    log.length = 0;
-    await router.handle(new Request("http://example.com/api/v2"));
-    expect(log).toEqual(["group-middleware", "v2"]);
   });
 
   test("applies domain to routes in group", async () => {

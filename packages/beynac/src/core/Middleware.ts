@@ -20,8 +20,6 @@ export interface Middleware {
 }
 
 /**
- * A middleware reference can be:
- * - A class constructor that will be instantiated via the container
- * - An instance of a middleware (including inline object literals)
+ * A middleware reference is a class constructor that will be instantiated via the container
  */
-export type MiddlewareReference = Middleware | NoArgConstructor<Middleware>;
+export type MiddlewareReference = NoArgConstructor<Middleware>;

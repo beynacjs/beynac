@@ -72,12 +72,7 @@ export class Router {
       return handler.handle(ctx);
     };
 
-    const middlewareInstances = route.middleware.map((ref) => {
-      if (typeof ref === "function") {
-        return this.container.get(ref);
-      }
-      return ref;
-    });
+    const middlewareInstances = route.middleware.map((ref) => this.container.get(ref));
 
     let next: MiddlewareNext = finalHandler;
 
