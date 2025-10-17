@@ -147,6 +147,23 @@ export type PrependNamePrefix<
     };
 
 /**
+ * Compute the Routes type for a group with optional name/path prefixes
+ * Handles merging children, applying path prefix params, and prepending name prefix
+ */
+export type GroupedRoutes<
+  Children extends readonly Routes<any>[], // eslint-disable-line @typescript-eslint/no-explicit-any -- Required for Routes array constraint
+  NamePrefix extends string = "",
+  PathPrefix extends string = "",
+> = Routes<
+  PrependNamePrefix<
+    ExtractRouteParams<PathPrefix> extends never
+      ? MergeChildren<Children>
+      : AddPrefixParams<MergeChildren<Children>, ExtractRouteParams<PathPrefix>>,
+    NamePrefix
+  >
+>;
+
+/**
  * Convert a union of param names to an object type
  * "id" | "name" -> { id: string | number, name: string | number }
  * never -> {} (no params needed)

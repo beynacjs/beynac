@@ -2,11 +2,8 @@ import type { Controller } from "../core/Controller";
 import { arrayWrap } from "../utils";
 import type { ParameterConstraint, RouteDefinition, RouteHandler } from "./internal-types";
 import type {
-  AddPrefixParams,
   ExtractDomainAndPathParams,
-  ExtractRouteParams,
-  MergeChildren,
-  PrependNamePrefix,
+  GroupedRoutes,
   RouteConstraint,
   RouteGroupOptions,
   RouteOptions,
@@ -332,22 +329,36 @@ function applyNamePrefix(prefix: string | undefined, name: string | undefined): 
 /**
  * Group routes with shared options - flattens immediately
  */
+export function group<const Children extends readonly Routes<any>[]>( // eslint-disable-line @typescript-eslint/no-explicit-any -- Required for Routes array constraint
+  children: Children,
+): GroupedRoutes<Children>;
+
 export function group<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any --
-  const Children extends readonly Routes<any>[],
+  const Children extends readonly Routes<any>[], // eslint-disable-line @typescript-eslint/no-explicit-any -- Required for Routes array constraint
   const NamePrefix extends string = "",
   const PathPrefix extends string = "",
 >(
   options: RouteGroupOptions<NamePrefix, PathPrefix>,
   children: Children,
-): Routes<
-  PrependNamePrefix<
-    ExtractRouteParams<PathPrefix> extends never
-      ? MergeChildren<Children>
-      : AddPrefixParams<MergeChildren<Children>, ExtractRouteParams<PathPrefix>>,
-    NamePrefix
-  >
-> {
+): GroupedRoutes<Children, NamePrefix, PathPrefix>;
+
+export function group<
+  const Children extends readonly Routes<any>[], // eslint-disable-line @typescript-eslint/no-explicit-any -- Required for Routes array constraint
+  const NamePrefix extends string = "",
+  const PathPrefix extends string = "",
+>(
+  optionsOrChildren: RouteGroupOptions<NamePrefix, PathPrefix> | Children,
+  maybeChildren?: Children,
+): GroupedRoutes<Children, NamePrefix, PathPrefix> {
+  // Detect which overload was called
+  if (Array.isArray(optionsOrChildren)) {
+    // Called as: group(children)
+    return group({}, optionsOrChildren as Children);
+  }
+
+  // Called as: group(options, children)
+  const options = optionsOrChildren as RouteGroupOptions<NamePrefix, PathPrefix>;
+  const children = maybeChildren as Children;
   // Validate: prefix must start with "/" if provided
   if (options.prefix && !options.prefix.startsWith("/")) {
     throw new Error(`Group prefix "${options.prefix}" must start with "/".`);
@@ -439,7 +450,7 @@ export function group<
 
   // Type assertion needed because TypeScript can't statically verify the complex conditional return type at definition time,
   // but the runtime behavior correctly produces the expected type structure
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return -- Type assertion safe: runtime correctly produces GroupedRoutes type
   return createRoutes(flatRoutes) as any;
 }
 
