@@ -1,22 +1,25 @@
 import { expect, mock, spyOn, test } from "bun:test";
+import { controllerContext } from "../test-utils";
 import { DevModeAutoRefreshMiddleware } from "./DevModeAutoRefreshMiddleware";
 
 test("calls next middleware for non-SSE requests", async () => {
   const middleware = new DevModeAutoRefreshMiddleware({});
   const next = mock(() => new Response("OK"));
-  const request = new Request("http://example.com/test");
 
-  await middleware.handle(request, next);
+  const ctx = controllerContext();
+  await middleware.handle(ctx, next);
 
-  expect(next).toHaveBeenCalledWith(request);
+  expect(next).toHaveBeenCalledWith(ctx);
 });
 
 test("SSE endpoint returns correct headers", async () => {
   const middleware = new DevModeAutoRefreshMiddleware({});
   const next = mock(() => new Response("OK"));
-  const request = new Request("http://example.com?__beynac_dev_mode_refresh");
 
-  const response = await middleware.handle(request, next);
+  const response = await middleware.handle(
+    controllerContext(new Request("http://example.com?__beynac_dev_mode_refresh")),
+    next,
+  );
 
   expect(next).not.toHaveBeenCalled();
   expect(response).toBeInstanceOf(Response);
@@ -38,8 +41,7 @@ test("injects script into HTML response before </body>", async () => {
   const generateScriptSpy = spyOn(middleware as any, "generateScript");
   generateScriptSpy.mockReturnValue("<script>MARKER</script>");
 
-  const request = new Request("http://example.com/test");
-  const response = await middleware.handle(request, next);
+  const response = await middleware.handle(controllerContext(), next);
 
   const result = await response.text();
 
@@ -61,8 +63,7 @@ test("injects script into HTML response before </html> if no </body>", async () 
   const generateScriptSpy = spyOn(middleware as any, "generateScript");
   generateScriptSpy.mockReturnValue("<script>MARKER</script>");
 
-  const request = new Request("http://example.com/test");
-  const response = await middleware.handle(request, next);
+  const response = await middleware.handle(controllerContext(), next);
 
   const result = await response.text();
 
@@ -84,8 +85,7 @@ test("injects script at end if no closing tags found", async () => {
   const generateScriptSpy = spyOn(middleware as any, "generateScript");
   generateScriptSpy.mockReturnValue("<script>MARKER</script>");
 
-  const request = new Request("http://example.com/test");
-  const response = await middleware.handle(request, next);
+  const response = await middleware.handle(controllerContext(), next);
 
   const result = await response.text();
 
@@ -107,8 +107,7 @@ test("does not inject script into non-HTML responses", async () => {
   const generateScriptSpy = spyOn(middleware as any, "generateScript");
   generateScriptSpy.mockReturnValue("<script>MARKER</script>");
 
-  const request = new Request("http://example.com/test");
-  const response = await middleware.handle(request, next);
+  const response = await middleware.handle(controllerContext(), next);
 
   const result = await response.text();
 

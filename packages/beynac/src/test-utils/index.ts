@@ -12,24 +12,28 @@ export class MockController implements Controller {
     });
   }
 
-  onlyCallArg(method: string): ControllerContext {
+  get params(): Record<string, string> {
     const { calls } = this.handle.mock;
     if (calls.length !== 1) {
       throw new Error(
-        `handle(ctx) was called ${calls.length} times, ${method} can only be used if the handler is called exactly once`,
+        `handle(ctx) was called ${calls.length} times, mockController.params can only be used if the handler is called exactly once, use allParams instead`,
       );
     }
-    return this.handle.mock.calls[0][0];
+    return calls[0][0].params;
   }
 
-  get params(): Record<string, string> {
-    return this.onlyCallArg("params").params;
-  }
-
-  get request(): Record<string, string> {
-    return this.onlyCallArg("request").params;
+  get allParams(): Record<string, string>[] {
+    return this.handle.mock.calls.map((call) => call[0].params);
   }
 }
 
 export const controller = (response?: Response | (() => Response)): MockController =>
   new MockController(response);
+
+export const controllerContext = (
+  request: Request = new Request("https://example.com/"),
+): ControllerContext => ({
+  request,
+  params: {},
+  url: new URL(request.url),
+});

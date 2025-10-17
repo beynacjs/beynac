@@ -2,6 +2,7 @@ import type { Controller } from "../core/Controller";
 import { arrayWrap } from "../utils";
 import type {
   ExtractDomainAndPathParams,
+  GroupChildren,
   GroupedRoutes,
   ParameterConstraint,
   RouteConstraint,
@@ -12,72 +13,43 @@ import type {
   Routes,
 } from "./router-types";
 
-// ============================================================================
-// Syntax Validation
-// ============================================================================
-
-/**
- * Validate user-facing route syntax
- * User syntax: {param} and {...path}
- * This validates early so users get immediate feedback
- */
 function validateRouteSyntax(path: string): void {
   const originalPath = path;
 
-  // Validate: reject asterisks (could leak through to rou3)
   if (path.includes("*")) {
     throw new Error(
       `Route path "${path}" contains asterisk characters. Use {...param} for wildcard routes instead of ** or *.`,
     );
   }
 
-  // Validate: reject colons (reserved for rou3 internal use)
   if (path.includes(":")) {
     throw new Error(
       `Route path "${path}" contains colon characters. Use {param} syntax instead of :param.`,
     );
   }
 
-  // Validate: detect wrong wildcard order {param...}
   if (/\{[^}]+\.\.\.\}/.test(path)) {
     throw new Error(
       `Route path "${path}" has incorrect wildcard syntax. Use {...param} not {param...}.`,
     );
   }
 
-  // Validate: parameters must be whole path segments
-  // Check for text before opening brace (except at start or after /, .)
-  if (/[^/.]\{/.test(path)) {
+  if (/\{\.\.\.([a-zA-Z_][a-zA-Z0-9_]*)\}./.test(path)) {
     throw new Error(
-      `Route path "${path}" has invalid parameter syntax. Parameters must capture whole path segments, not partial segments. Use /{param}/ not /text{param}/.`,
+      `Route path "${path}" has wildcard parameter in non-terminal position. ` +
+        `Wildcards can only appear at the end of a path, like /files/{...path}, not /files/{...path}/something.`,
     );
   }
 
-  // Check for text after closing brace (except at end or before /, .)
-  if (/\}[^/.]/.test(path)) {
+  if (/[^/.]\{/.test(path) || /\}[^/.]/.test(path)) {
     throw new Error(
-      `Route path "${path}" has invalid parameter syntax. Parameters must capture whole path segments, not partial segments. Use /{param}/ not /{param}text/.`,
+      `Route path "${path}" has invalid parameter syntax. Parameters must capture whole path segments, not partial segments. Use /{param}/ not /text{param}/ or /{param}text/.`,
     );
   }
 
-  // Validate parameter names: {...param} and {param}
-  const wildcardParams = path.match(/\{\.\.\.([a-zA-Z_][a-zA-Z0-9_]*)\}/g);
-  const regularParams = path.match(/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g);
-
-  // Validate: any remaining curly braces after extracting valid params are invalid
-  let testPath = path;
-  if (wildcardParams) {
-    for (const param of wildcardParams) {
-      testPath = testPath.replace(param, "");
-    }
-  }
-  if (regularParams) {
-    for (const param of regularParams) {
-      testPath = testPath.replace(param, "");
-    }
-  }
-
-  if (testPath.includes("{") || testPath.includes("}")) {
+  // Any remaining curly braces after extracting valid params are invalid
+  const pathWithoutValidPlaceholders = path.replaceAll(/\{(\.\.\.)?\w+\}/g, "");
+  if (pathWithoutValidPlaceholders.includes("{") || pathWithoutValidPlaceholders.includes("}")) {
     throw new Error(
       `Route path "${originalPath}" contains invalid curly braces. ` +
         `Curly braces can only be used for parameters like {param} or {...wildcard}.`,
@@ -85,51 +57,18 @@ function validateRouteSyntax(path: string): void {
   }
 }
 
-// ============================================================================
-// Constraint Validators
-// ============================================================================
-
-/** Constraint: parameter must be numeric */
-export const isNumber: RegExp = /^\d+$/;
-
-/** Constraint: parameter must be alphabetic */
-export const isAlpha: RegExp = /^[a-zA-Z]+$/;
-
-/** Constraint: parameter must be alphanumeric */
-export const isAlphaNumeric: RegExp = /^[a-zA-Z0-9]+$/;
-
-/** Constraint: parameter must be UUID v4 */
-export const isUuid: RegExp =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-/** Constraint: parameter must be ULID */
-export const isUlid: RegExp = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
-
-/** Constraint: parameter must be one of the given values */
-export function isIn(values: readonly string[]): RegExp {
-  return new RegExp(`^(${values.join("|")})$`);
+/**
+ * Create a constraint that matches one of the given values
+ *
+ * @example
+ * get('/status/{type}', controller, {
+ *   where: { type: isIn(['active', 'inactive', 'pending']) }
+ * })
+ */
+export function isIn(values: readonly string[]): RouteConstraint {
+  return new RegExp(`^(${values.map((v) => RegExp.escape(v)).join("|")})$`);
 }
 
-// ============================================================================
-// Routes Factory
-// ============================================================================
-
-/**
- * Create a Routes collection from an array of RouteDefinition
- */
-function createRoutes<Params extends Record<string, string> = {}>(
-  routes: RouteDefinition[],
-): Routes<Params> {
-  return { routes };
-}
-
-// ============================================================================
-// Route Creation
-// ============================================================================
-
-/**
- * Helper to create a route with common logic
- */
 function createRoute<
   const Path extends string,
   const Name extends string = never,
@@ -138,10 +77,8 @@ function createRoute<
   method: string | readonly string[],
   path: Path,
   handler: RouteHandler,
-  options?: RouteOptions<Name> & { domain?: Domain },
-): [Name] extends [never]
-  ? Routes<{}>
-  : Routes<{ [K in Name]: ExtractDomainAndPathParams<Domain, Path> }> {
+  options?: RouteOptions<Name, Path> & { domain?: Domain },
+): RouteMethodReturn<Path, Name, Domain> {
   const methods = typeof method === "string" ? [method] : method;
 
   // Validate: path must start with "/" or be empty string
@@ -158,8 +95,20 @@ function createRoute<
   // Convert where constraints to ParameterConstraint[]
   const constraints: ParameterConstraint[] = [];
   if (options?.where) {
-    for (const [param, pattern] of Object.entries(options.where)) {
-      constraints.push({ param, pattern });
+    for (const [param, constraint] of Object.entries(options.where)) {
+      if (constraint) {
+        constraints.push({ param, constraint: constraint as RouteConstraint });
+      }
+    }
+  }
+
+  // Convert globalPatterns to ParameterConstraint[]
+  const globalConstraints: ParameterConstraint[] = [];
+  if (options?.globalPatterns) {
+    for (const [param, constraint] of Object.entries(options.globalPatterns)) {
+      if (constraint) {
+        globalConstraints.push({ param, constraint });
+      }
     }
   }
 
@@ -171,13 +120,11 @@ function createRoute<
     middleware: options?.middleware ? arrayWrap(options.middleware) : [],
     withoutMiddleware: options?.withoutMiddleware ? arrayWrap(options.withoutMiddleware) : [],
     constraints,
+    globalConstraints,
     domainPattern: options?.domain, // Store user syntax
   };
 
-  // Type assertion needed because TypeScript can't infer the complex conditional return type
-  return createRoutes([route]) as [Name] extends [never]
-    ? Routes<{}>
-    : Routes<{ [K in Name]: ExtractDomainAndPathParams<Domain, Path> }>;
+  return { routes: [route] } as RouteMethodReturn<Path, Name, Domain>;
 }
 
 /**
@@ -190,8 +137,14 @@ type RouteMethodFunction = <
 >(
   path: Path,
   handler: RouteHandler,
-  options?: RouteOptions<Name> & { domain?: Domain },
-) => [Name] extends [never]
+  options?: RouteOptions<Name, Path> & { domain?: Domain },
+) => RouteMethodReturn<Path, Name, Domain>;
+
+type RouteMethodReturn<
+  Path extends string,
+  Name extends string = never,
+  Domain extends string | undefined = undefined,
+> = [Name] extends [never]
   ? Routes<{}>
   : Routes<{ [K in Name]: ExtractDomainAndPathParams<Domain, Path> }>;
 
@@ -215,10 +168,6 @@ export { delete_ as delete };
 export const options: RouteMethodFunction = (path, handler, options) =>
   createRoute("OPTIONS", path, handler, options);
 
-// ============================================================================
-// Multi-Method Routes
-// ============================================================================
-
 export function match<
   const Path extends string,
   const Name extends string = never,
@@ -227,10 +176,8 @@ export function match<
   methods: readonly string[],
   path: Path,
   handler: RouteHandler,
-  options?: RouteOptions<Name> & { domain?: Domain },
-): [Name] extends [never]
-  ? Routes<{}>
-  : Routes<{ [K in Name]: ExtractDomainAndPathParams<Domain, Path> }> {
+  options?: RouteOptions<Name, Path> & { domain?: Domain },
+): RouteMethodReturn<Path, Name, Domain> {
   return createRoute(methods, path, handler, options);
 }
 
@@ -241,29 +188,25 @@ export function any<
 >(
   path: Path,
   handler: RouteHandler,
-  options?: RouteOptions<Name> & { domain?: Domain },
-): [Name] extends [never]
-  ? Routes<{}>
-  : Routes<{ [K in Name]: ExtractDomainAndPathParams<Domain, Path> }> {
+  options?: RouteOptions<Name, Path> & { domain?: Domain },
+): RouteMethodReturn<Path, Name, Domain> {
   const methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"];
   return match(methods, path, handler, options);
 }
 
-// ============================================================================
-// Redirect Helper
-// ============================================================================
-
 /**
- * Create a redirect controller
+ * Create a redirect controller.
+ *
+ * This results in the appropriate HTTP status code being sent, 303,
  *
  * @param to - The URL to redirect to
- * @param options - Redirect options
- * @param options.permanent - If true, uses permanent redirect status (default: false)
- * @param options.preserveHttpMethod - If true, preserves HTTP method (default: false)
+ * @param options.permanent - If true, Make a permanent redirect that instructs search engines to update their index to the new URL (default: false)
+ * @param options.preserveHttpMethod - If true, preserves HTTP method so POST requests will result in a POST request to the new URL (default: false)
  *
  * Status codes used:
  * - 303 See Other: Temporary, changes to GET (default)
  * - 307 Temporary Redirect: Temporary, preserves method
+ * - 301 Moved Permanently: Permanent, changes to GET
  * - 308 Permanent Redirect: Permanent, preserves method
  *
  * @example
@@ -283,10 +226,13 @@ export function redirect(
   to: string,
   options?: { permanent?: boolean; preserveHttpMethod?: boolean },
 ): Controller {
-  const status = getRedirectStatus(
-    options?.permanent ?? false,
-    options?.preserveHttpMethod ?? false,
-  );
+  let status: number;
+
+  if (options?.permanent) {
+    status = options?.preserveHttpMethod ? 308 : 301;
+  } else {
+    status = options?.preserveHttpMethod ? 307 : 303;
+  }
 
   return {
     handle() {
@@ -299,46 +245,31 @@ export function redirect(
 }
 
 /**
- * Determine the appropriate HTTP redirect status code
+ * Define a group of routes without any shared options
+ *
+ * @example
+ * // Grouping routes together
+ * group([
+ *   get('/dashboard', DashboardController),
+ *   get('/users', UsersController),
+ * ])
  */
-function getRedirectStatus(permanent: boolean, preserveMethod: boolean): number {
-  if (permanent && preserveMethod) return 308; // Permanent Redirect (preserves method)
-  if (!permanent && preserveMethod) return 307; // Temporary Redirect (preserves method)
-  // For both permanent and temporary without preserveMethod, use 303
-  // 303 explicitly says "change to GET" which is what we want
-  return 303; // See Other (changes to GET)
-}
-
-// ============================================================================
-// Route Grouping
-// ============================================================================
-
-/**
- * Helper to apply path prefix
- */
-function applyPathPrefix(prefix: string | undefined, path: string): string {
-  if (!prefix) return path;
-  const normalizedPrefix = prefix.startsWith("/") ? prefix : `/${prefix}`;
-  return path === "/" ? normalizedPrefix : `${normalizedPrefix}${path}`;
-}
-
-/**
- * Helper to apply name prefix
- */
-function applyNamePrefix(prefix: string | undefined, name: string | undefined): string | undefined {
-  if (!prefix || !name) return name;
-  return `${prefix}${name}`;
-}
-
-/**
- * Group routes with shared options - flattens immediately
- */
-export function group<const Children extends readonly Routes<any>[]>( // eslint-disable-line @typescript-eslint/no-explicit-any -- Required for Routes array constraint
+export function group<const Children extends GroupChildren>(
   children: Children,
 ): GroupedRoutes<Children>;
 
+/**
+ * Define a group of routes with shared options
+ *
+ * @example
+ * // Apply a prefix and middleware to a group of routes
+ * group({ prefix: '/admin', middleware: AuthMiddleware }, [
+ *   get('/dashboard', DashboardController),
+ *   get('/users', UsersController),
+ * ])
+ */
 export function group<
-  const Children extends readonly Routes<any>[], // eslint-disable-line @typescript-eslint/no-explicit-any -- Required for Routes array constraint
+  const Children extends GroupChildren,
   const NamePrefix extends string = "",
   const PathPrefix extends string = "",
 >(
@@ -347,28 +278,25 @@ export function group<
 ): GroupedRoutes<Children, NamePrefix, PathPrefix>;
 
 export function group<
-  const Children extends readonly Routes<any>[], // eslint-disable-line @typescript-eslint/no-explicit-any -- Required for Routes array constraint
+  const Children extends GroupChildren,
   const NamePrefix extends string = "",
   const PathPrefix extends string = "",
 >(
   optionsOrChildren: RouteGroupOptions<NamePrefix, PathPrefix> | Children,
   maybeChildren?: Children,
 ): GroupedRoutes<Children, NamePrefix, PathPrefix> {
-  // Detect which overload was called
+  // handle single argument overload
   if (Array.isArray(optionsOrChildren)) {
-    // Called as: group(children)
     return group({}, optionsOrChildren as Children);
   }
 
-  // Called as: group(options, children)
   const options = optionsOrChildren as RouteGroupOptions<NamePrefix, PathPrefix>;
   const children = maybeChildren as Children;
-  // Validate: prefix must start with "/" if provided
+
   if (options.prefix && !options.prefix.startsWith("/")) {
     throw new Error(`Group prefix "${options.prefix}" must start with "/".`);
   }
 
-  // Validate syntax early for immediate feedback
   if (options.prefix) {
     validateRouteSyntax(options.prefix);
   }
@@ -376,32 +304,40 @@ export function group<
     validateRouteSyntax(options.domain);
   }
 
-  const prefix = options.prefix;
-  const domain = options.domain;
+  // strip "/" suffix to prevent double slash since all routes start with a slash
+  const prefix = options.prefix?.replace(/\/$/, "");
+
+  (!here) in review!;
 
   // Convert group options constraints to ParameterConstraint[]
   const groupConstraints: ParameterConstraint[] = [];
   if (options.where) {
-    for (const [param, pattern] of Object.entries(options.where)) {
-      groupConstraints.push({ param, pattern });
+    for (const [param, constraint] of Object.entries(options.where)) {
+      if (constraint) {
+        groupConstraints.push({ param, constraint: constraint as RouteConstraint });
+      }
+    }
+  }
+
+  // Convert group options globalPatterns to ParameterConstraint[]
+  const groupGlobalConstraints: ParameterConstraint[] = [];
+  if (options.globalPatterns) {
+    for (const [param, constraint] of Object.entries(options.globalPatterns)) {
+      if (constraint) {
+        groupGlobalConstraints.push({ param, constraint });
+      }
     }
   }
 
   const groupMiddleware = options.middleware ? arrayWrap(options.middleware) : [];
   const groupWithout = options.withoutMiddleware ? arrayWrap(options.withoutMiddleware) : [];
 
-  // Validate that wildcard prefixes don't have non-empty child paths
+  // Validate: no wildcards in group prefixes
   if (prefix && /\{\.\.\./.test(prefix)) {
-    for (const childRoutes of children) {
-      for (const route of childRoutes.routes) {
-        if (route.path !== "" && route.path !== "/") {
-          throw new Error(
-            `Route "${route.path}" will never match because its parent group has a wildcard "${prefix}". ` +
-              `All routes within a wildcard group must have empty paths.`,
-          );
-        }
-      }
-    }
+    throw new Error(
+      `Group prefix "${prefix}" contains a wildcard parameter. ` +
+        `Wildcards are not allowed in group prefixes. Use them in route paths instead.`,
+    );
   }
 
   // Flatten immediately - process all child routes
@@ -409,11 +345,10 @@ export function group<
 
   for (const childRoutes of children) {
     for (const route of childRoutes.routes) {
-      // Check for domain conflicts
-      if (domain && route.domainPattern && domain !== route.domainPattern) {
+      if (options.domain && route.domainPattern && options.domain !== route.domainPattern) {
         throw new Error(
           `Domain conflict: route "${route.routeName || route.path}" specifies domain "${route.domainPattern}" ` +
-            `but is inside a group with domain "${domain}". Nested routes cannot override parent domain.`,
+            `but is inside a group with domain "${options.domain}". Nested routes cannot override parent domain.`,
         );
       }
 
@@ -447,6 +382,7 @@ export function group<
         middleware: finalMiddleware,
         withoutMiddleware: [...groupWithout, ...routeWithout],
         constraints: [...groupConstraints, ...route.constraints],
+        globalConstraints: [...groupGlobalConstraints, ...route.globalConstraints],
         domainPattern: domain ?? route.domainPattern,
       });
     }
@@ -455,20 +391,16 @@ export function group<
   // Type assertion needed because TypeScript can't statically verify the complex conditional return type at definition time,
   // but the runtime behavior correctly produces the expected type structure
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return -- Type assertion safe: runtime correctly produces GroupedRoutes type
-  return createRoutes(flatRoutes) as any;
+  return { routes: flatRoutes } as any;
 }
 
-// ============================================================================
-// Global Configuration
-// ============================================================================
-
-/**
- * Global parameter constraints
- */
-const globalConstraints: Map<string, RouteConstraint> = new Map<string, RouteConstraint>();
-
-export function pattern(param: string, patternValue: RouteConstraint): void {
-  globalConstraints.set(param, patternValue);
+function applyPathPrefix(prefix: string | undefined, path: string): string {
+  if (!prefix) return path;
+  const normalizedPrefix = prefix.startsWith("/") ? prefix : `/${prefix}`;
+  return path === "/" ? normalizedPrefix : `${normalizedPrefix}${path}`;
 }
 
-export { globalConstraints };
+function applyNamePrefix(prefix: string | undefined, name: string | undefined): string | undefined {
+  if (!prefix || !name) return name;
+  return `${prefix}${name}`;
+}

@@ -74,6 +74,11 @@ describe("route groups", () => {
     // Type inference should work
     expectTypeOf(routes).toEqualTypeOf<Routes<{ dashboard: "page" }>>();
   });
+
+  test("strips trailing slash from group prefix", () => {
+    const routes = group({ prefix: "/api/" }, [get("/users", controller())]);
+    expect(routes.routes[0].path).toBe("/api/users");
+  });
 });
 
 // ============================================================================
@@ -96,18 +101,163 @@ describe("wildcard routes", () => {
     // Should infer both param names
     expectTypeOf(route).toEqualTypeOf<Routes<{ "users.files": "userId" | "path" }>>();
   });
+});
 
-  test("wildcard in group prefix throws error for non-empty child paths", () => {
-    expect(() => {
-      group({ prefix: "/files/{...path}" }, [get("/view", controller())]);
-    }).toThrow(
-      'Route "/view" will never match because its parent group has a wildcard "/files/{...path}". All routes within a wildcard group must have empty paths.',
-    );
+describe("validation", () => {
+  // Helper function to test that a path throws an error
+  function expectPathToThrow(path: string, messageContains?: string) {
+    const fn = () => get(path, controller());
+    expect(fn).toThrow(messageContains);
+  }
 
-    expect(() => {
-      group({ prefix: "/api/**" }, [get("/action", controller())]);
-    }).toThrow(
+  // Helper function to test that a domain throws an error
+  function expectDomainToThrow(domain: string, messageContains?: string) {
+    const fn = () => get("/users", controller(), { domain });
+    expect(fn).toThrow(messageContains);
+  }
+
+  test("rejects asterisk characters in paths", () => {
+    expectPathToThrow(
+      "/api/**",
       'Route path "/api/**" contains asterisk characters. Use {...param} for wildcard routes instead of ** or *.',
     );
+  });
+
+  test("rejects partial segment parameters with text before", () => {
+    expectPathToThrow(
+      "/foo/x{param}",
+      'Route path "/foo/x{param}" has invalid parameter syntax. Parameters must capture whole path segments',
+    );
+  });
+
+  test("rejects partial segment parameters with text after", () => {
+    expectPathToThrow(
+      "/foo/{param}x",
+      'Route path "/foo/{param}x" has invalid parameter syntax. Parameters must capture whole path segments',
+    );
+  });
+
+  test("rejects partial segment parameters in domains with text before", () => {
+    expectDomainToThrow(
+      "my-{param}.example.com",
+      'Route path "my-{param}.example.com" has invalid parameter syntax. Parameters must capture whole path segments',
+    );
+  });
+
+  test("rejects partial segment parameters in domains with text after", () => {
+    expectDomainToThrow(
+      "{param}x.example.com",
+      'Route path "{param}x.example.com" has invalid parameter syntax. Parameters must capture whole path segments',
+    );
+  });
+
+  test("rejects partial segment parameters mid-path", () => {
+    expectPathToThrow(
+      "/x{param}/bar",
+      'Route path "/x{param}/bar" has invalid parameter syntax. Parameters must capture whole path segments',
+    );
+  });
+
+  test("rejects partial segment wildcard parameters", () => {
+    expectPathToThrow(
+      "/files/prefix{...path}",
+      'Route path "/files/prefix{...path}" has invalid parameter syntax. Parameters must capture whole path segments',
+    );
+  });
+
+  test("rejects invalid curly brace patterns", () => {
+    // Opening brace without closing
+    expectPathToThrow("/{param", 'Route path "/{param" contains invalid curly braces');
+
+    // Closing brace without opening
+    expectPathToThrow("/param}", 'Route path "/param}" contains invalid curly braces');
+
+    // Wrong order braces (caught by partial segment validator)
+    expectPathToThrow("/foo/}{param}/", 'Route path "/foo/}{param}/" has invalid parameter syntax');
+
+    // Nested braces (caught by partial segment validator)
+    expectPathToThrow(
+      "/{{param}}",
+      'Route path "/{{param}}" has invalid parameter syntax. Parameters must capture whole path segments',
+    );
+
+    // Empty braces
+    expectPathToThrow("/foo/{}/bar", 'Route path "/foo/{}/bar" contains invalid curly braces');
+
+    // Space inside braces
+    expectPathToThrow("/{ param}", 'Route path "/{ param}" contains invalid curly braces');
+
+    // Trailing brace after parameters removed
+    expectPathToThrow(
+      "/foo/{param}/bar/}",
+      'Route path "/foo/{param}/bar/}" contains invalid curly braces',
+    );
+
+    // Mismatched wildcard braces
+    expectPathToThrow("/{...param", 'Route path "/{...param" contains invalid curly braces');
+
+    // Unmatched brace in domain (opening)
+    expectDomainToThrow(
+      "{tenant.example.com",
+      'Route path "{tenant.example.com" contains invalid curly braces',
+    );
+
+    // Unmatched brace in domain (closing)
+    expectDomainToThrow(
+      "tenant}.example.com",
+      'Route path "tenant}.example.com" contains invalid curly braces',
+    );
+  });
+
+  test("rejects route paths not starting with slash", () => {
+    expectPathToThrow("foo", 'Route path "foo" must start with "/" or be empty string.');
+  });
+
+  test("allows empty string route path", () => {
+    expect(() => {
+      get("", controller());
+    }).not.toThrow();
+  });
+
+  test("rejects group prefix not starting with slash", () => {
+    expect(() => {
+      group({ prefix: "api" }, [get("/users", controller())]);
+    }).toThrow('Group prefix "api" must start with "/".');
+  });
+
+  test("rejects wildcard in middle of path", () => {
+    expectPathToThrow(
+      "/foo/{...params}/bar",
+      'Route path "/foo/{...params}/bar" has wildcard parameter in non-terminal position',
+    );
+  });
+
+  test("rejects wildcard before parameter", () => {
+    expectPathToThrow(
+      "/foo/{...params}/{id}",
+      'Route path "/foo/{...params}/{id}" has wildcard parameter in non-terminal position',
+    );
+  });
+
+  test("rejects wildcard in group prefix", () => {
+    expect(() => {
+      group({ prefix: "/files/{...path}" }, [get("", controller())]);
+    }).toThrow(
+      'Group prefix "/files/{...path}" contains a wildcard parameter. Wildcards are not allowed in group prefixes',
+    );
+  });
+
+  test("allows valid parameter syntax", () => {
+    expect(() => {
+      get("/users/{id}", controller());
+    }).not.toThrow();
+
+    expect(() => {
+      get("/files/{...path}", controller());
+    }).not.toThrow();
+
+    expect(() => {
+      get("/users", controller(), { domain: "{tenant}.example.com" });
+    }).not.toThrow();
   });
 });

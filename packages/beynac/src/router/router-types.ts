@@ -17,7 +17,7 @@ export interface Routes<Params extends Record<string, string> = {}> {
 /**
  * Base options shared by both routes and groups
  */
-export interface BaseRouteOptions {
+export interface BaseRouteOptions<PathPart extends string> {
   /** Middleware applied to route(s) */
   middleware?: MiddlewareReference | MiddlewareReference[];
 
@@ -27,14 +27,18 @@ export interface BaseRouteOptions {
   /** Domain pattern constraint */
   domain?: string;
 
-  /** Parameter constraints */
-  where?: Record<string, RouteConstraint>;
+  /** Parameter constraints - typed, 404 if parameter doesn't exist */
+  where?: Partial<Record<ExtractRouteParams<PathPart>, RouteConstraint>>;
+
+  /** Global pattern constraints - untyped, only validates if parameter exists */
+  globalPatterns?: Record<string, RouteConstraint>;
 }
 
 /**
  * Options for individual routes
  */
-export interface RouteOptions<Name extends string = never> extends BaseRouteOptions {
+export interface RouteOptions<Name extends string, Path extends string>
+  extends BaseRouteOptions<Path> {
   /** Route name for URL generation */
   name?: Name;
 }
@@ -43,7 +47,7 @@ export interface RouteOptions<Name extends string = never> extends BaseRouteOpti
  * Options for route groups
  */
 export interface RouteGroupOptions<NamePrefix extends string = "", PathPrefix extends string = "">
-  extends BaseRouteOptions {
+  extends BaseRouteOptions<PathPrefix> {
   /** Path prefix for all routes in group */
   prefix?: PathPrefix;
 
@@ -72,17 +76,22 @@ export type UrlFunction<Params extends Record<string, string>> = <N extends keyo
 // Internal Types (not exported from router/index.ts)
 // ============================================================================
 
+export type BuiltInRouteConstraint = "numeric" | "alphanumeric" | "uuid" | "ulid";
+
 /**
- * Route constraint - can be RegExp or validation function
+ * Route constraint - can be:
+ * - String literal for built-in constraints: 'numeric', 'alphanumeric', 'uuid', 'ulid'
+ * - RegExp for custom pattern matching
+ * - Function for custom validation
  */
-export type RouteConstraint = RegExp | ((value: string) => boolean);
+export type RouteConstraint = BuiltInRouteConstraint | RegExp | ((value: string) => boolean);
 
 /**
  * Parameter constraint definition
  */
 export interface ParameterConstraint {
   param: string;
-  pattern: RouteConstraint;
+  constraint: RouteConstraint;
 }
 
 /**
@@ -97,6 +106,7 @@ export interface RouteDefinition {
   middleware: MiddlewareReference[];
   withoutMiddleware: MiddlewareReference[];
   constraints: ParameterConstraint[];
+  globalConstraints: ParameterConstraint[];
   domainPattern?: string | undefined;
 }
 
@@ -203,7 +213,7 @@ export type PrependNamePrefix<
     };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- `any` was the only way I could get type checking to work here
-type GroupChildren = readonly Routes<any>[];
+export type GroupChildren = readonly Routes<any>[];
 
 /**
  * Compute the Routes type for a group with optional name/path prefixes

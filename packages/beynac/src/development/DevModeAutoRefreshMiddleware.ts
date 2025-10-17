@@ -1,5 +1,6 @@
 import { inject } from "../container/inject";
 import { Configuration } from "../contracts/Configuration";
+import { ControllerContext, MiddlewareNext } from "../core/Controller";
 import type { Middleware } from "../core/Middleware";
 
 export class DevModeAutoRefreshMiddleware implements Middleware {
@@ -19,17 +20,14 @@ export class DevModeAutoRefreshMiddleware implements Middleware {
     this.reloadListeners.clear();
   }
 
-  async handle(
-    request: Request,
-    next: (request: Request) => Response | Promise<Response>,
-  ): Promise<Response> {
-    const url = new URL(request.url);
+  async handle(ctx: ControllerContext, next: MiddlewareNext): Promise<Response> {
+    const url = new URL(ctx.request.url);
 
     if (url.searchParams.has("__beynac_dev_mode_refresh")) {
       return this.#handleSSERequest();
     }
 
-    const response = await next(request);
+    const response = await next(ctx);
     const contentType = response.headers.get("Content-Type");
     if (contentType?.includes("text/html")) {
       return this.#injectScript(response);

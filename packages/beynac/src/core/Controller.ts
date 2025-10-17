@@ -7,7 +7,11 @@ export interface ControllerContext {
   request: Request;
   /** Parameters extracted from the route path */
   params: Record<string, string>;
+
+  url: URL;
 }
+
+export type MiddlewareNext = (ctx: ControllerContext) => Response | Promise<Response>;
 
 /**
  * Interface for route controllers.

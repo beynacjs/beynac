@@ -1,5 +1,6 @@
 // Public types
 export type {
+  RouteConstraint,
   RouteGroupOptions,
   RouteHandler,
   RouteOptions,
@@ -18,16 +19,10 @@ export {
   delete_,
   get,
   group,
-  isAlpha,
-  isAlphaNumeric,
   isIn,
-  isNumber,
-  isUlid,
-  isUuid,
   match,
   options,
   patch,
-  pattern,
   post,
   put,
   redirect,
