@@ -1,4 +1,4 @@
-import type { Container } from "../container";
+import type { Container } from "../contracts";
 import type { MiddlewareReference } from "../core/Middleware";
 import { Rou3RouteMatcher } from "./Rou3RouteMatcher";
 import type { RouteDefinition, RouteMatcher, Routes } from "./router-types";

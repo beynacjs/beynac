@@ -1,21 +1,35 @@
 export { asyncGate } from "./async-gate";
-import { mock } from "bun:test";
-import { Controller } from "../core/Controller";
+import { Mock, mock } from "bun:test";
+import { Controller, ControllerContext } from "../core/Controller";
 
-type MockControllerArgs = {
-  response?: Response;
-  responseText?: string;
-};
+export class MockController implements Controller {
+  handle: Mock<Controller["handle"]>;
 
-export const mockController = ({
-  response,
-  responseText,
-}: MockControllerArgs = {}): Controller => ({
-  handle: mock(() => {
-    if (response) return response;
-    if (responseText != null) {
-      return new Response(responseText);
+  constructor(response?: Response | (() => Response)) {
+    this.handle = mock(() => {
+      if (typeof response === "function") return response();
+      return response ?? new Response();
+    });
+  }
+
+  onlyCallArg(method: string): ControllerContext {
+    const { calls } = this.handle.mock;
+    if (calls.length !== 1) {
+      throw new Error(
+        `handle(ctx) was called ${calls.length} times, ${method} can only be used if the handler is called exactly once`,
+      );
     }
-    return new Response();
-  }),
-});
+    return this.handle.mock.calls[0][0];
+  }
+
+  get params(): Record<string, string> {
+    return this.onlyCallArg("params").params;
+  }
+
+  get request(): Record<string, string> {
+    return this.onlyCallArg("request").params;
+  }
+}
+
+export const controller = (response?: Response | (() => Response)): MockController =>
+  new MockController(response);

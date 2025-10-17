@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { Dispatcher } from "../contracts/Dispatcher";
 import { RequestContext } from "../contracts/RequestContext";
 import { get, group } from "../router";
-import { mockController } from "../test-utils";
+import { controller } from "../test-utils";
 import { ApplicationImpl } from "./ApplicationImpl";
 import { DispatcherImpl } from "./DispatcherImpl";
 
@@ -26,8 +26,8 @@ describe("ApplicationImpl", () => {
 
   test("url() generates URLs for named routes", () => {
     const routes = group({}, [
-      get("/users/{id}", mockController(), { name: "users.show" }),
-      get("/posts/{postId}/comments/{commentId}", mockController(), {
+      get("/users/{id}", controller(), { name: "users.show" }),
+      get("/posts/{postId}/comments/{commentId}", controller(), {
         name: "posts.comments.show",
       }),
     ]);
@@ -43,8 +43,8 @@ describe("ApplicationImpl", () => {
 
   test("url() is type-safe with route parameters", () => {
     const routes = group({}, [
-      get("/users/{id}", mockController(), { name: "users.show" }),
-      get("/posts", mockController(), { name: "posts.index" }),
+      get("/users/{id}", controller(), { name: "users.show" }),
+      get("/posts", controller(), { name: "posts.index" }),
     ]);
 
     const app = new ApplicationImpl({ routes });
@@ -69,7 +69,7 @@ describe("ApplicationImpl", () => {
   });
 
   test("handles HTTP request through RouterV2", async () => {
-    const routes = get("/hello", mockController({ responseText: "Hello World" }));
+    const routes = get("/hello", controller(new Response("Hello World")));
 
     const app = new ApplicationImpl({ routes });
     app.bootstrap();
@@ -91,7 +91,7 @@ describe("ApplicationImpl", () => {
   });
 
   test("returns 404 for unmatched routes", async () => {
-    const routes = get("/hello", mockController());
+    const routes = get("/hello", controller());
 
     const app = new ApplicationImpl({ routes });
     app.bootstrap();

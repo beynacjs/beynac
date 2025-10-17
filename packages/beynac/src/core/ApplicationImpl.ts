@@ -1,5 +1,5 @@
-import type { Container } from "../container";
 import { ContainerImpl } from "../container/ContainerImpl";
+import type { Container } from "../contracts";
 import { Cookies, Headers } from "../contracts";
 import { Application } from "../contracts/Application";
 import { Configuration } from "../contracts/Configuration";

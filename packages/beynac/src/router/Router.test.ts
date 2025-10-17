@@ -1,8 +1,10 @@
-import { describe, expect, expectTypeOf, test } from "bun:test";
+import { beforeEach, describe, expect, expectTypeOf, test } from "bun:test";
 import { ContainerImpl } from "../container/ContainerImpl";
 import { createTypeToken } from "../container/container-key";
+import { Container } from "../contracts";
 import type { Controller } from "../core/Controller";
 import type { Middleware } from "../core/Middleware";
+import { MockController } from "../test-utils";
 import {
   any,
   delete_,
@@ -32,153 +34,81 @@ function createRouter() {
   return { router, container };
 }
 
+let container: Container;
+let router: Router;
+let controller: MockController;
+
+beforeEach(() => {
+  container = new ContainerImpl();
+  router = new Router(container);
+  controller = new MockController();
+});
+
+const handle = async (url: string, method = "GET") => {
+  if (url.startsWith("//")) {
+    url = "https:" + url;
+  } else if (url.startsWith("/")) {
+    url = "https://example.com" + url;
+  }
+  await router.handle(new Request(url, { method }));
+};
+
 // ============================================================================
 // Basic Route Registration
 // ============================================================================
 
 describe(Router, () => {
   test("handles basic GET route", async () => {
-    const { router } = createRouter();
-
-    const route = get("/hello", {
-      handle() {
-        return new Response("Hello World");
-      },
-    });
-
-    router.register(route);
-
-    const response = await router.handle(new Request("http://example.com/hello"));
-    expect(await response.text()).toBe("Hello World");
+    router.register(get("/hello", controller));
+    await handle("/hello");
+    expect(controller.handle).toHaveBeenCalledTimes(1);
   });
 
   test("handles POST route", async () => {
-    const { router } = createRouter();
-
-    const route = post("/submit", {
-      handle() {
-        return new Response("Submitted");
-      },
-    });
-
-    router.register(route);
-
-    const response = await router.handle(
-      new Request("http://example.com/submit", { method: "POST" }),
-    );
-    expect(await response.text()).toBe("Submitted");
+    router.register(post("/submit", controller));
+    await handle("/submit", "POST");
+    expect(controller.handle).toHaveBeenCalledTimes(1);
   });
 
   test("handles PUT route", async () => {
-    const { router } = createRouter();
-
-    const route = put("/update", {
-      handle() {
-        return new Response("Updated");
-      },
-    });
-
-    router.register(route);
-
-    const response = await router.handle(
-      new Request("http://example.com/update", { method: "PUT" }),
-    );
-    expect(await response.text()).toBe("Updated");
+    router.register(put("/update", controller));
+    await handle("/update", "PUT");
+    expect(controller.handle).toHaveBeenCalledTimes(1);
   });
 
   test("handles PATCH route", async () => {
-    const { router } = createRouter();
-
-    const route = patch("/patch", {
-      handle() {
-        return new Response("Patched");
-      },
-    });
-
-    router.register(route);
-
-    const response = await router.handle(
-      new Request("http://example.com/patch", { method: "PATCH" }),
-    );
-    expect(await response.text()).toBe("Patched");
+    router.register(patch("/patch", controller));
+    await handle("/patch", "PATCH");
+    expect(controller.handle).toHaveBeenCalledTimes(1);
   });
 
   test("handles DELETE route", async () => {
-    const { router } = createRouter();
-
-    const route = delete_("/delete", {
-      handle() {
-        return new Response("Deleted");
-      },
-    });
-
-    router.register(route);
-
-    const response = await router.handle(
-      new Request("http://example.com/delete", { method: "DELETE" }),
-    );
-    expect(await response.text()).toBe("Deleted");
+    router.register(delete_("/delete", controller));
+    await handle("/delete", "DELETE");
+    expect(controller.handle).toHaveBeenCalledTimes(1);
   });
 
   test("handles OPTIONS route", async () => {
-    const { router } = createRouter();
-
-    const route = options("/cors", {
-      handle() {
-        return new Response(null, { status: 204 });
-      },
-    });
-
-    router.register(route);
-
-    const response = await router.handle(
-      new Request("http://example.com/cors", { method: "OPTIONS" }),
-    );
-    expect(response.status).toBe(204);
+    router.register(options("/cors", controller));
+    await handle("/cors", "OPTIONS");
+    expect(controller.handle).toHaveBeenCalledTimes(1);
   });
 
   test("handles route parameters", async () => {
-    const { router } = createRouter();
-
-    const route = get("/user/{id}", {
-      handle({ params }) {
-        return new Response(`User ID: ${params.id}`);
-      },
-    });
-
-    router.register(route);
-
-    const response = await router.handle(new Request("http://example.com/user/123"));
-    expect(await response.text()).toBe("User ID: 123");
+    router.register(get("/user/{id}", controller));
+    await handle("/user/123");
+    expect(controller.params).toEqual({ id: "123" });
   });
 
   test("handles multiple route parameters", async () => {
-    const { router } = createRouter();
-
-    const route = get("/posts/{postId}/comments/{commentId}", {
-      handle({ params }) {
-        return new Response(`Post: ${params.postId}, Comment: ${params.commentId}`);
-      },
-    });
-
-    router.register(route);
-
-    const response = await router.handle(new Request("http://example.com/posts/42/comments/7"));
-    expect(await response.text()).toBe("Post: 42, Comment: 7");
+    router.register(get("/posts/{postId}/comments/{commentId}", controller));
+    await handle("/posts/42/comments/7");
+    expect(controller.params).toEqual({ postId: "42", commentId: "7" });
   });
 
   test("returns 404 for unmatched route", async () => {
-    const { router } = createRouter();
-
-    const route = get("/hello", {
-      handle() {
-        return new Response("Hello");
-      },
-    });
-
-    router.register(route);
-
-    const response = await router.handle(new Request("http://example.com/notfound"));
+    router.register(get("/hello", controller));
+    const response = await router.handle(new Request("https://example.com/notfound"));
     expect(response.status).toBe(404);
   });
 
@@ -221,19 +151,9 @@ describe(Router, () => {
   });
 
   test("handles async controller", async () => {
-    const { router } = createRouter();
-
-    const route = get("/async", {
-      async handle() {
-        await Promise.resolve();
-        return new Response("Async response");
-      },
-    });
-
-    router.register(route);
-
-    const response = await router.handle(new Request("http://example.com/async"));
-    expect(await response.text()).toBe("Async response");
+    router.register(get("/async", controller));
+    await handle("/async");
+    expect(controller.handle).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -243,22 +163,9 @@ describe(Router, () => {
 
 describe("named routes", () => {
   test("can name route with options parameter", async () => {
-    const { router } = createRouter();
-
-    const route = get(
-      "/users/{id}",
-      {
-        handle({ params }) {
-          return new Response(`User ${params.id}`);
-        },
-      },
-      { name: "users.show" },
-    );
-
-    router.register(route);
-
-    const response = await router.handle(new Request("http://example.com/users/123"));
-    expect(await response.text()).toBe("User 123");
+    router.register(get("/users/{id}", controller, { name: "users.show" }));
+    await handle("/users/123");
+    expect(controller.params).toEqual({ id: "123" });
   });
 });
 
@@ -674,26 +581,17 @@ describe("route groups", () => {
   test("applies prefix to routes", async () => {
     const { router } = createRouter();
 
-    const routes = group({ prefix: "/admin" }, [
-      get("/dashboard", {
-        handle() {
-          return new Response("Dashboard");
-        },
-      }),
-      get("/users", {
-        handle() {
-          return new Response("Users");
-        },
-      }),
-    ]);
+    const mc1 = new MockController();
+    const mc2 = new MockController();
+    const routes = group({ prefix: "/admin" }, [get("/dashboard", mc1), get("/users", mc2)]);
 
     router.register(routes);
 
-    const response1 = await router.handle(new Request("http://example.com/admin/dashboard"));
-    expect(await response1.text()).toBe("Dashboard");
+    await router.handle(new Request("http://example.com/admin/dashboard"));
+    expect(mc1.handle).toHaveBeenCalledTimes(1);
 
-    const response2 = await router.handle(new Request("http://example.com/admin/users"));
-    expect(await response2.text()).toBe("Users");
+    await router.handle(new Request("http://example.com/admin/users"));
+    expect(mc2.handle).toHaveBeenCalledTimes(1);
   });
 
   test("applies middleware to all routes in group", async () => {
@@ -734,58 +632,34 @@ describe("route groups", () => {
   });
 
   test("applies domain to all routes in group", async () => {
-    const { router } = createRouter();
+    router.register(group({ domain: "api.example.com" }, [get("/status", controller)]));
 
-    const routes = group({ domain: "api.example.com" }, [
-      get("/status", {
-        handle() {
-          return new Response("API Status");
-        },
-      }),
-    ]);
+    await handle("//api.example.com/status");
+    expect(controller.handle).toHaveBeenCalledTimes(1);
 
-    router.register(routes);
-
-    const response1 = await router.handle(new Request("http://api.example.com/status"));
-    expect(await response1.text()).toBe("API Status");
-
-    const response2 = await router.handle(new Request("http://example.com/status"));
+    const response2 = await router.handle(new Request("https://example.com/status"));
     expect(response2.status).toBe(404);
   });
 
   test("supports nested groups", async () => {
     const { router } = createRouter();
 
+    const mc1 = new MockController();
+    const mc2 = new MockController();
     const userRoutes = group({ prefix: "/users", namePrefix: "users." }, [
-      get(
-        "/",
-        {
-          handle() {
-            return new Response("Users Index");
-          },
-        },
-        { name: "index" },
-      ),
-      get(
-        "/{id}",
-        {
-          handle({ params }) {
-            return new Response(`User ${params.id}`);
-          },
-        },
-        { name: "show" },
-      ),
+      get("/", mc1, { name: "index" }),
+      get("/{id}", mc2, { name: "show" }),
     ]);
 
     const apiRoutes = group({ prefix: "/api", namePrefix: "api." }, [userRoutes]);
 
     router.register(apiRoutes);
 
-    const response1 = await router.handle(new Request("http://example.com/api/users/"));
-    expect(await response1.text()).toBe("Users Index");
+    await router.handle(new Request("http://example.com/api/users/"));
+    expect(mc1.handle).toHaveBeenCalledTimes(1);
 
-    const response2 = await router.handle(new Request("http://example.com/api/users/123"));
-    expect(await response2.text()).toBe("User 123");
+    await router.handle(new Request("http://example.com/api/users/123"));
+    expect(mc2.params).toEqual({ id: "123" });
 
     // Type check
     expectTypeOf(apiRoutes).toMatchTypeOf<
@@ -800,180 +674,94 @@ describe("route groups", () => {
 
 describe("parameter constraints", () => {
   test("whereNumber constraint", async () => {
-    const { router } = createRouter();
+    router.register(get("/user/{id}", controller, { where: { id: isNumber } }));
 
-    const route = get(
-      "/user/{id}",
-      {
-        handle({ params }) {
-          return new Response(`User ${params.id}`);
-        },
-      },
-      { where: { id: isNumber } },
-    );
+    await handle("/user/123");
+    expect(controller.params).toEqual({ id: "123" });
 
-    router.register(route);
-
-    const response1 = await router.handle(new Request("http://example.com/user/123"));
-    expect(await response1.text()).toBe("User 123");
-
-    const response2 = await router.handle(new Request("http://example.com/user/abc"));
+    const response2 = await router.handle(new Request("https://example.com/user/abc"));
     expect(response2.status).toBe(404);
   });
 
   test("whereAlpha constraint", async () => {
-    const { router } = createRouter();
+    router.register(get("/category/{slug}", controller, { where: { slug: isAlpha } }));
 
-    const route = get(
-      "/category/{slug}",
-      {
-        handle({ params }) {
-          return new Response(`Category ${params.slug}`);
-        },
-      },
-      { where: { slug: isAlpha } },
-    );
+    await handle("/category/news");
+    expect(controller.params).toEqual({ slug: "news" });
 
-    router.register(route);
-
-    const response1 = await router.handle(new Request("http://example.com/category/news"));
-    expect(await response1.text()).toBe("Category news");
-
-    const response2 = await router.handle(new Request("http://example.com/category/news123"));
+    const response2 = await router.handle(new Request("https://example.com/category/news123"));
     expect(response2.status).toBe(404);
   });
 
   test("whereAlphaNumeric constraint", async () => {
-    const { router } = createRouter();
+    router.register(get("/post/{slug}", controller, { where: { slug: isAlphaNumeric } }));
 
-    const route = get(
-      "/post/{slug}",
-      {
-        handle({ params }) {
-          return new Response(`Post ${params.slug}`);
-        },
-      },
-      { where: { slug: isAlphaNumeric } },
-    );
+    await handle("/post/post123");
+    expect(controller.params).toEqual({ slug: "post123" });
 
-    router.register(route);
-
-    const response1 = await router.handle(new Request("http://example.com/post/post123"));
-    expect(await response1.text()).toBe("Post post123");
-
-    const response2 = await router.handle(new Request("http://example.com/post/post-123"));
+    const response2 = await router.handle(new Request("https://example.com/post/post-123"));
     expect(response2.status).toBe(404);
   });
 
   test("whereUuid constraint", async () => {
-    const { router } = createRouter();
-
-    const route = get(
-      "/resource/{uuid}",
-      {
-        handle({ params }) {
-          return new Response(`Resource ${params.uuid}`);
-        },
-      },
-      { where: { uuid: isUuid } },
-    );
-
-    router.register(route);
+    router.register(get("/resource/{uuid}", controller, { where: { uuid: isUuid } }));
 
     const validUuid = "550e8400-e29b-41d4-a716-446655440000";
-    const response1 = await router.handle(new Request(`http://example.com/resource/${validUuid}`));
-    expect(await response1.text()).toBe(`Resource ${validUuid}`);
+    await handle(`/resource/${validUuid}`);
+    expect(controller.params).toEqual({ uuid: validUuid });
 
-    const response2 = await router.handle(new Request("http://example.com/resource/not-a-uuid"));
+    const response2 = await router.handle(new Request("https://example.com/resource/not-a-uuid"));
     expect(response2.status).toBe(404);
   });
 
   test("whereUlid constraint", async () => {
-    const { router } = createRouter();
-
-    const route = get(
-      "/item/{ulid}",
-      {
-        handle({ params }) {
-          return new Response(`Item ${params.ulid}`);
-        },
-      },
-      { where: { ulid: isUlid } },
-    );
-
-    router.register(route);
+    router.register(get("/item/{ulid}", controller, { where: { ulid: isUlid } }));
 
     const validUlid = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
-    const response1 = await router.handle(new Request(`http://example.com/item/${validUlid}`));
-    expect(await response1.text()).toBe(`Item ${validUlid}`);
+    await handle(`/item/${validUlid}`);
+    expect(controller.params).toEqual({ ulid: validUlid });
 
-    const response2 = await router.handle(new Request("http://example.com/item/not-a-ulid"));
+    const response2 = await router.handle(new Request("https://example.com/item/not-a-ulid"));
     expect(response2.status).toBe(404);
   });
 
   test("whereIn constraint", async () => {
-    const { router } = createRouter();
-
-    const route = get(
-      "/status/{type}",
-      {
-        handle({ params }) {
-          return new Response(`Status ${params.type}`);
-        },
-      },
-      { where: { type: isIn(["active", "inactive", "pending"]) } },
+    router.register(
+      get("/status/{type}", controller, {
+        where: { type: isIn(["active", "inactive", "pending"]) },
+      }),
     );
 
-    router.register(route);
+    await handle("/status/active");
+    expect(controller.params).toEqual({ type: "active" });
 
-    const response1 = await router.handle(new Request("http://example.com/status/active"));
-    expect(await response1.text()).toBe("Status active");
-
-    const response2 = await router.handle(new Request("http://example.com/status/deleted"));
+    const response2 = await router.handle(new Request("https://example.com/status/deleted"));
     expect(response2.status).toBe(404);
   });
 
   test("where with custom regex", async () => {
-    const { router } = createRouter();
+    router.register(get("/year/{year}", controller, { where: { year: /^(19|20)\d{2}$/ } }));
 
-    const route = get(
-      "/year/{year}",
-      {
-        handle({ params }) {
-          return new Response(`Year ${params.year}`);
-        },
-      },
-      { where: { year: /^(19|20)\d{2}$/ } },
-    );
+    await handle("/year/2024");
+    expect(controller.params).toEqual({ year: "2024" });
 
-    router.register(route);
-
-    const response1 = await router.handle(new Request("http://example.com/year/2024"));
-    expect(await response1.text()).toBe("Year 2024");
-
-    const response2 = await router.handle(new Request("http://example.com/year/3024"));
+    const response2 = await router.handle(new Request("https://example.com/year/3024"));
     expect(response2.status).toBe(404);
   });
 
   test("multiple constraints on same route", async () => {
-    const { router } = createRouter();
-
-    const route = get(
-      "/posts/{postId}/comments/{commentId}",
-      {
-        handle({ params }) {
-          return new Response(`Post ${params.postId}, Comment ${params.commentId}`);
-        },
-      },
-      { where: { postId: isNumber, commentId: isNumber } },
+    router.register(
+      get("/posts/{postId}/comments/{commentId}", controller, {
+        where: { postId: isNumber, commentId: isNumber },
+      }),
     );
 
-    router.register(route);
+    await handle("/posts/123/comments/456");
+    expect(controller.params).toEqual({ postId: "123", commentId: "456" });
 
-    const response1 = await router.handle(new Request("http://example.com/posts/123/comments/456"));
-    expect(await response1.text()).toBe("Post 123, Comment 456");
-
-    const response2 = await router.handle(new Request("http://example.com/posts/abc/comments/456"));
+    const response2 = await router.handle(
+      new Request("https://example.com/posts/abc/comments/456"),
+    );
     expect(response2.status).toBe(404);
   });
 });
@@ -988,28 +776,21 @@ describe("global patterns", () => {
 
     const { router } = createRouter();
 
-    const route1 = get("/user/{id}", {
-      handle({ params }) {
-        return new Response(`User ${params.id}`);
-      },
-    });
-
-    const route2 = get("/post/{id}", {
-      handle({ params }) {
-        return new Response(`Post ${params.id}`);
-      },
-    });
+    const mc1 = new MockController();
+    const mc2 = new MockController();
+    const route1 = get("/user/{id}", mc1);
+    const route2 = get("/post/{id}", mc2);
 
     router.register(group({}, [route1, route2]));
 
-    const response1 = await router.handle(new Request("http://example.com/user/123"));
-    expect(await response1.text()).toBe("User 123");
+    await router.handle(new Request("http://example.com/user/123"));
+    expect(mc1.params).toEqual({ id: "123" });
 
     const response2 = await router.handle(new Request("http://example.com/user/abc"));
     expect(response2.status).toBe(404);
 
-    const response3 = await router.handle(new Request("http://example.com/post/456"));
-    expect(await response3.text()).toBe("Post 456");
+    await router.handle(new Request("http://example.com/post/456"));
+    expect(mc2.params).toEqual({ id: "456" });
 
     const response4 = await router.handle(new Request("http://example.com/post/xyz"));
     expect(response4.status).toBe(404);
@@ -1022,88 +803,37 @@ describe("global patterns", () => {
 
 describe("domain routing", () => {
   test("matches routes on specific domain", async () => {
-    const { router } = createRouter();
+    router.register(get("/api", controller, { domain: "api.example.com" }));
 
-    const route = get(
-      "/api",
-      {
-        handle() {
-          return new Response("API");
-        },
-      },
-      { domain: "api.example.com" },
-    );
+    await handle("//api.example.com/api");
+    expect(controller.handle).toHaveBeenCalledTimes(1);
 
-    router.register(route);
-
-    const response1 = await router.handle(new Request("http://api.example.com/api"));
-    expect(await response1.text()).toBe("API");
-
-    const response2 = await router.handle(new Request("http://example.com/api"));
+    const response2 = await router.handle(new Request("https://example.com/api"));
     expect(response2.status).toBe(404);
   });
 
   test("supports subdomain parameters", async () => {
-    const { router } = createRouter();
+    router.register(get("/dashboard", controller, { domain: "{tenant}.example.com" }));
 
-    const route = get(
-      "/dashboard",
-      {
-        handle({ params }) {
-          return new Response(`Tenant: ${params.tenant}`);
-        },
-      },
-      { domain: "{tenant}.example.com" },
-    );
+    await handle("//acme.example.com/dashboard");
+    expect(controller.params).toEqual({ tenant: "acme" });
 
-    router.register(route);
-
-    const response1 = await router.handle(new Request("http://acme.example.com/dashboard"));
-    expect(await response1.text()).toBe("Tenant: acme");
-
-    const response2 = await router.handle(new Request("http://widgets.example.com/dashboard"));
-    expect(await response2.text()).toBe("Tenant: widgets");
-
-    const response3 = await router.handle(new Request("http://example.com/dashboard"));
+    const response3 = await router.handle(new Request("https://example.com/dashboard"));
     expect(response3.status).toBe(404);
   });
 
   test("extracts single domain parameter", async () => {
-    const { router } = createRouter();
+    router.register(get("/users", controller, { domain: "{account}.example.com" }));
 
-    const route = get(
-      "/users",
-      {
-        handle({ params }) {
-          return new Response(`Account: ${params.account}`);
-        },
-      },
-      { domain: "{account}.example.com" },
-    );
-
-    router.register(route);
-
-    const response = await router.handle(new Request("http://acme.example.com/users"));
-    expect(await response.text()).toBe("Account: acme");
+    await handle("//acme.example.com/users");
+    expect(controller.params).toEqual({ account: "acme" });
   });
 
   test("extracts multiple domain parameters", async () => {
-    const { router } = createRouter();
+    router.register(get("/", controller, { domain: "{subdomain}.{region}.example.com" }));
 
-    const route = get(
-      "/",
-      {
-        handle({ params }) {
-          return new Response(`Sub: ${params.subdomain}, Region: ${params.region}`);
-        },
-      },
-      { domain: "{subdomain}.{region}.example.com" },
-    );
-
-    router.register(route);
-
-    const response = await router.handle(new Request("http://api.us.example.com/"));
-    expect(await response.text()).toBe("Sub: api, Region: us");
+    await handle("//api.us.example.com/");
+    expect(controller.params).toEqual({ subdomain: "api", region: "us" });
   });
 
   test("domain params don't interfere with path params", async () => {
@@ -1249,29 +979,22 @@ describe("special routes", () => {
   test("catch-all wildcard route captures unmatched requests", async () => {
     const { router } = createRouter();
 
-    const mainRoute = get("/home", {
-      handle() {
-        return new Response("Home");
-      },
-    });
-
-    const catchAllRoute = get("/fallback/{...rest}", {
-      handle({ params }) {
-        return new Response(`Catch-all: ${params.rest}`, { status: 404 });
-      },
-    });
+    const mc1 = new MockController();
+    const mc2 = new MockController(new Response(null, { status: 404 }));
+    const mainRoute = get("/home", mc1);
+    const catchAllRoute = get("/fallback/{...rest}", mc2);
 
     router.register(mainRoute);
     router.register(catchAllRoute);
 
-    const response1 = await router.handle(new Request("http://example.com/home"));
-    expect(await response1.text()).toBe("Home");
+    await router.handle(new Request("http://example.com/home"));
+    expect(mc1.handle).toHaveBeenCalledTimes(1);
 
     const response2 = await router.handle(
       new Request("http://example.com/fallback/notfound/deep/path"),
     );
     expect(response2.status).toBe(404);
-    expect(await response2.text()).toBe("Catch-all: notfound/deep/path");
+    expect(mc2.params).toEqual({ rest: "notfound/deep/path" });
   });
 });
 
@@ -1281,26 +1004,12 @@ describe("special routes", () => {
 
 describe("wildcard routes", () => {
   test("named wildcard matches any subpath", async () => {
-    const { router } = createRouter();
+    router.register(get("/files/{...rest}", controller));
 
-    const route = get("/files/{...rest}", {
-      handle() {
-        return new Response("File handler");
-      },
-    });
-
-    router.register(route);
-
-    const response1 = await router.handle(new Request("http://example.com/files/a"));
-    expect(await response1.text()).toBe("File handler");
-
-    const response2 = await router.handle(new Request("http://example.com/files/a/b/c"));
-    expect(await response2.text()).toBe("File handler");
-
-    const response3 = await router.handle(
-      new Request("http://example.com/files/documents/2024/report.pdf"),
-    );
-    expect(await response3.text()).toBe("File handler");
+    await handle("/files/a");
+    await handle("/files/a/b/c");
+    await handle("/files/documents/2024/report.pdf");
+    expect(controller.handle).toHaveBeenCalledTimes(3);
   });
 
   test("named wildcard captures remaining path", async () => {

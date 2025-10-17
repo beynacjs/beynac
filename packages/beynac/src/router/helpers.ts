@@ -210,6 +210,8 @@ export const patch: RouteMethodFunction = (path, handler, options) =>
 export const delete_: RouteMethodFunction = (path, handler, options) =>
   createRoute("DELETE", path, handler, options);
 
+export { delete_ as delete };
+
 export const options: RouteMethodFunction = (path, handler, options) =>
   createRoute("OPTIONS", path, handler, options);
 
@@ -470,13 +472,3 @@ export function pattern(param: string, patternValue: RouteConstraint): void {
 }
 
 export { globalConstraints };
-
-// ============================================================================
-// Named Exports
-// ============================================================================
-
-/**
- * Export delete_ as delete for cleaner API
- * (delete is a reserved keyword so internal implementation uses delete_)
- */
-export { delete_ as delete };
