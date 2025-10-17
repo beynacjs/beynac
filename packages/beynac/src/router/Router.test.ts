@@ -141,7 +141,7 @@ describe(Router, () => {
     const { router } = createRouter();
 
     const route = get("/user/{id}", {
-      handle(_req, params) {
+      handle({ params }) {
         return new Response(`User ID: ${params.id}`);
       },
     });
@@ -156,7 +156,7 @@ describe(Router, () => {
     const { router } = createRouter();
 
     const route = get("/posts/{postId}/comments/{commentId}", {
-      handle(_req, params) {
+      handle({ params }) {
         return new Response(`Post: ${params.postId}, Comment: ${params.commentId}`);
       },
     });
@@ -184,7 +184,7 @@ describe(Router, () => {
 
   test("handles controller class", async () => {
     class TestController implements Controller {
-      handle(_request: Request, _params: Record<string, string>): Response {
+      handle(): Response {
         return new Response("From controller class");
       }
     }
@@ -248,7 +248,7 @@ describe("named routes", () => {
     const route = get(
       "/users/{id}",
       {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`User ${params.id}`);
         },
       },
@@ -652,8 +652,8 @@ describe("middleware", () => {
     const route = get(
       "/test",
       {
-        handle(req) {
-          return new Response(req.headers.get("X-Custom") || "Not found");
+        handle({ request }) {
+          return new Response(request.headers.get("X-Custom") || "Not found");
         },
       },
       { middleware },
@@ -769,7 +769,7 @@ describe("route groups", () => {
       get(
         "/{id}",
         {
-          handle(_req, params) {
+          handle({ params }) {
             return new Response(`User ${params.id}`);
           },
         },
@@ -822,7 +822,7 @@ describe("parameter constraints", () => {
     const route = get(
       "/user/{id}",
       {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`User ${params.id}`);
         },
       },
@@ -844,7 +844,7 @@ describe("parameter constraints", () => {
     const route = get(
       "/category/{slug}",
       {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`Category ${params.slug}`);
         },
       },
@@ -866,7 +866,7 @@ describe("parameter constraints", () => {
     const route = get(
       "/post/{slug}",
       {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`Post ${params.slug}`);
         },
       },
@@ -888,7 +888,7 @@ describe("parameter constraints", () => {
     const route = get(
       "/resource/{uuid}",
       {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`Resource ${params.uuid}`);
         },
       },
@@ -911,7 +911,7 @@ describe("parameter constraints", () => {
     const route = get(
       "/item/{ulid}",
       {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`Item ${params.ulid}`);
         },
       },
@@ -934,7 +934,7 @@ describe("parameter constraints", () => {
     const route = get(
       "/status/{type}",
       {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`Status ${params.type}`);
         },
       },
@@ -956,7 +956,7 @@ describe("parameter constraints", () => {
     const route = get(
       "/year/{year}",
       {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`Year ${params.year}`);
         },
       },
@@ -978,7 +978,7 @@ describe("parameter constraints", () => {
     const route = get(
       "/posts/{postId}/comments/{commentId}",
       {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`Post ${params.postId}, Comment ${params.commentId}`);
         },
       },
@@ -1006,13 +1006,13 @@ describe("global patterns", () => {
     const { router } = createRouter();
 
     const route1 = get("/user/{id}", {
-      handle(_req, params) {
+      handle({ params }) {
         return new Response(`User ${params.id}`);
       },
     });
 
     const route2 = get("/post/{id}", {
-      handle(_req, params) {
+      handle({ params }) {
         return new Response(`Post ${params.id}`);
       },
     });
@@ -1066,7 +1066,7 @@ describe("domain routing", () => {
     const route = get(
       "/dashboard",
       {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`Tenant: ${params.tenant}`);
         },
       },
@@ -1091,7 +1091,7 @@ describe("domain routing", () => {
     const route = get(
       "/users",
       {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`Account: ${params.account}`);
         },
       },
@@ -1110,7 +1110,7 @@ describe("domain routing", () => {
     const route = get(
       "/",
       {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`Sub: ${params.subdomain}, Region: ${params.region}`);
         },
       },
@@ -1129,7 +1129,7 @@ describe("domain routing", () => {
     const route = get(
       "/users/{id}",
       {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`Account: ${params.account}, User: ${params.id}`);
         },
       },
@@ -1273,7 +1273,7 @@ describe("special routes", () => {
     });
 
     const catchAllRoute = get("/fallback/{...rest}", {
-      handle(_req, params) {
+      handle({ params }) {
         return new Response(`Catch-all: ${params.rest}`, { status: 404 });
       },
     });
@@ -1324,7 +1324,7 @@ describe("wildcard routes", () => {
     const { router } = createRouter();
 
     const route = get("/files/{...path}", {
-      handle(_req, params) {
+      handle({ params }) {
         return new Response(`Path: ${params.path}`);
       },
     });
@@ -1344,7 +1344,7 @@ describe("wildcard routes", () => {
     const { router } = createRouter();
 
     const route = get("/users/{userId}/files/{...path}", {
-      handle(_req, params) {
+      handle({ params }) {
         return new Response(`User: ${params.userId}, Path: ${params.path}`);
       },
     });
@@ -1362,7 +1362,7 @@ describe("wildcard routes", () => {
 
     const routes = group({ prefix: "/api" }, [
       get("/{...path}", {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`API Path: ${params.path}`);
         },
       }),
@@ -1380,12 +1380,12 @@ describe("wildcard routes", () => {
     // This is allowed - empty path means the route is exactly the prefix
     const routes = group({ prefix: "/files/{...path}" }, [
       get("", {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`GET: ${params.path}`);
         },
       }),
       post("", {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`POST: ${params.path}`);
         },
       }),
@@ -1412,8 +1412,8 @@ describe("multi-method routes", () => {
     const { router } = createRouter();
 
     const route = match(["GET", "POST"], "/form", {
-      handle(req) {
-        return new Response(`Method: ${req.method}`);
+      handle({ request }) {
+        return new Response(`Method: ${request.method}`);
       },
     });
 
@@ -1439,8 +1439,8 @@ describe("multi-method routes", () => {
     const { router } = createRouter();
 
     const route = any("/catchall", {
-      handle(req) {
-        return new Response(`Method: ${req.method}`);
+      handle({ request }) {
+        return new Response(`Method: ${request.method}`);
       },
     });
 
@@ -1466,7 +1466,7 @@ describe("domain routing with domain-as-path encoding", () => {
     const route = get(
       "/users",
       {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`Subdomain: ${params.subdomain}`);
         },
       },
@@ -1485,7 +1485,7 @@ describe("domain routing with domain-as-path encoding", () => {
     const route = get(
       "/",
       {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`Tenant: ${params.tenant}, Region: ${params.region}`);
         },
       },
@@ -1504,7 +1504,7 @@ describe("domain routing with domain-as-path encoding", () => {
     const route = get(
       "/users/{id}",
       {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`Subdomain: ${params.subdomain}, User: ${params.id}`);
         },
       },
@@ -1597,12 +1597,12 @@ describe("domain routing with domain-as-path encoding", () => {
 
     const routes = group({ domain: "{tenant}.app.com" }, [
       get("/dashboard", {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`Dashboard for ${params.tenant}`);
         },
       }),
       get("/settings", {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`Settings for ${params.tenant}`);
         },
       }),
@@ -1622,12 +1622,12 @@ describe("domain routing with domain-as-path encoding", () => {
 
     const routes = group({ domain: "{tenant}.app.com" }, [
       get("/api/status", {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`Status for ${params.tenant}`);
         },
       }),
       get("/api/health", {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`Health for ${params.tenant}`);
         },
       }),
@@ -1647,7 +1647,7 @@ describe("domain routing with domain-as-path encoding", () => {
 
     const routes = group({ prefix: "/api", domain: "{tenant}.app.com" }, [
       get("/status", {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`API status for ${params.tenant}`);
         },
       }),
@@ -1664,7 +1664,7 @@ describe("domain routing with domain-as-path encoding", () => {
 
     const routes = group({ prefix: "/users/{userId}", domain: "{tenant}.app.com" }, [
       get("/profile", {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`Tenant: ${params.tenant}, User: ${params.userId}`);
         },
       }),
@@ -1682,7 +1682,7 @@ describe("domain routing with domain-as-path encoding", () => {
     const route = get(
       "/",
       {
-        handle(_req, params) {
+        handle({ params }) {
           return new Response(`A: ${params.a}, B: ${params.b}, C: ${params.c}`);
         },
       },

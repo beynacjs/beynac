@@ -8,6 +8,7 @@ export class DevModeAutoRefreshMiddleware implements Middleware {
   constructor(private config: Configuration = inject(Configuration)) {}
 
   triggerReload(): void {
+    console.log(this.reloadListeners);
     for (const listener of this.reloadListeners) {
       listener(true);
     }
@@ -39,30 +40,30 @@ export class DevModeAutoRefreshMiddleware implements Middleware {
   #handleSSERequest(): Response {
     const encoder = new TextEncoder();
     let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
-    let listener: ((reload: boolean) => void) | null = null;
+    let sendReload: ((reload: boolean) => void) | null = null;
 
     const heartbeatMs = this.config.devMode?.autoRefreshHeartbeatMs ?? 15000;
     const reloadListeners = this.reloadListeners;
 
     const stream = new ReadableStream({
       start(controller) {
-        controller.enqueue(encoder.encode(":heartbeat\n\n"));
-        heartbeatInterval = setInterval(() => {
+        const sendHeartbeat = () => {
           controller.enqueue(encoder.encode(":heartbeat\n\n"));
-        }, heartbeatMs);
-
-        listener = () => {
+        };
+        sendReload = () => {
           controller.enqueue(encoder.encode('data: {"reload": true}\n\n'));
         };
+        sendHeartbeat();
+        heartbeatInterval = setInterval(sendHeartbeat, heartbeatMs);
 
-        reloadListeners.add(listener);
+        reloadListeners.add(sendReload);
       },
       cancel() {
         if (heartbeatInterval) {
           clearInterval(heartbeatInterval);
         }
-        if (listener) {
-          reloadListeners.delete(listener);
+        if (sendReload) {
+          reloadListeners.delete(sendReload);
         }
       },
     });

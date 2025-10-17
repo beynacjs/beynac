@@ -32,6 +32,8 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
     // Bind core services
     this.container.scoped(Headers, HeadersImpl);
     this.container.scoped(Cookies, CookiesImpl);
+    this.container.singleton(DevModeAutoRefreshMiddleware);
+    this.container.singleton(DevModeWatchService);
     this.container.instance(Configuration, this.#config);
     this.container.instance(Application, this);
 
@@ -61,7 +63,6 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 
     // Start dev mode watch service
     if (this.#config.development && !this.#config.devMode?.suppressAutoRefresh) {
-      this.container.singleton(DevModeWatchService);
       this.container.get(DevModeWatchService).start();
     }
   }

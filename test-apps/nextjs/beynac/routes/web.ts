@@ -1,6 +1,8 @@
-import { Route } from "beynac/facades";
+import { get, group } from "beynac/router";
 import { IndexController } from "../controllers/IndexController";
 
-export default () => {
-  Route.get("/beynac", IndexController);
-};
+export default group({}, [
+  get("/beynac", IndexController),
+
+  get("/people/{personId}", IndexController, { name: "people" }),
+]);

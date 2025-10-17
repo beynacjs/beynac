@@ -1,6 +1,7 @@
 import { watch, type FSWatcher } from "node:fs";
 import { inject } from "../container/inject";
 import { Configuration } from "../contracts/Configuration";
+import { pluralCount } from "../utils";
 import { DevModeAutoRefreshMiddleware } from "./DevModeAutoRefreshMiddleware";
 
 declare global {
@@ -10,6 +11,7 @@ declare global {
 export class DevModeWatchService {
   #started = false;
   #destroyed = false;
+  #filesChanged: string[] = [];
   private watchers: FSWatcher[] = [];
   private debounceTimer: NodeJS.Timeout | null = null;
 
@@ -69,6 +71,7 @@ export class DevModeWatchService {
     if (!pattern.test(filename)) {
       return;
     }
+    this.#filesChanged.push(filename);
 
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
@@ -76,6 +79,14 @@ export class DevModeWatchService {
 
     const debounceMs = this.config.devMode?.autoRefreshDebounceMs ?? 300;
     this.debounceTimer = setTimeout(() => {
+      const [first, ...rest] = this.#filesChanged;
+      this.#filesChanged = [];
+      if (!first) return;
+      let message = first;
+      if (rest.length > 0) {
+        message += ` and ${pluralCount(rest.length, "other")}`;
+      }
+      console.log(`${DevModeWatchService.name} ${message} changed, reloading`);
       this.middleware.triggerReload();
       this.debounceTimer = null;
     }, debounceMs);

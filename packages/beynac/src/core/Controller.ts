@@ -1,17 +1,25 @@
 /**
+ * Context passed to controller handlers.
+ * Contains the HTTP request and route parameters.
+ */
+export interface ControllerContext {
+  /** The incoming HTTP request */
+  request: Request;
+  /** Parameters extracted from the route path */
+  params: Record<string, string>;
+}
+
+/**
  * Interface for route controllers.
  * Controllers handle HTTP requests and return responses.
- *
- * @template Params - Union of parameter names (e.g., "id" | "postId"), defaults to string for any params
  */
-export interface Controller<Params extends string = string> {
+export interface Controller {
   /**
    * Handle an HTTP request and return a response.
    * This method is called by the framework when a route matches.
    *
-   * @param request - The incoming HTTP request
-   * @param routeParams - Parameters extracted from the route path as a record
+   * @param ctx - Controller context containing request and route parameters
    * @returns Response object or Promise resolving to Response
    */
-  handle(request: Request, routeParams: Record<Params, string>): Response | Promise<Response>;
+  handle(ctx: ControllerContext): Response | Promise<Response>;
 }

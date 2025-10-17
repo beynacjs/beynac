@@ -158,3 +158,8 @@ export function* getPrototypeChain(
     prototype = Object.getPrototypeOf(prototype);
   }
 }
+
+export const plural = (word: string): string => word + "s";
+
+export const pluralCount = (count: number, word: string): string =>
+  count + " " + (count === 1 ? word : plural(word));

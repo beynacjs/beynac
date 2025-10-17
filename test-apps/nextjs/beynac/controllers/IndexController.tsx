@@ -4,7 +4,7 @@ import { Cookies, Headers } from "beynac/facades";
 import { Component, PropsWithChildren, renderResponse } from "beynac/view";
 
 export class IndexController implements Controller {
-  handle(request: Request, routeParams: Record<string, string>): Response | Promise<Response> {
+  handle() {
     return renderResponse(<IndexView />);
   }
 }

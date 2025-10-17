@@ -1,7 +1,5 @@
 import type { Container } from "../container";
-import type { Controller } from "../core/Controller";
 import type { MiddlewareReference } from "../core/Middleware";
-import type { NoArgConstructor } from "../utils";
 import type { RouteDefinition, RouteMatcher } from "./internal-types";
 import type { Routes } from "./public-types";
 import { Rou3RouteMatcher } from "./Rou3RouteMatcher";
@@ -60,11 +58,11 @@ export class Router {
 
       // Instantiate controller if it's a class
       if (typeof handler === "function" && "prototype" in handler) {
-        handler = this.container.get(handler as NoArgConstructor<Controller>);
+        handler = this.container.get(handler);
       }
 
       // Call controller's handle method
-      return (handler as Controller).handle(req, params);
+      return handler.handle({ request: req, params });
     };
 
     return this.#executeMiddlewarePipeline(route.middleware, request, finalHandler);
