@@ -67,9 +67,9 @@ describe("route groups", () => {
     ]);
 
     // Verify it creates a valid Routes object
-    expect(routes.routes).toHaveLength(1);
-    expect(routes.routes[0].path).toBe("/dashboard/{page}");
-    expect(routes.routes[0].routeName).toBe("dashboard");
+    expect(routes).toHaveLength(1);
+    expect(routes[0].path).toBe("/dashboard/{page}");
+    expect(routes[0].routeName).toBe("dashboard");
 
     // Type inference should work
     expectTypeOf(routes).toEqualTypeOf<Routes<{ dashboard: "page" }>>();
@@ -77,7 +77,7 @@ describe("route groups", () => {
 
   test("strips trailing slash from group prefix", () => {
     const routes = group({ prefix: "/api/" }, [get("/users", controller())]);
-    expect(routes.routes[0].path).toBe("/api/users");
+    expect(routes[0].path).toBe("/api/users");
   });
 });
 
@@ -210,13 +210,7 @@ describe("validation", () => {
   });
 
   test("rejects route paths not starting with slash", () => {
-    expectPathToThrow("foo", 'Route path "foo" must start with "/" or be empty string.');
-  });
-
-  test("allows empty string route path", () => {
-    expect(() => {
-      get("", controller());
-    }).not.toThrow();
+    expectPathToThrow("foo", 'Route path "foo" must start with "/"');
   });
 
   test("rejects group prefix not starting with slash", () => {
@@ -241,7 +235,7 @@ describe("validation", () => {
 
   test("rejects wildcard in group prefix", () => {
     expect(() => {
-      group({ prefix: "/files/{...path}" }, [get("", controller())]);
+      group({ prefix: "/files/{...path}" }, [get("/", controller())]);
     }).toThrow(
       'Group prefix "/files/{...path}" contains a wildcard parameter. Wildcards are not allowed in group prefixes',
     );

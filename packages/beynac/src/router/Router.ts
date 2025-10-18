@@ -1,9 +1,9 @@
 import type { Container } from "../contracts";
-import { ControllerContext, MiddlewareNext } from "../core/Controller";
+import { ControllerContext } from "../core/Controller";
 import { Rou3RouteMatcher } from "./Rou3RouteMatcher";
 import type {
   BuiltInRouteConstraint,
-  RouteConstraint,
+  ParamConstraint,
   RouteDefinition,
   RouteMatcher,
   Routes,
@@ -18,7 +18,7 @@ export class Router {
    * Register routes with the router
    */
   register(routes: Routes): void {
-    for (const route of routes.routes) {
+    for (const route of routes) {
       this.matcher.register(route);
     }
   }
@@ -42,7 +42,8 @@ export class Router {
   #checkConstraints(route: RouteDefinition, params: Record<string, string>): boolean {
     // Check route-specific constraints (from 'where')
     // These MUST match - 404 if parameter doesn't exist or validation fails
-    for (const [param, constraint] of Object.entries(route.constraints)) {
+    for (const [param, constraint] of Object.entries(route.constraints ?? {})) {
+      if (constraint == null) continue;
       const value = params[param];
       if (value == null) return false;
       if (!matchConstraint(constraint, value)) return false;
@@ -50,7 +51,8 @@ export class Router {
 
     // Check global pattern constraints (from 'globalPatterns')
     // These only validate if the parameter exists
-    for (const [param, constraint] of Object.entries(route.globalConstraints)) {
+    for (const [param, constraint] of Object.entries(route.globalConstraints ?? {})) {
+      if (constraint == null) continue;
       const value = params[param];
       if (value != null && !matchConstraint(constraint, value)) return false;
     }
@@ -72,17 +74,11 @@ export class Router {
       return handler.handle(ctx);
     };
 
-    const middlewareInstances = route.middleware.map((ref) => this.container.get(ref));
+    const pipeline = route.middleware
+      ? route.middleware.buildPipeline(this.container, finalHandler)
+      : finalHandler;
 
-    let next: MiddlewareNext = finalHandler;
-
-    for (let i = middlewareInstances.length - 1; i >= 0; i--) {
-      const middleware = middlewareInstances[i];
-      const currentNext = next;
-      next = (ctx) => middleware.handle(ctx, currentNext);
-    }
-
-    return next(ctx);
+    return pipeline(ctx);
   }
 }
 
@@ -96,7 +92,7 @@ const BUILT_IN_CONSTRAINTS: Record<BuiltInRouteConstraint, RegExp> = {
 /**
  * Check if a value matches a constraint
  */
-function matchConstraint(constraint: RouteConstraint, value: string): boolean {
+function matchConstraint(constraint: ParamConstraint, value: string): boolean {
   let pattern: RegExp | ((value: string) => boolean);
 
   if (typeof constraint === "string") {

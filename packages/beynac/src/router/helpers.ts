@@ -1,17 +1,19 @@
 import type { Controller } from "../core/Controller";
-import { arrayWrap } from "../utils";
+import { arrayWrapOptional } from "../utils";
+import { MiddlewareSet } from "./MiddlewareSet";
 import type {
   ExtractDomainAndPathParams,
   GroupChildren,
   GroupedRoutes,
-  RouteConstraint,
+  ParamConstraint,
+  ParamConstraints,
   RouteDefinition,
   RouteGroupOptions,
   RouteHandler,
   RouteOptions,
   Routes,
 } from "./router-types";
-import { validateRouteSyntax } from "./syntax";
+import { validateGroupPathSyntax, validateRoutePathSyntax } from "./syntax";
 
 /**
  * Create a constraint that matches one of the given values
@@ -21,8 +23,17 @@ import { validateRouteSyntax } from "./syntax";
  *   where: { type: isIn(['active', 'inactive', 'pending']) }
  * })
  */
-export function isIn(values: readonly string[]): RouteConstraint {
+export function isIn(values: readonly string[]): ParamConstraint {
   return new RegExp(`^(${values.map((v) => RegExp.escape(v)).join("|")})$`);
+}
+
+function mergeConstraints(
+  parent: ParamConstraints | undefined,
+  child: ParamConstraints | null,
+): ParamConstraints | null {
+  if (!parent) return child;
+  if (!child) return parent;
+  return { ...parent, ...child };
 }
 
 function createRoute<
@@ -33,45 +44,37 @@ function createRoute<
   method: string | readonly string[],
   path: Path,
   handler: RouteHandler,
-  options?: RouteOptions<Name, Path> & { domain?: Domain },
+  {
+    domain,
+    globalPatterns,
+    middleware: middlewareOption,
+    name,
+    where,
+    withoutMiddleware,
+  }: RouteOptions<Name, Path> & { domain?: Domain } = {},
 ): RouteMethodReturn<Path, Name, Domain> {
   const methods = typeof method === "string" ? [method] : method;
 
   // Validate: path must start with "/" or be empty string
-  if (path !== "" && !path.startsWith("/")) {
-    throw new Error(`Route path "${path}" must start with "/" or be empty string.`);
+  if (!path.startsWith("/")) {
+    throw new Error(`Route path "${path}" must start with "/"`);
   }
 
-  validateRouteSyntax(path);
-  if (options?.domain) {
-    validateRouteSyntax(options.domain);
-  }
-
-  const constraints: Record<string, RouteConstraint> = options?.where
-    ? (options.where as Record<string, RouteConstraint>)
-    : {};
-
-  // Get globalPatterns as object
-  const globalConstraints: Record<string, RouteConstraint> = options?.globalPatterns || {};
-
-  const withoutMiddleware = options?.withoutMiddleware ? arrayWrap(options.withoutMiddleware) : [];
-  const middleware = (options?.middleware ? arrayWrap(options.middleware) : []).filter(
-    (m) => !withoutMiddleware.includes(m),
-  );
+  validateRoutePathSyntax(path);
+  validateRoutePathSyntax(domain);
 
   const route: RouteDefinition = {
     methods,
-    path, // Store user syntax: {param} and {...wildcard}
+    path,
     handler,
-    routeName: options?.name,
-    middleware,
-    withoutMiddleware,
-    constraints,
-    globalConstraints,
-    domainPattern: options?.domain, // Store user syntax
+    routeName: name,
+    middleware: MiddlewareSet.createIfRequired(middlewareOption, withoutMiddleware),
+    constraints: where || null,
+    globalConstraints: globalPatterns || null,
+    domainPattern: domain,
   };
 
-  return { routes: [route] } as RouteMethodReturn<Path, Name, Domain>;
+  return [route] as RouteMethodReturn<Path, Name, Domain>;
 }
 
 /**
@@ -95,26 +98,69 @@ type RouteMethodReturn<
   ? Routes<{}>
   : Routes<{ [K in Name]: ExtractDomainAndPathParams<Domain, Path> }>;
 
+/**
+ * Register a route that responds to GET requests
+ *
+ * @example
+ * get('/users', UsersController)
+ * get('/users/{id}', UserController, { name: 'users.show' })
+ */
 export const get: RouteMethodFunction = (path, handler, options) =>
   createRoute("GET", path, handler, options);
 
+/**
+ * Register a route that responds to POST requests
+ *
+ * @example
+ * post('/users', CreateUserController)
+ */
 export const post: RouteMethodFunction = (path, handler, options) =>
   createRoute("POST", path, handler, options);
 
+/**
+ * Register a route that responds to PUT requests
+ *
+ * @example
+ * put('/users/{id}', UpdateUserController)
+ */
 export const put: RouteMethodFunction = (path, handler, options) =>
   createRoute("PUT", path, handler, options);
 
+/**
+ * Register a route that responds to PATCH requests
+ *
+ * @example
+ * patch('/users/{id}', PatchUserController)
+ */
 export const patch: RouteMethodFunction = (path, handler, options) =>
   createRoute("PATCH", path, handler, options);
 
+/**
+ * Register a route that responds to DELETE requests
+ *
+ * @example
+ * delete('/users/{id}', DeleteUserController)
+ */
 export const delete_: RouteMethodFunction = (path, handler, options) =>
   createRoute("DELETE", path, handler, options);
 
 export { delete_ as delete };
 
+/**
+ * Register a route that responds to OPTIONS requests
+ *
+ * @example
+ * options('/users', OptionsController)
+ */
 export const options: RouteMethodFunction = (path, handler, options) =>
   createRoute("OPTIONS", path, handler, options);
 
+/**
+ * Register a route that responds to specific HTTP methods
+ *
+ * @example
+ * match(['GET', 'POST'], '/contact', ContactController)
+ */
 export function match<
   const Path extends string,
   const Name extends string = never,
@@ -128,6 +174,12 @@ export function match<
   return createRoute(methods, path, handler, options);
 }
 
+/**
+ * Register a route that responds to any HTTP method
+ *
+ * @example
+ * any('/webhook', WebhookController)
+ */
 export function any<
   const Path extends string,
   const Name extends string = never,
@@ -232,88 +284,63 @@ export function group<
   optionsOrChildren: RouteGroupOptions<NamePrefix, PathPrefix> | Children,
   maybeChildren?: Children,
 ): GroupedRoutes<Children, NamePrefix, PathPrefix> {
-  // handle single argument overload
   if (Array.isArray(optionsOrChildren)) {
     return group({}, optionsOrChildren as Children);
   }
 
-  const options = optionsOrChildren as RouteGroupOptions<NamePrefix, PathPrefix>;
+  let { domain, globalPatterns, middleware, withoutMiddleware, namePrefix, prefix, where } =
+    optionsOrChildren as RouteGroupOptions<string, string>;
   const children = maybeChildren as Children;
 
-  if (options.prefix && !options.prefix.startsWith("/")) {
-    throw new Error(`Group prefix "${options.prefix}" must start with "/".`);
-  }
+  validateGroupPathSyntax(prefix);
+  validateRoutePathSyntax(domain);
 
-  if (options.prefix) {
-    validateRouteSyntax(options.prefix);
-  }
-  if (options.domain) {
-    validateRouteSyntax(options.domain);
-  }
+  // strip "/" suffix from the prefix to prevent double slash since all routes start with a slash
+  prefix = prefix?.replace(/\/$/, "");
 
-  // strip "/" suffix to prevent double slash since all routes start with a slash
-  const prefix = options.prefix?.replace(/\/$/, "");
+  const groupWithout = arrayWrapOptional(withoutMiddleware);
+  const groupMiddleware = arrayWrapOptional(middleware).filter((m) => !groupWithout.includes(m));
 
-  // Get group options constraints as object
-  const constraints: Record<string, RouteConstraint> = options?.where
-    ? (options.where as Record<string, RouteConstraint>)
-    : {};
+  const mergedChildren: RouteDefinition[] = [];
+  const mergedSets = new Set<MiddlewareSet>();
 
-  // Get group options globalPatterns as object
-  const groupGlobalConstraints: Record<string, RouteConstraint> = options?.globalPatterns || {};
-
-  const groupWithout = options.withoutMiddleware ? arrayWrap(options.withoutMiddleware) : [];
-  const groupMiddleware = (options.middleware ? arrayWrap(options.middleware) : []).filter(
-    (m) => !groupWithout.includes(m),
-  );
-
-  // Validate: no wildcards in group prefixes
-  if (prefix && /\{\.\.\./.test(prefix)) {
-    throw new Error(
-      `Group prefix "${prefix}" contains a wildcard parameter. ` +
-        `Wildcards are not allowed in group prefixes. Use them in route paths instead.`,
-    );
-  }
-
-  // Flatten immediately - process all child routes
-  const flatRoutes: RouteDefinition[] = [];
+  const groupMiddlewareSet = MiddlewareSet.createIfRequired(middleware, withoutMiddleware);
 
   for (const childRoutes of children) {
-    for (const route of childRoutes.routes) {
-      if (options.domain && route.domainPattern && options.domain !== route.domainPattern) {
+    for (const route of childRoutes) {
+      if (domain && route.domainPattern && domain !== route.domainPattern) {
         throw new Error(
           `Domain conflict: route "${route.routeName || route.path}" specifies domain "${route.domainPattern}" ` +
-            `but is inside a group with domain "${options.domain}". Nested routes cannot override parent domain.`,
+            `but is inside a group with domain "${domain}". Nested routes cannot override parent domain.`,
         );
       }
 
-      // Merge group and route middleware
-      // - Include group middleware not excluded by route's withoutMiddleware
-      // - Append route middleware (may re-add previously excluded middleware)
-      // - Remove duplicates
-      const combined = [
-        ...groupMiddleware.filter((m) => !route.withoutMiddleware.includes(m)),
-        ...route.middleware,
-      ];
-      const finalMiddleware = combined.filter((m, index, arr) => arr.indexOf(m) === index);
+      // Middleware merging logic
+      let middleware = route.middleware;
+      if (middleware) {
+        // merge the groups's middleware into the route, and only do this once
+        // per middleware object because they can be shared among many routes
+        if (!mergedSets.has(middleware)) {
+          middleware.mergeWithGroup(groupMiddleware, groupWithout);
+          mergedSets.add(middleware);
+        }
+      } else {
+        // all routes with no middleware can share the groups' middleware
+        middleware = groupMiddlewareSet;
+      }
 
-      flatRoutes.push({
+      mergedChildren.push({
         ...route,
         path: applyPathPrefix(prefix, route.path),
-        routeName: applyNamePrefix(options.namePrefix, route.routeName),
-        middleware: finalMiddleware,
-        withoutMiddleware: [...groupWithout, ...route.withoutMiddleware],
-        constraints: { ...constraints, ...route.constraints },
-        globalConstraints: { ...groupGlobalConstraints, ...route.globalConstraints },
-        domainPattern: options?.domain ?? route.domainPattern,
+        routeName: applyNamePrefix(namePrefix, route.routeName),
+        middleware,
+        constraints: mergeConstraints(where, route.constraints),
+        globalConstraints: mergeConstraints(globalPatterns, route.globalConstraints),
+        domainPattern: domain ?? route.domainPattern,
       });
     }
   }
-
-  // Type assertion needed because TypeScript can't statically verify the complex conditional return type at definition time,
-  // but the runtime behavior correctly produces the expected type structure
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return -- Type assertion safe: runtime correctly produces GroupedRoutes type
-  return { routes: flatRoutes } as any;
+  return mergedChildren;
 }
 
 function applyPathPrefix(prefix: string | undefined, path: string): string {

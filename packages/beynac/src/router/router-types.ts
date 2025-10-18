@@ -1,6 +1,7 @@
 import type { Controller } from "../core/Controller";
 import type { MiddlewareReference } from "../core/Middleware";
 import type { NoArgConstructor } from "../utils";
+import type { MiddlewareSet } from "./MiddlewareSet";
 
 // ============================================================================
 // Public Types (exported from router/index.ts)
@@ -9,10 +10,9 @@ import type { NoArgConstructor } from "../utils";
 /**
  * Collection of routes with type-tracked name→params map
  */
-export interface Routes<Params extends Record<string, string> = {}> {
+export type Routes<Params extends Record<string, string> = {}> = readonly RouteDefinition[] & {
   readonly __nameParamsMap?: Params; // Phantom type for type inference
-  readonly routes: readonly RouteDefinition[]; // Flat array of route definitions (internal structure)
-}
+};
 
 /**
  * Base options shared by both routes and groups
@@ -28,10 +28,10 @@ export interface BaseRouteOptions<PathPart extends string> {
   domain?: string;
 
   /** Parameter constraints - typed, 404 if parameter doesn't exist */
-  where?: Partial<Record<ExtractRouteParams<PathPart>, RouteConstraint>>;
+  where?: Partial<Record<ExtractRouteParams<PathPart>, ParamConstraint>>;
 
   /** Global pattern constraints - untyped, only validates if parameter exists */
-  globalPatterns?: Record<string, RouteConstraint>;
+  globalPatterns?: Record<string, ParamConstraint>;
 }
 
 /**
@@ -84,7 +84,9 @@ export type BuiltInRouteConstraint = "numeric" | "alphanumeric" | "uuid" | "ulid
  * - RegExp for custom pattern matching
  * - Function for custom validation
  */
-export type RouteConstraint = BuiltInRouteConstraint | RegExp | ((value: string) => boolean);
+export type ParamConstraint = BuiltInRouteConstraint | RegExp | ((value: string) => boolean);
+
+export type ParamConstraints = Record<string, ParamConstraint | undefined>;
 
 /**
  * A single route definition (pure data, no methods)
@@ -95,10 +97,9 @@ export interface RouteDefinition {
   path: string;
   handler: RouteHandler;
   routeName?: string | undefined;
-  middleware: MiddlewareReference[];
-  withoutMiddleware: MiddlewareReference[];
-  constraints: Record<string, RouteConstraint>;
-  globalConstraints: Record<string, RouteConstraint>;
+  middleware: MiddlewareSet | null;
+  constraints: ParamConstraints | null;
+  globalConstraints: ParamConstraints | null;
   domainPattern?: string | undefined;
 }
 

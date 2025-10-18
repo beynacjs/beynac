@@ -13,7 +13,7 @@ export class RouteRegistry<Params extends Record<string, string> = {}> {
 
   constructor(routes?: Routes<Params>) {
     // Build map of named routes
-    for (const route of routes?.routes ?? []) {
+    for (const route of routes ?? []) {
       if (route.routeName) {
         this.namedRoutes.set(route.routeName, route);
       }

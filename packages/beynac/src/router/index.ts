@@ -1,6 +1,6 @@
 // Public types
 export type {
-  RouteConstraint,
+  ParamConstraint as RouteConstraint,
   RouteGroupOptions,
   RouteHandler,
   RouteOptions,
@@ -15,7 +15,7 @@ export { RouteRegistry } from "./RouteRegistry";
 // Helper functions and constraints
 export {
   any,
-  delete as delete,
+  delete,
   delete_,
   get,
   group,

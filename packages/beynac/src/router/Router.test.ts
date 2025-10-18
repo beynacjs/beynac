@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, expectTypeOf, mock, test } from "bun:test";
-import { ContainerImpl } from "../container/ContainerImpl";
 import { createTypeToken } from "../container/container-key";
+import { ContainerImpl } from "../container/ContainerImpl";
 import { Container } from "../contracts";
 import type { Controller, ControllerContext } from "../core/Controller";
 import type { Middleware } from "../core/Middleware";
-import { MockController } from "../test-utils";
+import { MockController, mockMiddleware } from "../test-utils";
 import {
   any,
   delete_,
@@ -21,6 +21,7 @@ import {
   RouteRegistry,
   type Routes,
 } from "./index";
+import { MiddlewareSet } from "./MiddlewareSet";
 
 let container: Container;
 let router: Router;
@@ -30,6 +31,7 @@ beforeEach(() => {
   container = new ContainerImpl();
   router = new Router(container);
   controller = new MockController();
+  mockMiddleware.reset();
 });
 
 const handle = async (url: string, method = "GET") => {
@@ -167,32 +169,6 @@ test("handles async controller", async () => {
 });
 
 describe("middleware", () => {
-  const mockMiddlewareClass = (name: string, logBeforeAfter = false) => {
-    class MockMiddleware implements Middleware {
-      async handle(
-        ctx: ControllerContext,
-        next: (ctx: ControllerContext) => Response | Promise<Response>,
-      ): Promise<Response> {
-        if (logBeforeAfter) {
-          middlewareLog.push(`${name}:before`);
-        } else {
-          middlewareLog.push(name);
-        }
-        const result = await next(ctx);
-        if (logBeforeAfter) {
-          middlewareLog.push(`${name}:after`);
-        }
-        return result;
-      }
-    }
-    return MockMiddleware;
-  };
-
-  let middlewareLog: string[] = [];
-  beforeEach(() => {
-    middlewareLog = [];
-  });
-
   test("executes middleware with context", async () => {
     const handleMock = mock(
       (ctx: ControllerContext, next: (ctx: ControllerContext) => Response | Promise<Response>) => {
@@ -218,11 +194,11 @@ describe("middleware", () => {
   });
 
   test("executes multiple middleware in correct order", async () => {
-    const middleware0 = mockMiddlewareClass("m0", true);
+    const middleware0 = mockMiddleware("m0", true);
 
-    const middleware1 = mockMiddlewareClass("m1", true);
+    const middleware1 = mockMiddleware("m1", true);
 
-    const middleware2 = mockMiddlewareClass("m2", true);
+    const middleware2 = mockMiddleware("m2", true);
 
     router.register(
       group({ middleware: middleware0 }, [
@@ -230,7 +206,7 @@ describe("middleware", () => {
           "/test",
           {
             handle() {
-              middlewareLog.push("handler");
+              mockMiddleware.log.push("handler");
               return new Response("OK");
             },
           },
@@ -240,7 +216,7 @@ describe("middleware", () => {
     );
 
     await handle("/test");
-    expect(middlewareLog).toEqual([
+    expect(mockMiddleware.log).toEqual([
       "m0:before",
       "m1:before",
       "m2:before",
@@ -252,8 +228,8 @@ describe("middleware", () => {
   });
 
   test("withoutMiddleware works with classes", async () => {
-    const M1 = mockMiddlewareClass("M1");
-    const M2 = mockMiddlewareClass("M2");
+    const M1 = mockMiddleware("M1");
+    const M2 = mockMiddleware("M2");
 
     router.register(
       group(
@@ -269,13 +245,13 @@ describe("middleware", () => {
     );
 
     await handle("/test");
-    expect(middlewareLog).toEqual(["M2"]);
+    expect(mockMiddleware.log).toEqual(["M2"]);
   });
 
   test("withoutMiddleware works in nested groups", async () => {
-    const M1 = mockMiddlewareClass("M1");
-    const M2 = mockMiddlewareClass("M2");
-    const M3 = mockMiddlewareClass("M3");
+    const M1 = mockMiddleware("M1");
+    const M2 = mockMiddleware("M2");
+    const M3 = mockMiddleware("M3");
 
     const outerRoutes = group({ middleware: [M1, M2] }, [
       group({ withoutMiddleware: M1, middleware: M3 }, [get("/test", controller)]),
@@ -284,12 +260,12 @@ describe("middleware", () => {
     router.register(outerRoutes);
     await handle("/test");
 
-    expect(middlewareLog).toEqual(["M2", "M3"]);
+    expect(mockMiddleware.log).toEqual(["M2", "M3"]);
   });
 
   test("route middleware can re-add previously removed middleware", async () => {
-    const M1 = mockMiddlewareClass("M1");
-    const M2 = mockMiddlewareClass("M2");
+    const M1 = mockMiddleware("M1");
+    const M2 = mockMiddleware("M2");
 
     const innerRoutes = group({ withoutMiddleware: M1 }, [
       get("/test", controller, { middleware: M1 }),
@@ -299,12 +275,12 @@ describe("middleware", () => {
     router.register(outerRoutes);
     await handle("/test");
 
-    expect(middlewareLog).toEqual(["M2", "M1"]);
+    expect(mockMiddleware.log).toEqual(["M2", "M1"]);
   });
 
   test("group with both middleware and withoutMiddleware for same middleware", async () => {
-    const M1 = mockMiddlewareClass("M1");
-    const M2 = mockMiddlewareClass("M2");
+    const M1 = mockMiddleware("M1");
+    const M2 = mockMiddleware("M2");
 
     const innerRoutes = group({ withoutMiddleware: M1, middleware: [M1, M2] }, [
       get("/test", controller),
@@ -315,26 +291,26 @@ describe("middleware", () => {
     await handle("/test");
 
     // At same level, withoutMiddleware wins - M1 is excluded
-    expect(middlewareLog).toEqual(["M2"]);
+    expect(mockMiddleware.log).toEqual(["M2"]);
   });
 
   test("route with both middleware and withoutMiddleware for same middleware", async () => {
-    const M1 = mockMiddlewareClass("M1");
-    const M2 = mockMiddlewareClass("M2");
+    const M1 = mockMiddleware("M1");
+    const M2 = mockMiddleware("M2");
 
     router.register(get("/test", controller, { middleware: [M1, M2], withoutMiddleware: M1 }));
 
     await handle("/test");
 
     // At same level, withoutMiddleware wins - M1 is excluded
-    expect(middlewareLog).toEqual(["M2"]);
+    expect(mockMiddleware.log).toEqual(["M2"]);
   });
 
   test("multiple withoutMiddleware at different levels", async () => {
-    const M1 = mockMiddlewareClass("M1");
-    const M2 = mockMiddlewareClass("M2");
-    const M3 = mockMiddlewareClass("M3");
-    const M4 = mockMiddlewareClass("M4");
+    const M1 = mockMiddleware("M1");
+    const M2 = mockMiddleware("M2");
+    const M3 = mockMiddleware("M3");
+    const M4 = mockMiddleware("M4");
 
     const innerRoutes = group({ withoutMiddleware: M1 }, [
       get("/test", controller, { withoutMiddleware: M2, middleware: M4 }),
@@ -344,13 +320,13 @@ describe("middleware", () => {
     router.register(outerRoutes);
     await handle("/test");
 
-    expect(middlewareLog).toEqual(["M3", "M4"]);
+    expect(mockMiddleware.log).toEqual(["M3", "M4"]);
   });
 
   test("withoutMiddleware with array of middleware", async () => {
-    const M1 = mockMiddlewareClass("M1");
-    const M2 = mockMiddlewareClass("M2");
-    const M3 = mockMiddlewareClass("M3");
+    const M1 = mockMiddleware("M1");
+    const M2 = mockMiddleware("M2");
+    const M3 = mockMiddleware("M3");
 
     const routes = group({ middleware: [M1, M2, M3] }, [
       get("/test", controller, { withoutMiddleware: [M1, M3] }),
@@ -359,7 +335,7 @@ describe("middleware", () => {
     router.register(routes);
     await handle("/test");
 
-    expect(middlewareLog).toEqual(["M2"]);
+    expect(mockMiddleware.log).toEqual(["M2"]);
   });
 
   test("middleware can short-circuit", async () => {
@@ -415,18 +391,18 @@ describe("middleware", () => {
   });
 
   test("applies middleware to all routes in group", async () => {
-    const M = mockMiddlewareClass("group-middleware");
+    const M = mockMiddleware("group-middleware");
 
     const routes = group({ prefix: "/api", middleware: M }, [
       get("/v1", {
         handle() {
-          middlewareLog.push("v1");
+          mockMiddleware.log.push("v1");
           return new Response("V1");
         },
       }),
       get("/v2", {
         handle() {
-          middlewareLog.push("v2");
+          mockMiddleware.log.push("v2");
           return new Response("V2");
         },
       }),
@@ -434,13 +410,13 @@ describe("middleware", () => {
 
     router.register(routes);
 
-    middlewareLog.length = 0;
+    mockMiddleware.reset();
     await router.handle(new Request("http://example.com/api/v1"));
-    expect(middlewareLog).toEqual(["group-middleware", "v1"]);
+    expect(mockMiddleware.log).toEqual(["group-middleware", "v1"]);
 
-    middlewareLog.length = 0;
+    mockMiddleware.reset();
     await router.handle(new Request("http://example.com/api/v2"));
-    expect(middlewareLog).toEqual(["group-middleware", "v2"]);
+    expect(mockMiddleware.log).toEqual(["group-middleware", "v2"]);
   });
 });
 
@@ -1141,9 +1117,73 @@ describe("wildcard routes", () => {
   });
 });
 
-// ============================================================================
-// Multi-Method Routes
-// ============================================================================
+describe("MiddlewareSet sharing", () => {
+  const M1 = mockMiddleware("M1");
+  const M2 = mockMiddleware("M2");
+
+  test("sibling routes with no middleware both have null middleware", () => {
+    const routes = group([get("/a", controller), get("/b", controller)]);
+
+    expect(routes[0].middleware).toBe(null);
+    expect(routes[1].middleware).toBe(null);
+  });
+
+  test("sibling routes in group with middleware share MiddlewareSet instance", () => {
+    const routes = group({ middleware: M1 }, [get("/a", controller), get("/b", controller)]);
+
+    expect(routes[0].middleware).toBe(routes[1].middleware);
+    expect(routes[0].middleware).toBeInstanceOf(MiddlewareSet);
+  });
+
+  test("routes with different middleware get different MiddlewareSet instances", () => {
+    const routes = group([
+      get("/a", controller, { middleware: M1 }),
+      get("/b", controller, { middleware: M2 }),
+    ]);
+
+    expect(routes[0].middleware).toBeInstanceOf(MiddlewareSet);
+    expect(routes[1].middleware).toBeInstanceOf(MiddlewareSet);
+    expect(routes[0].middleware).not.toBe(routes[1].middleware);
+  });
+
+  test("only routes with middleware get a MiddlewareSet", () => {
+    const routes = group([get("/a", controller, { middleware: M1 }), get("/b", controller)]);
+
+    expect(routes[0].middleware).toBeInstanceOf(MiddlewareSet);
+    expect(routes[1].middleware).toBe(null);
+  });
+
+  test("nested groups: siblings share MiddlewareSet, different groups differ", () => {
+    const routes = group({ middleware: M1 }, [
+      get("/a", controller),
+      get("/b", controller),
+      group({ middleware: M2 }, [get("/c", controller), get("/d", controller)]),
+    ]);
+
+    // /a and /b share (both have [M1])
+    expect(routes[0].middleware).toBeInstanceOf(MiddlewareSet);
+    expect(routes[0].middleware).toBe(routes[1].middleware);
+
+    // /c and /d share (both have [M1, M2])
+    expect(routes[2].middleware).toBeInstanceOf(MiddlewareSet);
+    expect(routes[2].middleware).toBe(routes[3].middleware);
+
+    // /a and /c differ (different middleware)
+    expect(routes[0].middleware).not.toBe(routes[2].middleware);
+  });
+
+  test("route with withoutMiddleware gets different MiddlewareSet", () => {
+    const routes = group({ middleware: [M1, M2] }, [
+      get("/a", controller),
+      get("/b", controller, { withoutMiddleware: M1 }),
+    ]);
+
+    // Different because /b filters out M1
+    expect(routes[0].middleware).toBeInstanceOf(MiddlewareSet);
+    expect(routes[1].middleware).toBeInstanceOf(MiddlewareSet);
+    expect(routes[0].middleware).not.toBe(routes[1].middleware);
+  });
+});
 
 describe("multi-method routes", () => {
   test("match() accepts multiple HTTP methods", async () => {
