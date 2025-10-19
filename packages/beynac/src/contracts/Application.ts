@@ -1,7 +1,7 @@
 import type { TypeToken } from "../container/container-key";
 import { createTypeToken } from "../container/container-key";
 import type { Container } from "../contracts";
-import type { UrlFunction } from "../router";
+import { UrlFunction } from "../router/router-types";
 import type { Dispatcher } from "./Dispatcher";
 import { RequestContext } from "./RequestContext";
 

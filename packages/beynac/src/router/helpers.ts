@@ -13,7 +13,7 @@ import type {
   RouteOptions,
   Routes,
 } from "./router-types";
-import { validateGroupPathSyntax, validateRoutePathSyntax } from "./syntax";
+import { validateDomainSyntax, validateGroupPathSyntax, validateRoutePathSyntax } from "./syntax";
 
 /**
  * Create a constraint that matches one of the given values
@@ -46,7 +46,7 @@ function createRoute<
   handler: RouteHandler,
   {
     domain,
-    globalPatterns,
+    parameterPatterns,
     middleware: middlewareOption,
     name,
     where,
@@ -61,7 +61,7 @@ function createRoute<
   }
 
   validateRoutePathSyntax(path);
-  validateRoutePathSyntax(domain);
+  validateDomainSyntax(domain);
 
   const route: RouteDefinition = {
     methods,
@@ -70,7 +70,7 @@ function createRoute<
     routeName: name,
     middleware: MiddlewareSet.createIfRequired(middlewareOption, withoutMiddleware),
     constraints: where || null,
-    globalConstraints: globalPatterns || null,
+    globalConstraints: parameterPatterns || null,
     domainPattern: domain,
   };
 
@@ -288,12 +288,12 @@ export function group<
     return group({}, optionsOrChildren as Children);
   }
 
-  let { domain, globalPatterns, middleware, withoutMiddleware, namePrefix, prefix, where } =
+  let { domain, parameterPatterns, middleware, withoutMiddleware, namePrefix, prefix, where } =
     optionsOrChildren as RouteGroupOptions<string, string>;
   const children = maybeChildren as Children;
 
   validateGroupPathSyntax(prefix);
-  validateRoutePathSyntax(domain);
+  validateDomainSyntax(domain);
 
   // strip "/" suffix from the prefix to prevent double slash since all routes start with a slash
   prefix = prefix?.replace(/\/$/, "");
@@ -335,7 +335,7 @@ export function group<
         routeName: applyNamePrefix(namePrefix, route.routeName),
         middleware,
         constraints: mergeConstraints(where, route.constraints),
-        globalConstraints: mergeConstraints(globalPatterns, route.globalConstraints),
+        globalConstraints: mergeConstraints(parameterPatterns, route.globalConstraints),
         domainPattern: domain ?? route.domainPattern,
       });
     }

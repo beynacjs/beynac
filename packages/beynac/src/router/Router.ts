@@ -1,5 +1,6 @@
 import type { Container } from "../contracts";
 import { ControllerContext } from "../core/Controller";
+import type { MiddlewareReference } from "../core/Middleware";
 import { Rou3RouteMatcher } from "./Rou3RouteMatcher";
 import type {
   BuiltInRouteConstraint,
@@ -9,10 +10,26 @@ import type {
   Routes,
 } from "./router-types";
 
+export interface RouterOptions {
+  /**
+   * Global middleware priority list. Middleware in this list will execute first,
+   * in the order specified. All other middleware will execute after, in their
+   * original relative order.
+   */
+  middlewarePriority?: MiddlewareReference[] | undefined;
+}
+
 export class Router {
   private matcher: RouteMatcher = new Rou3RouteMatcher();
+  private middlewarePriority: MiddlewareReference[] | undefined;
+  private sortedMiddlewareSets = new WeakSet();
 
-  constructor(private container: Container) {}
+  constructor(
+    private container: Container,
+    options?: RouterOptions,
+  ) {
+    this.middlewarePriority = options?.middlewarePriority;
+  }
 
   /**
    * Register routes with the router
@@ -20,6 +37,16 @@ export class Router {
   register(routes: Routes): void {
     for (const route of routes) {
       this.matcher.register(route);
+
+      // Apply priority sorting once per MiddlewareSet instance
+      if (
+        route.middleware &&
+        this.middlewarePriority &&
+        !this.sortedMiddlewareSets.has(route.middleware)
+      ) {
+        route.middleware.applyPriority(this.middlewarePriority);
+        this.sortedMiddlewareSets.add(route.middleware);
+      }
     }
   }
 
@@ -49,7 +76,7 @@ export class Router {
       if (!matchConstraint(constraint, value)) return false;
     }
 
-    // Check global pattern constraints (from 'globalPatterns')
+    // Check global pattern constraints (from 'parameterPatterns')
     // These only validate if the parameter exists
     for (const [param, constraint] of Object.entries(route.globalConstraints ?? {})) {
       if (constraint == null) continue;

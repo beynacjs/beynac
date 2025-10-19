@@ -5,3 +5,4 @@ linker = "isolated"
 [test]
 
 exclude = ["**/dist/**"]
+preload = ["./test-setup.ts"]

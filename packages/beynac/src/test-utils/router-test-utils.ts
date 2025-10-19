@@ -1,4 +1,5 @@
 import { Mock, mock } from "bun:test";
+import type { RequestContext } from "../contracts/RequestContext";
 import { Controller, ControllerContext } from "../core/Controller";
 import type { Middleware } from "../core/Middleware";
 
@@ -38,9 +39,20 @@ export const controllerContext = (
   url: new URL(request.url),
 });
 
+export const requestContext = (): RequestContext => ({
+  context: "test",
+  getCookie: () => null,
+  getCookieNames: () => [],
+  deleteCookie: null,
+  setCookie: null,
+  getRequestHeader: () => null,
+  getRequestHeaderNames: () => [][Symbol.iterator](),
+});
+
 interface MockMiddlewareFunction {
-  (name: string, logBeforeAfter?: boolean): new () => Middleware;
+  (name: string): new () => Middleware;
   log: string[];
+  beforeAfterLog: string[];
   reset(): void;
 }
 
@@ -48,7 +60,8 @@ interface MockMiddlewareFunction {
  * Create a mock middleware class for testing.
  *
  * The returned function creates middleware classes that log their name when executed.
- * Access the execution log via `mockMiddleware.log` and reset it via `mockMiddleware.reset()`.
+ * Access the execution log via `mockMiddleware.log` or `mockMiddleware.beforeAfterLog`
+ * and reset both via `mockMiddleware.reset()`.
  *
  * @example
  * const M1 = mockMiddleware("M1");
@@ -57,35 +70,49 @@ interface MockMiddlewareFunction {
  * expect(mockMiddleware.log).toEqual(["M1"]);
  *
  * @example
- * // Log before and after middleware execution
- * const M = mockMiddleware("M", true);
- * // Logs: ["M:before", "M:after"]
+ * // Access before/after logs
+ * const M = mockMiddleware("M");
+ * // beforeAfterLog contains: ["M:before", "M:after"]
+ * // log contains: ["M"]
  */
 export const mockMiddleware: MockMiddlewareFunction = Object.assign(
-  (name: string, logBeforeAfter = false) => {
-    class MockMiddleware implements Middleware {
-      async handle(
-        ctx: ControllerContext,
-        next: (ctx: ControllerContext) => Response | Promise<Response>,
-      ): Promise<Response> {
-        if (logBeforeAfter) {
-          mockMiddleware.log.push(`${name}:before`);
-        } else {
-          mockMiddleware.log.push(name);
-        }
-        const result = await next(ctx);
-        if (logBeforeAfter) {
-          mockMiddleware.log.push(`${name}:after`);
-        }
-        return result;
-      }
+  (name: string) => {
+    // Validate that the name is a valid JavaScript identifier
+    if (!/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(name)) {
+      throw new Error(`mockMiddleware name must be a valid JavaScript identifier, got: ${name}`);
     }
-    return MockMiddleware;
+
+    // Create a function that returns a class with the dynamic name.
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval -- Function constructor needed for dynamic class names
+    const createClass = new Function(`
+      return class ${name} {}
+    `);
+
+    // Call the function to get the class
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call -- Function constructor returns untyped value
+    const ClassConstructor = createClass();
+
+    // Add the handle method to the prototype
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- ClassConstructor type is unknown from Function constructor
+    ClassConstructor.prototype.handle = async function (
+      ctx: ControllerContext,
+      next: (ctx: ControllerContext) => Response | Promise<Response>,
+    ): Promise<Response> {
+      mockMiddleware.log.push(name);
+      mockMiddleware.beforeAfterLog.push(`${name}:before`);
+      const result = await next(ctx);
+      mockMiddleware.beforeAfterLog.push(`${name}:after`);
+      return result;
+    };
+
+    return ClassConstructor as new () => Middleware;
   },
   {
     log: [] as string[],
+    beforeAfterLog: [] as string[],
     reset() {
       this.log.length = 0;
+      this.beforeAfterLog.length = 0;
     },
   },
 );

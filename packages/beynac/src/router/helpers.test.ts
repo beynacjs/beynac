@@ -2,88 +2,70 @@ import { describe, expect, expectTypeOf, test } from "bun:test";
 import { controller } from "../test-utils";
 import { get, group, type Routes } from "./index";
 
-// ============================================================================
-// Named Routes
-// ============================================================================
+test("type inference for named routes", () => {
+  // Type inference only works when name is set at creation time
+  const route2 = get("/posts", controller(), { name: "posts.index" });
 
-describe("named routes", () => {
-  test("type inference for named routes", () => {
-    // Type inference only works when name is set at creation time
-    const route2 = get("/posts", controller(), { name: "posts.index" });
-
-    expectTypeOf(route2).toEqualTypeOf<Routes<{ "posts.index": never }>>();
-  });
+  expectTypeOf(route2).toEqualTypeOf<Routes<{ "posts.index": never }>>();
 });
 
-// ============================================================================
-// Route Groups
-// ============================================================================
+test("applies namePrefix to route names", () => {
+  const routes = group({ namePrefix: "admin." }, [
+    get("/dashboard", controller(), { name: "dashboard" }),
+    get("/users", controller(), { name: "users" }),
+  ]);
 
-describe("route groups", () => {
-  test("applies namePrefix to route names", () => {
-    const routes = group({ namePrefix: "admin." }, [
-      get("/dashboard", controller(), { name: "dashboard" }),
-      get("/users", controller(), { name: "users" }),
+  expectTypeOf(routes).toEqualTypeOf<Routes<{ "admin.dashboard": never; "admin.users": never }>>();
+});
+
+test("throws error when child route has different domain than parent group", () => {
+  expect(() => {
+    group({ domain: "api.example.com" }, [
+      get("/users", controller(), { domain: "admin.example.com" }),
     ]);
+  }).toThrow(/Domain conflict/);
+});
 
-    expectTypeOf(routes).toEqualTypeOf<
-      Routes<{ "admin.dashboard": never; "admin.users": never }>
-    >();
-  });
+test("allows same domain on parent group and child route", () => {
+  expect(() => {
+    group({ domain: "api.example.com" }, [
+      get("/users", controller(), { domain: "api.example.com" }),
+    ]);
+  }).not.toThrow();
+});
 
-  test("throws error when child route has different domain than parent group", () => {
-    expect(() => {
-      group({ domain: "api.example.com" }, [
-        get("/users", controller(), { domain: "admin.example.com" }),
-      ]);
-    }).toThrow(/Domain conflict/);
-  });
+test("allows child without domain when parent has domain", () => {
+  expect(() => {
+    group({ domain: "api.example.com" }, [get("/users", controller())]);
+  }).not.toThrow();
+});
 
-  test("allows same domain on parent group and child route", () => {
-    expect(() => {
-      group({ domain: "api.example.com" }, [
-        get("/users", controller(), { domain: "api.example.com" }),
-      ]);
-    }).not.toThrow();
-  });
-
-  test("allows child without domain when parent has domain", () => {
-    expect(() => {
-      group({ domain: "api.example.com" }, [get("/users", controller())]);
-    }).not.toThrow();
-  });
-
-  test("group without options parameter", () => {
-    const routes = group([
-      get(
-        "/dashboard/{page}",
-        {
-          handle() {
-            return new Response();
-          },
+test("group without options parameter", () => {
+  const routes = group([
+    get(
+      "/dashboard/{page}",
+      {
+        handle() {
+          return new Response();
         },
-        { name: "dashboard" },
-      ),
-    ]);
+      },
+      { name: "dashboard" },
+    ),
+  ]);
 
-    // Verify it creates a valid Routes object
-    expect(routes).toHaveLength(1);
-    expect(routes[0].path).toBe("/dashboard/{page}");
-    expect(routes[0].routeName).toBe("dashboard");
+  // Verify it creates a valid Routes object
+  expect(routes).toHaveLength(1);
+  expect(routes[0].path).toBe("/dashboard/{page}");
+  expect(routes[0].routeName).toBe("dashboard");
 
-    // Type inference should work
-    expectTypeOf(routes).toEqualTypeOf<Routes<{ dashboard: "page" }>>();
-  });
-
-  test("strips trailing slash from group prefix", () => {
-    const routes = group({ prefix: "/api/" }, [get("/users", controller())]);
-    expect(routes[0].path).toBe("/api/users");
-  });
+  // Type inference should work
+  expectTypeOf(routes).toEqualTypeOf<Routes<{ dashboard: "page" }>>();
 });
 
-// ============================================================================
-// Wildcard Routes
-// ============================================================================
+test("strips trailing slash from group prefix", () => {
+  const routes = group({ prefix: "/api/" }, [get("/users", controller())]);
+  expect(routes[0].path).toBe("/api/users");
+});
 
 describe("wildcard routes", () => {
   test("type inference for named wildcards", () => {
@@ -104,13 +86,11 @@ describe("wildcard routes", () => {
 });
 
 describe("validation", () => {
-  // Helper function to test that a path throws an error
   function expectPathToThrow(path: string, messageContains?: string) {
     const fn = () => get(path, controller());
     expect(fn).toThrow(messageContains);
   }
 
-  // Helper function to test that a domain throws an error
   function expectDomainToThrow(domain: string, messageContains?: string) {
     const fn = () => get("/users", controller(), { domain });
     expect(fn).toThrow(messageContains);
@@ -166,43 +146,33 @@ describe("validation", () => {
   });
 
   test("rejects invalid curly brace patterns", () => {
-    // Opening brace without closing
     expectPathToThrow("/{param", 'Route path "/{param" contains invalid curly braces');
 
-    // Closing brace without opening
     expectPathToThrow("/param}", 'Route path "/param}" contains invalid curly braces');
 
-    // Wrong order braces (caught by partial segment validator)
     expectPathToThrow("/foo/}{param}/", 'Route path "/foo/}{param}/" has invalid parameter syntax');
 
-    // Nested braces (caught by partial segment validator)
     expectPathToThrow(
       "/{{param}}",
       'Route path "/{{param}}" has invalid parameter syntax. Parameters must capture whole path segments',
     );
 
-    // Empty braces
     expectPathToThrow("/foo/{}/bar", 'Route path "/foo/{}/bar" contains invalid curly braces');
 
-    // Space inside braces
     expectPathToThrow("/{ param}", 'Route path "/{ param}" contains invalid curly braces');
 
-    // Trailing brace after parameters removed
     expectPathToThrow(
       "/foo/{param}/bar/}",
       'Route path "/foo/{param}/bar/}" contains invalid curly braces',
     );
 
-    // Mismatched wildcard braces
     expectPathToThrow("/{...param", 'Route path "/{...param" contains invalid curly braces');
 
-    // Unmatched brace in domain (opening)
     expectDomainToThrow(
       "{tenant.example.com",
       'Route path "{tenant.example.com" contains invalid curly braces',
     );
 
-    // Unmatched brace in domain (closing)
     expectDomainToThrow(
       "tenant}.example.com",
       'Route path "tenant}.example.com" contains invalid curly braces',
@@ -238,6 +208,35 @@ describe("validation", () => {
       group({ prefix: "/files/{...path}" }, [get("/", controller())]);
     }).toThrow(
       'Group prefix "/files/{...path}" contains a wildcard parameter. Wildcards are not allowed in group prefixes',
+    );
+  });
+
+  test("rejects wildcard at start of domain", () => {
+    expectDomainToThrow(
+      "{...tenant}.example.com",
+      'Domain "{...tenant}.example.com" contains a wildcard parameter. Wildcards are not allowed in domains',
+    );
+  });
+
+  test("rejects wildcard in middle of domain", () => {
+    expectDomainToThrow(
+      "{tenant}.{...path}.example.com",
+      'Domain "{tenant}.{...path}.example.com" contains a wildcard parameter. Wildcards are not allowed in domains',
+    );
+  });
+
+  test("rejects wildcard at end of domain", () => {
+    expectDomainToThrow(
+      "example.{...path}",
+      'Domain "example.{...path}" contains a wildcard parameter. Wildcards are not allowed in domains',
+    );
+  });
+
+  test("rejects wildcard in group domain", () => {
+    expect(() => {
+      group({ domain: "{...tenant}.example.com" }, [get("/users", controller())]);
+    }).toThrow(
+      'Domain "{...tenant}.example.com" contains a wildcard parameter. Wildcards are not allowed in domains',
     );
   });
 

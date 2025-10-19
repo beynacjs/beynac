@@ -5,7 +5,6 @@ export type {
   RouteHandler,
   RouteOptions,
   Routes,
-  UrlFunction,
 } from "./router-types";
 
 // Router and registry

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { Dispatcher } from "../contracts/Dispatcher";
 import { RequestContext } from "../contracts/RequestContext";
 import { get, group } from "../router";
-import { controller } from "../test-utils";
+import { controller, mockMiddleware, requestContext } from "../test-utils";
 import { ApplicationImpl } from "./ApplicationImpl";
 import { DispatcherImpl } from "./DispatcherImpl";
 
@@ -109,5 +109,24 @@ describe("ApplicationImpl", () => {
 
     const response = await app.handleRequest(request, context);
     expect(response.status).toBe(404);
+  });
+
+  describe("middleware priority configuration", () => {
+    test("reorders middleware based on priority", async () => {
+      const M1 = mockMiddleware("M1");
+      const M2 = mockMiddleware("M2");
+
+      const app = new ApplicationImpl({
+        middlewarePriority: [M2, M1],
+        routes: get("/test", controller(), { middleware: [M1, M2] }),
+      });
+
+      app.bootstrap();
+      mockMiddleware.reset();
+
+      await app.handleRequest(new Request("http://example.com/test"), requestContext());
+
+      expect(mockMiddleware.log).toEqual(["M2", "M1"]);
+    });
   });
 });

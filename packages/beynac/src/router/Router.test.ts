@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, expectTypeOf, mock, test } from "bun:test";
+import { beforeEach, describe, expect, expectTypeOf, mock, spyOn, test } from "bun:test";
 import { createTypeToken } from "../container/container-key";
 import { ContainerImpl } from "../container/ContainerImpl";
 import { Container } from "../contracts";
@@ -194,11 +194,11 @@ describe("middleware", () => {
   });
 
   test("executes multiple middleware in correct order", async () => {
-    const middleware0 = mockMiddleware("m0", true);
+    const middleware0 = mockMiddleware("m0");
 
-    const middleware1 = mockMiddleware("m1", true);
+    const middleware1 = mockMiddleware("m1");
 
-    const middleware2 = mockMiddleware("m2", true);
+    const middleware2 = mockMiddleware("m2");
 
     router.register(
       group({ middleware: middleware0 }, [
@@ -206,7 +206,7 @@ describe("middleware", () => {
           "/test",
           {
             handle() {
-              mockMiddleware.log.push("handler");
+              mockMiddleware.beforeAfterLog.push("handler");
               return new Response("OK");
             },
           },
@@ -216,7 +216,7 @@ describe("middleware", () => {
     );
 
     await handle("/test");
-    expect(mockMiddleware.log).toEqual([
+    expect(mockMiddleware.beforeAfterLog).toEqual([
       "m0:before",
       "m1:before",
       "m2:before",
@@ -391,7 +391,7 @@ describe("middleware", () => {
   });
 
   test("applies middleware to all routes in group", async () => {
-    const M = mockMiddleware("group-middleware");
+    const M = mockMiddleware("GroupMiddleware");
 
     const routes = group({ prefix: "/api", middleware: M }, [
       get("/v1", {
@@ -412,11 +412,83 @@ describe("middleware", () => {
 
     mockMiddleware.reset();
     await router.handle(new Request("http://example.com/api/v1"));
-    expect(mockMiddleware.log).toEqual(["group-middleware", "v1"]);
+    expect(mockMiddleware.log).toEqual(["GroupMiddleware", "v1"]);
 
     mockMiddleware.reset();
     await router.handle(new Request("http://example.com/api/v2"));
-    expect(mockMiddleware.log).toEqual(["group-middleware", "v2"]);
+    expect(mockMiddleware.log).toEqual(["GroupMiddleware", "v2"]);
+  });
+});
+
+describe("middleware priority", () => {
+  test("sorts middleware according to priority list", async () => {
+    const Auth = mockMiddleware("Auth");
+    const RateLimit = mockMiddleware("RateLimit");
+    const Logger = mockMiddleware("Logger");
+    const CORS = mockMiddleware("CORS");
+
+    container = new ContainerImpl();
+    router = new Router(container, {
+      middlewarePriority: [Auth, RateLimit, Logger],
+    });
+
+    router.register(
+      get(
+        "/test",
+        {
+          handle() {
+            mockMiddleware.beforeAfterLog.push("handler");
+            return new Response("OK");
+          },
+        },
+        {
+          middleware: [CORS, Logger, Auth, RateLimit],
+        },
+      ),
+    );
+
+    await handle("/test");
+
+    // Priority middleware (Auth, RateLimit, Logger) execute first in priority order
+    // Non-priority middleware (CORS) follows in original relative order
+    expect(mockMiddleware.beforeAfterLog).toEqual([
+      "Auth:before",
+      "RateLimit:before",
+      "Logger:before",
+      "CORS:before",
+      "handler",
+      "CORS:after",
+      "Logger:after",
+      "RateLimit:after",
+      "Auth:after",
+    ]);
+  });
+
+  test("sorts middleware once during registration, not per request", async () => {
+    const Auth = mockMiddleware("Auth");
+    const RateLimit = mockMiddleware("RateLimit");
+
+    const applyPrioritySpy = spyOn(MiddlewareSet.prototype, "applyPriority");
+
+    container = new ContainerImpl();
+    router = new Router(container, {
+      middlewarePriority: [Auth, RateLimit],
+    });
+
+    // Register routes - they share the same MiddlewareSet
+    router.register(
+      group({ middleware: [RateLimit, Auth] }, [
+        get("/test", controller),
+        get("/test-2", controller),
+      ]),
+    );
+
+    // Send two requests
+    await handle("/test");
+    await handle("/test");
+
+    // applyPriority should be called exactly once (during registration, for the shared MiddlewareSet)
+    expect(applyPrioritySpy).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -687,12 +759,15 @@ describe("parameter constraints", () => {
 // ============================================================================
 
 describe("global patterns", () => {
-  test("globalPatterns validates matching parameters", async () => {
+  test("parameterPatterns validates matching parameters", async () => {
     const mc1 = new MockController();
     const mc2 = new MockController();
 
     router.register(
-      group({ globalPatterns: { id: /^\d+$/ } }, [get("/user/{id}", mc1), get("/post/{id}", mc2)]),
+      group({ parameterPatterns: { id: /^\d+$/ } }, [
+        get("/user/{id}", mc1),
+        get("/post/{id}", mc2),
+      ]),
     );
 
     await handle("/user/123");
@@ -708,18 +783,18 @@ describe("global patterns", () => {
     expect(response4.status).toBe(404);
   });
 
-  test("globalPatterns ignores non-existent parameters", async () => {
+  test("parameterPatterns ignores non-existent parameters", async () => {
     const mc1 = new MockController();
     const mc2 = new MockController();
 
     router.register(
-      group({ globalPatterns: { id: "numeric" } }, [
+      group({ parameterPatterns: { id: "numeric" } }, [
         get("/user/{userId}", mc1),
         get("/post/{postId}", mc2),
       ]),
     );
 
-    // Routes without 'id' parameter should match even with globalPatterns for 'id'
+    // Routes without 'id' parameter should match even with parameterPatterns for 'id'
     await handle("/user/abc");
     expect(mc1.params).toEqual({ userId: "abc" });
 
@@ -727,11 +802,11 @@ describe("global patterns", () => {
     expect(mc2.params).toEqual({ postId: "xyz" });
   });
 
-  test("where and globalPatterns work together", async () => {
+  test("where and parameterPatterns work together", async () => {
     router.register(
       get("/post/{postId}/comment/{commentId}", controller, {
         where: { postId: "numeric" }, // Required - must be numeric
-        globalPatterns: { commentId: "numeric" }, // Optional - only checked if present
+        parameterPatterns: { commentId: "numeric" }, // Optional - only checked if present
       }),
     );
 
@@ -743,18 +818,18 @@ describe("global patterns", () => {
     const response2 = await handle("/post/abc/comment/456");
     expect(response2.status).toBe(404);
 
-    // commentId not numeric - 404 (globalPatterns constraint)
+    // commentId not numeric - 404 (parameterPatterns constraint)
     const response3 = await handle("/post/123/comment/xyz");
     expect(response3.status).toBe(404);
   });
 
-  test("group-level globalPatterns apply to all child routes", async () => {
+  test("group-level parameterPatterns apply to all child routes", async () => {
     const mc1 = new MockController();
     const mc2 = new MockController();
     const mc3 = new MockController();
 
     router.register(
-      group({ prefix: "/admin", globalPatterns: { id: "numeric" } }, [
+      group({ prefix: "/admin", parameterPatterns: { id: "numeric" } }, [
         get("/{id}", mc1),
         get("/{id}/edit", mc2),
         get("/users/{userId}", mc3), // Different param name - not affected
@@ -777,18 +852,18 @@ describe("global patterns", () => {
     const response2 = await handle("/admin/xyz/edit");
     expect(response2.status).toBe(404);
 
-    // Third route - different param name, not affected by globalPatterns for 'id'
+    // Third route - different param name, not affected by parameterPatterns for 'id'
     await handle("/admin/users/abc");
     expect(mc3.params).toEqual({ userId: "abc" });
   });
 
-  test("globalPatterns merge through nested groups", async () => {
+  test("parameterPatterns merge through nested groups", async () => {
     const mc1 = new MockController();
     const mc2 = new MockController();
 
     router.register(
-      group({ globalPatterns: { id: "numeric" } }, [
-        group({ globalPatterns: { slug: "alphanumeric" } }, [
+      group({ parameterPatterns: { id: "numeric" } }, [
+        group({ parameterPatterns: { slug: "alphanumeric" } }, [
           get("/post/{id}", mc1),
           get("/category/{slug}", mc2),
         ]),
@@ -817,13 +892,13 @@ describe("global patterns", () => {
     expect(response2.status).toBe(404);
   });
 
-  test("globalPatterns can constrain multiple different parameters", async () => {
+  test("parameterPatterns can constrain multiple different parameters", async () => {
     const mc1 = new MockController();
     const mc2 = new MockController();
     const mc3 = new MockController();
 
     router.register(
-      group({ globalPatterns: { id: "numeric", slug: "alphanumeric", uuid: "uuid" } }, [
+      group({ parameterPatterns: { id: "numeric", slug: "alphanumeric", uuid: "uuid" } }, [
         get("/user/{id}", mc1),
         get("/category/{slug}", mc2),
         get("/resource/{uuid}", mc3),

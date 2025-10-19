@@ -6,16 +6,13 @@ import { arrayWrapOptional } from "../utils";
 export class MiddlewareSet {
   #middleware: Set<MiddlewareReference>;
   #withoutMiddleware: Set<MiddlewareReference>;
+  #prioritySorted = false;
 
   private constructor(middleware: MiddlewareReference[], withoutMiddleware: MiddlewareReference[]) {
     this.#middleware = new Set(middleware);
     this.#withoutMiddleware = new Set(withoutMiddleware);
   }
 
-  /**
-   * Create a new MiddlewareSet from middleware and withoutMiddleware lists.
-   * Returns null if both lists are empty.
-   */
   static createIfRequired(
     middleware?: MiddlewareReference | MiddlewareReference[] | null,
     withoutMiddleware?: MiddlewareReference | MiddlewareReference[] | null,
@@ -33,10 +30,6 @@ export class MiddlewareSet {
     );
   }
 
-  /**
-   * Merge parent middleware into this set (mutates in place).
-   * Parent middleware is prepended to maintain correct execution order.
-   */
   mergeWithGroup(
     groupMiddleware: MiddlewareReference[],
     groupWithout: MiddlewareReference[],
@@ -50,9 +43,6 @@ export class MiddlewareSet {
     ]);
   }
 
-  /**
-   * Make a function that executes middleware in order, then calls the final handler.
-   */
   buildPipeline(container: Container, finalHandler: MiddlewareNext): MiddlewareNext {
     const middlewareInstances = Array.from(this.#middleware).map((ref) => container.get(ref));
 
@@ -65,5 +55,33 @@ export class MiddlewareSet {
     }
 
     return next;
+  }
+
+  applyPriority(priorityList: MiddlewareReference[]): void {
+    if (this.#prioritySorted) return; // Already sorted, skip
+    this.#prioritySorted = true;
+
+    const middlewareArray = Array.from(this.#middleware);
+    const sortedArray = this.#sortByPriority(middlewareArray, priorityList);
+    this.#middleware = new Set(sortedArray);
+  }
+
+  #sortByPriority(
+    middleware: MiddlewareReference[],
+    priorityList: MiddlewareReference[],
+  ): MiddlewareReference[] {
+    const priorityMap = new Map(priorityList.map((ref, index) => [ref, index]));
+
+    return middleware.slice().sort((a, b) => {
+      const aIndex = priorityMap.get(a);
+      const bIndex = priorityMap.get(b);
+
+      if (aIndex !== undefined && bIndex !== undefined) {
+        return aIndex - bIndex;
+      }
+      if (aIndex !== undefined) return -1;
+      if (bIndex !== undefined) return 1;
+      return 0;
+    });
   }
 }

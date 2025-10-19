@@ -8,6 +8,19 @@ export const PARAM_PATTERN: RegExp = /\{(\w+)\}/g;
  */
 export const WILDCARD_PARAM_PATTERN: RegExp = /\{\.\.\.(\w+)\}/g;
 
+export function validateDomainSyntax(domain: string | undefined): void {
+  if (!domain) return;
+
+  if (/\{\.\.\./.test(domain)) {
+    throw new Error(
+      `Domain "${domain}" contains a wildcard parameter. ` +
+        `Wildcards are not allowed in domains.`,
+    );
+  }
+
+  validateRoutePathSyntax(domain, "Route path");
+}
+
 export function validateGroupPathSyntax(prefix: string | undefined): void {
   if (!prefix) return;
 
@@ -67,4 +80,17 @@ export function validateRoutePathSyntax(path: string | undefined, pathType = "Ro
         `Curly braces can only be used for parameters like {param} or {...wildcard}.`,
     );
   }
+}
+
+export function replaceRouteParams(
+  pattern: string,
+  params: Record<string, string | number>,
+): string {
+  let result = pattern;
+  for (const [key, value] of Object.entries(params)) {
+    const stringValue = String(value);
+    result = result.replace(`{...${key}}`, stringValue);
+    result = result.replace(`{${key}}`, stringValue);
+  }
+  return result;
 }

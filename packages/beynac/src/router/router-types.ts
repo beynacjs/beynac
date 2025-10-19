@@ -3,12 +3,31 @@ import type { MiddlewareReference } from "../core/Middleware";
 import type { NoArgConstructor } from "../utils";
 import type { MiddlewareSet } from "./MiddlewareSet";
 
-// ============================================================================
-// Public Types (exported from router/index.ts)
-// ============================================================================
-
 /**
- * Collection of routes with type-tracked name→params map
+ * A collection of route definitions, returned by route creation functions like
+ * get(), post(), group(), etc. This type includes type information about route
+ * names and their parameters, enabling type-safe URL generation.
+ *
+ * The generic parameter `Params` is a map of route names to their parameter
+ * names, used for type-safe URL generation with RouteRegistry.url().
+ *
+ * @example
+ * // Single route with no parameters
+ * const routes = get('/dashboard', DashboardController, { name: 'dashboard' })
+ * // routes is Routes<{ dashboard: never }>
+ *
+ * @example
+ * // Single route with parameters
+ * const routes = get('/users/{id}', UserController, { name: 'users.show' })
+ * // routes is Routes<{ 'users.show': 'id' }>
+ *
+ * @example
+ * // Multiple routes combined
+ * const routes = group([
+ *   get('/users', UsersController, { name: 'users.index' }),
+ *   get('/users/{id}', UserController, { name: 'users.show' }),
+ * ])
+ * // routes is Routes<{ 'users.index': never, 'users.show': 'id' }>
  */
 export type Routes<Params extends Record<string, string> = {}> = readonly RouteDefinition[] & {
   readonly __nameParamsMap?: Params; // Phantom type for type inference
@@ -17,54 +36,115 @@ export type Routes<Params extends Record<string, string> = {}> = readonly RouteD
 /**
  * Base options shared by both routes and groups
  */
-export interface BaseRouteOptions<PathPart extends string> {
-  /** Middleware applied to route(s) */
+interface BaseRouteOptions<PathPart extends string> {
+  /**
+   * A middleware class or array of classes
+   */
   middleware?: MiddlewareReference | MiddlewareReference[];
 
-  /** Middleware to exclude from parent groups */
+  /**
+   * Remove middleware that was added in this or a parent group
+   */
   withoutMiddleware?: MiddlewareReference | MiddlewareReference[];
 
-  /** Domain pattern constraint */
+  /**
+   * Domain pattern constraint, e.g. "api.example.com". Can contain patterns
+   * capture a parameter e.g. "{customer}.example.com"
+   */
   domain?: string;
 
-  /** Parameter constraints - typed, 404 if parameter doesn't exist */
+  /**
+   * Define a required format for parameters. If the route matches but the
+   * parameter does not have the correct format, a 404 response will be sent.
+   * This uses typescript validation, you can only validate params added in the
+   * same route or group.
+   *
+   * @example
+   * get(/user/{id}, UserController, {where: {id: 'uuid'}})
+   */
   where?: Partial<Record<ExtractRouteParams<PathPart>, ParamConstraint>>;
 
-  /** Global pattern constraints - untyped, only validates if parameter exists */
-  globalPatterns?: Record<string, ParamConstraint>;
+  /**
+   * Define a required format for parameters. This is like `where`, but can
+   * apply to parameters defined anywhere.
+   *
+   * If the route matches but the parameter does not have the correct format, a
+   * 404 response will be sent. This uses typescript validation, you can only
+   * validate params added in the same route or group.
+   *
+   * @example
+   * // require that all `id` parameters in child routes are UUIDs
+   * group({where: {id: 'uuid'}}, [
+   *    ... define child routes...
+   * ])
+   */
+  parameterPatterns?: Record<string, ParamConstraint>;
 }
 
 /**
- * Options for individual routes
+ * Options for individual routes defined in e.g. get(), post() etc
  */
 export interface RouteOptions<Name extends string, Path extends string>
   extends BaseRouteOptions<Path> {
-  /** Route name for URL generation */
+  /**
+   * Route name for URL generation
+   *
+   * @example
+   * get('/user/{id}', UserController, {name: 'users.show'})
+   * // later
+   * app.url('users.show', {id: '123'}); // returns 'https://example.com/user/123'
+   */
   name?: Name;
 }
 
 /**
- * Options for route groups
+ * Options for route groups, which allow you to apply shared configuration to
+ * multiple routes at once.
  */
 export interface RouteGroupOptions<NamePrefix extends string = "", PathPrefix extends string = "">
   extends BaseRouteOptions<PathPrefix> {
-  /** Path prefix for all routes in group */
+  /**
+   * Path prefix for all routes in the group. The prefix will be prepended to
+   * all route paths.
+   *
+   * @example
+   * group({ prefix: '/api/v1' }, [
+   *   get('/users', UsersController), // matches '/api/v1/users'
+   * ])
+   */
   prefix?: PathPrefix;
 
-  /** Name prefix for all routes in group (e.g., "admin.") */
+  /**
+   * Name prefix for all routes in the group. The prefix will be prepended to
+   * all route names, allowing you to organize routes hierarchically.
+   *
+   * @example
+   * group({ namePrefix: 'admin.' }, [
+   *   get('/dashboard', DashboardController, { name: 'dashboard' }), // name: 'admin.dashboard'
+   *   get('/users', UsersController, { name: 'users' }), // name: 'admin.users'
+   * ])
+   */
   namePrefix?: NamePrefix;
 }
 
 /**
- * A route handler can be a Controller instance or class constructor
+ * A route handler can be either a Controller instance or a Controller class.
+ * The router will automatically instantiate controller classes when needed.
+ *
+ * @example
+ * // Using a controller class
+ * get('/users', UsersController)
+ *
+ * @example
+ * // Using an inline controller object
+ * get('/health', {
+ *   handle() {
+ *     return new Response('OK');
+ *   }
+ * })
  */
 export type RouteHandler = Controller | NoArgConstructor<Controller>;
 
-/**
- * Type-safe URL generation function
- * - Routes without params: url("route.name")
- * - Routes with params: url("route.name", { id: 123 }) - params required by TypeScript
- */
 export type UrlFunction<Params extends Record<string, string>> = <N extends keyof Params & string>(
   name: N,
   ...args: Params[N] extends never
@@ -72,26 +152,14 @@ export type UrlFunction<Params extends Record<string, string>> = <N extends keyo
     : [params: ParamsObject<Params[N]>]
 ) => string;
 
-// ============================================================================
-// Internal Types (not exported from router/index.ts)
-// ============================================================================
+export type ParamsObject<U extends string> = Prettify<Record<U, string | number>>;
 
 export type BuiltInRouteConstraint = "numeric" | "alphanumeric" | "uuid" | "ulid";
 
-/**
- * Route constraint - can be:
- * - String literal for built-in constraints: 'numeric', 'alphanumeric', 'uuid', 'ulid'
- * - RegExp for custom pattern matching
- * - Function for custom validation
- */
 export type ParamConstraint = BuiltInRouteConstraint | RegExp | ((value: string) => boolean);
 
 export type ParamConstraints = Record<string, ParamConstraint | undefined>;
 
-/**
- * A single route definition (pure data, no methods)
- * Stores user-facing syntax: {param} and {...wildcard}
- */
 export interface RouteDefinition {
   methods: readonly string[];
   path: string;
@@ -103,70 +171,33 @@ export interface RouteDefinition {
   domainPattern?: string | undefined;
 }
 
-/**
- * Result of matching a route
- */
 export interface RouteMatch {
   route: RouteDefinition;
   params: Record<string, string>;
 }
 
-/**
- * Interface for route matching implementations
- * Abstracts the underlying routing engine (rou3, etc.)
- */
 export interface RouteMatcher {
-  /**
-   * Register a route definition with the matcher
-   */
   register(route: RouteDefinition): void;
-
-  /**
-   * Find a matching route for the given request
-   * @param method HTTP method
-   * @param path Request path
-   * @param hostname Request hostname (for domain routing)
-   * @returns RouteMatch if found, undefined otherwise
-   */
   match(method: string, path: string, hostname: string): RouteMatch | undefined;
 }
 
-// ============================================================================
-// Type Helper Utilities (internal, used for type inference)
-// ============================================================================
-
 /**
  * Extract parameter names from a path pattern
- * "/users/{id}/{name}" -> "id" | "name"
- * "/files/{...path}" -> "path"
- * "/users/{id}/files/{...path}" -> "id" | "path"
- * "/users" -> never
+ * "/users/{id}/{...rest}" -> "id" | "rest"
  */
 export type ExtractRouteParams<T extends string> =
-  // First try to match regular {param} at the beginning
   T extends `${infer Before}{${infer Param}}${infer After}`
-    ? // Check if this is actually a wildcard {...param}
-      Param extends `...${infer WildcardParam}`
+    ? Param extends `...${infer WildcardParam}`
       ? WildcardParam | ExtractRouteParams<`${Before}${After}`>
-      : // Regular param
-        Param | ExtractRouteParams<`${Before}${After}`>
+      : Param | ExtractRouteParams<`${Before}${After}`>
     : never;
 
-/**
- * Extract parameters from both domain and path, returning union of both
- * Domain: "{account}.example.com", Path: "/users/{id}" -> "account" | "id"
- */
 export type ExtractDomainAndPathParams<
   Domain extends string | undefined,
   Path extends string,
 > = Domain extends string
   ? ExtractRouteParams<Domain> | ExtractRouteParams<Path>
   : ExtractRouteParams<Path>;
-
-/**
- * Extract the NameParamsMap from Routes
- */
-export type ExtractMap<T> = T extends Routes<infer Map> ? Map : {};
 
 /**
  * Flatten intersection types and force IDE to display expanded form
@@ -183,11 +214,8 @@ export type MergeChildren<Children extends readonly unknown[]> = Prettify<
     : {}
 >;
 
-/**
- * Add prefix params to all values in a map
- * { "show": "postId" } + "userId" -> { "show": "postId" | "userId" }
- * { "index": never } + "userId" -> { "index": "userId" }
- */
+type ExtractMap<T> = T extends Routes<infer Map> ? Map : {};
+
 export type AddPrefixParams<Map extends Record<string, string>, PrefixParams extends string> = {
   [K in keyof Map]: Map[K] extends never ? PrefixParams : Map[K] | PrefixParams;
 };
@@ -196,22 +224,13 @@ export type AddPrefixParams<Map extends Record<string, string>, PrefixParams ext
  * Prepend a name prefix to all keys in a map
  * { "show": "id" } + "users." -> { "users.show": "id" }
  */
-export type PrependNamePrefix<
-  Map extends Record<string, string>,
-  Prefix extends string,
-> = Prefix extends ""
-  ? Map
-  : {
-      [K in keyof Map as K extends string ? `${Prefix}${K}` : never]: Map[K];
-    };
+export type PrependNamePrefix<Map extends Record<string, string>, Prefix extends string> = {
+  [K in keyof Map as K extends string ? `${Prefix}${K}` : never]: Map[K];
+};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- `any` was the only way I could get type checking to work here
 export type GroupChildren = readonly Routes<any>[];
 
-/**
- * Compute the Routes type for a group with optional name/path prefixes
- * Handles merging children, applying path prefix params, and prepending name prefix
- */
 export type GroupedRoutes<
   Children extends GroupChildren,
   NamePrefix extends string = "",
@@ -224,10 +243,3 @@ export type GroupedRoutes<
     NamePrefix
   >
 >;
-
-/**
- * Convert a union of param names to an object type
- * "id" | "name" -> { id: string | number, name: string | number }
- * never -> {} (no params needed)
- */
-export type ParamsObject<U extends string> = U extends never ? {} : { [K in U]: string | number };

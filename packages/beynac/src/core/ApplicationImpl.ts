@@ -5,10 +5,14 @@ import { Application } from "../contracts/Application";
 import { Configuration } from "../contracts/Configuration";
 import { Dispatcher as DispatcherKey, type Dispatcher } from "../contracts/Dispatcher";
 import { RequestContext } from "../contracts/RequestContext";
+import type { MiddlewareReference } from "../core/Middleware";
 import { DevModeAutoRefreshMiddleware } from "../development/DevModeAutoRefreshMiddleware";
 import { DevModeWatchService } from "../development/DevModeWatchService";
 import { BeynacError } from "../error";
-import { group, Router, RouteRegistry, type UrlFunction } from "../router";
+import { group, Router, RouteRegistry } from "../router";
+import { DEFAULT_MIDDLEWARE_PRIORITY } from "../router/default-middleware-priority";
+import { MiddlewarePriorityBuilder } from "../router/MiddlewarePriorityBuilder";
+import { UrlFunction } from "../router/router-types";
 import { CookiesImpl } from "./CookiesImpl";
 import { HeadersImpl } from "./HeadersImpl";
 
@@ -37,11 +41,10 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
     this.container.instance(Configuration, this.#config);
     this.container.instance(Application, this);
 
-    // Create and bind Router
-    this.container.bind(Router, {
-      factory: () => new Router(this.container),
-      lifecycle: "singleton",
-    });
+    this.container.instance(
+      Router,
+      new Router(this.container, { middlewarePriority: this.#resolveMiddlewarePriority() }),
+    );
 
     // Register routes with dev mode middleware if needed
     if (this.#config.routes) {
@@ -90,5 +93,27 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
       this.container.bind(RequestContext, { lifecycle: "scoped", factory: () => context });
       return callback();
     });
+  }
+
+  /**
+   * Resolve middleware priority from configuration.
+   * If a function is provided, creates a builder and calls it.
+   * If an array is provided, returns it directly.
+   * If nothing is provided, returns the default priority list.
+   */
+  #resolveMiddlewarePriority(): MiddlewareReference[] {
+    const config = this.#config.middlewarePriority;
+
+    if (!config) {
+      return DEFAULT_MIDDLEWARE_PRIORITY;
+    }
+
+    if (typeof config === "function") {
+      const builder = new MiddlewarePriorityBuilder(DEFAULT_MIDDLEWARE_PRIORITY);
+      config(builder);
+      return builder.toArray();
+    }
+
+    return config;
   }
 }

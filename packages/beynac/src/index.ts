@@ -20,5 +20,4 @@ export {
   type RouteHandler,
   type RouteOptions,
   type Routes,
-  type UrlFunction,
 } from "./router";

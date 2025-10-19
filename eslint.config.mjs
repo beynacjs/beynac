@@ -15,6 +15,7 @@ export default tseslint.config(
       "eslint.config.mjs",
       "progress/**",
       "test-apps/**",
+      "test-setup.ts",
     ],
   },
   {

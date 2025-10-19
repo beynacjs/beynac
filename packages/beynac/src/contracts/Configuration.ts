@@ -1,6 +1,8 @@
 import type { TypeToken } from "../container/container-key";
 import { createTypeToken } from "../container/container-key";
+import type { MiddlewareReference } from "../core/Middleware";
 import type { Routes } from "../router";
+import type { MiddlewarePriorityBuilder } from "../router/MiddlewarePriorityBuilder";
 
 export interface Configuration<RouteParams extends Record<string, string> = {}> {
   /**
@@ -20,6 +22,31 @@ export interface Configuration<RouteParams extends Record<string, string> = {}> 
    * Route definitions for the application
    */
   routes?: Routes<RouteParams>;
+
+  /**
+   * Configure middleware execution priority.
+   *
+   * Middleware in the priority list will be moved to the front of the
+   * middleware list and execute in the specified order, regardless of the order
+   * they're assigned to routes.
+   *
+   * Can be:
+   * - An array of middleware classes (replaces default priority)
+   * - A function that receives a builder to modify the default priority
+   *
+   * @example
+   * // Replace default priority
+   * middlewarePriority: [Auth, RateLimit, Logger]
+   *
+   * @example
+   * // Modify default priority
+   * middlewarePriority: (builder) => {
+   *   builder.addBefore(SetupTenant, Auth);
+   *   builder.addAfter(CustomLogger, Session);
+   *   builder.remove(DefaultRateLimit);
+   * }
+   */
+  middlewarePriority?: MiddlewareReference[] | ((builder: MiddlewarePriorityBuilder) => void);
 
   /**
    * Development mode options
