@@ -91,9 +91,19 @@ export class Router {
     route: RouteDefinition,
     request: Request,
     url: URL,
-    params: Record<string, string>,
+    rawParams: Record<string, string>,
   ): Promise<Response> {
-    const ctx: ControllerContext = { request, params, url };
+    const params: Record<string, string> = {};
+    for (const [key, value] of Object.entries(rawParams)) {
+      try {
+        params[key] = decodeURIComponent(value);
+      } catch {
+        // If decoding fails, use the original value
+        params[key] = value;
+      }
+    }
+
+    const ctx: ControllerContext = { request, params, rawParams, url };
 
     const finalHandler = async (ctx: ControllerContext): Promise<Response> => {
       const handler =

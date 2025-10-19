@@ -89,8 +89,9 @@ export function replaceRouteParams(
   let result = pattern;
   for (const [key, value] of Object.entries(params)) {
     const stringValue = String(value);
-    result = result.replace(`{...${key}}`, stringValue);
-    result = result.replace(`{${key}}`, stringValue);
+    const encodedValue = encodeURIComponent(stringValue);
+    result = result.replaceAll(`{...${key}}`, encodedValue);
+    result = result.replaceAll(`{${key}}`, encodedValue);
   }
   return result;
 }

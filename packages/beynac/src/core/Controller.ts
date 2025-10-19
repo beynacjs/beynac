@@ -3,10 +3,28 @@
  * Contains the HTTP request and route parameters.
  */
 export interface ControllerContext {
-  /** The incoming HTTP request */
+  /**
+   * The incoming HTTP request
+   */
   request: Request;
-  /** Parameters extracted from the route path */
+
+  /**
+   * Parameters extracted from the route path. These are url-decoded, so
+   *
+   * - route: `get(/search/{...query})`
+   * - request: /search/my%20query%20%2F%20request
+   * - params: {query: "my query / request"}
+   */
   params: Record<string, string>;
+
+  /**
+   * Parameters extracted from the route path. These are url-decoded, so
+   *
+   * - route: `get(/search/{...query})`
+   * - request: /search/my%20query%20%2F%20request
+   * - params: {query: "my%20query%20%2F%20request"}
+   */
+  rawParams: Record<string, string>;
 
   url: URL;
 }

@@ -1192,6 +1192,55 @@ describe("wildcard routes", () => {
   });
 });
 
+// ============================================================================
+// URL Encoding/Decoding
+// ============================================================================
+
+describe("URL encoding and decoding", () => {
+  test("decodes encoded slashes in route parameters", async () => {
+    router.register(get("/foo/{param}/quux", controller));
+
+    await handle("/foo/bar%2Fbaz/quux");
+    expect(controller.params).toEqual({ param: "bar/baz" });
+    expect(controller.rawParams).toEqual({ param: "bar%2Fbaz" });
+    expect(controller.url?.pathname).toBe("/foo/bar%2Fbaz/quux");
+  });
+
+  test("decodes encoded characters in multiple parameters", async () => {
+    router.register(get("/posts/{postId}/comments/{commentId}", controller));
+
+    await handle("/posts/hello%20world/comments/foo%26bar");
+    expect(controller.params).toEqual({ postId: "hello world", commentId: "foo&bar" });
+    expect(controller.rawParams).toEqual({ postId: "hello%20world", commentId: "foo%26bar" });
+    expect(controller.url?.pathname).toBe("/posts/hello%20world/comments/foo%26bar");
+  });
+
+  test("decodes wildcard parameters with encoded characters", async () => {
+    router.register(get("/files/{...path}", controller));
+
+    await handle("/files/docs%2F2024%2Freport.pdf");
+    expect(controller.params).toEqual({ path: "docs/2024/report.pdf" });
+    expect(controller.rawParams).toEqual({ path: "docs%2F2024%2Freport.pdf" });
+    expect(controller.url?.pathname).toBe("/files/docs%2F2024%2Freport.pdf");
+  });
+
+  test("handles invalid percent encoding gracefully", async () => {
+    router.register(get("/test/{param}", controller));
+
+    // Invalid encoding should use the original value
+    await handle("/test/foo%2");
+    expect(controller.params).toEqual({ param: "foo%2" });
+    expect(controller.rawParams).toEqual({ param: "foo%2" });
+  });
+
+  test("query parameters are decoded by URL object", async () => {
+    router.register(get("/search", controller));
+
+    await handle("/search?foo=bar+baz%2Fquux");
+    expect(controller.url?.searchParams.get("foo")).toBe("bar baz/quux");
+  });
+});
+
 describe("MiddlewareSet sharing", () => {
   const M1 = mockMiddleware("M1");
   const M2 = mockMiddleware("M2");

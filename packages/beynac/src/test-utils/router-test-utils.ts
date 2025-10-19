@@ -23,6 +23,26 @@ export class MockController implements Controller {
     return calls[0][0].params;
   }
 
+  get url(): URL | undefined {
+    const { calls } = this.handle.mock;
+    if (calls.length !== 1) {
+      throw new Error(
+        `handle(ctx) was called ${calls.length} times, mockController.url can only be used if the handler is called exactly once`,
+      );
+    }
+    return calls[0][0].url;
+  }
+
+  get rawParams(): Record<string, string> {
+    const { calls } = this.handle.mock;
+    if (calls.length !== 1) {
+      throw new Error(
+        `handle(ctx) was called ${calls.length} times, mockController.rawParams can only be used if the handler is called exactly once`,
+      );
+    }
+    return calls[0][0].rawParams;
+  }
+
   get allParams(): Record<string, string>[] {
     return this.handle.mock.calls.map((call) => call[0].params);
   }
@@ -36,6 +56,7 @@ export const controllerContext = (
 ): ControllerContext => ({
   request,
   params: {},
+  rawParams: {},
   url: new URL(request.url),
 });
 
