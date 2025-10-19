@@ -17,6 +17,15 @@ export class RawContent {
   }
 }
 
+/**
+ * Render a raw string directly in the document, for example to include
+ * pre-rendered HTML or a block of javascript.
+ *
+ * Can be used within JSX and html`` templates.
+ *
+ * @example
+ * <div>{renderMarkdownToHtml(markdown)}</div>
+ */
 export function raw(content: string): RawContent {
   return new RawContent(content);
 }
