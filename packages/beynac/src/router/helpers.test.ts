@@ -254,3 +254,19 @@ describe("validation", () => {
     }).not.toThrow();
   });
 });
+
+import { resource } from "./helpers";
+import { ResourceController } from "./ResourceController";
+
+describe("resource routes", () => {
+  test("resource() creates routes that work with RouteRegistry", () => {
+    class PhotoController extends ResourceController {}
+
+    const routes = resource("/photos", PhotoController);
+    expect(routes).toHaveLength(7);
+
+    const routeNames = routes.map((r) => r.routeName).filter(Boolean);
+    expect(routeNames).toContain("photos.index");
+    expect(routeNames).toContain("photos.show");
+  });
+});

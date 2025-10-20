@@ -1,4 +1,5 @@
 // Public types
+export type { ResourceAction } from "./ResourceController";
 export type {
   ParamConstraint as RouteConstraint,
   RouteGroupOptions,
@@ -11,9 +12,13 @@ export type {
 export { Router } from "./Router";
 export { RouteRegistry } from "./RouteRegistry";
 
+// Controllers
+export { ResourceController } from "./ResourceController";
+
 // Helper functions and constraints
 export {
   any,
+  apiResource,
   delete,
   delete_,
   get,
@@ -25,4 +30,5 @@ export {
   post,
   put,
   redirect,
+  resource,
 } from "./helpers";

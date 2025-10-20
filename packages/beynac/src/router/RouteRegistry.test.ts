@@ -1,6 +1,7 @@
 import { describe, expect, expectTypeOf, test } from "bun:test";
 import { controller } from "../test-utils";
-import { get, group } from "./helpers";
+import { get, group, resource } from "./helpers";
+import { ResourceController } from "./ResourceController";
 import type { Routes } from "./router-types";
 import { RouteRegistry } from "./RouteRegistry";
 
@@ -349,6 +350,36 @@ describe("RouteRegistry typed method", () => {
     registry.url("admin.dashboard");
     registry.url("admin.posts.index");
     registry.url("admin.posts.show", { id: "123" });
+  });
+
+  test("resource routes with slash-to-dot conversion", () => {
+    class TestController extends ResourceController {
+      override index() {
+        return new Response("index");
+      }
+      override show() {
+        return new Response("show");
+      }
+    }
+
+    const routes = resource("/admin/photos", TestController);
+
+    // Runtime URL generation should work
+    const registry = new RouteRegistry(routes);
+    // Type assertions needed due to dynamic route name generation
+    expect((registry.url as any)("admin.photos.index")).toBe("/admin/photos");
+    expect((registry.url as any)("admin.photos.show", { id: "123" })).toBe("/admin/photos/123");
+  });
+
+  test("resource routes with multiple slashes convert to dots", () => {
+    class TestController extends ResourceController {}
+
+    const routes = resource("/api/v1/users", TestController);
+
+    const registry = new RouteRegistry(routes);
+    // Type assertions needed due to dynamic route name generation
+    expect((registry.url as any)("api.v1.users.index")).toBe("/api/v1/users");
+    expect((registry.url as any)("api.v1.users.show", { id: "42" })).toBe("/api/v1/users/42");
   });
 
   test("domain routing URL generation", () => {

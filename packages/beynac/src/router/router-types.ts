@@ -243,3 +243,82 @@ export type GroupedRoutes<
     NamePrefix
   >
 >;
+
+/**
+ * Helper type to replace all occurrences of a substring
+ */
+type ReplaceAll<
+  S extends string,
+  From extends string,
+  To extends string,
+> = S extends `${infer L}${From}${infer R}` ? `${L}${To}${ReplaceAll<R, From, To>}` : S;
+
+/**
+ * Infer resource name from path by removing leading slash and converting slashes to dots
+ * '/photos' -> 'photos'
+ * '/admin/photos' -> 'admin.photos'
+ * '/api/v1/users' -> 'api.v1.users'
+ */
+export type InferResourceName<Path extends string> = Path extends `/${infer Name}`
+  ? ReplaceAll<Name, "/", ".">
+  : Path;
+
+/**
+ * Generate route name map for resource controller.
+ * Creates a map of route names to their parameter requirements.
+ *
+ * @example
+ * ResourceRouteMap<'photos'> // ->
+ * {
+ *   'photos.index': never,
+ *   'photos.create': never,
+ *   'photos.store': never,
+ *   'photos.show': 'id',
+ *   'photos.edit': 'id',
+ *   'photos.update': 'id',
+ *   'photos.destroy': 'id'
+ * }
+ */
+export type ResourceRouteMap<ResourceName extends string> = {
+  [K in
+    | `${ResourceName}.index`
+    | `${ResourceName}.create`
+    | `${ResourceName}.store`
+    | `${ResourceName}.show`
+    | `${ResourceName}.edit`
+    | `${ResourceName}.update`
+    | `${ResourceName}.destroy`]: K extends
+    | `${ResourceName}.show`
+    | `${ResourceName}.edit`
+    | `${ResourceName}.update`
+    | `${ResourceName}.destroy`
+    ? "id"
+    : never;
+};
+
+/**
+ * Generate route name map for API resource controller (excludes create and edit).
+ *
+ * @example
+ * ApiResourceRouteMap<'photos'> // ->
+ * {
+ *   'photos.index': never,
+ *   'photos.store': never,
+ *   'photos.show': 'id',
+ *   'photos.update': 'id',
+ *   'photos.destroy': 'id'
+ * }
+ */
+export type ApiResourceRouteMap<ResourceName extends string> = {
+  [K in
+    | `${ResourceName}.index`
+    | `${ResourceName}.store`
+    | `${ResourceName}.show`
+    | `${ResourceName}.update`
+    | `${ResourceName}.destroy`]: K extends
+    | `${ResourceName}.show`
+    | `${ResourceName}.update`
+    | `${ResourceName}.destroy`
+    ? "id"
+    : never;
+};

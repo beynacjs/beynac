@@ -1,11 +1,11 @@
 // Client-side API interaction script
 
 async function callApi(method, path, body = null) {
-  const output = document.getElementById('output');
+  const output = document.getElementById("output");
   try {
     const options = {
       method,
-      headers: body ? { 'Content-Type': 'application/json' } : {},
+      headers: body ? { "Content-Type": "application/json" } : {},
     };
     if (body) {
       options.body = JSON.stringify(body);
@@ -27,28 +27,28 @@ async function callApi(method, path, body = null) {
 }
 
 function getCookies() {
-  callApi('GET', '/beynac/api/cookies');
+  callApi("GET", "/beynac/api/cookies");
 }
 
 function setCookie() {
-  const name = document.getElementById('cookieName').value;
-  const value = document.getElementById('cookieValue').value;
+  const name = document.getElementById("cookieName").value;
+  const value = document.getElementById("cookieValue").value;
 
   if (!name) {
-    alert('Cookie name is required');
+    alert("Cookie name is required");
     return;
   }
 
-  callApi('POST', '/beynac/api/cookies', { name, value });
+  callApi("POST", "/beynac/api/cookies", { name, value });
 }
 
 function deleteCookie() {
-  const name = document.getElementById('cookieName').value;
+  const name = document.getElementById("cookieName").value;
 
   if (!name) {
-    alert('Cookie name is required');
+    alert("Cookie name is required");
     return;
   }
 
-  callApi('DELETE', `/beynac/api/cookies/${encodeURIComponent(name)}`);
+  callApi("DELETE", `/beynac/api/cookies/${encodeURIComponent(name)}`);
 }
