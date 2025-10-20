@@ -129,4 +129,62 @@ describe("ApplicationImpl", () => {
       expect(mockMiddleware.log).toEqual(["M2", "M1"]);
     });
   });
+
+  describe("param access checking integration", () => {
+    test("config flows from app to router - throws in development mode", async () => {
+      const app = new ApplicationImpl({
+        development: true,
+        routes: get("/user/{id}", {
+          handle(ctx) {
+            const _unused = ctx.params.nonExistent; // Should throw because development: true
+            return new Response(`ok: ${_unused}`);
+          },
+        }),
+      });
+
+      app.bootstrap();
+      expect(async () => {
+        await app.handleRequest(new Request("http://example.com/user/123"), requestContext());
+      }).toThrow('Route parameter "nonExistent" does not exist');
+    });
+
+    test("config flows from app to router - doesn't throw in production mode", async () => {
+      const app = new ApplicationImpl({
+        development: false,
+        routes: get("/user/{id}", {
+          handle(ctx) {
+            const value = ctx.params.nonExistent; // Should not throw because development: false
+            return new Response(`value: ${value}`);
+          },
+        }),
+      });
+
+      app.bootstrap();
+      const response = await app.handleRequest(
+        new Request("http://example.com/user/123"),
+        requestContext(),
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.text()).toBe("value: undefined");
+    });
+
+    test("throwOnInvalidParamAccess overrides development setting", async () => {
+      const app = new ApplicationImpl({
+        development: false,
+        throwOnInvalidParamAccess: "always",
+        routes: get("/user/{id}", {
+          handle(ctx) {
+            const _unused = ctx.params.nonExistent; // Should throw because throwOnInvalidParamAccess: 'always'
+            return new Response(`ok: ${_unused}`);
+          },
+        }),
+      });
+
+      app.bootstrap();
+      expect(async () => {
+        await app.handleRequest(new Request("http://example.com/user/123"), requestContext());
+      }).toThrow('Route parameter "nonExistent" does not exist');
+    });
+  });
 });

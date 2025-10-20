@@ -1,6 +1,7 @@
 import type { Container } from "../contracts";
 import { ControllerContext } from "../core/Controller";
 import type { MiddlewareReference } from "../core/Middleware";
+import { wrapParams } from "./params-access-checker";
 import { Rou3RouteMatcher } from "./Rou3RouteMatcher";
 import type {
   BuiltInRouteConstraint,
@@ -23,12 +24,28 @@ export class Router {
   private matcher: RouteMatcher = new Rou3RouteMatcher();
   private middlewarePriority: MiddlewareReference[] | undefined;
   private sortedMiddlewareSets = new WeakSet();
+  private shouldThrowOnInvalidParamAccess: boolean;
 
   constructor(
     private container: Container,
     options?: RouterOptions,
+    config?: Pick<
+      import("../contracts/Configuration").Configuration,
+      "throwOnInvalidParamAccess" | "development"
+    >,
   ) {
     this.middlewarePriority = options?.middlewarePriority;
+
+    // Determine whether to throw on invalid param access
+    const throwConfig = config?.throwOnInvalidParamAccess;
+    if (throwConfig === "always") {
+      this.shouldThrowOnInvalidParamAccess = true;
+    } else if (throwConfig === "never") {
+      this.shouldThrowOnInvalidParamAccess = false;
+    } else {
+      // 'development' or undefined - use development flag
+      this.shouldThrowOnInvalidParamAccess = config?.development ?? false;
+    }
   }
 
   /**
@@ -91,17 +108,23 @@ export class Router {
     route: RouteDefinition,
     request: Request,
     url: URL,
-    rawParams: Record<string, string>,
+    rawParamsInput: Record<string, string>,
   ): Promise<Response> {
-    const params: Record<string, string> = {};
-    for (const [key, value] of Object.entries(rawParams)) {
+    const decodedParams: Record<string, string> = {};
+    for (const [key, value] of Object.entries(rawParamsInput)) {
       try {
-        params[key] = decodeURIComponent(value);
+        decodedParams[key] = decodeURIComponent(value);
       } catch {
         // If decoding fails, use the original value
-        params[key] = value;
+        decodedParams[key] = value;
       }
     }
+
+    // Conditionally wrap params with access checker
+    const params = this.shouldThrowOnInvalidParamAccess ? wrapParams(decodedParams) : decodedParams;
+    const rawParams = this.shouldThrowOnInvalidParamAccess
+      ? wrapParams(rawParamsInput)
+      : rawParamsInput;
 
     const ctx: ControllerContext = {
       request,

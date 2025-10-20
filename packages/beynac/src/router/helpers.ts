@@ -34,13 +34,13 @@ export function isIn(values: readonly string[]): ParamConstraint {
   return new RegExp(`^(${values.map((v) => escapeRegex(v)).join("|")})$`);
 }
 
-function mergeObjects<T extends Record<string, any>>(
+function mergeObjects<T extends Record<string, unknown>>(
   parent: T | undefined,
   child: T | null,
 ): T | null {
   if (!parent) return child;
   if (!child) return parent;
-  return { ...parent, ...child } as T;
+  return { ...parent, ...child };
 }
 
 function createRoute<
@@ -297,8 +297,16 @@ export function group<
     return group({}, optionsOrChildren as Children);
   }
 
-  let { domain, parameterPatterns, middleware, withoutMiddleware, namePrefix, prefix, where, meta } =
-    optionsOrChildren as RouteGroupOptions<string, string>;
+  let {
+    domain,
+    parameterPatterns,
+    middleware,
+    withoutMiddleware,
+    namePrefix,
+    prefix,
+    where,
+    meta,
+  } = optionsOrChildren as RouteGroupOptions<string, string>;
   const children = maybeChildren as Children;
 
   validateGroupPathSyntax(prefix);

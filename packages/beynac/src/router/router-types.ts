@@ -89,7 +89,7 @@ interface BaseRouteOptions<PathPart extends string> {
    * @example
    * get('/users', UserController, { meta: { action: 'list' } })
    */
-  meta?: Record<string, any>;
+  meta?: Record<string, unknown>;
 }
 
 /**
@@ -180,7 +180,7 @@ export interface RouteDefinition {
   constraints: ParamConstraints | null;
   globalConstraints: ParamConstraints | null;
   domainPattern?: string | undefined;
-  meta: Record<string, any> | null;
+  meta: Record<string, unknown> | null;
 }
 
 export interface RouteMatch {

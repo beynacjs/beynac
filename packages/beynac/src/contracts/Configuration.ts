@@ -86,6 +86,17 @@ export interface Configuration<RouteParams extends Record<string, string> = {}> 
      */
     autoRefreshHeartbeatMs?: number;
   };
+
+  /**
+   * Control when to throw errors on accessing non-existent route parameters.
+   *
+   * - 'always': Always throw when accessing invalid parameters
+   * - 'never': Never throw, return undefined (production-like behavior)
+   * - 'development': Throw only when development mode is enabled
+   *
+   * @default 'development'
+   */
+  throwOnInvalidParamAccess?: "always" | "never" | "development" | undefined;
 }
 
 export const Configuration: TypeToken<Configuration> =

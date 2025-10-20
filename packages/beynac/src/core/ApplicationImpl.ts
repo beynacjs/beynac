@@ -43,7 +43,11 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 
     this.container.instance(
       Router,
-      new Router(this.container, { middlewarePriority: this.#resolveMiddlewarePriority() }),
+      new Router(
+        this.container,
+        { middlewarePriority: this.#resolveMiddlewarePriority() },
+        this.#config,
+      ),
     );
 
     // Register routes with dev mode middleware if needed
