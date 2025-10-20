@@ -103,7 +103,13 @@ export class Router {
       }
     }
 
-    const ctx: ControllerContext = { request, params, rawParams, url };
+    const ctx: ControllerContext = {
+      request,
+      params,
+      rawParams,
+      url,
+      meta: route.meta || {},
+    };
 
     const finalHandler = async (ctx: ControllerContext): Promise<Response> => {
       const handler =

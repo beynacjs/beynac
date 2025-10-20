@@ -79,6 +79,17 @@ interface BaseRouteOptions<PathPart extends string> {
    * ])
    */
   parameterPatterns?: Record<string, ParamConstraint>;
+
+  /**
+   * Metadata to pass to the controller. This can be any additional data
+   * that you want to make available to the controller that isn't part of
+   * the URL parameters. In groups, meta is merged with child meta overriding
+   * parent meta.
+   *
+   * @example
+   * get('/users', UserController, { meta: { action: 'list' } })
+   */
+  meta?: Record<string, any>;
 }
 
 /**
@@ -169,6 +180,7 @@ export interface RouteDefinition {
   constraints: ParamConstraints | null;
   globalConstraints: ParamConstraints | null;
   domainPattern?: string | undefined;
+  meta: Record<string, any> | null;
 }
 
 export interface RouteMatch {

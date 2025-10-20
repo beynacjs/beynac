@@ -1356,4 +1356,36 @@ describe("multi-method routes", () => {
       expect(response.status).toBe(200);
     }
   });
+
+  test("meta is passed to controller context", async () => {
+    let capturedMeta: Record<string, any> | undefined;
+
+    router.register(
+      get("/test", {
+        handle(ctx) {
+          capturedMeta = ctx.meta;
+          return new Response("ok");
+        },
+      }, { meta: { foo: "bar", num: 42 } }),
+    );
+
+    await handle("/test");
+    expect(capturedMeta).toEqual({ foo: "bar", num: 42 });
+  });
+
+  test("meta is empty object when not specified", async () => {
+    let capturedMeta: Record<string, any> | undefined;
+
+    router.register(
+      get("/test", {
+        handle(ctx) {
+          capturedMeta = ctx.meta;
+          return new Response("ok");
+        },
+      }),
+    );
+
+    await handle("/test");
+    expect(capturedMeta).toEqual({});
+  });
 });

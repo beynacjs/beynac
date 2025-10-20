@@ -13,7 +13,7 @@ export type ResourceAction = "index" | "create" | "store" | "show" | "edit" | "u
  * implementations return a 404. Subclasses override only the methods they need.
  *
  * The handle() method automatically delegates to the appropriate action method
- * based on the HTTP method and URL path structure.
+ * based on the action specified in ctx.meta.action.
  *
  * @example
  * class PhotoController extends ResourceController {
@@ -33,44 +33,14 @@ export type ResourceAction = "index" | "create" | "store" | "show" | "edit" | "u
 export abstract class ResourceController implements Controller {
   /**
    * Main entry point called by the router.
-   * Determines which action to execute based on the request.
+   * Delegates to the appropriate action method based on ctx.meta.action.
    */
   handle(ctx: ControllerContext): Response | Promise<Response> {
-    const action = this.#determineAction(ctx);
+    const action = ctx.meta.action as ResourceAction;
+    if (!action) {
+      throw new Error("ResourceController requires meta.action to be set");
+    }
     return this[action](ctx);
-  }
-
-  /**
-   * Determines which resource action to call based on HTTP method and path structure.
-   */
-  #determineAction(ctx: ControllerContext): ResourceAction {
-    const method = ctx.request.method;
-    const hasId = ctx.params.id != null;
-    const path = ctx.url.pathname;
-
-    if (method === "GET") {
-      if (!hasId) {
-        // GET /photos or GET /photos/create
-        return path.endsWith("/create") ? "create" : "index";
-      }
-      // GET /photos/{id} or GET /photos/{id}/edit
-      return path.endsWith("/edit") ? "edit" : "show";
-    }
-
-    if (method === "POST") {
-      return "store";
-    }
-
-    if (method === "PUT" || method === "PATCH") {
-      return "update";
-    }
-
-    if (method === "DELETE") {
-      return "destroy";
-    }
-
-    // Fallback (should not happen with proper route registration)
-    throw new Error(`Unsupported HTTP method: ${method}`);
   }
 
   /**

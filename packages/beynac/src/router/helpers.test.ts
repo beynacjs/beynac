@@ -270,3 +270,43 @@ describe("resource routes", () => {
     expect(routeNames).toContain("photos.show");
   });
 });
+
+describe("meta field", () => {
+  test("passes meta to route definition", () => {
+    const routes = get("/users", controller(), { meta: { foo: "bar" } });
+    expect(routes[0].meta).toEqual({ foo: "bar" });
+  });
+
+  test("merges meta from group to child routes", () => {
+    const routes = group({ meta: { level: "group" } }, [
+      get("/users", controller(), { meta: { route: "users" } }),
+    ]);
+
+    expect(routes[0].meta).toEqual({ level: "group", route: "users" });
+  });
+
+  test("child meta overrides parent meta", () => {
+    const routes = group({ meta: { shared: "parent", override: "parent" } }, [
+      get("/users", controller(), { meta: { override: "child" } }),
+    ]);
+
+    expect(routes[0].meta).toEqual({ shared: "parent", override: "child" });
+  });
+
+  test("resource routes have meta.action set", () => {
+    const routes = resource("/photos", ResourceController);
+
+    const indexRoute = routes.find((r) => r.routeName === "photos.index");
+    expect(indexRoute?.meta).toEqual({ action: "index" });
+
+    const showRoute = routes.find((r) => r.routeName === "photos.show");
+    expect(showRoute?.meta).toEqual({ action: "show" });
+  });
+
+  test("resource routes can merge additional meta", () => {
+    const routes = resource("/photos", ResourceController, { meta: { auth: true } });
+
+    const indexRoute = routes.find((r) => r.routeName === "photos.index");
+    expect(indexRoute?.meta).toEqual({ auth: true, action: "index" });
+  });
+});

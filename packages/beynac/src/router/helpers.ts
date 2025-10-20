@@ -11,7 +11,6 @@ import type {
   GroupedRoutes,
   InferResourceName,
   ParamConstraint,
-  ParamConstraints,
   ResourceRouteMap,
   RouteDefinition,
   RouteGroupOptions,
@@ -35,13 +34,13 @@ export function isIn(values: readonly string[]): ParamConstraint {
   return new RegExp(`^(${values.map((v) => escapeRegex(v)).join("|")})$`);
 }
 
-function mergeConstraints(
-  parent: ParamConstraints | undefined,
-  child: ParamConstraints | null,
-): ParamConstraints | null {
+function mergeObjects<T extends Record<string, any>>(
+  parent: T | undefined,
+  child: T | null,
+): T | null {
   if (!parent) return child;
   if (!child) return parent;
-  return { ...parent, ...child };
+  return { ...parent, ...child } as T;
 }
 
 function createRoute<
@@ -59,6 +58,7 @@ function createRoute<
     name,
     where,
     withoutMiddleware,
+    meta,
   }: RouteOptions<Name, Path> & { domain?: Domain } = {},
 ): RouteMethodReturn<Path, Name, Domain> {
   const methods = typeof method === "string" ? [method] : method;
@@ -80,6 +80,7 @@ function createRoute<
     constraints: where || null,
     globalConstraints: parameterPatterns || null,
     domainPattern: domain,
+    meta: meta || null,
   };
 
   return [route] as RouteMethodReturn<Path, Name, Domain>;
@@ -296,7 +297,7 @@ export function group<
     return group({}, optionsOrChildren as Children);
   }
 
-  let { domain, parameterPatterns, middleware, withoutMiddleware, namePrefix, prefix, where } =
+  let { domain, parameterPatterns, middleware, withoutMiddleware, namePrefix, prefix, where, meta } =
     optionsOrChildren as RouteGroupOptions<string, string>;
   const children = maybeChildren as Children;
 
@@ -342,9 +343,10 @@ export function group<
         path: applyPathPrefix(prefix, route.path),
         routeName: applyNamePrefix(namePrefix, route.routeName),
         middleware,
-        constraints: mergeConstraints(where, route.constraints),
-        globalConstraints: mergeConstraints(parameterPatterns, route.globalConstraints),
+        constraints: mergeObjects(where, route.constraints),
+        globalConstraints: mergeObjects(parameterPatterns, route.globalConstraints),
         domainPattern: domain ?? route.domainPattern,
+        meta: mergeObjects(meta, route.meta),
       });
     }
   }
@@ -483,6 +485,7 @@ export function resource<
         ...routeOptions,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic route names require type workaround
         name: routeName as any,
+        meta: { ...routeOptions.meta, action },
       });
     },
   );

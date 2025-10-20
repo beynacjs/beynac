@@ -58,6 +58,7 @@ export const controllerContext = (
   params: {},
   rawParams: {},
   url: new URL(request.url),
+  meta: {},
 });
 
 export const requestContext = (): RequestContext => ({

@@ -27,6 +27,12 @@ export interface ControllerContext {
   rawParams: Record<string, string>;
 
   url: URL;
+
+  /**
+   * Metadata associated with the route. This can contain any additional
+   * data passed via the route definition's meta field.
+   */
+  meta: Record<string, any>;
 }
 
 export type MiddlewareNext = (ctx: ControllerContext) => Response | Promise<Response>;
