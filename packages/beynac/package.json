@@ -44,6 +44,7 @@
     }
   },
   "scripts": {
+    "test": "sh -c 'cd ../..; bun test packages/beynac/\"$@\"' --",
     "check": "bun run check:tsc",
     "check:tsc": "tsc --noEmit",
     "test:coverage": "bun test --coverage --coverage-reporter=lcov",

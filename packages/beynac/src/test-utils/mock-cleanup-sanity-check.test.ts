@@ -1,12 +1,16 @@
 import { describe, expect, spyOn, test } from "bun:test";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 
-/**
- * Sanity check to ensure global mock cleanup is working.
- *
- * If the second test fails, it means mock.restore() is not being called
- * after each test, which indicates the global test setup is missing or broken.
- */
 describe("mock cleanup sanity check", () => {
+  test("ERROR: tests must be run from repository root (use 'bun run test')", () => {
+    // Added because The tests below fail when run from a different location
+    // because bum test fails to find the bunfig.toml
+    const cwd = process.cwd();
+    const packageJsonPath = join(cwd, "packages/beynac/package.json");
+
+    expect(existsSync(packageJsonPath)).toBe(true);
+  });
   const testObject = {
     method() {
       return "original";
@@ -20,9 +24,7 @@ describe("mock cleanup sanity check", () => {
     expect(testObject.method()).toBe("mocked");
   });
 
-  test("second test: mock should be cleaned up from previous test", () => {
-    // If global mock.restore() is working, this should return "original"
-    // If it returns "mocked", the mock wasn't cleaned up
+  test("Mock objects should be cleaned up after each test IF THIS FAILS THERE IS A PROJECT CONFIGURATION ISSUE, FIX THAT DON'T JUST FIX THIS TEST FILE!", () => {
     expect(testObject.method()).toBe("original");
   });
 });

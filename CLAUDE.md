@@ -18,6 +18,8 @@ When I ask questions, answer briefly to minimise time taken to read response. I'
 
 ## Testing guidelines
 
+- To run tests, always use `bun run test` not `bun test`.
+- To filter the tests run, use file name/directory pattern after double hyphen `bun run test -- router.test.ts` and/or test name pattern `bun run test -- -t "foo"`
 - When asserting types, use `expectTypeOf(value).toEqualTypeOf<Expected>()` instead of the deprecated `expectTypeOf(value).toMatchTypeOf<Expected>()`
 
 ## Soft port process
