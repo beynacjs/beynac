@@ -1189,6 +1189,108 @@ describe("wildcard routes", () => {
 });
 
 // ============================================================================
+// Mixed Params (Partial Segment Parameters)
+// ============================================================================
+
+describe("mixed params in same segment", () => {
+  test("simple prefix pattern matches correctly", async () => {
+    router.register(get("/npm/@{scope}/{package}", MockController));
+
+    await handle("/npm/@vue/router");
+    expect(controller.params).toEqual({ scope: "vue", package: "router" });
+  });
+
+  test("simple prefix pattern does not match without prefix", async () => {
+    router.register(get("/npm/@{scope}/{package}", MockController));
+
+    const response = await handle("/npm/vue/router");
+    expect(response.status).toBe(404);
+  });
+
+  test("simple suffix pattern matches correctly", async () => {
+    router.register(get("/files/{id}.txt", MockController));
+
+    await handle("/files/123.txt");
+    expect(controller.params).toEqual({ id: "123" });
+  });
+
+  test("simple suffix pattern does not match without suffix", async () => {
+    router.register(get("/files/{id}.txt", MockController));
+
+    const response = await handle("/files/123.pdf");
+    expect(response.status).toBe(404);
+  });
+
+  test("multiple params in same segment", async () => {
+    router.register(get("/files/{category}/{id},name={name}.txt", MockController));
+
+    await handle("/files/docs/123,name=report.txt");
+    expect(controller.params).toEqual({ category: "docs", id: "123", name: "report" });
+  });
+
+  test("multiple params in same segment does not match wrong pattern", async () => {
+    router.register(get("/files/{id},name={name}.txt", MockController));
+
+    const response = await handle("/files/123.txt");
+    expect(response.status).toBe(404);
+  });
+
+  test("mixed params work with regular params", async () => {
+    router.register(get("/api/v{version}/users/{userId}", MockController));
+
+    await handle("/api/v2/users/123");
+    expect(controller.params).toEqual({ version: "2", userId: "123" });
+  });
+
+  test("multiple routes with different patterns select correctly", async () => {
+    const controller1 = mockController();
+    const controller2 = mockController();
+
+    router.register(get("/npm/@{scope}/{package}", controller1));
+    router.register(get("/npm/{package}/{version}", controller2));
+
+    await handle("/npm/@vue/router");
+    expect(controller1.mock.params).toEqual({ scope: "vue", package: "router" });
+    expect(controller2.mock.handle).not.toHaveBeenCalled();
+
+    controller1.mock.handle.mockClear();
+    controller2.mock.handle.mockClear();
+
+    await handle("/npm/express/4.18.2");
+    expect(controller2.mock.params).toEqual({ package: "express", version: "4.18.2" });
+    expect(controller1.mock.handle).not.toHaveBeenCalled();
+  });
+
+  test("mixed params in domain patterns", async () => {
+    router.register(get("/status", MockController, { domain: "api-{version}.example.com" }));
+
+    await handle("//api-v2.example.com/status");
+    expect(controller.params).toEqual({ version: "v2" });
+  });
+
+  test("mixed params in domain does not match different pattern", async () => {
+    router.register(get("/status", MockController, { domain: "api-{version}.example.com" }));
+
+    const response = await handle("//apiv2.example.com/status");
+    expect(response.status).toBe(404);
+  });
+
+  test("mixed params with special regex characters in literal parts", async () => {
+    router.register(get("/files/{id}.{ext}", MockController));
+
+    await handle("/files/report.pdf");
+    expect(controller.params).toEqual({ id: "report", ext: "pdf" });
+  });
+
+  test("mixed params do not match when literal part is missing", async () => {
+    router.register(get("/api/v{version}/status", MockController));
+
+    const response = await handle("/api/2/status");
+    expect(response.status).toBe(404);
+  });
+});
+
+// ============================================================================
 // URL Encoding/Decoding
 // ============================================================================
 

@@ -92,59 +92,17 @@ describe("validation", () => {
     );
   });
 
-  test("rejects partial segment parameters with text before", () => {
-    expectPathToThrow(
-      "/foo/x{param}",
-      'Route path "/foo/x{param}" has invalid parameter syntax. Parameters must capture whole path segments',
-    );
-  });
-
-  test("rejects partial segment parameters with text after", () => {
-    expectPathToThrow(
-      "/foo/{param}x",
-      'Route path "/foo/{param}x" has invalid parameter syntax. Parameters must capture whole path segments',
-    );
-  });
-
-  test("rejects partial segment parameters in domains with text before", () => {
-    expectDomainToThrow(
-      "my-{param}.example.com",
-      'Route path "my-{param}.example.com" has invalid parameter syntax. Parameters must capture whole path segments',
-    );
-  });
-
-  test("rejects partial segment parameters in domains with text after", () => {
-    expectDomainToThrow(
-      "{param}x.example.com",
-      'Route path "{param}x.example.com" has invalid parameter syntax. Parameters must capture whole path segments',
-    );
-  });
-
-  test("rejects partial segment parameters mid-path", () => {
-    expectPathToThrow(
-      "/x{param}/bar",
-      'Route path "/x{param}/bar" has invalid parameter syntax. Parameters must capture whole path segments',
-    );
-  });
-
-  test("rejects partial segment wildcard parameters", () => {
-    expectPathToThrow(
-      "/files/prefix{...path}",
-      'Route path "/files/prefix{...path}" has invalid parameter syntax. Parameters must capture whole path segments',
-    );
-  });
-
   test("rejects invalid curly brace patterns", () => {
     expectPathToThrow("/{param", 'Route path "/{param" contains invalid curly braces');
 
     expectPathToThrow("/param}", 'Route path "/param}" contains invalid curly braces');
 
-    expectPathToThrow("/foo/}{param}/", 'Route path "/foo/}{param}/" has invalid parameter syntax');
-
     expectPathToThrow(
-      "/{{param}}",
-      'Route path "/{{param}}" has invalid parameter syntax. Parameters must capture whole path segments',
+      "/foo/}{param}/",
+      'Route path "/foo/}{param}/" contains invalid curly braces',
     );
+
+    expectPathToThrow("/{{param}}", 'Route path "/{{param}}" contains invalid curly braces');
 
     expectPathToThrow("/foo/{}/bar", 'Route path "/foo/{}/bar" contains invalid curly braces');
 

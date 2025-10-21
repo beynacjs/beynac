@@ -2,13 +2,12 @@ import type { Configuration, Container } from "../contracts";
 import { Controller, ControllerContext } from "../core/Controller";
 import type { MiddlewareReference } from "../core/Middleware";
 import { extendsClass } from "../utils";
+import { addRoute, createMatcher, findRoute, type MatcherContext } from "./matcher";
 import { throwOnMissingPropertyAccess } from "./params-access-checker";
-import { Rou3RouteMatcher } from "./Rou3RouteMatcher";
 import type {
   BuiltInRouteConstraint,
   ParamConstraint,
   RouteDefinition,
-  RouteMatcher,
   Routes,
 } from "./router-types";
 
@@ -24,7 +23,7 @@ export interface RouterOptions {
 type ConfigRequiredByRouter = Pick<Configuration, "throwOnInvalidParamAccess" | "development">;
 
 export class Router {
-  #matcher: RouteMatcher = new Rou3RouteMatcher();
+  #matcher: MatcherContext<{ route: RouteDefinition }>;
   #middlewarePriority: MiddlewareReference[] | undefined;
   #sortedMiddlewareSets = new WeakSet();
   #throwOnInvalidParam: boolean;
@@ -34,6 +33,7 @@ export class Router {
     options?: RouterOptions,
     config?: ConfigRequiredByRouter,
   ) {
+    this.#matcher = createMatcher<{ route: RouteDefinition }>();
     this.#middlewarePriority = options?.middlewarePriority;
 
     switch (config?.throwOnInvalidParamAccess ?? "development") {
@@ -54,7 +54,9 @@ export class Router {
    */
   register(routes: Routes): void {
     for (const route of routes) {
-      this.#matcher.register(route);
+      for (const method of route.methods) {
+        addRoute(this.#matcher, method, route.path, { route }, route.domainPattern);
+      }
 
       // Apply priority sorting once per MiddlewareSet instance
       if (
@@ -75,13 +77,20 @@ export class Router {
     const url = new URL(request.url);
     const hostname = url.hostname;
 
-    const match = this.#matcher.match(request.method, url.pathname, hostname);
+    const result = findRoute(this.#matcher, request.method, url.pathname, hostname);
 
-    if (!match || !this.#checkConstraints(match.route, match.params)) {
+    if (!result) {
       return new Response("Not Found", { status: 404 });
     }
 
-    return this.#executeRoute(match.route, request, url, match.params);
+    const { route } = result.data;
+    const params = result.params ?? {};
+
+    if (!this.#checkConstraints(route, params)) {
+      return new Response("Not Found", { status: 404 });
+    }
+
+    return this.#executeRoute(route, request, url, params);
   }
 
   #checkConstraints(route: RouteDefinition, params: Record<string, string>): boolean {

@@ -9,6 +9,7 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/dist/**",
       "packages/beynac/src/vendor/**",
+      "packages/beynac/src/router/matcher/**",
       "laravel/**",
       "packages/website/**",
       "packages/create-beynac/**",
@@ -16,6 +17,7 @@ export default tseslint.config(
       "progress/**",
       "test-apps/**",
       "test-setup.ts",
+      "**/.snapshot/**",
     ],
   },
   {

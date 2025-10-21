@@ -66,12 +66,6 @@ export function validateRoutePathSyntax(path: string | undefined, pathType = "Ro
     );
   }
 
-  if (/[^/.]\{/.test(path) || /\}[^/.]/.test(path)) {
-    throw new Error(
-      `${pathType} "${path}" has invalid parameter syntax. Parameters must capture whole path segments, not partial segments. Use /{param}/ not /text{param}/ or /{param}text/.`,
-    );
-  }
-
   // Any remaining curly braces after extracting valid params are invalid
   const pathWithoutValidPlaceholders = path.replaceAll(/\{(\.\.\.)?\w+\}/g, "");
   if (pathWithoutValidPlaceholders.includes("{") || pathWithoutValidPlaceholders.includes("}")) {

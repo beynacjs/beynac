@@ -170,16 +170,6 @@ export interface RouteDefinition {
   meta: Record<string, unknown> | null;
 }
 
-export interface RouteMatch {
-  route: RouteDefinition;
-  params: Record<string, string>;
-}
-
-export interface RouteMatcher {
-  register(route: RouteDefinition): void;
-  match(method: string, path: string, hostname: string): RouteMatch | undefined;
-}
-
 /**
  * Extract parameter names from a path pattern
  * "/users/{id}/{...rest}" -> "id" | "rest"

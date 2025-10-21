@@ -170,6 +170,55 @@ describe("route URL generation", () => {
       "//hello%20world.example.com/users/123",
     );
   });
+
+  test("generates URL for mixed params with prefix", () => {
+    const route = get("/npm/@{scope}/{package}", MockController, { name: "npm.package" });
+
+    const registry = new RouteRegistry(route);
+
+    expect(registry.url("npm.package", { scope: "vue", package: "router" })).toBe(
+      "/npm/@vue/router",
+    );
+  });
+
+  test("generates URL for mixed params with suffix", () => {
+    const route = get("/files/{id}.txt", MockController, { name: "files.text" });
+
+    const registry = new RouteRegistry(route);
+
+    expect(registry.url("files.text", { id: "123" })).toBe("/files/123.txt");
+  });
+
+  test("generates URL for mixed params with multiple params in segment", () => {
+    const route = get("/files/{id},name={name}.txt", MockController, { name: "files.named" });
+
+    const registry = new RouteRegistry(route);
+
+    expect(registry.url("files.named", { id: "123", name: "report" })).toBe(
+      "/files/123,name=report.txt",
+    );
+  });
+
+  test("generates URL for mixed params in domain", () => {
+    const route = get("/status", MockController, {
+      name: "api.status",
+      domain: "api-{version}.example.com",
+    });
+
+    const registry = new RouteRegistry(route);
+
+    expect(registry.url("api.status", { version: "v2" })).toBe("//api-v2.example.com/status");
+  });
+
+  test("encodes special characters in mixed params", () => {
+    const route = get("/npm/@{scope}/{package}", MockController, { name: "npm.package" });
+
+    const registry = new RouteRegistry(route);
+
+    expect(registry.url("npm.package", { scope: "my scope", package: "pkg&test" })).toBe(
+      "/npm/@my%20scope/pkg%26test",
+    );
+  });
 });
 
 // ============================================================================
