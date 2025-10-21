@@ -1,18 +1,17 @@
 import { describe, expect, expectTypeOf, test } from "bun:test";
-import { controller } from "../test-utils";
 import { get, group, type Routes } from "./index";
 
 test("type inference for named routes", () => {
   // Type inference only works when name is set at creation time
-  const route2 = get("/posts", controller(), { name: "posts.index" });
+  const route2 = get("/posts", MockController, { name: "posts.index" });
 
   expectTypeOf(route2).toEqualTypeOf<Routes<{ "posts.index": never }>>();
 });
 
 test("applies namePrefix to route names", () => {
   const routes = group({ namePrefix: "admin." }, [
-    get("/dashboard", controller(), { name: "dashboard" }),
-    get("/users", controller(), { name: "users" }),
+    get("/dashboard", MockController, { name: "dashboard" }),
+    get("/users", MockController, { name: "users" }),
   ]);
 
   expectTypeOf(routes).toEqualTypeOf<Routes<{ "admin.dashboard": never; "admin.users": never }>>();
@@ -21,7 +20,7 @@ test("applies namePrefix to route names", () => {
 test("throws error when child route has different domain than parent group", () => {
   expect(() => {
     group({ domain: "api.example.com" }, [
-      get("/users", controller(), { domain: "admin.example.com" }),
+      get("/users", MockController, { domain: "admin.example.com" }),
     ]);
   }).toThrow(/Domain conflict/);
 });
@@ -29,14 +28,14 @@ test("throws error when child route has different domain than parent group", () 
 test("allows same domain on parent group and child route", () => {
   expect(() => {
     group({ domain: "api.example.com" }, [
-      get("/users", controller(), { domain: "api.example.com" }),
+      get("/users", MockController, { domain: "api.example.com" }),
     ]);
   }).not.toThrow();
 });
 
 test("allows child without domain when parent has domain", () => {
   expect(() => {
-    group({ domain: "api.example.com" }, [get("/users", controller())]);
+    group({ domain: "api.example.com" }, [get("/users", MockController)]);
   }).not.toThrow();
 });
 
@@ -63,20 +62,20 @@ test("group without options parameter", () => {
 });
 
 test("strips trailing slash from group prefix", () => {
-  const routes = group({ prefix: "/api/" }, [get("/users", controller())]);
+  const routes = group({ prefix: "/api/" }, [get("/users", MockController)]);
   expect(routes[0].path).toBe("/api/users");
 });
 
 describe("wildcard routes", () => {
   test("type inference for named wildcards", () => {
-    const route = get("/files/{...path}", controller(), { name: "files" });
+    const route = get("/files/{...path}", MockController, { name: "files" });
 
     // Should infer "path" param name
     expectTypeOf(route).toEqualTypeOf<Routes<{ files: "path" }>>();
   });
 
   test("type inference for wildcard with regular params", () => {
-    const route = get("/users/{userId}/files/{...path}", controller(), {
+    const route = get("/users/{userId}/files/{...path}", MockController, {
       name: "users.files",
     });
 
@@ -87,12 +86,12 @@ describe("wildcard routes", () => {
 
 describe("validation", () => {
   function expectPathToThrow(path: string, messageContains?: string) {
-    const fn = () => get(path, controller());
+    const fn = () => get(path, MockController);
     expect(fn).toThrow(messageContains);
   }
 
   function expectDomainToThrow(domain: string, messageContains?: string) {
-    const fn = () => get("/users", controller(), { domain });
+    const fn = () => get("/users", MockController, { domain });
     expect(fn).toThrow(messageContains);
   }
 
@@ -185,7 +184,7 @@ describe("validation", () => {
 
   test("rejects group prefix not starting with slash", () => {
     expect(() => {
-      group({ prefix: "api" }, [get("/users", controller())]);
+      group({ prefix: "api" }, [get("/users", MockController)]);
     }).toThrow('Group prefix "api" must start with "/".');
   });
 
@@ -205,7 +204,7 @@ describe("validation", () => {
 
   test("rejects wildcard in group prefix", () => {
     expect(() => {
-      group({ prefix: "/files/{...path}" }, [get("/", controller())]);
+      group({ prefix: "/files/{...path}" }, [get("/", MockController)]);
     }).toThrow(
       'Group prefix "/files/{...path}" contains a wildcard parameter. Wildcards are not allowed in group prefixes',
     );
@@ -234,7 +233,7 @@ describe("validation", () => {
 
   test("rejects wildcard in group domain", () => {
     expect(() => {
-      group({ domain: "{...tenant}.example.com" }, [get("/users", controller())]);
+      group({ domain: "{...tenant}.example.com" }, [get("/users", MockController)]);
     }).toThrow(
       'Domain "{...tenant}.example.com" contains a wildcard parameter. Wildcards are not allowed in domains',
     );
@@ -242,19 +241,20 @@ describe("validation", () => {
 
   test("allows valid parameter syntax", () => {
     expect(() => {
-      get("/users/{id}", controller());
+      get("/users/{id}", MockController);
     }).not.toThrow();
 
     expect(() => {
-      get("/files/{...path}", controller());
+      get("/files/{...path}", MockController);
     }).not.toThrow();
 
     expect(() => {
-      get("/users", controller(), { domain: "{tenant}.example.com" });
+      get("/users", MockController, { domain: "{tenant}.example.com" });
     }).not.toThrow();
   });
 });
 
+import { MockController } from "../test-utils";
 import { resource } from "./helpers";
 import { ResourceController } from "./ResourceController";
 
@@ -273,13 +273,13 @@ describe("resource routes", () => {
 
 describe("meta field", () => {
   test("passes meta to route definition", () => {
-    const routes = get("/users", controller(), { meta: { foo: "bar" } });
+    const routes = get("/users", MockController, { meta: { foo: "bar" } });
     expect(routes[0].meta).toEqual({ foo: "bar" });
   });
 
   test("merges meta from group to child routes", () => {
     const routes = group({ meta: { level: "group" } }, [
-      get("/users", controller(), { meta: { route: "users" } }),
+      get("/users", MockController, { meta: { route: "users" } }),
     ]);
 
     expect(routes[0].meta).toEqual({ level: "group", route: "users" });
@@ -287,7 +287,7 @@ describe("meta field", () => {
 
   test("child meta overrides parent meta", () => {
     const routes = group({ meta: { shared: "parent", override: "parent" } }, [
-      get("/users", controller(), { meta: { override: "child" } }),
+      get("/users", MockController, { meta: { override: "child" } }),
     ]);
 
     expect(routes[0].meta).toEqual({ shared: "parent", override: "child" });

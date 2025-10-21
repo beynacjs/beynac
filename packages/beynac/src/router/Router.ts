@@ -1,7 +1,7 @@
-import type { Container } from "../contracts";
+import type { Configuration, Container } from "../contracts";
 import { ControllerContext } from "../core/Controller";
 import type { MiddlewareReference } from "../core/Middleware";
-import { wrapParams } from "./params-access-checker";
+import { throwOnMissingPropertyAccess } from "./params-access-checker";
 import { Rou3RouteMatcher } from "./Rou3RouteMatcher";
 import type {
   BuiltInRouteConstraint,
@@ -20,31 +20,31 @@ export interface RouterOptions {
   middlewarePriority?: MiddlewareReference[] | undefined;
 }
 
+type ConfigRequiredByRouter = Pick<Configuration, "throwOnInvalidParamAccess" | "development">;
+
 export class Router {
-  private matcher: RouteMatcher = new Rou3RouteMatcher();
-  private middlewarePriority: MiddlewareReference[] | undefined;
-  private sortedMiddlewareSets = new WeakSet();
-  private shouldThrowOnInvalidParamAccess: boolean;
+  #matcher: RouteMatcher = new Rou3RouteMatcher();
+  #middlewarePriority: MiddlewareReference[] | undefined;
+  #sortedMiddlewareSets = new WeakSet();
+  #throwOnInvalidParam: boolean;
 
   constructor(
     private container: Container,
     options?: RouterOptions,
-    config?: Pick<
-      import("../contracts/Configuration").Configuration,
-      "throwOnInvalidParamAccess" | "development"
-    >,
+    config?: ConfigRequiredByRouter,
   ) {
-    this.middlewarePriority = options?.middlewarePriority;
+    this.#middlewarePriority = options?.middlewarePriority;
 
-    // Determine whether to throw on invalid param access
-    const throwConfig = config?.throwOnInvalidParamAccess;
-    if (throwConfig === "always") {
-      this.shouldThrowOnInvalidParamAccess = true;
-    } else if (throwConfig === "never") {
-      this.shouldThrowOnInvalidParamAccess = false;
-    } else {
-      // 'development' or undefined - use development flag
-      this.shouldThrowOnInvalidParamAccess = config?.development ?? false;
+    switch (config?.throwOnInvalidParamAccess ?? "development") {
+      case "always":
+        this.#throwOnInvalidParam = true;
+        break;
+      case "never":
+        this.#throwOnInvalidParam = false;
+        break;
+      case "development":
+        this.#throwOnInvalidParam = !!config?.development;
+        break;
     }
   }
 
@@ -53,16 +53,16 @@ export class Router {
    */
   register(routes: Routes): void {
     for (const route of routes) {
-      this.matcher.register(route);
+      this.#matcher.register(route);
 
       // Apply priority sorting once per MiddlewareSet instance
       if (
         route.middleware &&
-        this.middlewarePriority &&
-        !this.sortedMiddlewareSets.has(route.middleware)
+        this.#middlewarePriority &&
+        !this.#sortedMiddlewareSets.has(route.middleware)
       ) {
-        route.middleware.applyPriority(this.middlewarePriority);
-        this.sortedMiddlewareSets.add(route.middleware);
+        route.middleware.applyPriority(this.#middlewarePriority);
+        this.#sortedMiddlewareSets.add(route.middleware);
       }
     }
   }
@@ -74,7 +74,7 @@ export class Router {
     const url = new URL(request.url);
     const hostname = url.hostname;
 
-    const match = this.matcher.match(request.method, url.pathname, hostname);
+    const match = this.#matcher.match(request.method, url.pathname, hostname);
 
     if (!match || !this.#checkConstraints(match.route, match.params)) {
       return new Response("Not Found", { status: 404 });
@@ -108,10 +108,10 @@ export class Router {
     route: RouteDefinition,
     request: Request,
     url: URL,
-    rawParamsInput: Record<string, string>,
+    rawParams: Record<string, string>,
   ): Promise<Response> {
     const decodedParams: Record<string, string> = {};
-    for (const [key, value] of Object.entries(rawParamsInput)) {
+    for (const [key, value] of Object.entries(rawParams)) {
       try {
         decodedParams[key] = decodeURIComponent(value);
       } catch {
@@ -120,16 +120,12 @@ export class Router {
       }
     }
 
-    // Conditionally wrap params with access checker
-    const params = this.shouldThrowOnInvalidParamAccess ? wrapParams(decodedParams) : decodedParams;
-    const rawParams = this.shouldThrowOnInvalidParamAccess
-      ? wrapParams(rawParamsInput)
-      : rawParamsInput;
-
     const ctx: ControllerContext = {
       request,
-      params,
-      rawParams,
+      params: this.#throwOnInvalidParam
+        ? throwOnMissingPropertyAccess(decodedParams)
+        : decodedParams,
+      rawParams: this.#throwOnInvalidParam ? throwOnMissingPropertyAccess(rawParams) : rawParams,
       url,
       meta: route.meta || {},
     };

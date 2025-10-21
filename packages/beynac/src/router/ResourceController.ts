@@ -3,7 +3,8 @@ import type { Controller, ControllerContext } from "../core/Controller";
 /**
  * The seven standard RESTful resource actions
  */
-export type ResourceAction = "index" | "create" | "store" | "show" | "edit" | "update" | "destroy";
+export type ApiResourceAction = "index" | "store" | "show" | "update" | "destroy";
+export type ResourceAction = ApiResourceAction | "create" | "edit";
 
 /**
  * Abstract base class for RESTful resource controllers.
@@ -15,6 +16,8 @@ export type ResourceAction = "index" | "create" | "store" | "show" | "edit" | "u
  * The handle() method automatically delegates to the appropriate action method
  * based on the action specified in ctx.meta.action.
  *
+ * This is designed to work with the resource() and apiResource() route helpers.
+ *
  * @example
  * class PhotoController extends ResourceController {
  *   index(ctx: ControllerContext) {
@@ -22,79 +25,51 @@ export type ResourceAction = "index" | "create" | "store" | "show" | "edit" | "u
  *   }
  *
  *   show(ctx: ControllerContext) {
- *     const { id } = ctx.params;
- *     return new Response(`Show photo ${id}`);
+ *     const { resourceId } = ctx.params;
+ *     return new Response(`Show photo ${resourceId}`);
  *   }
+ *
+ *   // Define other methods here, or leave undefined to return 404
  * }
  *
  * // Register all resource routes at once
  * resource('/photos', PhotoController)
  */
 export abstract class ResourceController implements Controller {
-  /**
-   * Main entry point called by the router.
-   * Delegates to the appropriate action method based on ctx.meta.action.
-   */
   handle(ctx: ControllerContext): Response | Promise<Response> {
     const action = ctx.meta.action as ResourceAction;
     if (!action) {
-      throw new Error("ResourceController requires meta.action to be set");
+      throw new Error(
+        `[ResourceController] meta.action not set, this probably means that you're using ResourceController outside of a resource(...) or apiResource(...) route`,
+      );
     }
     return this[action](ctx);
   }
 
-  /**
-   * Display a listing of the resource.
-   * GET /resource
-   */
-  index(_ctx: ControllerContext): Response | Promise<Response> {
+  index(): Response | Promise<Response> {
     return new Response("Not Found", { status: 404 });
   }
 
-  /**
-   * Show the form for creating a new resource.
-   * GET /resource/create
-   */
   create(_ctx: ControllerContext): Response | Promise<Response> {
     return new Response("Not Found", { status: 404 });
   }
 
-  /**
-   * Store a newly created resource in storage.
-   * POST /resource
-   */
   store(_ctx: ControllerContext): Response | Promise<Response> {
     return new Response("Not Found", { status: 404 });
   }
 
-  /**
-   * Display the specified resource.
-   * GET /resource/{id}
-   */
   show(_ctx: ControllerContext): Response | Promise<Response> {
     return new Response("Not Found", { status: 404 });
   }
 
-  /**
-   * Show the form for editing the specified resource.
-   * GET /resource/{id}/edit
-   */
   edit(_ctx: ControllerContext): Response | Promise<Response> {
     return new Response("Not Found", { status: 404 });
   }
 
-  /**
-   * Update the specified resource in storage.
-   * PUT/PATCH /resource/{id}
-   */
   update(_ctx: ControllerContext): Response | Promise<Response> {
     return new Response("Not Found", { status: 404 });
   }
 
-  /**
-   * Remove the specified resource from storage.
-   * DELETE /resource/{id}
-   */
   destroy(_ctx: ControllerContext): Response | Promise<Response> {
     return new Response("Not Found", { status: 404 });
   }

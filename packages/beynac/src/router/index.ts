@@ -1,7 +1,7 @@
 // Public types
 export type { ResourceAction } from "./ResourceController";
 export type {
-  ParamConstraint as RouteConstraint,
+  ParamConstraint,
   RouteGroupOptions,
   RouteHandler,
   RouteOptions,

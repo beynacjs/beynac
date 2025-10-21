@@ -1358,168 +1358,96 @@ describe("multi-method routes", () => {
   });
 
   test("meta is passed to controller context", async () => {
-    let capturedMeta: Record<string, any> | undefined;
-
-    router.register(
-      get(
-        "/test",
-        {
-          handle(ctx) {
-            capturedMeta = ctx.meta;
-            return new Response("ok");
-          },
-        },
-        { meta: { foo: "bar", num: 42 } },
-      ),
-    );
+    router.register(get("/test", controller, { meta: { foo: "bar", num: 42 } }));
 
     await handle("/test");
-    expect(capturedMeta).toEqual({ foo: "bar", num: 42 });
+    expect(controller.meta).toEqual({ foo: "bar", num: 42 });
   });
 
   test("meta is empty object when not specified", async () => {
-    let capturedMeta: Record<string, any> | undefined;
-
-    router.register(
-      get("/test", {
-        handle(ctx) {
-          capturedMeta = ctx.meta;
-          return new Response("ok");
-        },
-      }),
-    );
+    router.register(get("/test", controller));
 
     await handle("/test");
-    expect(capturedMeta).toEqual({});
+    expect(controller.meta).toEqual({});
   });
 });
 
-// ============================================================================
-// Param Access Checking
-// ============================================================================
-
 describe("param access checking", () => {
+  class ControllerInvalidParam implements Controller {
+    handle(ctx: ControllerContext) {
+      return new Response(`ctx.params.nonExistent: ${ctx.params.nonExistent}`);
+    }
+  }
   test("throwOnInvalidParamAccess: 'always' throws even when development: false", async () => {
-    const config = { development: false, throwOnInvalidParamAccess: "always" as const };
-    const containerWithConfig = new ContainerImpl();
-    containerWithConfig.instance(createTypeToken("Configuration"), config);
-    const routerWithConfig = new Router(containerWithConfig, undefined, config);
+    router = new Router(new ContainerImpl(), undefined, {
+      development: false,
+      throwOnInvalidParamAccess: "always",
+    });
 
-    routerWithConfig.register(
-      get("/user/{id}", {
-        handle(ctx) {
-          const _unused = ctx.params.nonExistent; // Should throw
-          return new Response(`ok: ${_unused}`);
-        },
-      }),
-    );
+    router.register(get("/user/{id}", ControllerInvalidParam));
 
     expect(async () => {
-      await routerWithConfig.handle(new Request("http://example.com/user/123"));
+      await router.handle(new Request("http://example.com/user/123"));
     }).toThrow('Route parameter "nonExistent" does not exist');
   });
 
   test("throwOnInvalidParamAccess: 'never' doesn't throw even when development: true", async () => {
-    const config = { development: true, throwOnInvalidParamAccess: "never" as const };
-    const containerWithConfig = new ContainerImpl();
-    containerWithConfig.instance(createTypeToken("Configuration"), config);
-    const routerWithConfig = new Router(containerWithConfig, undefined, config);
+    router = new Router(new ContainerImpl(), undefined, {
+      development: true,
+      throwOnInvalidParamAccess: "never",
+    });
 
-    let accessedValue: unknown;
-    routerWithConfig.register(
-      get("/user/{id}", {
-        handle(ctx) {
-          accessedValue = ctx.params.nonExistent; // Should not throw
-          return new Response("ok");
-        },
-      }),
-    );
+    router.register(get("/user/{id}", ControllerInvalidParam));
 
-    const response = await routerWithConfig.handle(new Request("http://example.com/user/123"));
+    const response = await router.handle(new Request("http://example.com/user/123"));
     expect(response.status).toBe(200);
-    expect(accessedValue).toBeUndefined();
+    expect(await response.text()).toBe("ctx.params.nonExistent: undefined");
   });
 
   test("throwOnInvalidParamAccess: 'development' throws when development: true", async () => {
-    const config = { development: true, throwOnInvalidParamAccess: "development" as const };
-    const containerWithConfig = new ContainerImpl();
-    containerWithConfig.instance(createTypeToken("Configuration"), config);
-    const routerWithConfig = new Router(containerWithConfig, undefined, config);
+    router = new Router(new ContainerImpl(), undefined, {
+      development: true,
+      throwOnInvalidParamAccess: "development",
+    });
 
-    routerWithConfig.register(
-      get("/user/{id}", {
-        handle(ctx) {
-          const _unused = ctx.params.nonExistent; // Should throw
-          return new Response(`ok: ${_unused}`);
-        },
-      }),
-    );
+    router.register(get("/user/{id}", ControllerInvalidParam));
 
     expect(async () => {
-      await routerWithConfig.handle(new Request("http://example.com/user/123"));
+      await router.handle(new Request("http://example.com/user/123"));
     }).toThrow('Route parameter "nonExistent" does not exist');
   });
 
   test("throwOnInvalidParamAccess: 'development' doesn't throw when development: false", async () => {
-    const config = { development: false, throwOnInvalidParamAccess: "development" as const };
-    const containerWithConfig = new ContainerImpl();
-    containerWithConfig.instance(createTypeToken("Configuration"), config);
-    const routerWithConfig = new Router(containerWithConfig, undefined, config);
+    router = new Router(new ContainerImpl(), undefined, {
+      development: false,
+      throwOnInvalidParamAccess: "development",
+    });
 
-    let accessedValue: unknown;
-    routerWithConfig.register(
-      get("/user/{id}", {
-        handle(ctx) {
-          accessedValue = ctx.params.nonExistent; // Should not throw
-          return new Response("ok");
-        },
-      }),
-    );
+    router.register(get("/user/{id}", ControllerInvalidParam));
 
-    const response = await routerWithConfig.handle(new Request("http://example.com/user/123"));
+    const response = await router.handle(new Request("http://example.com/user/123"));
     expect(response.status).toBe(200);
-    expect(accessedValue).toBeUndefined();
+    expect(await response.text()).toBe("ctx.params.nonExistent: undefined");
   });
 
   test("throwOnInvalidParamAccess: undefined (default) throws when development: true", async () => {
-    const config = { development: true };
-    const containerWithConfig = new ContainerImpl();
-    containerWithConfig.instance(createTypeToken("Configuration"), config);
-    const routerWithConfig = new Router(containerWithConfig, undefined, config);
+    router = new Router(new ContainerImpl(), undefined, { development: true });
 
-    routerWithConfig.register(
-      get("/user/{id}", {
-        handle(ctx) {
-          const _unused = ctx.params.nonExistent; // Should throw
-          return new Response(`ok: ${_unused}`);
-        },
-      }),
-    );
+    router.register(get("/user/{id}", ControllerInvalidParam));
 
     expect(async () => {
-      await routerWithConfig.handle(new Request("http://example.com/user/123"));
+      await router.handle(new Request("http://example.com/user/123"));
     }).toThrow('Route parameter "nonExistent" does not exist');
   });
 
   test("throwOnInvalidParamAccess: undefined (default) doesn't throw when development: false", async () => {
-    const config = { development: false };
-    const containerWithConfig = new ContainerImpl();
-    containerWithConfig.instance(createTypeToken("Configuration"), config);
-    const routerWithConfig = new Router(containerWithConfig, undefined, config);
+    router = new Router(new ContainerImpl(), undefined, { development: false });
 
-    let accessedValue: unknown;
-    routerWithConfig.register(
-      get("/user/{id}", {
-        handle(ctx) {
-          accessedValue = ctx.params.nonExistent; // Should not throw
-          return new Response("ok");
-        },
-      }),
-    );
+    router.register(get("/user/{id}", ControllerInvalidParam));
 
-    const response = await routerWithConfig.handle(new Request("http://example.com/user/123"));
+    const response = await router.handle(new Request("http://example.com/user/123"));
     expect(response.status).toBe(200);
-    expect(accessedValue).toBeUndefined();
+    expect(await response.text()).toBe("ctx.params.nonExistent: undefined");
   });
 
   test("valid param access works in all modes", async () => {

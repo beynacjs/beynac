@@ -1,29 +1,29 @@
 import { describe, expect, test } from "bun:test";
-import { wrapParams } from "./params-access-checker";
+import { throwOnMissingPropertyAccess } from "./params-access-checker";
 
-describe(wrapParams, () => {
+describe("throwOnMissingPropertyAccess", () => {
   test("valid property access returns same value as plain object", () => {
     const plain = { id: "123", name: "test" };
-    const wrapped = wrapParams({ id: "123", name: "test" });
+    const wrapped = throwOnMissingPropertyAccess(plain);
 
     expect(wrapped.id).toBe(plain.id);
     expect(wrapped.name).toBe(plain.name);
   });
 
   test("invalid property access throws, plain object returns undefined", () => {
-    const plain = { id: "123" };
-    const wrapped = wrapParams({ id: "123" });
+    const plain: Record<string, unknown> = { id: "123" };
+    const wrapped = throwOnMissingPropertyAccess(plain);
 
     // Plain object returns undefined
-    expect((plain as any).nonExistent).toBeUndefined();
+    expect(plain.nonExistent).toBeUndefined();
 
     // Wrapped throws
-    expect(() => (wrapped as any).nonExistent).toThrow('Route parameter "nonExistent" does not exist');
+    expect(() => wrapped.nonExistent).toThrow('Route parameter "nonExistent" does not exist');
   });
 
   test("'in' operator behaves identically", () => {
     const plain = { id: "123", name: "test" };
-    const wrapped = wrapParams({ id: "123", name: "test" });
+    const wrapped = throwOnMissingPropertyAccess(plain);
 
     expect("id" in wrapped).toBe("id" in plain);
     expect("name" in wrapped).toBe("name" in plain);
@@ -32,28 +32,28 @@ describe(wrapParams, () => {
 
   test("Object.keys() returns identical results", () => {
     const plain = { id: "123", name: "test" };
-    const wrapped = wrapParams({ id: "123", name: "test" });
+    const wrapped = throwOnMissingPropertyAccess(plain);
 
     expect(Object.keys(wrapped)).toEqual(Object.keys(plain));
   });
 
   test("Object.values() returns identical results", () => {
     const plain = { id: "123", name: "test" };
-    const wrapped = wrapParams({ id: "123", name: "test" });
+    const wrapped = throwOnMissingPropertyAccess(plain);
 
     expect(Object.values(wrapped)).toEqual(Object.values(plain));
   });
 
   test("Object.entries() returns identical results", () => {
     const plain = { id: "123", name: "test" };
-    const wrapped = wrapParams({ id: "123", name: "test" });
+    const wrapped = throwOnMissingPropertyAccess(plain);
 
     expect(Object.entries(wrapped)).toEqual(Object.entries(plain));
   });
 
   test("for...in iteration yields same keys", () => {
     const plain = { id: "123", name: "test" };
-    const wrapped = wrapParams({ id: "123", name: "test" });
+    const wrapped = throwOnMissingPropertyAccess(plain);
 
     const plainKeys: string[] = [];
     // eslint-disable-next-line no-restricted-syntax -- Testing for...in compatibility
@@ -72,13 +72,13 @@ describe(wrapParams, () => {
 
   test("spreading produces identical object", () => {
     const plain = { id: "123", name: "test" };
-    const wrapped = wrapParams({ id: "123", name: "test" });
+    const wrapped = throwOnMissingPropertyAccess(plain);
 
     expect({ ...wrapped }).toEqual({ ...plain });
   });
 
   test("destructuring works with valid properties", () => {
-    const wrapped = wrapParams({ id: "123", name: "test" });
+    const wrapped = throwOnMissingPropertyAccess({ id: "123", name: "test" });
     const { id, name } = wrapped;
 
     expect(id).toBe("123");
@@ -86,7 +86,7 @@ describe(wrapParams, () => {
   });
 
   test("destructuring throws when accessing invalid property", () => {
-    const wrapped = wrapParams({ id: "123" });
+    const wrapped: Record<string, unknown> = throwOnMissingPropertyAccess({});
 
     expect(() => {
       const { nonExistent } = wrapped;
@@ -96,7 +96,7 @@ describe(wrapParams, () => {
 
   test("Object.getOwnPropertyDescriptor behaves identically", () => {
     const plain = { id: "123", name: "test" };
-    const wrapped = wrapParams({ id: "123", name: "test" });
+    const wrapped = throwOnMissingPropertyAccess(plain);
 
     const plainDesc = Object.getOwnPropertyDescriptor(plain, "id")!;
     const wrappedDesc = Object.getOwnPropertyDescriptor(wrapped, "id")!;
@@ -113,7 +113,7 @@ describe(wrapParams, () => {
 
   test("empty object behaves identically", () => {
     const plain = {};
-    const wrapped = wrapParams({});
+    const wrapped = throwOnMissingPropertyAccess(plain);
 
     expect(Object.keys(wrapped)).toEqual(Object.keys(plain));
     expect("anything" in wrapped).toBe("anything" in plain);

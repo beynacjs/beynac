@@ -2,6 +2,7 @@ import type { Controller } from "../core/Controller";
 import type { MiddlewareReference } from "../core/Middleware";
 import type { NoArgConstructor } from "../utils";
 import type { MiddlewareSet } from "./MiddlewareSet";
+import type { ApiResourceAction, ResourceAction } from "./ResourceController";
 
 /**
  * A collection of route definitions, returned by route creation functions like
@@ -236,9 +237,12 @@ export type AddPrefixParams<Map extends Record<string, string>, PrefixParams ext
  * Prepend a name prefix to all keys in a map
  * { "show": "id" } + "users." -> { "users.show": "id" }
  */
-export type PrependNamePrefix<Map extends Record<string, string>, Prefix extends string> = {
+export type PrependPrefixToKeys<
+  Map extends Record<string, string>,
+  Prefix extends string,
+> = Prettify<{
   [K in keyof Map as K extends string ? `${Prefix}${K}` : never]: Map[K];
-};
+}>;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- `any` was the only way I could get type checking to work here
 export type GroupChildren = readonly Routes<any>[];
@@ -248,7 +252,7 @@ export type GroupedRoutes<
   NamePrefix extends string = "",
   PathPrefix extends string = "",
 > = Routes<
-  PrependNamePrefix<
+  PrependPrefixToKeys<
     ExtractRouteParams<PathPrefix> extends never
       ? MergeChildren<Children>
       : AddPrefixParams<MergeChildren<Children>, ExtractRouteParams<PathPrefix>>,
@@ -256,81 +260,64 @@ export type GroupedRoutes<
   >
 >;
 
-/**
- * Helper type to replace all occurrences of a substring
- */
 type ReplaceAll<
   S extends string,
   From extends string,
   To extends string,
 > = S extends `${infer L}${From}${infer R}` ? `${L}${To}${ReplaceAll<R, From, To>}` : S;
 
-/**
- * Infer resource name from path by removing leading slash and converting slashes to dots
- * '/photos' -> 'photos'
- * '/admin/photos' -> 'admin.photos'
- * '/api/v1/users' -> 'api.v1.users'
- */
 export type InferResourceName<Path extends string> = Path extends `/${infer Name}`
   ? ReplaceAll<Name, "/", ".">
-  : Path;
+  : ReplaceAll<Path, "/", ".">;
 
-/**
- * Generate route name map for resource controller.
- * Creates a map of route names to their parameter requirements.
- *
- * @example
- * ResourceRouteMap<'photos'> // ->
- * {
- *   'photos.index': never,
- *   'photos.create': never,
- *   'photos.store': never,
- *   'photos.show': 'id',
- *   'photos.edit': 'id',
- *   'photos.update': 'id',
- *   'photos.destroy': 'id'
- * }
- */
-export type ResourceRouteMap<ResourceName extends string> = {
-  [K in
-    | `${ResourceName}.index`
-    | `${ResourceName}.create`
-    | `${ResourceName}.store`
-    | `${ResourceName}.show`
-    | `${ResourceName}.edit`
-    | `${ResourceName}.update`
-    | `${ResourceName}.destroy`]: K extends
-    | `${ResourceName}.show`
-    | `${ResourceName}.edit`
-    | `${ResourceName}.update`
-    | `${ResourceName}.destroy`
-    ? "id"
-    : never;
+type ApiResourceRoutes = {
+  index: never;
+  store: never;
+  show: "resourceId";
+  update: "resourceId";
+  destroy: "resourceId";
 };
 
-/**
- * Generate route name map for API resource controller (excludes create and edit).
- *
- * @example
- * ApiResourceRouteMap<'photos'> // ->
- * {
- *   'photos.index': never,
- *   'photos.store': never,
- *   'photos.show': 'id',
- *   'photos.update': 'id',
- *   'photos.destroy': 'id'
- * }
- */
-export type ApiResourceRouteMap<ResourceName extends string> = {
-  [K in
-    | `${ResourceName}.index`
-    | `${ResourceName}.store`
-    | `${ResourceName}.show`
-    | `${ResourceName}.update`
-    | `${ResourceName}.destroy`]: K extends
-    | `${ResourceName}.show`
-    | `${ResourceName}.update`
-    | `${ResourceName}.destroy`
-    ? "id"
-    : never;
+type ResourceRoutes = {
+  index: never;
+  create: never;
+  store: never;
+  show: "resourceId";
+  edit: "resourceId";
+  update: "resourceId";
+  destroy: "resourceId";
 };
+
+type FilterRouteMap<
+  RouteMap extends Record<string, string>,
+  OnlyActions extends keyof RouteMap,
+  ExceptActions extends keyof RouteMap,
+> = Omit<Pick<RouteMap, OnlyActions>, ExceptActions>;
+
+// Conditional type that filters routes based on only/except options
+export type FilteredResourceRouteMap<
+  ResourceName extends string,
+  Only extends readonly ResourceAction[] | undefined,
+  Except extends readonly ResourceAction[] | undefined,
+> = PrependPrefixToKeys<
+  FilterRouteMap<
+    ResourceRoutes,
+    Only extends readonly ResourceAction[] ? Only[number] : keyof ResourceRoutes,
+    Except extends readonly ResourceAction[] ? Except[number] : never
+  >,
+  `${ResourceName}.`
+>;
+
+// Similar filtered type for API resources
+export type FilteredApiResourceRouteMap<
+  ResourceName extends string,
+  Only extends readonly ApiResourceAction[] | undefined,
+  Except extends readonly ApiResourceAction[] | undefined,
+> = PrependPrefixToKeys<
+  FilterRouteMap<
+    ApiResourceRoutes,
+    Only extends readonly ApiResourceAction[] ? Only[number] : keyof ApiResourceRoutes,
+    Except extends readonly ApiResourceAction[] ? Except[number] : never
+  >,
+  `${ResourceName}.`
+>;

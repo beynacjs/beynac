@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, test } from "bun:test";
-import { controller } from "../test-utils";
+import { MockController } from "../test-utils";
 import { get, group, resource } from "./helpers";
 import { ResourceController } from "./ResourceController";
 import type { Routes } from "./router-types";
@@ -7,7 +7,7 @@ import { RouteRegistry } from "./RouteRegistry";
 
 describe("route URL generation", () => {
   test("generates URL for named route without parameters", () => {
-    const route = get("/users", controller(), { name: "users.index" });
+    const route = get("/users", MockController, { name: "users.index" });
 
     const registry = new RouteRegistry(route);
 
@@ -15,7 +15,7 @@ describe("route URL generation", () => {
   });
 
   test("generates URL for named route with parameters", () => {
-    const route = get("/users/{id}", controller(), { name: "users.show" });
+    const route = get("/users/{id}", MockController, { name: "users.show" });
 
     const registry = new RouteRegistry(route);
 
@@ -24,7 +24,7 @@ describe("route URL generation", () => {
   });
 
   test("generates URL for route with multiple parameters", () => {
-    const route = get("/posts/{postId}/comments/{commentId}", controller(), {
+    const route = get("/posts/{postId}/comments/{commentId}", MockController, {
       name: "posts.comments.show",
     });
 
@@ -36,7 +36,7 @@ describe("route URL generation", () => {
   });
 
   test("throws error for non-existent route name", () => {
-    const route = get("/users", controller(), { name: "users.index" });
+    const route = get("/users", MockController, { name: "users.index" });
 
     const registry = new RouteRegistry(route);
 
@@ -45,8 +45,8 @@ describe("route URL generation", () => {
 
   test("generates URLs for routes in groups with namePrefix", () => {
     const routes = group({ prefix: "/admin", namePrefix: "admin." }, [
-      get("/dashboard", controller(), { name: "dashboard" }),
-      get("/users/{id}", controller(), { name: "users.show" }),
+      get("/dashboard", MockController, { name: "dashboard" }),
+      get("/users/{id}", MockController, { name: "users.show" }),
     ]);
 
     const registry = new RouteRegistry(routes);
@@ -57,8 +57,8 @@ describe("route URL generation", () => {
 
   test("generates URLs for routes in nested groups", () => {
     const userRoutes = group({ prefix: "/users", namePrefix: "users." }, [
-      get("/", controller(), { name: "index" }),
-      get("/{id}", controller(), { name: "show" }),
+      get("/", MockController, { name: "index" }),
+      get("/{id}", MockController, { name: "show" }),
     ]);
 
     const apiRoutes = group({ prefix: "/api", namePrefix: "api." }, [userRoutes]);
@@ -70,7 +70,7 @@ describe("route URL generation", () => {
   });
 
   test("generates protocol-relative URL for routes with static domain", () => {
-    const route = get("/users/{id}", controller(), {
+    const route = get("/users/{id}", MockController, {
       name: "users.show",
       domain: "api.example.com",
     });
@@ -81,7 +81,7 @@ describe("route URL generation", () => {
   });
 
   test("generates protocol-relative URL with domain parameters", () => {
-    const route = get("/users/{id}", controller(), {
+    const route = get("/users/{id}", MockController, {
       name: "users.show",
       domain: "{account}.example.com",
     });
@@ -94,7 +94,7 @@ describe("route URL generation", () => {
   });
 
   test("uses same param in both domain and path", () => {
-    const route = get("/orgs/{org}/users", controller(), {
+    const route = get("/orgs/{org}/users", MockController, {
       name: "users.index",
       domain: "{org}.example.com",
     });
@@ -105,7 +105,7 @@ describe("route URL generation", () => {
   });
 
   test("wildcard URL generation", () => {
-    const route = get("/files/{...path}", controller(), { name: "files.show" });
+    const route = get("/files/{...path}", MockController, { name: "files.show" });
 
     const registry = new RouteRegistry(route);
 
@@ -116,7 +116,7 @@ describe("route URL generation", () => {
   });
 
   test("wildcard with regular params URL generation", () => {
-    const route = get("/users/{userId}/files/{...path}", controller(), { name: "users.files" });
+    const route = get("/users/{userId}/files/{...path}", MockController, { name: "users.files" });
 
     const registry = new RouteRegistry(route);
 
@@ -126,7 +126,7 @@ describe("route URL generation", () => {
   });
 
   test("encodes slashes in parameters", () => {
-    const route = get("/foo/{param}/quux", controller(), { name: "test.route" });
+    const route = get("/foo/{param}/quux", MockController, { name: "test.route" });
 
     const registry = new RouteRegistry(route);
 
@@ -134,7 +134,7 @@ describe("route URL generation", () => {
   });
 
   test("encodes special characters in parameters", () => {
-    const route = get("/posts/{postId}/comments/{commentId}", controller(), {
+    const route = get("/posts/{postId}/comments/{commentId}", MockController, {
       name: "posts.comments.show",
     });
 
@@ -149,7 +149,7 @@ describe("route URL generation", () => {
   });
 
   test("encodes wildcard parameters", () => {
-    const route = get("/files/{...path}", controller(), { name: "files.show" });
+    const route = get("/files/{...path}", MockController, { name: "files.show" });
 
     const registry = new RouteRegistry(route);
 
@@ -159,7 +159,7 @@ describe("route URL generation", () => {
   });
 
   test("encodes domain parameters", () => {
-    const route = get("/users/{id}", controller(), {
+    const route = get("/users/{id}", MockController, {
       name: "user.show",
       domain: "{tenant}.example.com",
     });
@@ -179,7 +179,7 @@ describe("route URL generation", () => {
 describe("RouteRegistry typed method", () => {
   test("generates URL for route without parameters", () => {
     const routes = group({ namePrefix: "users." }, [
-      get("/users", controller(), { name: "index" }),
+      get("/users", MockController, { name: "index" }),
     ]);
 
     const registry = new RouteRegistry(routes);
@@ -189,7 +189,7 @@ describe("RouteRegistry typed method", () => {
 
   test("generates URL for route with single parameter", () => {
     const routes = group({ namePrefix: "users." }, [
-      get("/users/{id}", controller(), { name: "show" }),
+      get("/users/{id}", MockController, { name: "show" }),
     ]);
 
     const registry = new RouteRegistry(routes);
@@ -200,7 +200,7 @@ describe("RouteRegistry typed method", () => {
 
   test("generates URL for route with multiple parameters", () => {
     const routes = group({ namePrefix: "posts." }, [
-      get("/posts/{postId}/comments/{commentId}", controller(), { name: "comments" }),
+      get("/posts/{postId}/comments/{commentId}", MockController, { name: "comments" }),
     ]);
 
     const registry = new RouteRegistry(routes);
@@ -212,8 +212,8 @@ describe("RouteRegistry typed method", () => {
 
   test("works with nested groups", () => {
     const userRoutes = group({ prefix: "/users", namePrefix: "users." }, [
-      get("/", controller(), { name: "index" }),
-      get("/{id}", controller(), { name: "show" }),
+      get("/", MockController, { name: "index" }),
+      get("/{id}", MockController, { name: "show" }),
     ]);
 
     const apiRoutes = group({ prefix: "/api", namePrefix: "api." }, [userRoutes]);
@@ -226,7 +226,7 @@ describe("RouteRegistry typed method", () => {
 
   test("throws error for non-existent route name", () => {
     const routes = group({ namePrefix: "users." }, [
-      get("/users", controller(), { name: "index" }),
+      get("/users", MockController, { name: "index" }),
     ]);
 
     const registry = new RouteRegistry(routes);
@@ -242,7 +242,7 @@ describe("RouteRegistry typed method", () => {
 
   test("type inference: route without parameters", () => {
     const routes = group({ namePrefix: "users." }, [
-      get("/users", controller(), { name: "index" }),
+      get("/users", MockController, { name: "index" }),
     ]);
 
     // Should infer never for no params
@@ -255,7 +255,7 @@ describe("RouteRegistry typed method", () => {
 
   test("type inference: route with single parameter", () => {
     const routes = group({ namePrefix: "users." }, [
-      get("/users/{id}", controller(), { name: "show" }),
+      get("/users/{id}", MockController, { name: "show" }),
     ]);
 
     // Should infer "id" param name
@@ -269,7 +269,7 @@ describe("RouteRegistry typed method", () => {
 
   test("type inference: route with multiple parameters", () => {
     const routes = group({ namePrefix: "posts." }, [
-      get("/posts/{postId}/comments/{commentId}", controller(), { name: "comments" }),
+      get("/posts/{postId}/comments/{commentId}", MockController, { name: "comments" }),
     ]);
 
     // Should infer both param names as union
@@ -282,9 +282,9 @@ describe("RouteRegistry typed method", () => {
 
   test("type inference: multiple routes with different params", () => {
     const routes = group({ namePrefix: "users." }, [
-      get("/users", controller(), { name: "index" }),
-      get("/users/{id}", controller(), { name: "show" }),
-      get("/users/{id}/posts/{postId}", controller(), { name: "posts" }),
+      get("/users", MockController, { name: "index" }),
+      get("/users/{id}", MockController, { name: "show" }),
+      get("/users/{id}/posts/{postId}", MockController, { name: "posts" }),
     ]);
 
     // Should infer all route names and their param unions
@@ -305,8 +305,8 @@ describe("RouteRegistry typed method", () => {
 
   test("type inference: nested groups propagate name prefix", () => {
     const userRoutes = group({ prefix: "/users", namePrefix: "users." }, [
-      get("/", controller(), { name: "index" }),
-      get("/{id}", controller(), { name: "show" }),
+      get("/", MockController, { name: "index" }),
+      get("/{id}", MockController, { name: "show" }),
     ]);
 
     const apiRoutes = group({ prefix: "/api", namePrefix: "api." }, [userRoutes]);
@@ -327,12 +327,12 @@ describe("RouteRegistry typed method", () => {
 
   test("type inference: mixed groups and routes", () => {
     const postRoutes = group({ namePrefix: "posts." }, [
-      get("/posts", controller(), { name: "index" }),
-      get("/posts/{id}", controller(), { name: "show" }),
+      get("/posts", MockController, { name: "index" }),
+      get("/posts/{id}", MockController, { name: "show" }),
     ]);
 
     const routes = group({ namePrefix: "admin." }, [
-      get("/dashboard", controller(), { name: "dashboard" }),
+      get("/dashboard", MockController, { name: "dashboard" }),
       postRoutes,
     ]);
 
@@ -353,22 +353,14 @@ describe("RouteRegistry typed method", () => {
   });
 
   test("resource routes with slash-to-dot conversion", () => {
-    class TestController extends ResourceController {
-      override index() {
-        return new Response("index");
-      }
-      override show() {
-        return new Response("show");
-      }
-    }
+    class TestController extends ResourceController {}
 
     const routes = resource("/admin/photos", TestController);
 
     // Runtime URL generation should work
     const registry = new RouteRegistry(routes);
-    // Type assertions needed due to dynamic route name generation
-    expect((registry.url as any)("admin.photos.index")).toBe("/admin/photos");
-    expect((registry.url as any)("admin.photos.show", { id: "123" })).toBe("/admin/photos/123");
+    expect(registry.url("admin.photos.index")).toBe("/admin/photos");
+    expect(registry.url("admin.photos.show", { resourceId: "123" })).toBe("/admin/photos/123");
   });
 
   test("resource routes with multiple slashes convert to dots", () => {
@@ -377,13 +369,12 @@ describe("RouteRegistry typed method", () => {
     const routes = resource("/api/v1/users", TestController);
 
     const registry = new RouteRegistry(routes);
-    // Type assertions needed due to dynamic route name generation
-    expect((registry.url as any)("api.v1.users.index")).toBe("/api/v1/users");
-    expect((registry.url as any)("api.v1.users.show", { id: "42" })).toBe("/api/v1/users/42");
+    expect(registry.url("api.v1.users.index")).toBe("/api/v1/users");
+    expect(registry.url("api.v1.users.show", { resourceId: "42" })).toBe("/api/v1/users/42");
   });
 
   test("domain routing URL generation", () => {
-    const route = get("/users/{id}", controller(), {
+    const route = get("/users/{id}", MockController, {
       name: "users.show",
       domain: "{subdomain}.example.com",
     });
@@ -396,7 +387,7 @@ describe("RouteRegistry typed method", () => {
   });
 
   test("generates URL with both domain and path params", () => {
-    const route = get("/users/{id}", controller(), {
+    const route = get("/users/{id}", MockController, {
       name: "users.show",
       domain: "{subdomain}.example.com",
     });

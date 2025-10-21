@@ -1,30 +1,22 @@
-import { beforeEach, describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, expectTypeOf, test } from "bun:test";
+import { group, Routes } from ".";
 import { ContainerImpl } from "../container/ContainerImpl";
-import type { Container } from "../contracts";
 import type { ControllerContext } from "../core/Controller";
 import { mockMiddleware } from "../test-utils";
 import { apiResource, resource } from "./helpers";
-import { group } from "./index";
 import { ResourceController } from "./ResourceController";
 import { Router } from "./Router";
 import { RouteRegistry } from "./RouteRegistry";
 
-let container: Container;
-let router: Router;
-
 beforeEach(() => {
-  container = new ContainerImpl();
-  router = new Router(container);
   mockMiddleware.reset();
 });
 
-const handle = async (url: string, method = "GET") => {
-  if (url.startsWith("//")) {
-    url = "https:" + url;
-  } else if (url.startsWith("/")) {
-    url = "https://example.com" + url;
-  }
-  return await router.handle(new Request(url, { method }));
+const getMethodCalled = async (routes: Routes, path: string, method = "GET") => {
+  const router = new Router(new ContainerImpl());
+  router.register(routes);
+  const response = await router.handle(new Request("https://example.com" + path, { method }));
+  return response.status === 200 ? await response.text() : response.status;
 };
 
 // ============================================================================
@@ -33,168 +25,210 @@ const handle = async (url: string, method = "GET") => {
 
 describe("ResourceController", () => {
   test("action determination - GET / calls index()", async () => {
-    router.register(resource("/photos", TestController));
-
-    const response = await handle("/photos", "GET");
-    expect(await response.text()).toBe("index");
+    const response = await getMethodCalled(resource("/photos", TestController), "/photos", "GET");
+    expect(response).toBe("index");
   });
 
   test("action determination - GET /create calls create()", async () => {
-    router.register(resource("/photos", TestController));
-
-    const response = await handle("/photos/create", "GET");
-    expect(await response.text()).toBe("create");
+    const response = await getMethodCalled(
+      resource("/photos", TestController),
+      "/photos/create",
+      "GET",
+    );
+    expect(response).toBe("create");
   });
 
   test("action determination - POST / calls store()", async () => {
-    router.register(resource("/photos", TestController));
-
-    const response = await handle("/photos", "POST");
-    expect(await response.text()).toBe("store");
+    const response = await getMethodCalled(resource("/photos", TestController), "/photos", "POST");
+    expect(response).toBe("store");
   });
 
-  test("action determination - GET /{id} calls show()", async () => {
-    router.register(resource("/photos", TestController));
-
-    const response = await handle("/photos/123", "GET");
-    expect(await response.text()).toBe("show");
+  test("action determination - GET /{resourceId} calls show()", async () => {
+    const response = await getMethodCalled(
+      resource("/photos", TestController),
+      "/photos/123",
+      "GET",
+    );
+    expect(response).toBe("show");
   });
 
-  test("action determination - GET /{id}/edit calls edit()", async () => {
-    router.register(resource("/photos", TestController));
-
-    const response = await handle("/photos/123/edit", "GET");
-    expect(await response.text()).toBe("edit");
+  test("action determination - GET /{resourceId}/edit calls edit()", async () => {
+    const response = await getMethodCalled(
+      resource("/photos", TestController),
+      "/photos/123/edit",
+      "GET",
+    );
+    expect(response).toBe("edit");
   });
 
-  test("action determination - PUT /{id} calls update()", async () => {
-    router.register(resource("/photos", TestController));
-
-    const response = await handle("/photos/123", "PUT");
-    expect(await response.text()).toBe("update");
+  test("action determination - PUT /{resourceId} calls update()", async () => {
+    const response = await getMethodCalled(
+      resource("/photos", TestController),
+      "/photos/123",
+      "PUT",
+    );
+    expect(response).toBe("update");
   });
 
-  test("action determination - PATCH /{id} calls update()", async () => {
-    router.register(resource("/photos", TestController));
-
-    const response = await handle("/photos/123", "PATCH");
-    expect(await response.text()).toBe("update");
+  test("action determination - PATCH /{resourceId} calls update()", async () => {
+    const response = await getMethodCalled(
+      resource("/photos", TestController),
+      "/photos/123",
+      "PATCH",
+    );
+    expect(response).toBe("update");
   });
 
-  test("action determination - DELETE /{id} calls destroy()", async () => {
-    router.register(resource("/photos", TestController));
-
-    const response = await handle("/photos/123", "DELETE");
-    expect(await response.text()).toBe("destroy");
+  test("action determination - DELETE /{resourceId} calls destroy()", async () => {
+    const response = await getMethodCalled(
+      resource("/photos", TestController),
+      "/photos/123",
+      "DELETE",
+    );
+    expect(response).toBe("destroy");
   });
 
   test("default implementations return 404", async () => {
     class EmptyController extends ResourceController {}
 
-    router.register(resource("/empty", EmptyController));
+    const routes = resource("/empty", EmptyController);
 
-    const indexResponse = await handle("/empty", "GET");
-    expect(indexResponse.status).toBe(404);
-    expect(await indexResponse.text()).toBe("Not Found");
+    const indexResponse = await getMethodCalled(routes, "/empty", "GET");
+    expect(indexResponse).toBe(404);
 
-    const showResponse = await handle("/empty/123", "GET");
-    expect(showResponse.status).toBe(404);
+    const showResponse = await getMethodCalled(routes, "/empty/123", "GET");
+    expect(showResponse).toBe(404);
   });
 
   test("overridden methods work correctly, others return 404", async () => {
     class PartialController extends ResourceController {
       override index() {
-        return new Response("Custom index", { status: 200 });
+        return new Response("Custom index");
       }
     }
 
-    router.register(resource("/partial", PartialController));
+    const routes = resource("/partial", PartialController);
 
-    const indexResponse = await handle("/partial", "GET");
-    expect(indexResponse.status).toBe(200);
-    expect(await indexResponse.text()).toBe("Custom index");
+    const indexResponse = await getMethodCalled(routes, "/partial", "GET");
+    expect(indexResponse).toBe("Custom index");
 
-    const createResponse = await handle("/partial/create", "GET");
-    expect(createResponse.status).toBe(404);
+    const createResponse = await getMethodCalled(routes, "/partial/create", "GET");
+    expect(createResponse).toBe(404);
   });
 
   test("controller receives correct params", async () => {
     class ParamController extends ResourceController {
       override show(ctx: ControllerContext) {
-        return new Response(`ID: ${ctx.params.id}`);
+        return new Response(`ID: ${ctx.params.resourceId}`);
       }
     }
 
-    router.register(resource("/items", ParamController));
-
-    const response = await handle("/items/abc123", "GET");
-    expect(await response.text()).toBe("ID: abc123");
+    const response = await getMethodCalled(
+      resource("/items", ParamController),
+      "/items/abc123",
+      "GET",
+    );
+    expect(response).toBe("ID: abc123");
   });
 });
 
-// ============================================================================
-// resource() Helper Tests
-// ============================================================================
-
-describe(resource, () => {
-  test("creates all 7 resource routes", () => {
-    const routes = resource("/photos", TestController);
-
-    // Should have 7 routes (update has both PUT and PATCH)
-    expect(routes).toHaveLength(7);
-
-    const methods = routes.map((r) => r.methods).flat();
-    expect(methods).toContain("GET");
-    expect(methods).toContain("POST");
-    expect(methods).toContain("PUT");
-    expect(methods).toContain("PATCH");
-    expect(methods).toContain("DELETE");
-  });
-
+describe("resource", () => {
   test("route names use resource name prefix", () => {
     const routes = resource("/photos", TestController);
 
-    const routeNames = routes.map((r) => r.routeName).filter(Boolean);
-    expect(routeNames).toContain("photos.index");
-    expect(routeNames).toContain("photos.create");
-    expect(routeNames).toContain("photos.store");
-    expect(routeNames).toContain("photos.show");
-    expect(routeNames).toContain("photos.edit");
-    expect(routeNames).toContain("photos.update");
-    expect(routeNames).toContain("photos.destroy");
+    expectTypeOf(routes).toEqualTypeOf<
+      Routes<{
+        "photos.index": never;
+        "photos.create": never;
+        "photos.store": never;
+        "photos.show": "resourceId";
+        "photos.edit": "resourceId";
+        "photos.update": "resourceId";
+        "photos.destroy": "resourceId";
+      }>
+    >();
+
+    expect(routes.map((r) => r.routeName)).toEqual([
+      "photos.index",
+      "photos.create",
+      "photos.store",
+      "photos.show",
+      "photos.edit",
+      "photos.update",
+      "photos.destroy",
+    ]);
   });
 
   test("custom name override works", () => {
     const routes = resource("/photos", TestController, { name: "pics" });
 
-    const routeNames = routes.map((r) => r.routeName).filter(Boolean);
-    expect(routeNames).toContain("pics.index");
-    expect(routeNames).toContain("pics.show");
-    expect(routeNames).not.toContain("photos.index");
+    expectTypeOf(routes).toEqualTypeOf<
+      Routes<{
+        "pics.index": never;
+        "pics.create": never;
+        "pics.store": never;
+        "pics.show": "resourceId";
+        "pics.edit": "resourceId";
+        "pics.update": "resourceId";
+        "pics.destroy": "resourceId";
+      }>
+    >();
+
+    expect(routes.map((r) => r.routeName)).toEqual([
+      "pics.index",
+      "pics.create",
+      "pics.store",
+      "pics.show",
+      "pics.edit",
+      "pics.update",
+      "pics.destroy",
+    ]);
   });
 
   test("only option filters actions", async () => {
-    router.register(resource("/photos", TestController, { only: ["index", "show"] }));
+    const routes = resource("/photos", TestController, { only: ["index", "show"] });
+
+    expectTypeOf(routes).toEqualTypeOf<
+      Routes<{
+        "photos.index": never;
+        "photos.show": "resourceId";
+      }>
+    >();
 
     // Should work for allowed actions
-    const indexResponse = await handle("/photos", "GET");
-    expect(indexResponse.status).toBe(200);
+    const indexResponse = await getMethodCalled(routes, "/photos", "GET");
+    expect(indexResponse).toBe("index");
 
-    const showResponse = await handle("/photos/123", "GET");
-    expect(showResponse.status).toBe(200);
+    const showResponse = await getMethodCalled(routes, "/photos/123", "GET");
+    expect(showResponse).toBe("show");
 
     // Should 404 for excluded actions
-    const storeResponse = await handle("/photos", "POST");
-    expect(storeResponse.status).toBe(404);
+    const storeResponse = await getMethodCalled(routes, "/photos", "POST");
+    expect(storeResponse).toBe(404);
   });
 
   test("except option excludes actions", () => {
     const routes = resource("/photos", TestController, { except: ["destroy"] });
 
-    const routeNames = routes.map((r) => r.routeName).filter(Boolean);
-    expect(routeNames).toHaveLength(6);
-    expect(routeNames).not.toContain("photos.destroy");
-    expect(routeNames).toContain("photos.index");
+    expectTypeOf(routes).toEqualTypeOf<
+      Routes<{
+        "photos.index": never;
+        "photos.create": never;
+        "photos.store": never;
+        "photos.show": "resourceId";
+        "photos.edit": "resourceId";
+        "photos.update": "resourceId";
+      }>
+    >();
+
+    expect(routes.map((r) => r.routeName)).toEqual([
+      "photos.index",
+      "photos.create",
+      "photos.store",
+      "photos.show",
+      "photos.edit",
+      "photos.update",
+    ]);
   });
 
   test("only and except together - except subtracts from only", () => {
@@ -203,41 +237,71 @@ describe(resource, () => {
       except: ["show"],
     });
 
-    const routeNames = routes.map((r) => r.routeName).filter(Boolean);
-    expect(routeNames).toEqual(["photos.index", "photos.destroy"]);
+    expectTypeOf(routes).toEqualTypeOf<
+      Routes<{
+        "photos.index": never;
+        "photos.destroy": "resourceId";
+      }>
+    >();
+
+    expect(routes.map((r) => r.routeName)).toEqual(["photos.index", "photos.destroy"]);
   });
 
   test("middleware option applies to all routes", async () => {
     const M1 = mockMiddleware("M1");
-    router.register(resource("/photos", TestController, { middleware: M1 }));
+    const routes = resource("/photos", TestController, { middleware: M1 });
 
-    await handle("/photos", "GET");
-    expect(mockMiddleware.log).toContain("M1");
+    await getMethodCalled(routes, "/photos", "GET");
+    expect(mockMiddleware.log).toEqual(["M1"]);
 
     mockMiddleware.reset();
 
-    await handle("/photos/123", "GET");
-    expect(mockMiddleware.log).toContain("M1");
+    await getMethodCalled(routes, "/photos/123", "GET");
+    expect(mockMiddleware.log).toEqual(["M1"]);
   });
 
-  test("where constraints apply to {id} parameter", async () => {
-    router.register(
-      resource("/photos", TestController, {
-        where: { id: /^\d+$/ },
-      }),
-    );
+  test("where constraints apply to {resourceId} parameter", async () => {
+    const routes = resource("/photos", TestController, {
+      where: { resourceId: /^\d+$/ },
+    });
 
-    // Numeric ID should work
-    const numericResponse = await handle("/photos/123", "GET");
-    expect(numericResponse.status).toBe(200);
+    // Numeric resourceId should work
+    const numericResponse = await getMethodCalled(routes, "/photos/123", "GET");
+    expect(numericResponse).toBe("show");
 
-    // Non-numeric ID should 404
-    const alphaResponse = await handle("/photos/abc", "GET");
-    expect(alphaResponse.status).toBe(404);
+    // Non-numeric resourceId should 404
+    const alphaResponse = await getMethodCalled(routes, "/photos/abc", "GET");
+    expect(alphaResponse).toBe(404);
+  });
+
+  test("parameterPatterns (global patterns) apply to {resourceId} parameter", async () => {
+    const routes = resource("/photos", TestController, {
+      parameterPatterns: { resourceId: /^[a-z]+$/ },
+    });
+
+    // Alphabetic resourceId should work
+    const alphaResponse = await getMethodCalled(routes, "/photos/abc", "GET");
+    expect(alphaResponse).toBe("show");
+
+    // Numeric resourceId should 404
+    const numericResponse = await getMethodCalled(routes, "/photos/123", "GET");
+    expect(numericResponse).toBe(404);
   });
 
   test("works inside route groups with name prefix", () => {
     const routes = group({ namePrefix: "admin." }, [resource("/photos", TestController)]);
+
+    expectTypeOf(routes).toEqualTypeOf<
+      Routes<{
+        "admin.photos.index": never;
+        "admin.photos.create": never;
+        "admin.photos.store": never;
+        "admin.photos.show": "resourceId";
+        "admin.photos.edit": "resourceId";
+        "admin.photos.update": "resourceId";
+        "admin.photos.destroy": "resourceId";
+      }>
+    >();
 
     const routeNames = routes.map((r) => r.routeName).filter(Boolean);
     expect(routeNames).toContain("admin.photos.index");
@@ -245,64 +309,75 @@ describe(resource, () => {
   });
 
   test("works inside route groups with path prefix", async () => {
-    router.register(group({ prefix: "/admin" }, [resource("/photos", TestController)]));
+    const routes = group({ prefix: "/admin" }, [resource("/photos", TestController)]);
 
-    const response = await handle("/admin/photos", "GET");
-    expect(response.status).toBe(200);
-    expect(await response.text()).toBe("index");
-  });
-
-  test("route paths are correct", () => {
-    const routes = resource("/photos", TestController);
-
-    const paths = routes.map((r) => ({ path: r.path, methods: r.methods }));
-
-    expect(paths).toContainEqual({ path: "/photos", methods: ["GET"] });
-    expect(paths).toContainEqual({ path: "/photos/create", methods: ["GET"] });
-    expect(paths).toContainEqual({ path: "/photos", methods: ["POST"] });
-    expect(paths).toContainEqual({ path: "/photos/{id}", methods: ["GET"] });
-    expect(paths).toContainEqual({ path: "/photos/{id}/edit", methods: ["GET"] });
-    expect(paths).toContainEqual({ path: "/photos/{id}", methods: ["PUT", "PATCH"] });
-    expect(paths).toContainEqual({ path: "/photos/{id}", methods: ["DELETE"] });
+    const response = await getMethodCalled(routes, "/admin/photos", "GET");
+    expect(response).toBe("index");
   });
 
   test("slashes in path convert to dots in route names", () => {
     const routes = resource("/admin/photos", TestController);
 
+    expectTypeOf(routes).toEqualTypeOf<
+      Routes<{
+        "admin.photos.index": never;
+        "admin.photos.create": never;
+        "admin.photos.store": never;
+        "admin.photos.show": "resourceId";
+        "admin.photos.edit": "resourceId";
+        "admin.photos.update": "resourceId";
+        "admin.photos.destroy": "resourceId";
+      }>
+    >();
+
     const routeNames = routes.map((r) => r.routeName).filter(Boolean);
     expect(routeNames).toContain("admin.photos.index");
     expect(routeNames).toContain("admin.photos.show");
-    expect(routeNames).toContain("admin.photos.create");
-    expect(routeNames).not.toContain("admin/photos.index"); // Should NOT have slashes
   });
 
   test("multiple slashes convert to multiple dots", () => {
     const routes = resource("/api/v1/users", TestController);
 
+    expectTypeOf(routes).toEqualTypeOf<
+      Routes<{
+        "api.v1.users.index": never;
+        "api.v1.users.create": never;
+        "api.v1.users.store": never;
+        "api.v1.users.show": "resourceId";
+        "api.v1.users.edit": "resourceId";
+        "api.v1.users.update": "resourceId";
+        "api.v1.users.destroy": "resourceId";
+      }>
+    >();
+
     const routeNames = routes.map((r) => r.routeName).filter(Boolean);
     expect(routeNames).toContain("api.v1.users.index");
     expect(routeNames).toContain("api.v1.users.show");
-    expect(routeNames).not.toContain("api/v1/users.index");
   });
 });
 
-// ============================================================================
-// apiResource() Helper Tests
-// ============================================================================
-
-describe(apiResource, () => {
-  test("creates only 5 routes (excludes create and edit)", () => {
+describe("apiResource", () => {
+  test("excludes create and edit", () => {
     const routes = apiResource("/photos", TestController);
 
-    const routeNames = routes.map((r) => r.routeName).filter(Boolean);
-    expect(routeNames).toHaveLength(5);
-    expect(routeNames).not.toContain("photos.create");
-    expect(routeNames).not.toContain("photos.edit");
-    expect(routeNames).toContain("photos.index");
-    expect(routeNames).toContain("photos.store");
-    expect(routeNames).toContain("photos.show");
-    expect(routeNames).toContain("photos.update");
-    expect(routeNames).toContain("photos.destroy");
+    expectTypeOf(routes).toEqualTypeOf<
+      Routes<{
+        "photos.index": never;
+        "photos.store": never;
+        "photos.show": "resourceId";
+        "photos.update": "resourceId";
+        "photos.destroy": "resourceId";
+      }>
+    >();
+
+    const routeNames = routes.map((r) => r.routeName);
+    expect(routeNames).toEqual([
+      "photos.index",
+      "photos.store",
+      "photos.show",
+      "photos.update",
+      "photos.destroy",
+    ]);
   });
 
   test("apiResource respects only option", () => {
@@ -313,23 +388,26 @@ describe(apiResource, () => {
     expect(routeNames).toContain("photos.index");
   });
 
-  test("/create matches /{id} with id='create' when using apiResource", async () => {
-    router.register(apiResource("/photos", TestController));
-
-    // Since /create route is not registered, /photos/create matches /photos/{id}
-    const response = await handle("/photos/create", "GET");
-    expect(response.status).toBe(200);
-    expect(await response.text()).toBe("show"); // Calls show() with id='create'
+  test("/create matches /{resourceId} with resourceId='create' when using apiResource", async () => {
+    // Since /create route is not registered, /photos/create matches /photos/{resourceId}
+    const response = await getMethodCalled(
+      apiResource("/photos", TestController),
+      "/photos/create",
+      "GET",
+    );
+    expect(response).toBe("show"); // Calls show() with resourceId='create'
   });
 
-  test("/{id}/edit matches /{id} with apiResource (no dedicated edit route)", async () => {
-    router.register(apiResource("/photos", TestController));
-
-    // Since /photos/{id}/edit is not registered with apiResource,
-    // /photos/123/edit will match /photos/{id} with id='123'
+  test("/{resourceId}/edit matches /{resourceId} with apiResource (no dedicated edit route)", async () => {
+    // Since /photos/{resourceId}/edit is not registered with apiResource,
+    // /photos/123/edit will match /photos/{resourceId} with resourceId='123'
     // and the path won't match the show pattern, so it returns show
-    const response = await handle("/photos/123/edit", "GET");
-    expect(response.status).toBe(404); // No route matches this pattern in apiResource
+    const response = await getMethodCalled(
+      apiResource("/photos", TestController),
+      "/photos/123/edit",
+      "GET",
+    );
+    expect(response).toBe(404); // No route matches this pattern in apiResource
   });
 });
 
@@ -343,7 +421,7 @@ describe("resource type inference", () => {
 
     // These should compile and work at runtime:
     const url1 = registry.url("photos.index");
-    const url2 = registry.url("photos.show", { id: "123" });
+    const url2 = registry.url("photos.show", { resourceId: "123" });
 
     expect(url1).toContain("/photos");
     expect(url2).toContain("/photos/123");
@@ -362,7 +440,7 @@ describe("resource type inference", () => {
 
     // These should compile and work:
     const url1 = registry.url("photos.index");
-    const url2 = registry.url("photos.show", { id: "123" });
+    const url2 = registry.url("photos.show", { resourceId: "123" });
 
     expect(url1).toContain("/photos");
     expect(url2).toContain("/photos/123");

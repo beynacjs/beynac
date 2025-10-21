@@ -1,10 +1,18 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { Dispatcher } from "../contracts/Dispatcher";
 import { RequestContext } from "../contracts/RequestContext";
+import { createApplication } from "../entry";
+import { Cookies, Headers } from "../facades";
 import { get, group } from "../router";
-import { controller, mockMiddleware, requestContext } from "../test-utils";
+import { MockController, mockMiddleware, requestContext } from "../test-utils";
 import { ApplicationImpl } from "./ApplicationImpl";
+import { Controller, ControllerContext } from "./Controller";
 import { DispatcherImpl } from "./DispatcherImpl";
+import { setFacadeApplication } from "./facade";
+
+afterEach(() => {
+  setFacadeApplication(null);
+});
 
 describe("ApplicationImpl", () => {
   test("events getter uses container resolution", () => {
@@ -26,8 +34,8 @@ describe("ApplicationImpl", () => {
 
   test("url() generates URLs for named routes", () => {
     const routes = group({}, [
-      get("/users/{id}", controller(), { name: "users.show" }),
-      get("/posts/{postId}/comments/{commentId}", controller(), {
+      get("/users/{id}", MockController, { name: "users.show" }),
+      get("/posts/{postId}/comments/{commentId}", MockController, {
         name: "posts.comments.show",
       }),
     ]);
@@ -43,8 +51,8 @@ describe("ApplicationImpl", () => {
 
   test("url() is type-safe with route parameters", () => {
     const routes = group({}, [
-      get("/users/{id}", controller(), { name: "users.show" }),
-      get("/posts", controller(), { name: "posts.index" }),
+      get("/users/{id}", MockController, { name: "users.show" }),
+      get("/posts", MockController, { name: "posts.index" }),
     ]);
 
     const app = new ApplicationImpl({ routes });
@@ -69,46 +77,30 @@ describe("ApplicationImpl", () => {
   });
 
   test("handles HTTP request through RouterV2", async () => {
-    const routes = get("/hello", controller(new Response("Hello World")));
+    class TestController implements Controller {
+      handle() {
+        const testCookie = Cookies.get("c");
+        const testHeader = Headers.get("h");
+        return new Response(`Cookie: ${testCookie}, Header: ${testHeader}`);
+      }
+    }
+    const routes = get("/hello", TestController);
 
-    const app = new ApplicationImpl({ routes });
-    app.bootstrap();
+    const app = createApplication({ routes });
 
     const request = new Request("http://example.com/hello");
     const context: RequestContext = {
       context: "test",
-      getCookie: () => null,
-      getCookieNames: () => [],
+      getCookie: (name) => (name === "c" ? "cookie" : null),
+      getCookieNames: () => ["c"],
       deleteCookie: null,
       setCookie: null,
-      getRequestHeader: () => null,
-      getRequestHeaderNames: () => [][Symbol.iterator](),
+      getRequestHeader: (name) => (name === "h" ? "header" : null),
+      getRequestHeaderNames: () => ["h"],
     };
 
     const response = await app.handleRequest(request, context);
-    expect(await response.text()).toBe("Hello World");
-    expect(response.status).toBe(200);
-  });
-
-  test("returns 404 for unmatched routes", async () => {
-    const routes = get("/hello", controller());
-
-    const app = new ApplicationImpl({ routes });
-    app.bootstrap();
-
-    const request = new Request("http://example.com/notfound");
-    const context: RequestContext = {
-      context: "test",
-      getCookie: () => null,
-      getCookieNames: () => [],
-      deleteCookie: null,
-      setCookie: null,
-      getRequestHeader: () => null,
-      getRequestHeaderNames: () => [][Symbol.iterator](),
-    };
-
-    const response = await app.handleRequest(request, context);
-    expect(response.status).toBe(404);
+    expect(await response.text()).toBe("Cookie: cookie, Header: header");
   });
 
   describe("middleware priority configuration", () => {
@@ -118,7 +110,7 @@ describe("ApplicationImpl", () => {
 
       const app = new ApplicationImpl({
         middlewarePriority: [M2, M1],
-        routes: get("/test", controller(), { middleware: [M1, M2] }),
+        routes: get("/test", MockController, { middleware: [M1, M2] }),
       });
 
       app.bootstrap();
@@ -130,16 +122,20 @@ describe("ApplicationImpl", () => {
     });
   });
 
-  describe("param access checking integration", () => {
+  describe("router configuration", () => {
+    // These tests are here to ensure that the router configuration is passed
+    // through to the router instance. They are not intended to test the
+    // functionality of the router itself.
+    class ControllerInvalidParam implements Controller {
+      handle(ctx: ControllerContext) {
+        return new Response(`ctx.params.nonExistent: ${ctx.params.nonExistent}`);
+      }
+    }
+
     test("config flows from app to router - throws in development mode", async () => {
       const app = new ApplicationImpl({
         development: true,
-        routes: get("/user/{id}", {
-          handle(ctx) {
-            const _unused = ctx.params.nonExistent; // Should throw because development: true
-            return new Response(`ok: ${_unused}`);
-          },
-        }),
+        routes: get("/user/{id}", ControllerInvalidParam),
       });
 
       app.bootstrap();
@@ -151,12 +147,7 @@ describe("ApplicationImpl", () => {
     test("config flows from app to router - doesn't throw in production mode", async () => {
       const app = new ApplicationImpl({
         development: false,
-        routes: get("/user/{id}", {
-          handle(ctx) {
-            const value = ctx.params.nonExistent; // Should not throw because development: false
-            return new Response(`value: ${value}`);
-          },
-        }),
+        routes: get("/user/{id}", ControllerInvalidParam),
       });
 
       app.bootstrap();
@@ -166,25 +157,7 @@ describe("ApplicationImpl", () => {
       );
 
       expect(response.status).toBe(200);
-      expect(await response.text()).toBe("value: undefined");
-    });
-
-    test("throwOnInvalidParamAccess overrides development setting", async () => {
-      const app = new ApplicationImpl({
-        development: false,
-        throwOnInvalidParamAccess: "always",
-        routes: get("/user/{id}", {
-          handle(ctx) {
-            const _unused = ctx.params.nonExistent; // Should throw because throwOnInvalidParamAccess: 'always'
-            return new Response(`ok: ${_unused}`);
-          },
-        }),
-      });
-
-      app.bootstrap();
-      expect(async () => {
-        await app.handleRequest(new Request("http://example.com/user/123"), requestContext());
-      }).toThrow('Route parameter "nonExistent" does not exist');
+      expect(await response.text()).toBe("ctx.params.nonExistent: undefined");
     });
   });
 });

@@ -2,16 +2,16 @@ import type { Controller } from "../core/Controller";
 import type { NoArgConstructor } from "../utils";
 import { arrayWrapOptional } from "../utils";
 import { MiddlewareSet } from "./MiddlewareSet";
-import type { ResourceAction } from "./ResourceController";
+import type { ApiResourceAction, ResourceAction } from "./ResourceController";
 import { ResourceController } from "./ResourceController";
 import type {
-  ApiResourceRouteMap,
   ExtractDomainAndPathParams,
+  FilteredApiResourceRouteMap,
+  FilteredResourceRouteMap,
   GroupChildren,
   GroupedRoutes,
   InferResourceName,
   ParamConstraint,
-  ResourceRouteMap,
   RouteDefinition,
   RouteGroupOptions,
   RouteHandler,
@@ -29,9 +29,8 @@ import { validateDomainSyntax, validateGroupPathSyntax, validateRoutePathSyntax 
  * })
  */
 export function isIn(values: readonly string[]): ParamConstraint {
-  // Escape special regex characters manually since RegExp.escape is not widely available
   const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`^(${values.map((v) => escapeRegex(v)).join("|")})$`);
+  return new RegExp(`^(${values.map(escapeRegex).join("|")})$`);
 }
 
 function mergeObjects<T extends Record<string, unknown>>(
@@ -375,8 +374,12 @@ function applyNamePrefix(prefix: string | undefined, name: string | undefined): 
 /**
  * Options for resource route registration
  */
-export interface ResourceOptions<ResourceName extends string, Path extends string>
-  extends Omit<RouteOptions<never, Path>, "name"> {
+export interface ResourceOptions<
+  ResourceName extends string,
+  Path extends string,
+  Only extends readonly ResourceAction[] | undefined = undefined,
+  Except extends readonly ResourceAction[] | undefined = undefined,
+> extends Omit<RouteOptions<never, Path>, "name"> {
   /**
    * Override the base name for route naming. If not provided, derived from path.
    * @example
@@ -390,76 +393,52 @@ export interface ResourceOptions<ResourceName extends string, Path extends strin
    * @example
    * resource('/photos', PhotoController, { only: ['index', 'show'] })
    */
-  only?: readonly ResourceAction[];
+  only?: Only;
 
   /**
    * Register all actions except these
    * @example
    * resource('/photos', PhotoController, { except: ['destroy'] })
    */
-  except?: readonly ResourceAction[];
+  except?: Except;
 }
 
 /**
- * Register RESTful resource routes for a controller.
+ * Register resource routes.
  *
- * Creates routes for the seven standard resource actions:
+ * This is designed to be used with classes extending ResourceController, which
+ * will route each action to a corresponding method.
+ *
+ * Creates routes for API-focused resource actions:
  * - GET /resource -> index
- * - GET /resource/create -> create
  * - POST /resource -> store
- * - GET /resource/{id} -> show
- * - GET /resource/{id}/edit -> edit
- * - PUT/PATCH /resource/{id} -> update
- * - DELETE /resource/{id} -> destroy
+ * - GET /resource/{resourceId} -> show
+ * - PUT/PATCH /resource/{resourceId} -> update
+ * - DELETE /resource/{resourceId} -> destroy
  *
- * Route names are derived from the path by removing the leading slash
- * and converting remaining slashes to dots.
+ * The default names of the route is derived from the path by removing the
+ * leading slash and replacing all slashes with dots, so if the path if /photos
+ * then the index route will be called "photos.index".
  *
- * @param path - The resource path (e.g., '/photos')
+ * @param path - The resource path (e.g., '/api/photos')
  * @param controller - A ResourceController subclass
  * @param options - Options for filtering and configuring routes
  *
  * @example
- * class PhotoController extends ResourceController {
- *   index() { return new Response('List photos'); }
- *   show() { return new Response('Show photo'); }
- * }
- *
- * resource('/photos', PhotoController)
- * // Creates all 7 resource routes with names: photos.index, photos.show, etc.
- *
- * @example
- * // Nested paths convert slashes to dots in route names
- * resource('/admin/photos', PhotoController)
- * // Route names: admin.photos.index, admin.photos.show, etc.
- * // URL paths: /admin/photos, /admin/photos/{id}, etc.
- *
- * @example
- * // Deep nesting
- * resource('/api/v1/users', UserController)
- * // Route names: api.v1.users.index, api.v1.users.show, etc.
- *
- * @example
- * // Only register specific actions
- * resource('/photos', PhotoController, { only: ['index', 'show'] })
- *
- * @example
- * // Exclude specific actions
- * resource('/photos', PhotoController, { except: ['destroy'] })
- *
- * @example
- * // Custom resource name
- * resource('/photos', PhotoController, { name: 'pics' })
- * // Creates routes: pics.index, pics.show, etc.
+ * apiResource('/api/photos', PhotoApiController)
+ * // generating URLs later:
+ * app.url("api.photos.show", { resourceId: "123" }); // returns "/api/photos/123"
  */
 export function resource<
   const Path extends string,
   const ResourceName extends string = InferResourceName<Path>,
+  const Only extends readonly ResourceAction[] | undefined = undefined,
+  const Except extends readonly ResourceAction[] | undefined = undefined,
 >(
   path: Path,
   controller: NoArgConstructor<ResourceController>,
-  options?: ResourceOptions<ResourceName, Path>,
-): Routes<ResourceRouteMap<ResourceName>> {
+  options?: ResourceOptions<ResourceName, Path, Only, Except>,
+): Routes<FilteredResourceRouteMap<ResourceName, Only, Except>> {
   const { name: customName, only, except, ...routeOptions } = options ?? {};
 
   // Derive resource name from path: '/photos' -> 'photos', '/admin/photos' -> 'admin.photos'
@@ -476,13 +455,12 @@ export function resource<
     { action: "index", method: "GET", path },
     { action: "create", method: "GET", path: `${path}/create` },
     { action: "store", method: "POST", path },
-    { action: "show", method: "GET", path: `${path}/{id}` },
-    { action: "edit", method: "GET", path: `${path}/{id}/edit` },
-    { action: "update", method: ["PUT", "PATCH"], path: `${path}/{id}` },
-    { action: "destroy", method: "DELETE", path: `${path}/{id}` },
+    { action: "show", method: "GET", path: `${path}/{resourceId}` },
+    { action: "edit", method: "GET", path: `${path}/{resourceId}/edit` },
+    { action: "update", method: ["PUT", "PATCH"], path: `${path}/{resourceId}` },
+    { action: "destroy", method: "DELETE", path: `${path}/{resourceId}` },
   ];
 
-  // Filter actions based on only/except
   const actions = filterResourceActions(allActions, only, except);
 
   // Create routes for each action - collect as Routes<> for group()
@@ -491,26 +469,32 @@ export function resource<
       const routeName = `${resourceName}.${action}` as const;
       return createRoute(method, routePath as Path, controller, {
         ...routeOptions,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic route names require type workaround
-        name: routeName as any,
+        name: routeName,
         meta: { ...routeOptions.meta, action },
       });
     },
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic resource routes require type assertion
-  return group(routesList) as any as Routes<ResourceRouteMap<ResourceName>>;
+  return group(routesList) as Routes<FilteredResourceRouteMap<ResourceName, Only, Except>>;
 }
 
 /**
- * Register API resource routes (excludes create and edit actions).
+ * Register API resource routes. Similar to resource(), but excludes create and
+ * edit actions that are useful for UIs but tend to be absent in APIs.
+ *
+ * This is designed to be used with classes extending ResourceController, which
+ * will route each action to a corresponding method.
  *
  * Creates routes for API-focused resource actions:
  * - GET /resource -> index
  * - POST /resource -> store
- * - GET /resource/{id} -> show
- * - PUT/PATCH /resource/{id} -> update
- * - DELETE /resource/{id} -> destroy
+ * - GET /resource/{resourceId} -> show
+ * - PUT/PATCH /resource/{resourceId} -> update
+ * - DELETE /resource/{resourceId} -> destroy
+ *
+ * The default names of the route is derived from the path by removing the
+ * leading slash and replacing all slashes with dots, so if the path if /photos
+ * then the index route will be called "photos.index".
  *
  * @param path - The resource path (e.g., '/api/photos')
  * @param controller - A ResourceController subclass
@@ -518,23 +502,26 @@ export function resource<
  *
  * @example
  * apiResource('/api/photos', PhotoApiController)
- * // Creates only API routes (no create/edit forms)
+ * // generating URLs later:
+ * app.url("api.photos.show", { resourceId: "123" }); // returns "/api/photos/123"
  */
 export function apiResource<
   const Path extends string,
   const ResourceName extends string = InferResourceName<Path>,
+  const Only extends readonly ApiResourceAction[] | undefined = undefined,
+  const Except extends readonly ApiResourceAction[] | undefined = undefined,
 >(
   path: Path,
   controller: NoArgConstructor<ResourceController>,
-  options?: ResourceOptions<ResourceName, Path>,
-): Routes<ApiResourceRouteMap<ResourceName>> {
-  const apiActions: readonly ResourceAction[] = ["index", "store", "show", "update", "destroy"];
+  options?: ResourceOptions<ResourceName, Path, Only, Except>,
+): Routes<FilteredApiResourceRouteMap<ResourceName, Only, Except>> {
+  const apiActions: readonly ApiResourceAction[] = ["index", "store", "show", "update", "destroy"];
 
-  return resource(path, controller, {
+  const result = resource(path, controller, {
     ...options,
     only: options?.only ?? apiActions,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- API resource routes require type assertion
-  }) as any as Routes<ApiResourceRouteMap<ResourceName>>;
+  });
+  return result as unknown as Routes<FilteredApiResourceRouteMap<ResourceName, Only, Except>>;
 }
 
 /**
