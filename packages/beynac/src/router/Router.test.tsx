@@ -1,10 +1,12 @@
+/** @jsxImportSource ../view */
 import { beforeEach, describe, expect, expectTypeOf, mock, spyOn, test } from "bun:test";
 import { createTypeToken } from "../container/container-key";
 import { ContainerImpl } from "../container/ContainerImpl";
 import { Container } from "../contracts";
-import { Controller, type ControllerContext } from "../core/Controller";
+import { Controller, ControllerReturn, type ControllerContext } from "../core/Controller";
 import type { Middleware } from "../core/Middleware";
 import { mockController, MockController, mockMiddleware } from "../test-utils";
+import { NoArgConstructor } from "../utils";
 import {
   any,
   delete_,
@@ -144,6 +146,17 @@ test("handles controller class", async () => {
 
   const response = await handle("/test");
   expect(await response.text()).toBe("From controller class");
+});
+
+test("controller can return JSX", async () => {
+  const jsxController = (ctx: ControllerContext) => {
+    return <div>Hello from JSX, id: {ctx.params.id}</div>;
+  };
+
+  router.register(get("/jsx/{id}", jsxController));
+
+  const response = await handle("/jsx/123");
+  expect(await response.text()).toBe("<div>Hello from JSX, id: 123</div>");
 });
 
 test("controller class can use dependency injection", async () => {
@@ -1473,6 +1486,81 @@ describe("multi-method routes", () => {
 
     await handle("/test");
     expect(controller.meta).toEqual({});
+  });
+});
+
+describe("handler validation", () => {
+  test("throws helpful error when passing non-Controller class", async () => {
+    class NotAController {
+      someMethod() {
+        return new Response("This won't work");
+      }
+    }
+
+    router.register(get("/test", NotAController as unknown as NoArgConstructor<Controller>));
+
+    expect(async () => {
+      await handle("/test");
+    }).toThrow(
+      "Route handler NotAController for /test is a class but does not extend Controller. Class-based handlers must extend the Controller class.",
+    );
+  });
+
+  test("throws helpful error when Controller returns invalid value", async () => {
+    router.register(get("/test", () => "strings are not valid" as unknown as ControllerReturn));
+
+    expect(async () => {
+      await handle("/test");
+    }).toThrow(
+      "Route handler  for /test returned an object with a 'handle' method. This can happen if you have a controller that does not extend the Controller class.",
+    );
+  });
+
+  test("accepts function controller (non-class)", async () => {
+    const functionController = (ctx: ControllerContext) => {
+      return new Response(`Function controller, id: ${ctx.params.id}`);
+    };
+
+    router.register(get("/user/{id}", functionController));
+
+    const response = await handle("/user/123");
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("Function controller, id: 123");
+  });
+
+  test("accepts newable function that extends Controller", async () => {
+    // A constructor function that extends Controller via prototype
+    function NewableController(this: Controller) {
+      this.handle = (ctx: ControllerContext) => {
+        return new Response(`Newable controller, id: ${ctx.params.id}`);
+      };
+    }
+    NewableController.prototype = Object.create(Controller.prototype);
+
+    router.register(
+      get("/item/{id}", NewableController as unknown as NoArgConstructor<Controller>),
+    );
+
+    const response = await handle("/item/456");
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("Newable controller, id: 456");
+  });
+
+  test("Error when passing a newable function that does not extends Controller", async () => {
+    // A constructor function that extends Controller via prototype
+    function NewableController() {
+      return {
+        handle: (ctx: ControllerContext) => {
+          return new Response(`Newable controller, id: ${ctx.params.id}`);
+        },
+      };
+    }
+
+    router.register(get("/item/{id}", NewableController));
+
+    expect(async () => {
+      await handle("/item/456");
+    }).toThrow("Expected Response, JSX element, or null, but got: [object Object]");
   });
 });
 

@@ -1,3 +1,19 @@
+import type { JSX } from "../view/public-types";
+
+/**
+ * The return type for controllers.
+ *
+ * - Response: A standard HTTP response
+ * - JSX.Element: A JSX element to be rendered as HTML
+ * - null: empty response
+ * - Promise of any of the above
+ */
+export type ControllerReturn =
+  | Response
+  | JSX.Element
+  | null
+  | Promise<Response | JSX.Element | null>;
+
 /**
  * Context passed to controller handlers.
  * Contains the HTTP request and route parameters.
@@ -35,7 +51,7 @@ export interface ControllerContext {
   meta: Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- deliberate choice of public api
 }
 
-export type MiddlewareNext = (ctx: ControllerContext) => Response | Promise<Response>;
+export type MiddlewareNext = (ctx: ControllerContext) => ControllerReturn;
 
 /**
  * Base class for route controllers.
@@ -46,5 +62,5 @@ export abstract class Controller {
    *
    * This method is called when a route matches.
    */
-  abstract handle(ctx: ControllerContext): Response | Promise<Response>;
+  abstract handle(ctx: ControllerContext): ControllerReturn;
 }

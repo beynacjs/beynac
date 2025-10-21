@@ -1,5 +1,6 @@
 import { render } from "./markup-stream";
 import type { Component, PropsWithChildren } from "./public-types";
+import { tagAsJsxElement } from "./public-types";
 import { RawContent } from "./raw";
 
 type CacheProps = PropsWithChildren<{
@@ -25,12 +26,12 @@ type CacheProps = PropsWithChildren<{
 export const Cache: Component<CacheProps> = async ({ map, key, children }, context) => {
   const cached = map.get(key);
   if (cached != null) {
-    return new RawContent(cached);
+    return tagAsJsxElement(new RawContent(cached));
   }
 
   const rendered = await render(children, { context });
   map.set(key, rendered);
 
-  return new RawContent(rendered);
+  return tagAsJsxElement(new RawContent(rendered));
 };
 Cache.displayName = "Cache";

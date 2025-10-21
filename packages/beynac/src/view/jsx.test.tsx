@@ -369,3 +369,50 @@ test("treats key as a regular ol' prop", async () => {
   const template = <div key="foo" />;
   expect(await render(template)).toBe('<div key="foo"></div>');
 });
+
+test("isJsxElement returns true for JSX elements", async () => {
+  const { isJsxElement } = await import("./public-types");
+
+  expect(isJsxElement(<div />)).toBe(true);
+  expect(isJsxElement(<span>hello</span>)).toBe(true);
+  expect(isJsxElement(<>fragment</>)).toBe(true);
+});
+
+test("isJsxElement returns false for null", async () => {
+  const { isJsxElement } = await import("./public-types");
+
+  expect(isJsxElement(null)).toBe(false);
+});
+
+test("isJsxElement returns false for primitives", async () => {
+  const { isJsxElement } = await import("./public-types");
+
+  expect(isJsxElement("string")).toBe(false);
+  expect(isJsxElement(42)).toBe(false);
+  expect(isJsxElement(true)).toBe(false);
+  expect(isJsxElement(false)).toBe(false);
+  expect(isJsxElement(undefined)).toBe(false);
+  expect(isJsxElement(42n)).toBe(false);
+});
+
+test("isJsxElement returns false for plain objects", async () => {
+  const { isJsxElement } = await import("./public-types");
+
+  expect(isJsxElement({})).toBe(false);
+  expect(isJsxElement({ foo: "bar" })).toBe(false);
+  expect(isJsxElement({ handle: () => {} })).toBe(false);
+});
+
+test("isJsxElement returns false for arrays", async () => {
+  const { isJsxElement } = await import("./public-types");
+
+  expect(isJsxElement([])).toBe(false);
+  expect(isJsxElement([1, 2, 3])).toBe(false);
+});
+
+test("isJsxElement returns false for functions", async () => {
+  const { isJsxElement } = await import("./public-types");
+
+  expect(isJsxElement(() => {})).toBe(false);
+  expect(isJsxElement(function () {})).toBe(false);
+});

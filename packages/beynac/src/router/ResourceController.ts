@@ -1,4 +1,4 @@
-import { Controller, type ControllerContext } from "../core/Controller";
+import { Controller, type ControllerContext, type ControllerReturn } from "../core/Controller";
 
 /**
  * The seven standard RESTful resource actions
@@ -36,7 +36,7 @@ export type ResourceAction = ApiResourceAction | "create" | "edit";
  * resource('/photos', PhotoController)
  */
 export abstract class ResourceController extends Controller {
-  handle(ctx: ControllerContext): Response | Promise<Response> {
+  handle(ctx: ControllerContext): ControllerReturn {
     const action = ctx.meta.action as ResourceAction;
     if (!action) {
       throw new Error(
@@ -46,31 +46,31 @@ export abstract class ResourceController extends Controller {
     return this[action](ctx);
   }
 
-  index(): Response | Promise<Response> {
+  index(): ControllerReturn {
     return new Response("Not Found", { status: 404 });
   }
 
-  create(_ctx: ControllerContext): Response | Promise<Response> {
+  create(_ctx: ControllerContext): ControllerReturn {
     return new Response("Not Found", { status: 404 });
   }
 
-  store(_ctx: ControllerContext): Response | Promise<Response> {
+  store(_ctx: ControllerContext): ControllerReturn {
     return new Response("Not Found", { status: 404 });
   }
 
-  show(_ctx: ControllerContext): Response | Promise<Response> {
+  show(_ctx: ControllerContext): ControllerReturn {
     return new Response("Not Found", { status: 404 });
   }
 
-  edit(_ctx: ControllerContext): Response | Promise<Response> {
+  edit(_ctx: ControllerContext): ControllerReturn {
     return new Response("Not Found", { status: 404 });
   }
 
-  update(_ctx: ControllerContext): Response | Promise<Response> {
+  update(_ctx: ControllerContext): ControllerReturn {
     return new Response("Not Found", { status: 404 });
   }
 
-  destroy(_ctx: ControllerContext): Response | Promise<Response> {
+  destroy(_ctx: ControllerContext): ControllerReturn {
     return new Response("Not Found", { status: 404 });
   }
 }

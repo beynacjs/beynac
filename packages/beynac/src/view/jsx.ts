@@ -2,6 +2,7 @@ import { BeynacError } from "../error";
 import { arrayWrap, describeType } from "../utils";
 import { MarkupStream } from "./markup-stream";
 import type { Component, JSX, JSXNode } from "./public-types";
+import { tagAsJsxElement } from "./public-types";
 
 type JSXFactory = (
   tag: string | Component,
@@ -27,16 +28,16 @@ export const jsx: JSXFactory = (
     } else if (tag.name) {
       displayName = tag.name;
     }
-    return new MarkupStream(null, null, (ctx) => tag(props ?? {}, ctx), displayName);
+    return tagAsJsxElement(
+      new MarkupStream(null, null, (ctx) => tag(props ?? {}, ctx), displayName),
+    );
   } else if (typeof tag === "string") {
     let children = null;
     if (props != null) {
       ({ children, ...props } = props);
     }
-    return new MarkupStream(
-      tag,
-      props,
-      children == null ? null : (arrayWrap(children) as JSXNode[]),
+    return tagAsJsxElement(
+      new MarkupStream(tag, props, children == null ? null : (arrayWrap(children) as JSXNode[])),
     );
   } else {
     throw new BeynacError(`Expected tag to be a string or component, got ${describeType(tag)}`);

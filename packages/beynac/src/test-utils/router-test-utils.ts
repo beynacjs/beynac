@@ -1,6 +1,6 @@
 import { Mock, mock } from "bun:test";
 import type { RequestContext } from "../contracts/RequestContext";
-import { Controller, ControllerContext } from "../core/Controller";
+import { Controller, ControllerContext, type ControllerReturn } from "../core/Controller";
 import type { Middleware } from "../core/Middleware";
 import { ResourceController } from "../router";
 import { ControllerFunction } from "../router/router-types";
@@ -51,7 +51,7 @@ export const mockController = (): ControllerFunction & {
   mock: MockController;
 } => {
   const mock = new MockController();
-  const controller = (ctx: ControllerContext): Response | Promise<Response> => mock.handle(ctx);
+  const controller = (ctx: ControllerContext): ControllerReturn => mock.handle(ctx);
   return Object.assign(controller, { mock });
 };
 
@@ -122,8 +122,8 @@ export const mockMiddleware: MockMiddlewareFunction = Object.assign(
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- ClassConstructor type is unknown from Function constructor
     ClassConstructor.prototype.handle = async function (
       ctx: ControllerContext,
-      next: (ctx: ControllerContext) => Response | Promise<Response>,
-    ): Promise<Response> {
+      next: (ctx: ControllerContext) => ControllerReturn,
+    ): Promise<ControllerReturn> {
       mockMiddleware.log.push(name);
       mockMiddleware.beforeAfterLog.push(`${name}:before`);
       const result = await next(ctx);

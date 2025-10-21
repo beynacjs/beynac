@@ -403,7 +403,7 @@ describe("in JSX", () => {
   const key = createKey<string>({ displayName: "key" });
   const SetKey: Component<PropsWithChildren<{ value: string }>> = ({ value, children }, ctx) => {
     ctx.set(key, value);
-    return children;
+    return <>{children}</>;
   };
 
   test("context is passed to function children", async () => {

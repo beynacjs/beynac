@@ -1,4 +1,4 @@
-import type { Controller, ControllerContext } from "../core/Controller";
+import type { Controller, ControllerContext, ControllerReturn } from "../core/Controller";
 import type { MiddlewareReference } from "../core/Middleware";
 import { NoArgConstructor } from "../utils";
 import type { MiddlewareSet } from "./MiddlewareSet";
@@ -139,7 +139,7 @@ export interface RouteGroupOptions<NamePrefix extends string = "", PathPrefix ex
   namePrefix?: NamePrefix;
 }
 
-export type ControllerFunction = (ctx: ControllerContext) => Response | Promise<Response>;
+export type ControllerFunction = (ctx: ControllerContext) => ControllerReturn;
 
 export type RouteHandler = NoArgConstructor<Controller> | ControllerFunction;
 

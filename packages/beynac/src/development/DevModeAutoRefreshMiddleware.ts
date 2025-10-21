@@ -2,6 +2,8 @@ import { inject } from "../container/inject";
 import { Configuration } from "../contracts/Configuration";
 import { ControllerContext, MiddlewareNext } from "../core/Controller";
 import type { Middleware } from "../core/Middleware";
+import { renderResponse } from "../view/markup-stream";
+import type { JSX } from "../view/public-types";
 
 export class DevModeAutoRefreshMiddleware implements Middleware {
   private reloadListeners = new Set<(reload: boolean) => void>();
@@ -27,12 +29,20 @@ export class DevModeAutoRefreshMiddleware implements Middleware {
       return this.#handleSSERequest();
     }
 
-    const response = await next(ctx);
+    const result = await next(ctx);
+    const response = await this.#convertToResponse(result);
     const contentType = response.headers.get("Content-Type");
     if (contentType?.includes("text/html")) {
       return this.#injectScript(response);
     }
     return response;
+  }
+
+  async #convertToResponse(result: Response | JSX.Element | null): Promise<Response> {
+    if (result instanceof Response) {
+      return result;
+    }
+    return renderResponse(result);
   }
 
   #handleSSERequest(): Response {

@@ -1,7 +1,9 @@
 import type { Configuration, Container } from "../contracts";
-import { Controller, ControllerContext } from "../core/Controller";
+import { Controller, ControllerContext, type ControllerReturn } from "../core/Controller";
 import type { MiddlewareReference } from "../core/Middleware";
 import { extendsClass } from "../utils";
+import { renderResponse } from "../view/markup-stream";
+import { isJsxElement, type JSX } from "../view/public-types";
 import { addRoute, createMatcher, findRoute, type MatcherContext } from "./matcher";
 import { throwOnMissingPropertyAccess } from "./params-access-checker";
 import type {
@@ -141,19 +143,60 @@ export class Router {
     };
 
     const finalHandler = async (ctx: ControllerContext): Promise<Response> => {
+      let result: ControllerReturn;
       if (extendsClass(route.handler, Controller)) {
         const controller = this.container.get(route.handler);
-        return controller.handle(ctx);
+        result = controller.handle(ctx);
       } else {
-        return route.handler(ctx);
+        // Check if handler is a class constructor that doesn't extend Controller
+        if (typeof route.handler === "function" && route.handler.toString().startsWith("class ")) {
+          throw new Error(
+            `Route handler ${route.handler.name} for ${route.path} is a class but does not extend Controller. ` +
+              `Class-based handlers must extend the Controller class.`,
+          );
+        }
+        result = route.handler(ctx);
       }
+
+      return this.#convertToResponse(route, await result);
     };
 
     const pipeline = route.middleware
       ? route.middleware.buildPipeline(this.container, finalHandler)
       : finalHandler;
 
-    return pipeline(ctx);
+    const pipelineResult = await pipeline(ctx);
+    return this.#convertToResponse(route, pipelineResult);
+  }
+
+  async #convertToResponse(
+    route: RouteDefinition,
+    result: Response | JSX.Element | null,
+  ): Promise<Response> {
+    if (result instanceof Response) {
+      return result;
+    }
+
+    if (result === null) {
+      return new Response();
+    }
+
+    if (isJsxElement(result)) {
+      return renderResponse(result);
+    }
+
+    const hasHandleMethod = typeof (result as Controller)?.handle !== "function";
+
+    if (hasHandleMethod) {
+      throw new Error(
+        `Route handler ${route.handler.name} for ${route.path} returned an object with a 'handle' method. This can happen if you have a controller that does not extend the Controller class.`,
+      );
+    }
+
+    throw new Error(
+      `Route handler ${route.handler.name} for ${route.path} returned an invalid value. Expected Response, JSX element, or null, ` +
+        `but got: ${Object.prototype.toString.call(result)}`,
+    );
   }
 }
 

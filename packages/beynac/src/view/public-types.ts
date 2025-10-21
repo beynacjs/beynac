@@ -22,8 +22,24 @@ export type JSXNode =
   | undefined
   | ((context: Context) => JSXNode | Promise<JSXNode>);
 
+export const JSXElementBrand: unique symbol = Symbol.for("beynac.jsx.element");
+
+export interface JSXElement {
+  readonly [JSXElementBrand]: true;
+}
+
+export function tagAsJsxElement<T>(value: T): T & JSXElement {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access -- setting runtime brand on arbitrary value
+  (value as any)[JSXElementBrand] = true;
+  return value as T & JSXElement;
+}
+
+export function isJsxElement(value: unknown): value is JSXElement {
+  return value != null && typeof value === "object" && JSXElementBrand in value;
+}
+
 export namespace JSX {
-  export type Element = JSXNode;
+  export type Element = JSXElement | object;
 
   export type Children = JSXNode;
 
@@ -42,7 +58,7 @@ export namespace JSX {
 export type Props = Record<string, any>;
 
 export type Component<P = Props> = {
-  (props: P, context: Context): JSX.Element | null;
+  (props: P, context: Context): JSX.Element | Promise<JSX.Element | null> | null;
   displayName?: string | undefined;
 };
 

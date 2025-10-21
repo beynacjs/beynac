@@ -1,5 +1,5 @@
 import type { NoArgConstructor } from "../utils";
-import type { ControllerContext } from "./Controller";
+import type { ControllerContext, ControllerReturn } from "./Controller";
 
 /**
  * Middleware interface for processing HTTP requests.
@@ -11,15 +11,12 @@ export interface Middleware {
    *
    * @param ctx - Controller context containing request and route parameters
    * @param next - Function to call the next middleware or final handler
-   * @returns Response or Promise resolving to the HTTP response
+   * @returns Response, JSX.Element, null, or Promise resolving to any of these
    */
   handle(
     ctx: ControllerContext,
-    next: (ctx: ControllerContext) => Response | Promise<Response>,
-  ): Response | Promise<Response>;
+    next: (ctx: ControllerContext) => ControllerReturn,
+  ): ControllerReturn;
 }
 
-/**
- * A middleware reference is a class constructor that will be instantiated via the container
- */
 export type MiddlewareReference = NoArgConstructor<Middleware>;
