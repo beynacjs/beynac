@@ -1,4 +1,4 @@
-import type { Controller, ControllerContext } from "../core/Controller";
+import { Controller, type ControllerContext } from "../core/Controller";
 
 /**
  * The seven standard RESTful resource actions
@@ -35,7 +35,7 @@ export type ResourceAction = ApiResourceAction | "create" | "edit";
  * // Register all resource routes at once
  * resource('/photos', PhotoController)
  */
-export abstract class ResourceController implements Controller {
+export abstract class ResourceController extends Controller {
   handle(ctx: ControllerContext): Response | Promise<Response> {
     const action = ctx.meta.action as ResourceAction;
     if (!action) {

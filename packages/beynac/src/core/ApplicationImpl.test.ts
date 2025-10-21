@@ -77,7 +77,7 @@ describe("ApplicationImpl", () => {
   });
 
   test("handles HTTP request through RouterV2", async () => {
-    class TestController implements Controller {
+    class TestController extends Controller {
       handle() {
         const testCookie = Cookies.get("c");
         const testHeader = Headers.get("h");
@@ -126,7 +126,7 @@ describe("ApplicationImpl", () => {
     // These tests are here to ensure that the router configuration is passed
     // through to the router instance. They are not intended to test the
     // functionality of the router itself.
-    class ControllerInvalidParam implements Controller {
+    class ControllerInvalidParam extends Controller {
       handle(ctx: ControllerContext) {
         return new Response(`ctx.params.nonExistent: ${ctx.params.nonExistent}`);
       }

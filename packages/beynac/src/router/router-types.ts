@@ -1,6 +1,6 @@
-import type { Controller } from "../core/Controller";
+import type { Controller, ControllerContext } from "../core/Controller";
 import type { MiddlewareReference } from "../core/Middleware";
-import type { NoArgConstructor } from "../utils";
+import { NoArgConstructor } from "../utils";
 import type { MiddlewareSet } from "./MiddlewareSet";
 import type { ApiResourceAction, ResourceAction } from "./ResourceController";
 
@@ -139,23 +139,9 @@ export interface RouteGroupOptions<NamePrefix extends string = "", PathPrefix ex
   namePrefix?: NamePrefix;
 }
 
-/**
- * A route handler can be either a Controller instance or a Controller class.
- * The router will automatically instantiate controller classes when needed.
- *
- * @example
- * // Using a controller class
- * get('/users', UsersController)
- *
- * @example
- * // Using an inline controller object
- * get('/health', {
- *   handle() {
- *     return new Response('OK');
- *   }
- * })
- */
-export type RouteHandler = Controller | NoArgConstructor<Controller>;
+export type ControllerFunction = (ctx: ControllerContext) => Response | Promise<Response>;
+
+export type RouteHandler = NoArgConstructor<Controller> | ControllerFunction;
 
 export type UrlFunction<Params extends Record<string, string>> = <N extends keyof Params & string>(
   name: N,

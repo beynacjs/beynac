@@ -1,6 +1,7 @@
 import type { Configuration, Container } from "../contracts";
-import { ControllerContext } from "../core/Controller";
+import { Controller, ControllerContext } from "../core/Controller";
 import type { MiddlewareReference } from "../core/Middleware";
+import { extendsClass } from "../utils";
 import { throwOnMissingPropertyAccess } from "./params-access-checker";
 import { Rou3RouteMatcher } from "./Rou3RouteMatcher";
 import type {
@@ -131,9 +132,12 @@ export class Router {
     };
 
     const finalHandler = async (ctx: ControllerContext): Promise<Response> => {
-      const handler =
-        typeof route.handler === "function" ? this.container.get(route.handler) : route.handler;
-      return handler.handle(ctx);
+      if (extendsClass(route.handler, Controller)) {
+        const controller = this.container.get(route.handler);
+        return controller.handle(ctx);
+      } else {
+        return route.handler(ctx);
+      }
     };
 
     const pipeline = route.middleware

@@ -38,16 +38,13 @@ export interface ControllerContext {
 export type MiddlewareNext = (ctx: ControllerContext) => Response | Promise<Response>;
 
 /**
- * Interface for route controllers.
- * Controllers handle HTTP requests and return responses.
+ * Base class for route controllers.
  */
-export interface Controller {
+export abstract class Controller {
   /**
    * Handle an HTTP request and return a response.
-   * This method is called by the framework when a route matches.
    *
-   * @param ctx - Controller context containing request and route parameters
-   * @returns Response object or Promise resolving to Response
+   * This method is called when a route matches.
    */
-  handle(ctx: ControllerContext): Response | Promise<Response>;
+  abstract handle(ctx: ControllerContext): Response | Promise<Response>;
 }

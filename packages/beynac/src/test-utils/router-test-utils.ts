@@ -3,6 +3,7 @@ import type { RequestContext } from "../contracts/RequestContext";
 import { Controller, ControllerContext } from "../core/Controller";
 import type { Middleware } from "../core/Middleware";
 import { ResourceController } from "../router";
+import { ControllerFunction } from "../router/router-types";
 
 export class MockController extends ResourceController {
   override handle: Mock<Controller["handle"]>;
@@ -45,6 +46,14 @@ export class MockController extends ResourceController {
     return calls[0][0];
   }
 }
+
+export const mockController = (): ControllerFunction & {
+  mock: MockController;
+} => {
+  const mock = new MockController();
+  const controller = (ctx: ControllerContext): Response | Promise<Response> => mock.handle(ctx);
+  return Object.assign(controller, { mock });
+};
 
 export const controllerContext = (
   request: Request = new Request("https://example.com/"),

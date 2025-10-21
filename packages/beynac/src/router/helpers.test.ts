@@ -40,17 +40,7 @@ test("allows child without domain when parent has domain", () => {
 });
 
 test("group without options parameter", () => {
-  const routes = group([
-    get(
-      "/dashboard/{page}",
-      {
-        handle() {
-          return new Response();
-        },
-      },
-      { name: "dashboard" },
-    ),
-  ]);
+  const routes = group([get("/dashboard/{page}", MockController, { name: "dashboard" })]);
 
   // Verify it creates a valid Routes object
   expect(routes).toHaveLength(1);
@@ -294,7 +284,7 @@ describe("meta field", () => {
   });
 
   test("resource routes have meta.action set", () => {
-    const routes = resource("/photos", ResourceController);
+    const routes = resource("/photos", MockController);
 
     const indexRoute = routes.find((r) => r.routeName === "photos.index");
     expect(indexRoute?.meta).toEqual({ action: "index" });
@@ -304,7 +294,7 @@ describe("meta field", () => {
   });
 
   test("resource routes can merge additional meta", () => {
-    const routes = resource("/photos", ResourceController, { meta: { auth: true } });
+    const routes = resource("/photos", MockController, { meta: { auth: true } });
 
     const indexRoute = routes.find((r) => r.routeName === "photos.index");
     expect(indexRoute?.meta).toEqual({ auth: true, action: "index" });

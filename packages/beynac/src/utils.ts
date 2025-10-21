@@ -166,3 +166,28 @@ export const plural = (word: string): string => word + "s";
 
 export const pluralCount = (count: number, word: string): string =>
   count + " " + (count === 1 ? word : plural(word));
+
+/**
+ * Check if a value is a class that extends a given base class.
+ *
+ * @param value - The value to check
+ * @param baseClass - The base class to check against
+ * @returns True if value is a class extending baseClass
+ */
+export function extendsClass<T>(
+  value: unknown,
+  baseClass: AnyConstructor<T>,
+): value is NoArgConstructor<T> {
+  if (typeof value !== "function") {
+    return false;
+  }
+
+  // Check if value is in the prototype chain
+  for (const proto of getPrototypeChain(value)) {
+    if (proto === baseClass) {
+      return true;
+    }
+  }
+
+  return false;
+}

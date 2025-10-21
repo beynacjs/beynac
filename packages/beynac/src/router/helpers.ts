@@ -1,9 +1,7 @@
-import type { Controller } from "../core/Controller";
-import type { NoArgConstructor } from "../utils";
+import type { ControllerContext } from "../core/Controller";
 import { arrayWrapOptional } from "../utils";
 import { MiddlewareSet } from "./MiddlewareSet";
 import type { ApiResourceAction, ResourceAction } from "./ResourceController";
-import { ResourceController } from "./ResourceController";
 import type {
   ExtractDomainAndPathParams,
   FilteredApiResourceRouteMap,
@@ -232,7 +230,7 @@ export function any<
 export function redirect(
   to: string,
   options?: { permanent?: boolean; preserveHttpMethod?: boolean },
-): Controller {
+): (ctx: ControllerContext) => Response {
   let status: number;
 
   if (options?.permanent) {
@@ -241,13 +239,11 @@ export function redirect(
     status = options?.preserveHttpMethod ? 307 : 303;
   }
 
-  return {
-    handle() {
-      return new Response(null, {
-        status,
-        headers: { Location: to },
-      });
-    },
+  return () => {
+    return new Response(null, {
+      status,
+      headers: { Location: to },
+    });
   };
 }
 
@@ -436,7 +432,7 @@ export function resource<
   const Except extends readonly ResourceAction[] | undefined = undefined,
 >(
   path: Path,
-  controller: NoArgConstructor<ResourceController>,
+  controller: RouteHandler,
   options?: ResourceOptions<ResourceName, Path, Only, Except>,
 ): Routes<FilteredResourceRouteMap<ResourceName, Only, Except>> {
   const { name: customName, only, except, ...routeOptions } = options ?? {};
@@ -512,7 +508,7 @@ export function apiResource<
   const Except extends readonly ApiResourceAction[] | undefined = undefined,
 >(
   path: Path,
-  controller: NoArgConstructor<ResourceController>,
+  controller: RouteHandler,
   options?: ResourceOptions<ResourceName, Path, Only, Except>,
 ): Routes<FilteredApiResourceRouteMap<ResourceName, Only, Except>> {
   const apiActions: readonly ApiResourceAction[] = ["index", "store", "show", "update", "destroy"];

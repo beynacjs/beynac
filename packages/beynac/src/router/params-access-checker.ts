@@ -1,8 +1,6 @@
 import { BeynacError } from "../error";
 
-export function throwOnMissingPropertyAccess<T extends Record<string, unknown>>(
-  params: T,
-): T {
+export function throwOnMissingPropertyAccess<T extends Record<string, unknown>>(params: T): T {
   return new Proxy(params, {
     get(target, prop, receiver) {
       if (!(prop in target)) {
