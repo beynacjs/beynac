@@ -1,4 +1,5 @@
 import type { Key } from "../keys";
+import type * as CSS from "../vendor/csstype";
 import type { IntrinsicElements as IntrinsicElementsDefined } from "./intrinsic-element-types";
 
 export type RenderOptions = {
@@ -66,5 +67,6 @@ export type PropsWithChildren<P = unknown> = P & {
   children?: JSX.Children | undefined;
 };
 
-// TODO get this from the csstype package
-export type CSSProperties = Record<string, unknown>;
+export type CSSProperties = CSS.Properties<(string & {}) | number> & {
+  [key: `--${string}`]: string | number;
+};

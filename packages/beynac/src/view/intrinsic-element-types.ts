@@ -7,8 +7,8 @@
  * Copyright (c) Meta Platforms, Inc. and affiliates.
  */
 
-import type * as CSS from "../vendor/csstype";
 import { ClassAttributeValue } from "./class-attribute";
+import { CSSProperties } from "./public-types";
 
 type BaseMime =
   | "audio/aac"
@@ -65,9 +65,6 @@ type BaseMime =
 type StringLiteralUnion<T> = T | (string & Record<never, never>);
 
 export type CrossOrigin = "anonymous" | "use-credentials" | "" | undefined;
-export type CSSProperties = CSS.Properties<(string & {}) | number> & {
-  [key: `--${string}`]: string | number;
-};
 
 type AnyAttributes = {
   [attributeName: string]: unknown;

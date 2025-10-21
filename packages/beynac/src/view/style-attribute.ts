@@ -1,4 +1,7 @@
 // No-unit CSS properties based on React's implementation
+
+import { CSSProperties } from "./public-types";
+
 // Source: https://github.com/facebook/react/blob/main/packages/react-dom-bindings/src/shared/isUnitlessNumber.js
 const noUnitProperties = new Set([
   "animationIterationCount",
@@ -73,8 +76,6 @@ const noUnitProperties = new Set([
   "WebkitFlexShrink",
   "WebkitLineClamp",
 ]);
-
-import type { CSSProperties } from "./intrinsic-element-types";
 
 /**
  * Converts a style object to a CSS string.
