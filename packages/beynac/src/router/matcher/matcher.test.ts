@@ -102,7 +102,9 @@ describe("Matcher lookup", function () {
     test("no ambiguity between domain and path segments", () => {
       const matcher = _createMatcher<{ path: string }>();
       addRoute(matcher, "GET", "/foo", { path: "example.com/foo" }, "example.com");
-      addRoute(matcher, "GET", "/example/com/foo", { path: "/example/com/foo" });
+      addRoute(matcher, "GET", "/example/com/foo", {
+        path: "/example/com/foo",
+      });
 
       // Domain route
       const match1 = findRoute(matcher, "GET", "/foo", "example.com");
@@ -677,8 +679,7 @@ function formatTree(
   prefix = "",
 ): string | string[] {
   result.push(
-    // prettier-ignore
-    `${prefix}${depth === 0 ? "" : "├── "}${node.key ? `/${node.key}` : (depth === 0 ? "<root>" : "<empty>")}${_formatMethods(node)}`,
+    `${prefix}${depth === 0 ? "" : "├── "}${node.key ? `/${node.key}` : depth === 0 ? "<root>" : "<empty>"}${_formatMethods(node)}`,
   );
 
   const childrenArray = [...Object.values(node.static || []), node.param, node.wildcard].filter(

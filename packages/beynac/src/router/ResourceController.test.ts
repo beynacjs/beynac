@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, expectTypeOf, test } from "bun:test";
-import { group, Routes } from ".";
 import { ContainerImpl } from "../container/ContainerImpl";
 import type { ControllerContext } from "../core/Controller";
 import { mockMiddleware } from "../test-utils";
+import { group, Routes } from ".";
 import { apiResource, resource } from "./helpers";
 import { ResourceController } from "./ResourceController";
-import { Router } from "./Router";
 import { RouteRegistry } from "./RouteRegistry";
+import { Router } from "./Router";
 
 beforeEach(() => {
   mockMiddleware.reset();

@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { join } from "node:path";
-import { PHP_FOLDER, analyzeFile, findPhpFiles } from "./port-utils.js";
+import { analyzeFile, findPhpFiles, PHP_FOLDER } from "./port-utils.js";
 
 async function main() {
   try {

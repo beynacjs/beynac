@@ -1,6 +1,6 @@
+import type { ContextualBindingBuilder } from "../container/ContextualBindingBuilder";
 import type { KeyOrClass, TypeToken } from "../container/container-key";
 import { createTypeToken } from "../container/container-key";
-import type { ContextualBindingBuilder } from "../container/ContextualBindingBuilder";
 import type { MethodNamesWithNoRequiredArgs, NoArgConstructor } from "../utils";
 
 /**

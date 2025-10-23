@@ -1,7 +1,7 @@
 /** @jsxRuntime automatic **/
 /** @jsxImportSource . **/
 import { describe, expectTypeOf, it } from "bun:test";
-import { type Key, createKey } from "./keys";
+import { createKey, type Key } from "./keys";
 
 describe("keys", () => {
   it("key() with no arguments infers Key<unknown>", () => {

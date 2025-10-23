@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 
-import { Glob } from "bun";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { parseFeaturesMarkdown, type Feature } from "./parse-features-md.js";
+import { Glob } from "bun";
+import { type Feature, parseFeaturesMarkdown } from "./parse-features-md.js";
 import { analyzeFile } from "./port-utils.js";
 
 interface FileInfo {

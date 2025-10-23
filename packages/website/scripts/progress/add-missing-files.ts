@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 
-import { Glob } from "bun";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { Glob } from "bun";
 
 async function main() {
   const laravelDir = join(import.meta.dir, "../../../../laravel");

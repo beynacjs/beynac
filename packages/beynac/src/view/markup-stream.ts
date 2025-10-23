@@ -1,6 +1,6 @@
 import type { HeadersInit } from "bun";
 import { arrayWrap, withoutUndefinedValues } from "../utils";
-import { classAttribute, type ClassAttributeValue } from "./class-attribute";
+import { type ClassAttributeValue, classAttribute } from "./class-attribute";
 import { ContextImpl } from "./context";
 import { isOnceNode, type OnceKey } from "./once";
 import type { Context, CSSProperties, JSXNode, RenderOptions } from "./public-types";

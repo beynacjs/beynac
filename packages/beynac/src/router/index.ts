@@ -1,19 +1,4 @@
 // Public types
-export type { ResourceAction } from "./ResourceController";
-export type {
-  ParamConstraint,
-  RouteGroupOptions,
-  RouteHandler,
-  RouteOptions,
-  Routes,
-} from "./router-types";
-
-// Router and registry
-export { Router } from "./Router";
-export { RouteRegistry } from "./RouteRegistry";
-
-// Controllers
-export { ResourceController } from "./ResourceController";
 
 // Helper functions and constraints
 export {
@@ -32,3 +17,16 @@ export {
   redirect,
   resource,
 } from "./helpers";
+export type { ResourceAction } from "./ResourceController";
+// Controllers
+export { ResourceController } from "./ResourceController";
+export { RouteRegistry } from "./RouteRegistry";
+// Router and registry
+export { Router } from "./Router";
+export type {
+  ParamConstraint,
+  RouteGroupOptions,
+  RouteHandler,
+  RouteOptions,
+  Routes,
+} from "./router-types";

@@ -2,15 +2,15 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import type { Container } from "../contracts/Container";
 import { BeynacError } from "../error";
 import {
+  type AnyConstructor,
   ArrayMultiMap,
   arrayWrap,
   getPrototypeChain,
-  SetMultiMap,
-  type AnyConstructor,
   type NoArgConstructor,
+  SetMultiMap,
 } from "../utils";
-import { getKeyName, type KeyOrClass, type TypeToken } from "./container-key";
 import { ContextualBindingBuilder } from "./ContextualBindingBuilder";
+import { getKeyName, type KeyOrClass, type TypeToken } from "./container-key";
 import { _getInjectHandler, _setInjectHandler } from "./inject";
 import { NO_VALUE, type NoValue } from "./no-value";
 

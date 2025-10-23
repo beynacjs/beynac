@@ -3,8 +3,6 @@ export { createApplication } from "./entry";
 
 // Export routing functions and types
 export {
-  RouteRegistry,
-  Router,
   any,
   delete_,
   get,
@@ -15,9 +13,11 @@ export {
   patch,
   post,
   put,
-  redirect,
   type RouteGroupOptions,
   type RouteHandler,
   type RouteOptions,
+  RouteRegistry,
+  Router,
   type Routes,
+  redirect,
 } from "./router";

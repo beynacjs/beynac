@@ -1,6 +1,6 @@
-import { Glob } from "bun";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { Glob } from "bun";
 
 export const DONE_MARKER = "// DONE";
 

@@ -14,13 +14,12 @@
     "check:projects": "bun run --filter='*' check",
     "check:tsc": "bun run --filter='*' check:tsc",
     "check:lint": "bun run --filter=* lint",
-    "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format": "biome check --write .",
+    "format:check": "biome check ."
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.2.7",
     "@types/bun": "1.2.21",
-    "bun-types": "1.2.21",
-    "prettier": "^3.4.2",
-    "prettier-plugin-organize-imports": "^4.3.0"
+    "bun-types": "1.2.21"
   }
 }

@@ -1,8 +1,8 @@
 import { inject } from "../container/inject";
 import type { Headers } from "../contracts/Headers";
 import {
-  RequestContext,
   type RequestContext as IRequestContext,
+  RequestContext,
 } from "../contracts/RequestContext";
 
 export class HeadersImpl implements Headers {

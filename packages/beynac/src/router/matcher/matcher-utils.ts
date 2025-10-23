@@ -2,7 +2,7 @@ import type { MatchedRoute, ParamsIndexMap } from "./types";
 
 export const NullProtoObj = (() => {
   const e = function () {};
-  return ((e.prototype = Object.create(null)), Object.freeze(e.prototype), e);
+  return (e.prototype = Object.create(null)), Object.freeze(e.prototype), e;
 })() as unknown as NullProtoObj;
 
 // oxlint-disable-next-line no-explicit-any -- required

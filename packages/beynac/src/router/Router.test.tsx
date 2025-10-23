@@ -1,11 +1,11 @@
 /** @jsxImportSource ../view */
 import { beforeEach, describe, expect, expectTypeOf, mock, spyOn, test } from "bun:test";
-import { createTypeToken } from "../container/container-key";
 import { ContainerImpl } from "../container/ContainerImpl";
+import { createTypeToken } from "../container/container-key";
 import { Container } from "../contracts";
-import { Controller, ControllerReturn, type ControllerContext } from "../core/Controller";
+import { Controller, type ControllerContext, ControllerReturn } from "../core/Controller";
 import type { Middleware } from "../core/Middleware";
-import { mockController, MockController, mockMiddleware } from "../test-utils";
+import { MockController, mockController, mockMiddleware } from "../test-utils";
 import { NoArgConstructor } from "../utils";
 import {
   any,
@@ -18,10 +18,10 @@ import {
   patch,
   post,
   put,
-  redirect,
-  Router,
   RouteRegistry,
+  Router,
   type Routes,
+  redirect,
 } from "./index";
 import { MiddlewareSet } from "./MiddlewareSet";
 

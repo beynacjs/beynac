@@ -2,8 +2,8 @@ import { describe, expect, expectTypeOf, test } from "bun:test";
 import { MockController } from "../test-utils";
 import { get, group, resource } from "./helpers";
 import { ResourceController } from "./ResourceController";
-import type { Routes } from "./router-types";
 import { RouteRegistry } from "./RouteRegistry";
+import type { Routes } from "./router-types";
 
 describe("route URL generation", () => {
   test("generates URL for named route without parameters", () => {

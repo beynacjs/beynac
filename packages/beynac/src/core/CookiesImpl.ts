@@ -2,8 +2,8 @@ import { inject } from "../container/inject";
 import type { Cookies } from "../contracts/Cookies";
 import type { CookieAttributes } from "../contracts/RequestContext";
 import {
-  RequestContext,
   type RequestContext as IRequestContext,
+  RequestContext,
 } from "../contracts/RequestContext";
 
 export class CookiesImpl implements Cookies {
