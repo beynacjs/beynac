@@ -7,6 +7,8 @@
   ],
   "scripts": {
     "test": "bun test",
+    "build": "bun run --filter='*' build",
+    "clean": "bun run --filter='*' clean",
     "check": "bun run check:test && bun run check:projects && bun run check:lint",
     "check:test": "bun test packages/*/src",
     "check:projects": "bun run --filter='*' check",
@@ -25,7 +27,6 @@
     "eslint-plugin-eslint-comments": "^3.2.0",
     "prettier": "^3.4.2",
     "prettier-plugin-organize-imports": "^4.3.0",
-    "typescript": "^5.8.3",
     "typescript-eslint": "^8.22.0"
   }
 }

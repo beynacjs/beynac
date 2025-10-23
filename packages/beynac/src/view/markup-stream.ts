@@ -1,4 +1,4 @@
-import { HeadersInit } from "bun";
+import type { HeadersInit } from "bun";
 import { arrayWrap, withoutUndefinedValues } from "../utils";
 import { classAttribute, type ClassAttributeValue } from "./class-attribute";
 import { ContextImpl } from "./context";

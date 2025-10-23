@@ -1,4 +1,4 @@
-export { Controller, ControllerContext, type ControllerReturn } from "./core/Controller";
+export { Controller, type ControllerContext, type ControllerReturn } from "./core/Controller";
 export { createApplication } from "./entry";
 
 // Export routing functions and types
