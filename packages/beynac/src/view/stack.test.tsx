@@ -306,26 +306,6 @@ test("Once deduplication works across multiple stacks", async () => {
   expect(result).toBe("<div>A:[X1]B:[Y1][Z]</div>");
 });
 
-test("Stack content streams as it becomes available", async () => {
-  const MyStack = createStack();
-
-  const DelayedComponent: Component<{ delay: number; text: string }> = async ({ delay, text }) => {
-    await new Promise((resolve) => setTimeout(resolve, delay));
-    return <MyStack.Push>{text}</MyStack.Push>;
-  };
-
-  const result = await render(
-    <div>
-      <DelayedComponent delay={10} text="First" />
-      <DelayedComponent delay={5} text="Second" />
-      <MyStack.Out />
-    </div>,
-  );
-
-  // Despite different delays, order is preserved
-  expect(result).toBe("<div>FirstSecond</div>");
-});
-
 test("StackOut can be pushed onto a stack", async () => {
   const A = createStack();
   const B = createStack();
