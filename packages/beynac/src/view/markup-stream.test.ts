@@ -938,7 +938,6 @@ describe("error handling", () => {
   test("handles non-Error thrown values", async () => {
     const stream = new MarkupStream("div", null, [
       () => {
-        // eslint-disable-next-line @typescript-eslint/only-throw-error -- testing non-Error thrown values
         throw "plain string error";
       },
     ]);

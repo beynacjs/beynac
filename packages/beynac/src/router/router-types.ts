@@ -220,7 +220,7 @@ export type PrependPrefixToKeys<
   [K in keyof Map as K extends string ? `${Prefix}${K}` : never]: Map[K];
 }>;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- `any` was the only way I could get type checking to work here
+// oxlint-disable-next-line no-explicit-any -- `any` was the only way I could get type checking to work here
 export type GroupChildren = readonly Routes<any>[];
 
 export type GroupedRoutes<

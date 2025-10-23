@@ -3,7 +3,10 @@ import type { MatchedRoute, ParamsIndexMap } from "./types";
 export const NullProtoObj = (() => {
   const e = function () {};
   return ((e.prototype = Object.create(null)), Object.freeze(e.prototype), e);
-})() as unknown as { new (): any };
+})() as unknown as NullProtoObj;
+
+// oxlint-disable-next-line no-explicit-any -- required
+type NullProtoObj = { new (): any };
 
 export function domainAndPathToSegments(domain: string | undefined, path: string): string[] {
   const [_, ...s] = path.split("/");

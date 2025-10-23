@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": ["**/node_modules/**", "**/dist/**", "src/vendor/**", "**/.snapshot/**"],
+  "rules": {
+    "typescript/no-base-to-string": "off",
+    "typescript/no-for-in-array": "error",
+    "typescript/no-explicit-any": "error",
+    "no-eval": "off"
+  },
+  "overrides": [
+    {
+      "files": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.test.mts"],
+      "rules": {
+        "typescript/no-explicit-any": "off"
+      }
+    }
+  ]
+}

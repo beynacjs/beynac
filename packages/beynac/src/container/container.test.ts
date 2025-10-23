@@ -1537,7 +1537,7 @@ describe("Container extend", () => {
       lifecycle: "singleton",
     });
     container.extend(deepAliasKey, (value) => {
-      return `${value} extended`;
+      return `${String(value)} extended`;
     });
     container.alias({ from: aliasKey, to: somethingKey });
     container.alias({ from: deepAliasKey, to: aliasKey });

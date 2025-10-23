@@ -30,7 +30,7 @@ export interface JSXElement {
 }
 
 export function tagAsJsxElement<T>(value: T): T & JSXElement {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access -- setting runtime brand on arbitrary value
+  // oxlint-disable-next-line no-explicit-any -- setting runtime brand on arbitrary value
   (value as any)[JSXElementBrand] = true;
   return value as T & JSXElement;
 }
@@ -55,7 +55,7 @@ export namespace JSX {
   export interface IntrinsicAttributes {}
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- we follow react in using any here
+// oxlint-disable-next-line no-explicit-any -- we follow react in using any here
 export type Props = Record<string, any>;
 
 export type Component<P = Props> = {

@@ -56,13 +56,11 @@ describe("throwOnMissingPropertyAccess", () => {
     const wrapped = throwOnMissingPropertyAccess(plain);
 
     const plainKeys: string[] = [];
-    // eslint-disable-next-line no-restricted-syntax -- Testing for...in compatibility
     for (const key in plain) {
       plainKeys.push(key);
     }
 
     const wrappedKeys: string[] = [];
-    // eslint-disable-next-line no-restricted-syntax -- Testing for...in compatibility
     for (const key in wrapped) {
       wrappedKeys.push(key);
     }

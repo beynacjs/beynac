@@ -5,6 +5,7 @@ import { pluralCount } from "../utils";
 import { DevModeAutoRefreshMiddleware } from "./DevModeAutoRefreshMiddleware";
 
 declare global {
+  // oxlint-disable-next-line no-var -- var declaration required for mutable global variable
   var __beynacWatchService: DevModeWatchService | undefined;
 }
 

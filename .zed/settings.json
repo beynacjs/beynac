@@ -1,0 +1,19 @@
+{
+  "lsp": {
+    "eslint": {
+      "settings": {
+        "enable": false
+      }
+    },
+    "oxc": {
+      "initialization_options": {
+        "options": {
+          "run": "onType",
+          "typeAware": true,
+          "tsConfigPath": "packages/beynac/tsconfig.json",
+          "configPath": "packages/beynac/.oxlintrc.json"
+        }
+      }
+    }
+  }
+}

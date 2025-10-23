@@ -176,7 +176,7 @@ export class DevModeAutoRefreshMiddleware implements Middleware {
   eventSource.onerror = function() {
     console.log('[Beynac] Dev mode connection lost, reconnecting...');
   };
-  
+
 })();
 </script>`;
   }

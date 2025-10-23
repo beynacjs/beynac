@@ -48,7 +48,7 @@ export interface ControllerContext {
    * Metadata associated with the route. This can contain any additional
    * data passed via the route definition's meta field.
    */
-  meta: Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- deliberate choice of public api
+  meta: Record<string, any>; // oxlint-disable-line no-explicit-any -- deliberate choice of public api
 }
 
 export type MiddlewareNext = (ctx: ControllerContext) => ControllerReturn;

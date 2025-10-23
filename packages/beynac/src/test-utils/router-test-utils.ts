@@ -109,17 +109,15 @@ export const mockMiddleware: MockMiddlewareFunction = Object.assign(
     }
 
     // Create a function that returns a class with the dynamic name.
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval -- Function constructor needed for dynamic class names
+    // oxlint-disable-next-line no-implied-eval -- Function constructor needed for dynamic class names
     const createClass = new Function(`
       return class ${name} {}
     `);
 
     // Call the function to get the class
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call -- Function constructor returns untyped value
     const ClassConstructor = createClass();
 
     // Add the handle method to the prototype
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- ClassConstructor type is unknown from Function constructor
     ClassConstructor.prototype.handle = async function (
       ctx: ControllerContext,
       next: (ctx: ControllerContext) => ControllerReturn,

@@ -72,7 +72,6 @@ export type RenderResponseOptions = {
  * return await renderResponse(<div>Hello World</div>, { status: 200 });
  * ```
  */
-// eslint-disable-next-line @typescript-eslint/require-await -- API is async for future-proof-ness, doesn't actually need it right now
 export async function renderResponse(
   content: JSXNode,
   { mode, context, headers, status, statusText }: RenderResponseOptions = {},

@@ -693,7 +693,7 @@ interface ThHTMLAttributes extends HTMLAttributes {
   colspan?: number | undefined;
   headers?: string | undefined;
   rowspan?: number | undefined;
-  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents -- vendored code
+  // oxlint-disable-next-line no-redundant-type-constituents -- vendored code
   scope?: "row" | "col" | "rowgroup" | "colgroup" | string | undefined;
   abbr?: string | undefined;
 }

@@ -17,7 +17,7 @@ export function findRoute<T = unknown>(
   // Try domain-specific route first if hostname provided
   if (hostname) {
     const segments = domainAndPathToSegments(hostname, path);
-    const match = _lookupTree<T>(ctx, ctx.root, method, segments, 0)?.[0];
+    const match = _lookupTree<T>(ctx.root, method, segments, 0)?.[0];
 
     if (match !== undefined) {
       return {
@@ -39,7 +39,7 @@ export function findRoute<T = unknown>(
 
   // Lookup tree
   const segments = domainAndPathToSegments(undefined, path);
-  const match = _lookupTree<T>(ctx, ctx.root, method, segments, 0)?.[0];
+  const match = _lookupTree<T>(ctx.root, method, segments, 0)?.[0];
 
   if (match === undefined) {
     return;
@@ -52,7 +52,6 @@ export function findRoute<T = unknown>(
 }
 
 function _lookupTree<T>(
-  ctx: MatcherContext<T>,
   node: Node<T>,
   method: string,
   segments: string[],
@@ -94,7 +93,7 @@ function _lookupTree<T>(
   if (node.static) {
     const staticChild = node.static[segment];
     if (staticChild) {
-      const match = _lookupTree(ctx, staticChild, method, segments, index + 1);
+      const match = _lookupTree(staticChild, method, segments, index + 1);
       if (match) {
         return match;
       }
@@ -103,7 +102,7 @@ function _lookupTree<T>(
 
   // 2. Param
   if (node.param) {
-    const match = _lookupTree(ctx, node.param, method, segments, index + 1);
+    const match = _lookupTree(node.param, method, segments, index + 1);
     if (match) {
       if (node.param.hasRegexParam) {
         const exactMatch =
