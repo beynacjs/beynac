@@ -1,8 +1,8 @@
 import { Mock, mock } from "bun:test";
 import type { RequestContext } from "../contracts/RequestContext";
-import { Controller, ControllerContext, type ControllerReturn } from "../core/Controller";
-import type { Middleware } from "../core/Middleware";
 import { ResourceController } from "../router";
+import { Controller, ControllerContext, type ControllerReturn } from "../router/Controller";
+import type { Middleware } from "../router/Middleware";
 import { ControllerFunction } from "../router/router-types";
 
 export class MockController extends ResourceController {

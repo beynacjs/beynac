@@ -4,9 +4,9 @@ import { RequestContext } from "../contracts/RequestContext";
 import { createApplication } from "../entry";
 import { Cookies, Headers } from "../facades";
 import { get, group } from "../router";
+import { Controller, ControllerContext } from "../router/Controller";
 import { MockController, mockMiddleware, requestContext } from "../test-utils";
 import { ApplicationImpl } from "./ApplicationImpl";
-import { Controller, ControllerContext } from "./Controller";
 import { DispatcherImpl } from "./DispatcherImpl";
 import { setFacadeApplication } from "./facade";
 

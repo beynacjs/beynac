@@ -1,7 +1,8 @@
-import type { ControllerContext } from "../core/Controller";
 import { arrayWrapOptional } from "../utils";
+import type { ControllerContext } from "./Controller";
 import { MiddlewareSet } from "./MiddlewareSet";
 import type { ApiResourceAction, ResourceAction } from "./ResourceController";
+import { redirectStatus } from "./redirect";
 import type {
   ExtractDomainAndPathParams,
   FilteredApiResourceRouteMap,
@@ -200,19 +201,17 @@ export function any<
 }
 
 /**
- * Create a redirect controller.
- *
- * This results in the appropriate HTTP status code being sent, 303,
+ * Create a controller that responds with an HTTP redirect.
  *
  * @param to - The URL to redirect to
  * @param options.permanent - If true, Make a permanent redirect that instructs search engines to update their index to the new URL (default: false)
  * @param options.preserveHttpMethod - If true, preserves HTTP method so POST requests will result in a POST request to the new URL (default: false)
  *
  * Status codes used:
- * - 303 See Other: Temporary, changes to GET (default)
- * - 307 Temporary Redirect: Temporary, preserves method
- * - 301 Moved Permanently: Permanent, changes to GET
- * - 308 Permanent Redirect: Permanent, preserves method
+ * - 303 Temporary redirect, changes to GET method
+ * - 307 Temporary redirect, preserves method
+ * - 301 Permanent redirect, changes to GET
+ * - 308 Permanent redirect, preserves method
  *
  * @example
  * // Basic redirect - changes to GET
@@ -231,13 +230,7 @@ export function redirect(
   to: string,
   options?: { permanent?: boolean; preserveHttpMethod?: boolean },
 ): (ctx: ControllerContext) => Response {
-  let status: number;
-
-  if (options?.permanent) {
-    status = options?.preserveHttpMethod ? 308 : 301;
-  } else {
-    status = options?.preserveHttpMethod ? 307 : 303;
-  }
+  const status = redirectStatus(options);
 
   return () => {
     return new Response(null, {

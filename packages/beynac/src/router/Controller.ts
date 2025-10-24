@@ -51,8 +51,6 @@ export interface ControllerContext {
   meta: Record<string, any>; // oxlint-disable-line no-explicit-any -- deliberate choice of public api
 }
 
-export type MiddlewareNext = (ctx: ControllerContext) => ControllerReturn;
-
 /**
  * Base class for route controllers.
  */

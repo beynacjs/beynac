@@ -1,6 +1,6 @@
-import type { Controller, ControllerContext, ControllerReturn } from "../core/Controller";
-import type { MiddlewareReference } from "../core/Middleware";
 import { NoArgConstructor } from "../utils";
+import type { Controller, ControllerContext, ControllerReturn } from "./Controller";
+import type { MiddlewareReference } from "./Middleware";
 import type { MiddlewareSet } from "./MiddlewareSet";
 import type { ApiResourceAction, ResourceAction } from "./ResourceController";
 

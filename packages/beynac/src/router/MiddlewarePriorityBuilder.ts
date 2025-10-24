@@ -1,5 +1,5 @@
-import type { MiddlewareReference } from "../core/Middleware";
 import { BeynacError } from "../error";
+import type { MiddlewareReference } from "./Middleware";
 
 export class MiddlewarePriorityBuilder {
   #list: MiddlewareReference[];

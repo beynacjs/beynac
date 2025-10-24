@@ -17,6 +17,11 @@ export {
   redirect,
   resource,
 } from "./helpers";
+export type {
+  Middleware,
+  MiddlewareNext,
+  MiddlewareReference,
+} from "./Middleware";
 export type { ResourceAction } from "./ResourceController";
 // Controllers
 export { ResourceController } from "./ResourceController";

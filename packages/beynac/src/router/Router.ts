@@ -1,9 +1,10 @@
 import type { Configuration, Container } from "../contracts";
-import { Controller, ControllerContext, type ControllerReturn } from "../core/Controller";
-import type { MiddlewareReference } from "../core/Middleware";
 import { extendsClass } from "../utils";
 import { renderResponse } from "../view/markup-stream";
 import { isJsxElement, type JSX } from "../view/public-types";
+import { HttpException, HttpResponseException } from "./abort";
+import { Controller, ControllerContext, type ControllerReturn } from "./Controller";
+import type { MiddlewareReference } from "./Middleware";
 import { addRoute, createMatcher, findRoute, type MatcherContext } from "./matcher";
 import { throwOnMissingPropertyAccess } from "./params-access-checker";
 import type {
@@ -165,8 +166,26 @@ export class Router {
       ? route.middleware.buildPipeline(this.container, finalHandler)
       : finalHandler;
 
-    const pipelineResult = await pipeline(ctx);
-    return this.#convertToResponse(route, pipelineResult);
+    try {
+      const pipelineResult = await pipeline(ctx);
+      return this.#convertToResponse(route, pipelineResult);
+    } catch (error) {
+      // Handle HttpResponseException - return the wrapped response
+      if (error instanceof HttpResponseException) {
+        return error.response;
+      }
+
+      // Handle HttpException - convert to HTTP response
+      if (error instanceof HttpException) {
+        return new Response(error.message, {
+          status: error.status,
+          headers: error.headers,
+        });
+      }
+
+      // Re-throw any other errors
+      throw error;
+    }
   }
 
   async #convertToResponse(

@@ -3,10 +3,9 @@ import { beforeEach, describe, expect, expectTypeOf, mock, spyOn, test } from "b
 import { ContainerImpl } from "../container/ContainerImpl";
 import { createTypeToken } from "../container/container-key";
 import { Container } from "../contracts";
-import { Controller, type ControllerContext, ControllerReturn } from "../core/Controller";
-import type { Middleware } from "../core/Middleware";
 import { MockController, mockController, mockMiddleware } from "../test-utils";
 import { NoArgConstructor } from "../utils";
+import { Controller, type ControllerContext, ControllerReturn } from "./Controller";
 import {
   any,
   delete_,
@@ -23,6 +22,7 @@ import {
   type Routes,
   redirect,
 } from "./index";
+import type { Middleware } from "./Middleware";
 import { MiddlewareSet } from "./MiddlewareSet";
 
 let container: Container;

@@ -1,7 +1,7 @@
 import { inject } from "../container/inject";
 import { Configuration } from "../contracts/Configuration";
-import { ControllerContext, MiddlewareNext } from "../core/Controller";
-import type { Middleware } from "../core/Middleware";
+import { ControllerContext } from "../router/Controller";
+import type { Middleware, MiddlewareNext } from "../router/Middleware";
 import { renderResponse } from "../view/markup-stream";
 import type { JSX } from "../view/public-types";
 

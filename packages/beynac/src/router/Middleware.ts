@@ -13,10 +13,9 @@ export interface Middleware {
    * @param next - Function to call the next middleware or final handler
    * @returns Response, JSX.Element, null, or Promise resolving to any of these
    */
-  handle(
-    ctx: ControllerContext,
-    next: (ctx: ControllerContext) => ControllerReturn,
-  ): ControllerReturn;
+  handle(ctx: ControllerContext, next: MiddlewareNext): ControllerReturn;
 }
+
+export type MiddlewareNext = (ctx: ControllerContext) => ControllerReturn;
 
 export type MiddlewareReference = NoArgConstructor<Middleware>;

@@ -2,12 +2,7 @@ import { arrayWrap, withoutUndefinedValues } from "../utils";
 import { type ClassAttributeValue, classAttribute } from "./class-attribute";
 import { ContextImpl } from "./context";
 import { isOnceNode, type OnceKey } from "./once";
-import type {
-  Context,
-  CSSProperties,
-  JSXNode,
-  RenderOptions,
-} from "./public-types";
+import type { Context, CSSProperties, JSXNode, RenderOptions } from "./public-types";
 import { RawContent } from "./raw";
 import { isSpecialNode } from "./special-node";
 import { isStackOutNode, isStackPushNode } from "./stack";
@@ -50,10 +45,7 @@ export class MarkupStream {
  * console.log(html); // "<div>Hello World</div>"
  * ```
  */
-export async function render(
-  content: JSXNode,
-  options?: RenderOptions,
-): Promise<string> {
+export async function render(content: JSXNode, options?: RenderOptions): Promise<string> {
   let result = "";
   for await (const chunk of renderStream(content, options)) {
     result += chunk;
@@ -90,9 +82,7 @@ export async function renderResponse(
   if (!headers.has("content-type")) {
     headers.set(
       "content-type",
-      mode === "xml"
-        ? "application/xml; charset=utf-8"
-        : "text/html; charset=utf-8",
+      mode === "xml" ? "application/xml; charset=utf-8" : "text/html; charset=utf-8",
     );
   }
 
@@ -109,10 +99,7 @@ export async function renderResponse(
     },
   });
 
-  return new Response(
-    stream,
-    withoutUndefinedValues({ headers, status, statusText }),
-  );
+  return new Response(stream, withoutUndefinedValues({ headers, status, statusText }));
 }
 
 /**
@@ -151,10 +138,7 @@ export function renderStream(
   }
   const componentStack: ComponentStack | null = null;
   const onceKeys = new Set<OnceKey>(); // Track used Once keys
-  const preExecuteResults = new Map<
-    unknown,
-    { result: JSXNode; context: ContextImpl }
-  >(); // Cache function execution results with context
+  const preExecuteResults = new Map<unknown, { result: JSXNode; context: ContextImpl }>(); // Cache function execution results with context
   const preExecuteInProgress = new Map<unknown, Promise<unknown>>(); // Track functions currently being pre-executed
 
   // Pre-execution rapidly visits the tree in parallel executing functions and
@@ -212,9 +196,7 @@ export function renderStream(
             // For async functions, mark the function as in-progress and cache result when done
             const completionPromise = result.then(
               (resolved) => {
-                const contextToUse = childContext.wasModified()
-                  ? childContext
-                  : context;
+                const contextToUse = childContext.wasModified() ? childContext : context;
                 // Store the original promise as result, but use context determined after resolution
                 preExecuteResults.set(node, { result, context: contextToUse });
                 preExecuteInProgress.delete(node); // Remove from in-progress
@@ -228,9 +210,7 @@ export function renderStream(
             preExecuteInProgress.set(node, completionPromise);
           } else {
             // For sync functions, cache immediately
-            const contextToUse = childContext.wasModified()
-              ? childContext
-              : context;
+            const contextToUse = childContext.wasModified() ? childContext : context;
             preExecuteResults.set(node, { result, context: contextToUse });
             startPreExecution(result, contextToUse);
           }
@@ -353,11 +333,7 @@ export function renderStream(
                 const resolved = (await result) as JSXNode;
                 await renderNode(resolved, contextToUse, stack);
               } catch (error) {
-                throw new RenderingError(
-                  "content-function-promise-rejection",
-                  stack,
-                  error,
-                );
+                throw new RenderingError("content-function-promise-rejection", stack, error);
               }
             } else {
               await renderNode(result, contextToUse, stack);
@@ -372,22 +348,14 @@ export function renderStream(
               try {
                 const resolved = (await result) as JSXNode;
                 // Check wasModified after promise resolves for async functions
-                contextToUse = childContext.wasModified()
-                  ? childContext
-                  : context;
+                contextToUse = childContext.wasModified() ? childContext : context;
                 await renderNode(resolved, contextToUse, stack);
               } catch (error) {
-                throw new RenderingError(
-                  "content-function-promise-rejection",
-                  stack,
-                  error,
-                );
+                throw new RenderingError("content-function-promise-rejection", stack, error);
               }
             } else {
               // For sync functions, check wasModified immediately
-              contextToUse = childContext.wasModified()
-                ? childContext
-                : context;
+              contextToUse = childContext.wasModified() ? childContext : context;
               await renderNode(result, contextToUse, stack);
             }
           }
@@ -490,9 +458,7 @@ export function renderStream(
             throw new RenderingError(
               "attribute-type-error",
               stack,
-              new Error(
-                `Attribute "${key}" has an invalid value type: ${valueType}`,
-              ),
+              new Error(`Attribute "${key}" has an invalid value type: ${valueType}`),
             );
           }
 
@@ -501,10 +467,7 @@ export function renderStream(
           if (key === "style" && typeof value === "object" && value) {
             stringValue = styleObjectToString(value as CSSProperties);
             if (!stringValue) continue;
-          } else if (
-            key === "class" &&
-            (typeof value === "object" || Array.isArray(value))
-          ) {
+          } else if (key === "class" && (typeof value === "object" || Array.isArray(value))) {
             stringValue = classAttribute(value as ClassAttributeValue);
             if (!stringValue) continue;
           } else {
@@ -550,8 +513,7 @@ const HTML_ESCAPE: Record<string, string> = {
   '"': "&quot;",
 };
 
-const escapeHtml = (str: string) =>
-  str.replace(/[&<>"]/g, (ch) => HTML_ESCAPE[ch]);
+const escapeHtml = (str: string) => str.replace(/[&<>"]/g, (ch) => HTML_ESCAPE[ch]);
 
 const emptyTags = new Set([
   "area",
@@ -624,11 +586,7 @@ export class RenderingError extends Error {
   readonly errorKind: ErrorKind;
   readonly componentStack: string[];
 
-  constructor(
-    errorKind: ErrorKind,
-    componentStack: ComponentStack | null,
-    cause: unknown,
-  ) {
+  constructor(errorKind: ErrorKind, componentStack: ComponentStack | null, cause: unknown) {
     const errorDetail = cause instanceof Error ? cause.message : String(cause);
 
     // Convert linked list to array for public API

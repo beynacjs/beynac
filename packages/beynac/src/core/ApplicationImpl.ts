@@ -5,12 +5,12 @@ import { Application } from "../contracts/Application";
 import { Configuration } from "../contracts/Configuration";
 import { type Dispatcher, Dispatcher as DispatcherKey } from "../contracts/Dispatcher";
 import { RequestContext } from "../contracts/RequestContext";
-import type { MiddlewareReference } from "../core/Middleware";
 import { DevModeAutoRefreshMiddleware } from "../development/DevModeAutoRefreshMiddleware";
 import { DevModeWatchService } from "../development/DevModeWatchService";
 import { BeynacError } from "../error";
 import { group, RouteRegistry, Router } from "../router";
 import { DEFAULT_MIDDLEWARE_PRIORITY } from "../router/default-middleware-priority";
+import type { MiddlewareReference } from "../router/Middleware";
 import { MiddlewarePriorityBuilder } from "../router/MiddlewarePriorityBuilder";
 import { UrlFunction } from "../router/router-types";
 import { CookiesImpl } from "./CookiesImpl";
@@ -94,7 +94,10 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
       throw new BeynacError("Can't start a new request scope, we're already handling a request.");
     }
     return this.container.withScope(() => {
-      this.container.bind(RequestContext, { lifecycle: "scoped", factory: () => context });
+      this.container.bind(RequestContext, {
+        lifecycle: "scoped",
+        factory: () => context,
+      });
       return callback();
     });
   }

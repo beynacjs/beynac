@@ -1,4 +1,4 @@
-import type { MiddlewareReference } from "../core/Middleware";
+import type { MiddlewareReference } from "./Middleware";
 
 /**
  * Default middleware execution priority order.

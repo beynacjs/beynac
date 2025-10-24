@@ -684,7 +684,9 @@ function formatTree(
 
   const childrenArray = [...Object.values(node.static || []), node.param, node.wildcard].filter(
     Boolean,
-  ) as Node<{ path?: string }>[];
+  ) as Node<{
+    path?: string;
+  }>[];
   for (const [index, child] of childrenArray.entries()) {
     const lastChild = index === childrenArray.length - 1;
     formatTree(

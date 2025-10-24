@@ -1,4 +1,4 @@
-import { Controller, type ControllerContext, type ControllerReturn } from "../core/Controller";
+import { Controller, type ControllerContext, type ControllerReturn } from "./Controller";
 
 /**
  * The seven standard RESTful resource actions

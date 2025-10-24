@@ -1,7 +1,6 @@
 import type { Container } from "../contracts";
-import type { MiddlewareNext } from "../core/Controller";
-import type { MiddlewareReference } from "../core/Middleware";
 import { arrayWrapOptional } from "../utils";
+import type { MiddlewareNext, MiddlewareReference } from "./Middleware";
 
 export class MiddlewareSet {
   #middleware: Set<MiddlewareReference>;
