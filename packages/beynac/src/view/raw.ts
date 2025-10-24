@@ -1,20 +1,20 @@
 import { SPECIAL_NODE } from "./special-node";
 
 export class RawContent {
-  #content: string;
+	#content: string;
 
-  constructor(content: string) {
-    this.#content = content;
-    Object.assign(this, { [SPECIAL_NODE]: true });
-  }
+	constructor(content: string) {
+		this.#content = content;
+		Object.assign(this, { [SPECIAL_NODE]: true });
+	}
 
-  toString(): string {
-    return this.#content;
-  }
+	toString(): string {
+		return this.#content;
+	}
 
-  [Symbol.toPrimitive](): string {
-    return this.#content;
-  }
+	[Symbol.toPrimitive](): string {
+		return this.#content;
+	}
 }
 
 /**
@@ -27,5 +27,5 @@ export class RawContent {
  * <div>{renderMarkdownToHtml(markdown)}</div>
  */
 export function raw(content: string): RawContent {
-  return new RawContent(content);
+	return new RawContent(content);
 }

@@ -36,41 +36,41 @@ export type ResourceAction = ApiResourceAction | "create" | "edit";
  * resource('/photos', PhotoController)
  */
 export abstract class ResourceController extends Controller {
-  handle(ctx: ControllerContext): ControllerReturn {
-    const action = ctx.meta.action as ResourceAction;
-    if (!action) {
-      throw new Error(
-        `[ResourceController] meta.action not set, this probably means that you're using ResourceController outside of a resource(...) or apiResource(...) route`,
-      );
-    }
-    return this[action](ctx);
-  }
+	handle(ctx: ControllerContext): ControllerReturn {
+		const action = ctx.meta.action as ResourceAction;
+		if (!action) {
+			throw new Error(
+				`[ResourceController] meta.action not set, this probably means that you're using ResourceController outside of a resource(...) or apiResource(...) route`,
+			);
+		}
+		return this[action](ctx);
+	}
 
-  index(): ControllerReturn {
-    return new Response("Not Found", { status: 404 });
-  }
+	index(): ControllerReturn {
+		return new Response("Not Found", { status: 404 });
+	}
 
-  create(_ctx: ControllerContext): ControllerReturn {
-    return new Response("Not Found", { status: 404 });
-  }
+	create(_ctx: ControllerContext): ControllerReturn {
+		return new Response("Not Found", { status: 404 });
+	}
 
-  store(_ctx: ControllerContext): ControllerReturn {
-    return new Response("Not Found", { status: 404 });
-  }
+	store(_ctx: ControllerContext): ControllerReturn {
+		return new Response("Not Found", { status: 404 });
+	}
 
-  show(_ctx: ControllerContext): ControllerReturn {
-    return new Response("Not Found", { status: 404 });
-  }
+	show(_ctx: ControllerContext): ControllerReturn {
+		return new Response("Not Found", { status: 404 });
+	}
 
-  edit(_ctx: ControllerContext): ControllerReturn {
-    return new Response("Not Found", { status: 404 });
-  }
+	edit(_ctx: ControllerContext): ControllerReturn {
+		return new Response("Not Found", { status: 404 });
+	}
 
-  update(_ctx: ControllerContext): ControllerReturn {
-    return new Response("Not Found", { status: 404 });
-  }
+	update(_ctx: ControllerContext): ControllerReturn {
+		return new Response("Not Found", { status: 404 });
+	}
 
-  destroy(_ctx: ControllerContext): ControllerReturn {
-    return new Response("Not Found", { status: 404 });
-  }
+	destroy(_ctx: ControllerContext): ControllerReturn {
+		return new Response("Not Found", { status: 404 });
+	}
 }

@@ -4,8 +4,8 @@ import { tagAsJsxElement } from "./public-types";
 import { RawContent } from "./raw";
 
 type CacheProps = PropsWithChildren<{
-  map: Map<string, string>;
-  key: string;
+	map: Map<string, string>;
+	key: string;
 }>;
 
 /**
@@ -24,14 +24,14 @@ type CacheProps = PropsWithChildren<{
  * ```
  */
 export const Cache: Component<CacheProps> = async ({ map, key, children }, context) => {
-  const cached = map.get(key);
-  if (cached != null) {
-    return tagAsJsxElement(new RawContent(cached));
-  }
+	const cached = map.get(key);
+	if (cached != null) {
+		return tagAsJsxElement(new RawContent(cached));
+	}
 
-  const rendered = await render(children, { context });
-  map.set(key, rendered);
+	const rendered = await render(children, { context });
+	map.set(key, rendered);
 
-  return tagAsJsxElement(new RawContent(rendered));
+	return tagAsJsxElement(new RawContent(rendered));
 };
 Cache.displayName = "Cache";

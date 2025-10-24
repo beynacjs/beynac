@@ -6,80 +6,80 @@ import type { Middleware } from "../router/Middleware";
 import { ControllerFunction } from "../router/router-types";
 
 export class MockController extends ResourceController {
-  override handle: Mock<Controller["handle"]>;
+	override handle: Mock<Controller["handle"]>;
 
-  constructor(response: Response | (() => Response) | null = null) {
-    super();
-    this.handle = mock(() => {
-      if (typeof response === "function") return response();
-      return response ?? new Response();
-    });
-  }
+	constructor(response: Response | (() => Response) | null = null) {
+		super();
+		this.handle = mock(() => {
+			if (typeof response === "function") return response();
+			return response ?? new Response();
+		});
+	}
 
-  get meta(): Record<string, unknown> {
-    return this.#firstCall("meta").meta;
-  }
+	get meta(): Record<string, unknown> {
+		return this.#firstCall("meta").meta;
+	}
 
-  get params(): Record<string, string> {
-    return this.#firstCall("params").params;
-  }
+	get params(): Record<string, string> {
+		return this.#firstCall("params").params;
+	}
 
-  get url(): URL | undefined {
-    return this.#firstCall("url").url;
-  }
+	get url(): URL | undefined {
+		return this.#firstCall("url").url;
+	}
 
-  get rawParams(): Record<string, string> {
-    return this.#firstCall("rawParams").rawParams;
-  }
+	get rawParams(): Record<string, string> {
+		return this.#firstCall("rawParams").rawParams;
+	}
 
-  get allParams(): Record<string, string>[] {
-    return this.handle.mock.calls.map((call) => call[0].params);
-  }
+	get allParams(): Record<string, string>[] {
+		return this.handle.mock.calls.map((call) => call[0].params);
+	}
 
-  #firstCall(method: string) {
-    const { calls } = this.handle.mock;
-    if (calls.length !== 1) {
-      throw new Error(
-        `handle(ctx) was called ${calls.length} times, mockController.${method} can only be used if the handler is called exactly once`,
-      );
-    }
-    return calls[0][0];
-  }
+	#firstCall(method: string) {
+		const { calls } = this.handle.mock;
+		if (calls.length !== 1) {
+			throw new Error(
+				`handle(ctx) was called ${calls.length} times, mockController.${method} can only be used if the handler is called exactly once`,
+			);
+		}
+		return calls[0][0];
+	}
 }
 
 export const mockController = (): ControllerFunction & {
-  mock: MockController;
+	mock: MockController;
 } => {
-  const mock = new MockController();
-  const controller = (ctx: ControllerContext): ControllerReturn => mock.handle(ctx);
-  return Object.assign(controller, { mock });
+	const mock = new MockController();
+	const controller = (ctx: ControllerContext): ControllerReturn => mock.handle(ctx);
+	return Object.assign(controller, { mock });
 };
 
 export const controllerContext = (
-  request: Request = new Request("https://example.com/"),
+	request: Request = new Request("https://example.com/"),
 ): ControllerContext => ({
-  request,
-  params: {},
-  rawParams: {},
-  url: new URL(request.url),
-  meta: {},
+	request,
+	params: {},
+	rawParams: {},
+	url: new URL(request.url),
+	meta: {},
 });
 
 export const requestContext = (): RequestContext => ({
-  context: "test",
-  getCookie: () => null,
-  getCookieNames: () => [],
-  deleteCookie: null,
-  setCookie: null,
-  getRequestHeader: () => null,
-  getRequestHeaderNames: () => [][Symbol.iterator](),
+	context: "test",
+	getCookie: () => null,
+	getCookieNames: () => [],
+	deleteCookie: null,
+	setCookie: null,
+	getRequestHeader: () => null,
+	getRequestHeaderNames: () => [][Symbol.iterator](),
 });
 
 interface MockMiddlewareFunction {
-  (name: string): new () => Middleware;
-  log: string[];
-  beforeAfterLog: string[];
-  reset(): void;
+	(name: string): new () => Middleware;
+	log: string[];
+	beforeAfterLog: string[];
+	reset(): void;
 }
 
 /**
@@ -102,41 +102,41 @@ interface MockMiddlewareFunction {
  * // log contains: ["M"]
  */
 export const mockMiddleware: MockMiddlewareFunction = Object.assign(
-  (name: string) => {
-    // Validate that the name is a valid JavaScript identifier
-    if (!/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(name)) {
-      throw new Error(`mockMiddleware name must be a valid JavaScript identifier, got: ${name}`);
-    }
+	(name: string) => {
+		// Validate that the name is a valid JavaScript identifier
+		if (!/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(name)) {
+			throw new Error(`mockMiddleware name must be a valid JavaScript identifier, got: ${name}`);
+		}
 
-    // Create a function that returns a class with the dynamic name.
-    // oxlint-disable-next-line no-implied-eval -- Function constructor needed for dynamic class names
-    const createClass = new Function(`
+		// Create a function that returns a class with the dynamic name.
+		// oxlint-disable-next-line no-implied-eval -- Function constructor needed for dynamic class names
+		const createClass = new Function(`
       return class ${name} {}
     `);
 
-    // Call the function to get the class
-    const ClassConstructor = createClass();
+		// Call the function to get the class
+		const ClassConstructor = createClass();
 
-    // Add the handle method to the prototype
-    ClassConstructor.prototype.handle = async function (
-      ctx: ControllerContext,
-      next: (ctx: ControllerContext) => ControllerReturn,
-    ): Promise<ControllerReturn> {
-      mockMiddleware.log.push(name);
-      mockMiddleware.beforeAfterLog.push(`${name}:before`);
-      const result = await next(ctx);
-      mockMiddleware.beforeAfterLog.push(`${name}:after`);
-      return result;
-    };
+		// Add the handle method to the prototype
+		ClassConstructor.prototype.handle = async function (
+			ctx: ControllerContext,
+			next: (ctx: ControllerContext) => ControllerReturn,
+		): Promise<ControllerReturn> {
+			mockMiddleware.log.push(name);
+			mockMiddleware.beforeAfterLog.push(`${name}:before`);
+			const result = await next(ctx);
+			mockMiddleware.beforeAfterLog.push(`${name}:after`);
+			return result;
+		};
 
-    return ClassConstructor as new () => Middleware;
-  },
-  {
-    log: [] as string[],
-    beforeAfterLog: [] as string[],
-    reset() {
-      this.log.length = 0;
-      this.beforeAfterLog.length = 0;
-    },
-  },
+		return ClassConstructor as new () => Middleware;
+	},
+	{
+		log: [] as string[],
+		beforeAfterLog: [] as string[],
+		reset() {
+			this.log.length = 0;
+			this.beforeAfterLog.length = 0;
+		},
+	},
 );

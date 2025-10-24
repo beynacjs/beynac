@@ -8,243 +8,243 @@ import type { MiddlewareReference } from "./Middleware";
 import { addRoute, createMatcher, findRoute, type MatcherContext } from "./matcher";
 import { throwOnMissingPropertyAccess } from "./params-access-checker";
 import type {
-  BuiltInRouteConstraint,
-  ParamConstraint,
-  RouteDefinition,
-  Routes,
+	BuiltInRouteConstraint,
+	ParamConstraint,
+	RouteDefinition,
+	Routes,
 } from "./router-types";
 
 export interface RouterOptions {
-  /**
-   * Global middleware priority list. Middleware in this list will execute first,
-   * in the order specified. All other middleware will execute after, in their
-   * original relative order.
-   */
-  middlewarePriority?: MiddlewareReference[] | undefined;
+	/**
+	 * Global middleware priority list. Middleware in this list will execute first,
+	 * in the order specified. All other middleware will execute after, in their
+	 * original relative order.
+	 */
+	middlewarePriority?: MiddlewareReference[] | undefined;
 }
 
 type ConfigRequiredByRouter = Pick<Configuration, "throwOnInvalidParamAccess" | "development">;
 
 export class Router {
-  #matcher: MatcherContext<{ route: RouteDefinition }>;
-  #middlewarePriority: MiddlewareReference[] | undefined;
-  #sortedMiddlewareSets = new WeakSet();
-  #throwOnInvalidParam: boolean;
+	#matcher: MatcherContext<{ route: RouteDefinition }>;
+	#middlewarePriority: MiddlewareReference[] | undefined;
+	#sortedMiddlewareSets = new WeakSet();
+	#throwOnInvalidParam: boolean;
 
-  constructor(
-    private container: Container,
-    options?: RouterOptions,
-    config?: ConfigRequiredByRouter,
-  ) {
-    this.#matcher = createMatcher<{ route: RouteDefinition }>();
-    this.#middlewarePriority = options?.middlewarePriority;
+	constructor(
+		private container: Container,
+		options?: RouterOptions,
+		config?: ConfigRequiredByRouter,
+	) {
+		this.#matcher = createMatcher<{ route: RouteDefinition }>();
+		this.#middlewarePriority = options?.middlewarePriority;
 
-    switch (config?.throwOnInvalidParamAccess ?? "development") {
-      case "always":
-        this.#throwOnInvalidParam = true;
-        break;
-      case "never":
-        this.#throwOnInvalidParam = false;
-        break;
-      case "development":
-        this.#throwOnInvalidParam = !!config?.development;
-        break;
-    }
-  }
+		switch (config?.throwOnInvalidParamAccess ?? "development") {
+			case "always":
+				this.#throwOnInvalidParam = true;
+				break;
+			case "never":
+				this.#throwOnInvalidParam = false;
+				break;
+			case "development":
+				this.#throwOnInvalidParam = !!config?.development;
+				break;
+		}
+	}
 
-  /**
-   * Register routes with the router
-   */
-  register(routes: Routes): void {
-    for (const route of routes) {
-      for (const method of route.methods) {
-        addRoute(this.#matcher, method, route.path, { route }, route.domainPattern);
-      }
+	/**
+	 * Register routes with the router
+	 */
+	register(routes: Routes): void {
+		for (const route of routes) {
+			for (const method of route.methods) {
+				addRoute(this.#matcher, method, route.path, { route }, route.domainPattern);
+			}
 
-      // Apply priority sorting once per MiddlewareSet instance
-      if (
-        route.middleware &&
-        this.#middlewarePriority &&
-        !this.#sortedMiddlewareSets.has(route.middleware)
-      ) {
-        route.middleware.applyPriority(this.#middlewarePriority);
-        this.#sortedMiddlewareSets.add(route.middleware);
-      }
-    }
-  }
+			// Apply priority sorting once per MiddlewareSet instance
+			if (
+				route.middleware &&
+				this.#middlewarePriority &&
+				!this.#sortedMiddlewareSets.has(route.middleware)
+			) {
+				route.middleware.applyPriority(this.#middlewarePriority);
+				this.#sortedMiddlewareSets.add(route.middleware);
+			}
+		}
+	}
 
-  /**
-   * Handle an HTTP request
-   */
-  async handle(request: Request): Promise<Response> {
-    const url = new URL(request.url);
-    const hostname = url.hostname;
+	/**
+	 * Handle an HTTP request
+	 */
+	async handle(request: Request): Promise<Response> {
+		const url = new URL(request.url);
+		const hostname = url.hostname;
 
-    const result = findRoute(this.#matcher, request.method, url.pathname, hostname);
+		const result = findRoute(this.#matcher, request.method, url.pathname, hostname);
 
-    if (!result) {
-      return new Response("Not Found", { status: 404 });
-    }
+		if (!result) {
+			return new Response("Not Found", { status: 404 });
+		}
 
-    const { route } = result.data;
-    const params = result.params ?? {};
+		const { route } = result.data;
+		const params = result.params ?? {};
 
-    if (!this.#checkConstraints(route, params)) {
-      return new Response("Not Found", { status: 404 });
-    }
+		if (!this.#checkConstraints(route, params)) {
+			return new Response("Not Found", { status: 404 });
+		}
 
-    return this.#executeRoute(route, request, url, params);
-  }
+		return this.#executeRoute(route, request, url, params);
+	}
 
-  #checkConstraints(route: RouteDefinition, params: Record<string, string>): boolean {
-    // Check route-specific constraints (from 'where')
-    // These MUST match - 404 if parameter doesn't exist or validation fails
-    for (const [param, constraint] of Object.entries(route.constraints ?? {})) {
-      if (constraint == null) continue;
-      const value = params[param];
-      if (value == null) return false;
-      if (!matchConstraint(constraint, value)) return false;
-    }
+	#checkConstraints(route: RouteDefinition, params: Record<string, string>): boolean {
+		// Check route-specific constraints (from 'where')
+		// These MUST match - 404 if parameter doesn't exist or validation fails
+		for (const [param, constraint] of Object.entries(route.constraints ?? {})) {
+			if (constraint == null) continue;
+			const value = params[param];
+			if (value == null) return false;
+			if (!matchConstraint(constraint, value)) return false;
+		}
 
-    // Check global pattern constraints (from 'parameterPatterns')
-    // These only validate if the parameter exists
-    for (const [param, constraint] of Object.entries(route.globalConstraints ?? {})) {
-      if (constraint == null) continue;
-      const value = params[param];
-      if (value != null && !matchConstraint(constraint, value)) return false;
-    }
+		// Check global pattern constraints (from 'parameterPatterns')
+		// These only validate if the parameter exists
+		for (const [param, constraint] of Object.entries(route.globalConstraints ?? {})) {
+			if (constraint == null) continue;
+			const value = params[param];
+			if (value != null && !matchConstraint(constraint, value)) return false;
+		}
 
-    return true;
-  }
+		return true;
+	}
 
-  async #executeRoute(
-    route: RouteDefinition,
-    request: Request,
-    url: URL,
-    rawParams: Record<string, string>,
-  ): Promise<Response> {
-    const decodedParams: Record<string, string> = {};
-    for (const [key, value] of Object.entries(rawParams)) {
-      try {
-        decodedParams[key] = decodeURIComponent(value);
-      } catch {
-        // If decoding fails, use the original value
-        decodedParams[key] = value;
-      }
-    }
+	async #executeRoute(
+		route: RouteDefinition,
+		request: Request,
+		url: URL,
+		rawParams: Record<string, string>,
+	): Promise<Response> {
+		const decodedParams: Record<string, string> = {};
+		for (const [key, value] of Object.entries(rawParams)) {
+			try {
+				decodedParams[key] = decodeURIComponent(value);
+			} catch {
+				// If decoding fails, use the original value
+				decodedParams[key] = value;
+			}
+		}
 
-    const ctx: ControllerContext = {
-      request,
-      params: this.#throwOnInvalidParam
-        ? throwOnMissingPropertyAccess(decodedParams)
-        : decodedParams,
-      rawParams: this.#throwOnInvalidParam ? throwOnMissingPropertyAccess(rawParams) : rawParams,
-      url,
-      meta: route.meta || {},
-    };
+		const ctx: ControllerContext = {
+			request,
+			params: this.#throwOnInvalidParam
+				? throwOnMissingPropertyAccess(decodedParams)
+				: decodedParams,
+			rawParams: this.#throwOnInvalidParam ? throwOnMissingPropertyAccess(rawParams) : rawParams,
+			url,
+			meta: route.meta || {},
+		};
 
-    const finalHandler = async (ctx: ControllerContext): Promise<Response> => {
-      let result: ControllerReturn;
-      if (extendsClass(route.handler, Controller)) {
-        const controller = this.container.get(route.handler);
-        result = controller.handle(ctx);
-      } else {
-        // Check if handler is a class constructor that doesn't extend Controller
-        if (typeof route.handler === "function" && route.handler.toString().startsWith("class ")) {
-          throw new Error(
-            `Route handler ${route.handler.name} for ${route.path} is a class but does not extend Controller. ` +
-              `Class-based handlers must extend the Controller class.`,
-          );
-        }
-        result = route.handler(ctx);
-      }
+		const finalHandler = async (ctx: ControllerContext): Promise<Response> => {
+			let result: ControllerReturn;
+			if (extendsClass(route.handler, Controller)) {
+				const controller = this.container.get(route.handler);
+				result = controller.handle(ctx);
+			} else {
+				// Check if handler is a class constructor that doesn't extend Controller
+				if (typeof route.handler === "function" && route.handler.toString().startsWith("class ")) {
+					throw new Error(
+						`Route handler ${route.handler.name} for ${route.path} is a class but does not extend Controller. ` +
+							`Class-based handlers must extend the Controller class.`,
+					);
+				}
+				result = route.handler(ctx);
+			}
 
-      return this.#convertToResponse(route, await result);
-    };
+			return this.#convertToResponse(route, await result);
+		};
 
-    const pipeline = route.middleware
-      ? route.middleware.buildPipeline(this.container, finalHandler)
-      : finalHandler;
+		const pipeline = route.middleware
+			? route.middleware.buildPipeline(this.container, finalHandler)
+			: finalHandler;
 
-    try {
-      const pipelineResult = await pipeline(ctx);
-      return this.#convertToResponse(route, pipelineResult);
-    } catch (error) {
-      // Handle HttpResponseException - return the wrapped response
-      if (error instanceof HttpResponseException) {
-        return error.response;
-      }
+		try {
+			const pipelineResult = await pipeline(ctx);
+			return this.#convertToResponse(route, pipelineResult);
+		} catch (error) {
+			// Handle HttpResponseException - return the wrapped response
+			if (error instanceof HttpResponseException) {
+				return error.response;
+			}
 
-      // Handle HttpException - convert to HTTP response
-      if (error instanceof HttpException) {
-        return new Response(error.message, {
-          status: error.status,
-          headers: error.headers,
-        });
-      }
+			// Handle HttpException - convert to HTTP response
+			if (error instanceof HttpException) {
+				return new Response(error.message, {
+					status: error.status,
+					headers: error.headers,
+				});
+			}
 
-      // Re-throw any other errors
-      throw error;
-    }
-  }
+			// Re-throw any other errors
+			throw error;
+		}
+	}
 
-  async #convertToResponse(
-    route: RouteDefinition,
-    result: Response | JSX.Element | null,
-  ): Promise<Response> {
-    if (result instanceof Response) {
-      return result;
-    }
+	async #convertToResponse(
+		route: RouteDefinition,
+		result: Response | JSX.Element | null,
+	): Promise<Response> {
+		if (result instanceof Response) {
+			return result;
+		}
 
-    if (result === null) {
-      return new Response();
-    }
+		if (result === null) {
+			return new Response();
+		}
 
-    if (isJsxElement(result)) {
-      return renderResponse(result);
-    }
+		if (isJsxElement(result)) {
+			return renderResponse(result);
+		}
 
-    const hasHandleMethod = typeof (result as Controller)?.handle !== "function";
+		const hasHandleMethod = typeof (result as Controller)?.handle !== "function";
 
-    if (hasHandleMethod) {
-      throw new Error(
-        `Route handler ${route.handler.name} for ${route.path} returned an object with a 'handle' method. This can happen if you have a controller that does not extend the Controller class.`,
-      );
-    }
+		if (hasHandleMethod) {
+			throw new Error(
+				`Route handler ${route.handler.name} for ${route.path} returned an object with a 'handle' method. This can happen if you have a controller that does not extend the Controller class.`,
+			);
+		}
 
-    throw new Error(
-      `Route handler ${route.handler.name} for ${route.path} returned an invalid value. Expected Response, JSX element, or null, ` +
-        `but got: ${Object.prototype.toString.call(result)}`,
-    );
-  }
+		throw new Error(
+			`Route handler ${route.handler.name} for ${route.path} returned an invalid value. Expected Response, JSX element, or null, ` +
+				`but got: ${Object.prototype.toString.call(result)}`,
+		);
+	}
 }
 
 const BUILT_IN_CONSTRAINTS: Record<BuiltInRouteConstraint, RegExp> = {
-  numeric: /^\d+$/,
-  alphanumeric: /^[a-zA-Z0-9]+$/,
-  uuid: /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-  ulid: /^[0-9A-Z]{26}$/i,
+	numeric: /^\d+$/,
+	alphanumeric: /^[a-zA-Z0-9]+$/,
+	uuid: /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+	ulid: /^[0-9A-Z]{26}$/i,
 };
 
 /**
  * Check if a value matches a constraint
  */
 function matchConstraint(constraint: ParamConstraint, value: string): boolean {
-  let pattern: RegExp | ((value: string) => boolean);
+	let pattern: RegExp | ((value: string) => boolean);
 
-  if (typeof constraint === "string") {
-    pattern = BUILT_IN_CONSTRAINTS[constraint];
-    if (!pattern) {
-      throw new Error(
-        `"${constraint}" is not a valid constraint, use ${Object.keys(BUILT_IN_CONSTRAINTS).join(", ")} or define your own regex or function`,
-      );
-    }
-  } else {
-    pattern = constraint;
-  }
+	if (typeof constraint === "string") {
+		pattern = BUILT_IN_CONSTRAINTS[constraint];
+		if (!pattern) {
+			throw new Error(
+				`"${constraint}" is not a valid constraint, use ${Object.keys(BUILT_IN_CONSTRAINTS).join(", ")} or define your own regex or function`,
+			);
+		}
+	} else {
+		pattern = constraint;
+	}
 
-  if (typeof pattern === "function") {
-    return pattern(value);
-  }
-  return pattern.test(value);
+	if (typeof pattern === "function") {
+		return pattern(value);
+	}
+	return pattern.test(value);
 }

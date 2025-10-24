@@ -4,18 +4,18 @@ import { MiddlewareSet } from "./MiddlewareSet";
 import type { ApiResourceAction, ResourceAction } from "./ResourceController";
 import { redirectStatus } from "./redirect";
 import type {
-  ExtractDomainAndPathParams,
-  FilteredApiResourceRouteMap,
-  FilteredResourceRouteMap,
-  GroupChildren,
-  GroupedRoutes,
-  InferResourceName,
-  ParamConstraint,
-  RouteDefinition,
-  RouteGroupOptions,
-  RouteHandler,
-  RouteOptions,
-  Routes,
+	ExtractDomainAndPathParams,
+	FilteredApiResourceRouteMap,
+	FilteredResourceRouteMap,
+	GroupChildren,
+	GroupedRoutes,
+	InferResourceName,
+	ParamConstraint,
+	RouteDefinition,
+	RouteGroupOptions,
+	RouteHandler,
+	RouteOptions,
+	Routes,
 } from "./router-types";
 import { validateDomainSyntax, validateGroupPathSyntax, validateRoutePathSyntax } from "./syntax";
 
@@ -28,82 +28,82 @@ import { validateDomainSyntax, validateGroupPathSyntax, validateRoutePathSyntax 
  * })
  */
 export function isIn(values: readonly string[]): ParamConstraint {
-  const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`^(${values.map(escapeRegex).join("|")})$`);
+	const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	return new RegExp(`^(${values.map(escapeRegex).join("|")})$`);
 }
 
 function mergeObjects<T extends Record<string, unknown>>(
-  parent: T | undefined,
-  child: T | null,
+	parent: T | undefined,
+	child: T | null,
 ): T | null {
-  if (!parent) return child;
-  if (!child) return parent;
-  return { ...parent, ...child };
+	if (!parent) return child;
+	if (!child) return parent;
+	return { ...parent, ...child };
 }
 
 function createRoute<
-  const Path extends string,
-  const Name extends string = never,
-  const Domain extends string | undefined = undefined,
+	const Path extends string,
+	const Name extends string = never,
+	const Domain extends string | undefined = undefined,
 >(
-  method: string | readonly string[],
-  path: Path,
-  handler: RouteHandler,
-  {
-    domain,
-    parameterPatterns,
-    middleware: middlewareOption,
-    name,
-    where,
-    withoutMiddleware,
-    meta,
-  }: RouteOptions<Name, Path> & { domain?: Domain } = {},
+	method: string | readonly string[],
+	path: Path,
+	handler: RouteHandler,
+	{
+		domain,
+		parameterPatterns,
+		middleware: middlewareOption,
+		name,
+		where,
+		withoutMiddleware,
+		meta,
+	}: RouteOptions<Name, Path> & { domain?: Domain } = {},
 ): RouteMethodReturn<Path, Name, Domain> {
-  const methods = typeof method === "string" ? [method] : method;
+	const methods = typeof method === "string" ? [method] : method;
 
-  // Validate: path must start with "/" or be empty string
-  if (!path.startsWith("/")) {
-    throw new Error(`Route path "${path}" must start with "/"`);
-  }
+	// Validate: path must start with "/" or be empty string
+	if (!path.startsWith("/")) {
+		throw new Error(`Route path "${path}" must start with "/"`);
+	}
 
-  validateRoutePathSyntax(path);
-  validateDomainSyntax(domain);
+	validateRoutePathSyntax(path);
+	validateDomainSyntax(domain);
 
-  const route: RouteDefinition = {
-    methods,
-    path,
-    handler,
-    routeName: name,
-    middleware: MiddlewareSet.createIfRequired(middlewareOption, withoutMiddleware),
-    constraints: where || null,
-    globalConstraints: parameterPatterns || null,
-    domainPattern: domain,
-    meta: meta || null,
-  };
+	const route: RouteDefinition = {
+		methods,
+		path,
+		handler,
+		routeName: name,
+		middleware: MiddlewareSet.createIfRequired(middlewareOption, withoutMiddleware),
+		constraints: where || null,
+		globalConstraints: parameterPatterns || null,
+		domainPattern: domain,
+		meta: meta || null,
+	};
 
-  return [route] as RouteMethodReturn<Path, Name, Domain>;
+	return [route] as RouteMethodReturn<Path, Name, Domain>;
 }
 
 /**
  * Type for HTTP method route functions
  */
 type RouteMethodFunction = <
-  const Path extends string,
-  const Name extends string = never,
-  const Domain extends string | undefined = undefined,
+	const Path extends string,
+	const Name extends string = never,
+	const Domain extends string | undefined = undefined,
 >(
-  path: Path,
-  handler: RouteHandler,
-  options?: RouteOptions<Name, Path> & { domain?: Domain },
+	path: Path,
+	handler: RouteHandler,
+	options?: RouteOptions<Name, Path> & { domain?: Domain },
 ) => RouteMethodReturn<Path, Name, Domain>;
 
 type RouteMethodReturn<
-  Path extends string,
-  Name extends string = never,
-  Domain extends string | undefined = undefined,
+	Path extends string,
+	Name extends string = never,
+	Domain extends string | undefined = undefined,
 > = [Name] extends [never]
-  ? Routes<{}>
-  : Routes<{ [K in Name]: ExtractDomainAndPathParams<Domain, Path> }>;
+	? Routes<{}>
+	: Routes<{ [K in Name]: ExtractDomainAndPathParams<Domain, Path> }>;
 
 /**
  * Register a route that responds to GET requests
@@ -113,7 +113,7 @@ type RouteMethodReturn<
  * get('/users/{id}', UserController, { name: 'users.show' })
  */
 export const get: RouteMethodFunction = (path, handler, options) =>
-  createRoute("GET", path, handler, options);
+	createRoute("GET", path, handler, options);
 
 /**
  * Register a route that responds to POST requests
@@ -122,7 +122,7 @@ export const get: RouteMethodFunction = (path, handler, options) =>
  * post('/users', CreateUserController)
  */
 export const post: RouteMethodFunction = (path, handler, options) =>
-  createRoute("POST", path, handler, options);
+	createRoute("POST", path, handler, options);
 
 /**
  * Register a route that responds to PUT requests
@@ -131,7 +131,7 @@ export const post: RouteMethodFunction = (path, handler, options) =>
  * put('/users/{id}', UpdateUserController)
  */
 export const put: RouteMethodFunction = (path, handler, options) =>
-  createRoute("PUT", path, handler, options);
+	createRoute("PUT", path, handler, options);
 
 /**
  * Register a route that responds to PATCH requests
@@ -140,7 +140,7 @@ export const put: RouteMethodFunction = (path, handler, options) =>
  * patch('/users/{id}', PatchUserController)
  */
 export const patch: RouteMethodFunction = (path, handler, options) =>
-  createRoute("PATCH", path, handler, options);
+	createRoute("PATCH", path, handler, options);
 
 /**
  * Register a route that responds to DELETE requests
@@ -149,7 +149,7 @@ export const patch: RouteMethodFunction = (path, handler, options) =>
  * delete('/users/{id}', DeleteUserController)
  */
 export const delete_: RouteMethodFunction = (path, handler, options) =>
-  createRoute("DELETE", path, handler, options);
+	createRoute("DELETE", path, handler, options);
 
 export { delete_ as delete };
 
@@ -160,7 +160,7 @@ export { delete_ as delete };
  * options('/users', OptionsController)
  */
 export const options: RouteMethodFunction = (path, handler, options) =>
-  createRoute("OPTIONS", path, handler, options);
+	createRoute("OPTIONS", path, handler, options);
 
 /**
  * Register a route that responds to specific HTTP methods
@@ -169,16 +169,16 @@ export const options: RouteMethodFunction = (path, handler, options) =>
  * match(['GET', 'POST'], '/contact', ContactController)
  */
 export function match<
-  const Path extends string,
-  const Name extends string = never,
-  const Domain extends string | undefined = undefined,
+	const Path extends string,
+	const Name extends string = never,
+	const Domain extends string | undefined = undefined,
 >(
-  methods: readonly string[],
-  path: Path,
-  handler: RouteHandler,
-  options?: RouteOptions<Name, Path> & { domain?: Domain },
+	methods: readonly string[],
+	path: Path,
+	handler: RouteHandler,
+	options?: RouteOptions<Name, Path> & { domain?: Domain },
 ): RouteMethodReturn<Path, Name, Domain> {
-  return createRoute(methods, path, handler, options);
+	return createRoute(methods, path, handler, options);
 }
 
 /**
@@ -188,16 +188,16 @@ export function match<
  * any('/webhook', WebhookController)
  */
 export function any<
-  const Path extends string,
-  const Name extends string = never,
-  const Domain extends string | undefined = undefined,
+	const Path extends string,
+	const Name extends string = never,
+	const Domain extends string | undefined = undefined,
 >(
-  path: Path,
-  handler: RouteHandler,
-  options?: RouteOptions<Name, Path> & { domain?: Domain },
+	path: Path,
+	handler: RouteHandler,
+	options?: RouteOptions<Name, Path> & { domain?: Domain },
 ): RouteMethodReturn<Path, Name, Domain> {
-  const methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"];
-  return match(methods, path, handler, options);
+	const methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"];
+	return match(methods, path, handler, options);
 }
 
 /**
@@ -227,17 +227,17 @@ export function any<
  * any('/api/v1', redirect('/api/v2', { permanent: true, preserveHttpMethod: true }))
  */
 export function redirect(
-  to: string,
-  options?: { permanent?: boolean; preserveHttpMethod?: boolean },
+	to: string,
+	options?: { permanent?: boolean; preserveHttpMethod?: boolean },
 ): (ctx: ControllerContext) => Response {
-  const status = redirectStatus(options);
+	const status = redirectStatus(options);
 
-  return () => {
-    return new Response(null, {
-      status,
-      headers: { Location: to },
-    });
-  };
+	return () => {
+		return new Response(null, {
+			status,
+			headers: { Location: to },
+		});
+	};
 }
 
 /**
@@ -251,7 +251,7 @@ export function redirect(
  * ])
  */
 export function group<const Children extends GroupChildren>(
-  children: Children,
+	children: Children,
 ): GroupedRoutes<Children>;
 
 /**
@@ -265,131 +265,131 @@ export function group<const Children extends GroupChildren>(
  * ])
  */
 export function group<
-  const Children extends GroupChildren,
-  const NamePrefix extends string = "",
-  const PathPrefix extends string = "",
+	const Children extends GroupChildren,
+	const NamePrefix extends string = "",
+	const PathPrefix extends string = "",
 >(
-  options: RouteGroupOptions<NamePrefix, PathPrefix>,
-  children: Children,
+	options: RouteGroupOptions<NamePrefix, PathPrefix>,
+	children: Children,
 ): GroupedRoutes<Children, NamePrefix, PathPrefix>;
 
 export function group<
-  const Children extends GroupChildren,
-  const NamePrefix extends string = "",
-  const PathPrefix extends string = "",
+	const Children extends GroupChildren,
+	const NamePrefix extends string = "",
+	const PathPrefix extends string = "",
 >(
-  optionsOrChildren: RouteGroupOptions<NamePrefix, PathPrefix> | Children,
-  maybeChildren?: Children,
+	optionsOrChildren: RouteGroupOptions<NamePrefix, PathPrefix> | Children,
+	maybeChildren?: Children,
 ): GroupedRoutes<Children, NamePrefix, PathPrefix> {
-  if (Array.isArray(optionsOrChildren)) {
-    return group({}, optionsOrChildren as Children);
-  }
+	if (Array.isArray(optionsOrChildren)) {
+		return group({}, optionsOrChildren as Children);
+	}
 
-  let {
-    domain,
-    parameterPatterns,
-    middleware,
-    withoutMiddleware,
-    namePrefix,
-    prefix,
-    where,
-    meta,
-  } = optionsOrChildren as RouteGroupOptions<string, string>;
-  const children = maybeChildren as Children;
+	let {
+		domain,
+		parameterPatterns,
+		middleware,
+		withoutMiddleware,
+		namePrefix,
+		prefix,
+		where,
+		meta,
+	} = optionsOrChildren as RouteGroupOptions<string, string>;
+	const children = maybeChildren as Children;
 
-  validateGroupPathSyntax(prefix);
-  validateDomainSyntax(domain);
+	validateGroupPathSyntax(prefix);
+	validateDomainSyntax(domain);
 
-  // strip "/" suffix from the prefix to prevent double slash since all routes start with a slash
-  prefix = prefix?.replace(/\/$/, "");
+	// strip "/" suffix from the prefix to prevent double slash since all routes start with a slash
+	prefix = prefix?.replace(/\/$/, "");
 
-  const groupWithout = arrayWrapOptional(withoutMiddleware);
-  const groupMiddleware = arrayWrapOptional(middleware).filter((m) => !groupWithout.includes(m));
+	const groupWithout = arrayWrapOptional(withoutMiddleware);
+	const groupMiddleware = arrayWrapOptional(middleware).filter((m) => !groupWithout.includes(m));
 
-  const mergedChildren: RouteDefinition[] = [];
-  const mergedSets = new Set<MiddlewareSet>();
+	const mergedChildren: RouteDefinition[] = [];
+	const mergedSets = new Set<MiddlewareSet>();
 
-  const groupMiddlewareSet = MiddlewareSet.createIfRequired(middleware, withoutMiddleware);
+	const groupMiddlewareSet = MiddlewareSet.createIfRequired(middleware, withoutMiddleware);
 
-  for (const childRoutes of children) {
-    for (const route of childRoutes) {
-      if (domain && route.domainPattern && domain !== route.domainPattern) {
-        throw new Error(
-          `Domain conflict: route "${route.routeName || route.path}" specifies domain "${route.domainPattern}" ` +
-            `but is inside a group with domain "${domain}". Nested routes cannot override parent domain.`,
-        );
-      }
+	for (const childRoutes of children) {
+		for (const route of childRoutes) {
+			if (domain && route.domainPattern && domain !== route.domainPattern) {
+				throw new Error(
+					`Domain conflict: route "${route.routeName || route.path}" specifies domain "${route.domainPattern}" ` +
+						`but is inside a group with domain "${domain}". Nested routes cannot override parent domain.`,
+				);
+			}
 
-      // Middleware merging logic
-      let middleware = route.middleware;
-      if (middleware) {
-        // merge the groups's middleware into the route, and only do this once
-        // per middleware object because they can be shared among many routes
-        if (!mergedSets.has(middleware)) {
-          middleware.mergeWithGroup(groupMiddleware, groupWithout);
-          mergedSets.add(middleware);
-        }
-      } else {
-        // all routes with no middleware can share the groups' middleware
-        middleware = groupMiddlewareSet;
-      }
+			// Middleware merging logic
+			let middleware = route.middleware;
+			if (middleware) {
+				// merge the groups's middleware into the route, and only do this once
+				// per middleware object because they can be shared among many routes
+				if (!mergedSets.has(middleware)) {
+					middleware.mergeWithGroup(groupMiddleware, groupWithout);
+					mergedSets.add(middleware);
+				}
+			} else {
+				// all routes with no middleware can share the groups' middleware
+				middleware = groupMiddlewareSet;
+			}
 
-      mergedChildren.push({
-        ...route,
-        path: applyPathPrefix(prefix, route.path),
-        routeName: applyNamePrefix(namePrefix, route.routeName),
-        middleware,
-        constraints: mergeObjects(where, route.constraints),
-        globalConstraints: mergeObjects(parameterPatterns, route.globalConstraints),
-        domainPattern: domain ?? route.domainPattern,
-        meta: mergeObjects(meta, route.meta),
-      });
-    }
-  }
-  return mergedChildren;
+			mergedChildren.push({
+				...route,
+				path: applyPathPrefix(prefix, route.path),
+				routeName: applyNamePrefix(namePrefix, route.routeName),
+				middleware,
+				constraints: mergeObjects(where, route.constraints),
+				globalConstraints: mergeObjects(parameterPatterns, route.globalConstraints),
+				domainPattern: domain ?? route.domainPattern,
+				meta: mergeObjects(meta, route.meta),
+			});
+		}
+	}
+	return mergedChildren;
 }
 
 function applyPathPrefix(prefix: string | undefined, path: string): string {
-  if (!prefix) return path;
-  const normalizedPrefix = prefix.startsWith("/") ? prefix : `/${prefix}`;
-  return path === "/" ? normalizedPrefix : `${normalizedPrefix}${path}`;
+	if (!prefix) return path;
+	const normalizedPrefix = prefix.startsWith("/") ? prefix : `/${prefix}`;
+	return path === "/" ? normalizedPrefix : `${normalizedPrefix}${path}`;
 }
 
 function applyNamePrefix(prefix: string | undefined, name: string | undefined): string | undefined {
-  if (!prefix || !name) return name;
-  return `${prefix}${name}`;
+	if (!prefix || !name) return name;
+	return `${prefix}${name}`;
 }
 
 /**
  * Options for resource route registration
  */
 export interface ResourceOptions<
-  ResourceName extends string,
-  Path extends string,
-  Only extends readonly ResourceAction[] | undefined = undefined,
-  Except extends readonly ResourceAction[] | undefined = undefined,
+	ResourceName extends string,
+	Path extends string,
+	Only extends readonly ResourceAction[] | undefined = undefined,
+	Except extends readonly ResourceAction[] | undefined = undefined,
 > extends Omit<RouteOptions<never, Path>, "name"> {
-  /**
-   * Override the base name for route naming. If not provided, derived from path.
-   * @example
-   * resource('/photos', PhotoController, { name: 'pics' })
-   * // Creates routes: pics.index, pics.show, etc.
-   */
-  name?: ResourceName;
+	/**
+	 * Override the base name for route naming. If not provided, derived from path.
+	 * @example
+	 * resource('/photos', PhotoController, { name: 'pics' })
+	 * // Creates routes: pics.index, pics.show, etc.
+	 */
+	name?: ResourceName;
 
-  /**
-   * Only register these specific actions
-   * @example
-   * resource('/photos', PhotoController, { only: ['index', 'show'] })
-   */
-  only?: Only;
+	/**
+	 * Only register these specific actions
+	 * @example
+	 * resource('/photos', PhotoController, { only: ['index', 'show'] })
+	 */
+	only?: Only;
 
-  /**
-   * Register all actions except these
-   * @example
-   * resource('/photos', PhotoController, { except: ['destroy'] })
-   */
-  except?: Except;
+	/**
+	 * Register all actions except these
+	 * @example
+	 * resource('/photos', PhotoController, { except: ['destroy'] })
+	 */
+	except?: Except;
 }
 
 /**
@@ -419,52 +419,56 @@ export interface ResourceOptions<
  * app.url("api.photos.show", { resourceId: "123" }); // returns "/api/photos/123"
  */
 export function resource<
-  const Path extends string,
-  const ResourceName extends string = InferResourceName<Path>,
-  const Only extends readonly ResourceAction[] | undefined = undefined,
-  const Except extends readonly ResourceAction[] | undefined = undefined,
+	const Path extends string,
+	const ResourceName extends string = InferResourceName<Path>,
+	const Only extends readonly ResourceAction[] | undefined = undefined,
+	const Except extends readonly ResourceAction[] | undefined = undefined,
 >(
-  path: Path,
-  controller: RouteHandler,
-  options?: ResourceOptions<ResourceName, Path, Only, Except>,
+	path: Path,
+	controller: RouteHandler,
+	options?: ResourceOptions<ResourceName, Path, Only, Except>,
 ): Routes<FilteredResourceRouteMap<ResourceName, Only, Except>> {
-  const { name: customName, only, except, ...routeOptions } = options ?? {};
+	const { name: customName, only, except, ...routeOptions } = options ?? {};
 
-  // Derive resource name from path: '/photos' -> 'photos', '/admin/photos' -> 'admin.photos'
-  const resourceName = (customName ?? path.replace(/^\//, "").replace(/\//g, ".")) as ResourceName;
+	// Derive resource name from path: '/photos' -> 'photos', '/admin/photos' -> 'admin.photos'
+	const resourceName = (customName ?? path.replace(/^\//, "").replace(/\//g, ".")) as ResourceName;
 
-  // Define all 7 actions with their HTTP methods and paths
-  interface ActionDefinition {
-    action: ResourceAction;
-    method: string | readonly string[];
-    path: string;
-  }
+	// Define all 7 actions with their HTTP methods and paths
+	interface ActionDefinition {
+		action: ResourceAction;
+		method: string | readonly string[];
+		path: string;
+	}
 
-  const allActions: ActionDefinition[] = [
-    { action: "index", method: "GET", path },
-    { action: "create", method: "GET", path: `${path}/create` },
-    { action: "store", method: "POST", path },
-    { action: "show", method: "GET", path: `${path}/{resourceId}` },
-    { action: "edit", method: "GET", path: `${path}/{resourceId}/edit` },
-    { action: "update", method: ["PUT", "PATCH"], path: `${path}/{resourceId}` },
-    { action: "destroy", method: "DELETE", path: `${path}/{resourceId}` },
-  ];
+	const allActions: ActionDefinition[] = [
+		{ action: "index", method: "GET", path },
+		{ action: "create", method: "GET", path: `${path}/create` },
+		{ action: "store", method: "POST", path },
+		{ action: "show", method: "GET", path: `${path}/{resourceId}` },
+		{ action: "edit", method: "GET", path: `${path}/{resourceId}/edit` },
+		{
+			action: "update",
+			method: ["PUT", "PATCH"],
+			path: `${path}/{resourceId}`,
+		},
+		{ action: "destroy", method: "DELETE", path: `${path}/{resourceId}` },
+	];
 
-  const actions = filterResourceActions(allActions, only, except);
+	const actions = filterResourceActions(allActions, only, except);
 
-  // Create routes for each action - collect as Routes<> for group()
-  const routesList: Routes<Record<string, string>>[] = actions.map(
-    ({ action, method, path: routePath }) => {
-      const routeName = `${resourceName}.${action}` as const;
-      return createRoute(method, routePath as Path, controller, {
-        ...routeOptions,
-        name: routeName,
-        meta: { ...routeOptions.meta, action },
-      });
-    },
-  );
+	// Create routes for each action - collect as Routes<> for group()
+	const routesList: Routes<Record<string, string>>[] = actions.map(
+		({ action, method, path: routePath }) => {
+			const routeName = `${resourceName}.${action}` as const;
+			return createRoute(method, routePath as Path, controller, {
+				...routeOptions,
+				name: routeName,
+				meta: { ...routeOptions.meta, action },
+			});
+		},
+	);
 
-  return group(routesList) as Routes<FilteredResourceRouteMap<ResourceName, Only, Except>>;
+	return group(routesList) as Routes<FilteredResourceRouteMap<ResourceName, Only, Except>>;
 }
 
 /**
@@ -495,22 +499,22 @@ export function resource<
  * app.url("api.photos.show", { resourceId: "123" }); // returns "/api/photos/123"
  */
 export function apiResource<
-  const Path extends string,
-  const ResourceName extends string = InferResourceName<Path>,
-  const Only extends readonly ApiResourceAction[] | undefined = undefined,
-  const Except extends readonly ApiResourceAction[] | undefined = undefined,
+	const Path extends string,
+	const ResourceName extends string = InferResourceName<Path>,
+	const Only extends readonly ApiResourceAction[] | undefined = undefined,
+	const Except extends readonly ApiResourceAction[] | undefined = undefined,
 >(
-  path: Path,
-  controller: RouteHandler,
-  options?: ResourceOptions<ResourceName, Path, Only, Except>,
+	path: Path,
+	controller: RouteHandler,
+	options?: ResourceOptions<ResourceName, Path, Only, Except>,
 ): Routes<FilteredApiResourceRouteMap<ResourceName, Only, Except>> {
-  const apiActions: readonly ApiResourceAction[] = ["index", "store", "show", "update", "destroy"];
+	const apiActions: readonly ApiResourceAction[] = ["index", "store", "show", "update", "destroy"];
 
-  const result = resource(path, controller, {
-    ...options,
-    only: options?.only ?? apiActions,
-  });
-  return result as unknown as Routes<FilteredApiResourceRouteMap<ResourceName, Only, Except>>;
+	const result = resource(path, controller, {
+		...options,
+		only: options?.only ?? apiActions,
+	});
+	return result as unknown as Routes<FilteredApiResourceRouteMap<ResourceName, Only, Except>>;
 }
 
 /**
@@ -518,23 +522,23 @@ export function apiResource<
  * If only is specified, subtract except from only.
  */
 function filterResourceActions<T extends { action: ResourceAction }>(
-  actions: readonly T[],
-  only?: readonly ResourceAction[],
-  except?: readonly ResourceAction[],
+	actions: readonly T[],
+	only?: readonly ResourceAction[],
+	except?: readonly ResourceAction[],
 ): T[] {
-  let filtered = [...actions];
+	let filtered = [...actions];
 
-  if (only) {
-    // If only is specified, start with only those actions
-    const onlySet = new Set(only);
-    filtered = filtered.filter((a) => onlySet.has(a.action));
-  }
+	if (only) {
+		// If only is specified, start with only those actions
+		const onlySet = new Set(only);
+		filtered = filtered.filter((a) => onlySet.has(a.action));
+	}
 
-  if (except) {
-    // Remove actions in except list
-    const exceptSet = new Set(except);
-    filtered = filtered.filter((a) => !exceptSet.has(a.action));
-  }
+	if (except) {
+		// Remove actions in except list
+		const exceptSet = new Set(except);
+		filtered = filtered.filter((a) => !exceptSet.has(a.action));
+	}
 
-  return filtered;
+	return filtered;
 }

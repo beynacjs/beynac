@@ -17,110 +17,110 @@ import { CookiesImpl } from "./CookiesImpl";
 import { HeadersImpl } from "./HeadersImpl";
 
 export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
-  implements Application<RouteParams>
+	implements Application<RouteParams>
 {
-  container: Container;
-  #bootstrapped = false;
-  #config: Configuration<RouteParams>;
-  #routeRegistry: RouteRegistry<RouteParams> | null = null;
+	container: Container;
+	#bootstrapped = false;
+	#config: Configuration<RouteParams>;
+	#routeRegistry: RouteRegistry<RouteParams> | null = null;
 
-  constructor(config: Configuration<RouteParams> = {}) {
-    this.container = new ContainerImpl();
-    this.#config = config;
-  }
+	constructor(config: Configuration<RouteParams> = {}) {
+		this.container = new ContainerImpl();
+		this.#config = config;
+	}
 
-  bootstrap(): void {
-    if (this.#bootstrapped) return;
-    this.#bootstrapped = true;
+	bootstrap(): void {
+		if (this.#bootstrapped) return;
+		this.#bootstrapped = true;
 
-    // Bind core services
-    this.container.scoped(Headers, HeadersImpl);
-    this.container.scoped(Cookies, CookiesImpl);
-    this.container.singleton(DevModeAutoRefreshMiddleware);
-    this.container.singleton(DevModeWatchService);
-    this.container.instance(Configuration, this.#config);
-    this.container.instance(Application, this);
+		// Bind core services
+		this.container.scoped(Headers, HeadersImpl);
+		this.container.scoped(Cookies, CookiesImpl);
+		this.container.singleton(DevModeAutoRefreshMiddleware);
+		this.container.singleton(DevModeWatchService);
+		this.container.instance(Configuration, this.#config);
+		this.container.instance(Application, this);
 
-    this.container.instance(
-      Router,
-      new Router(
-        this.container,
-        { middlewarePriority: this.#resolveMiddlewarePriority() },
-        this.#config,
-      ),
-    );
+		this.container.instance(
+			Router,
+			new Router(
+				this.container,
+				{ middlewarePriority: this.#resolveMiddlewarePriority() },
+				this.#config,
+			),
+		);
 
-    // Register routes with dev mode middleware if needed
-    if (this.#config.routes) {
-      const router = this.container.get(Router);
+		// Register routes with dev mode middleware if needed
+		if (this.#config.routes) {
+			const router = this.container.get(Router);
 
-      // Wrap routes with dev mode middleware if enabled
-      if (this.#config.development && !this.#config.devMode?.suppressAutoRefresh) {
-        const wrappedRoutes = group({ middleware: DevModeAutoRefreshMiddleware }, [
-          this.#config.routes,
-        ]);
-        router.register(wrappedRoutes);
-      } else {
-        router.register(this.#config.routes);
-      }
-    }
+			// Wrap routes with dev mode middleware if enabled
+			if (this.#config.development && !this.#config.devMode?.suppressAutoRefresh) {
+				const wrappedRoutes = group({ middleware: DevModeAutoRefreshMiddleware }, [
+					this.#config.routes,
+				]);
+				router.register(wrappedRoutes);
+			} else {
+				router.register(this.#config.routes);
+			}
+		}
 
-    // Start dev mode watch service
-    if (this.#config.development && !this.#config.devMode?.suppressAutoRefresh) {
-      this.container.get(DevModeWatchService).start();
-    }
-  }
+		// Start dev mode watch service
+		if (this.#config.development && !this.#config.devMode?.suppressAutoRefresh) {
+			this.container.get(DevModeWatchService).start();
+		}
+	}
 
-  get events(): Dispatcher {
-    return this.container.get(DispatcherKey);
-  }
+	get events(): Dispatcher {
+		return this.container.get(DispatcherKey);
+	}
 
-  url: UrlFunction<RouteParams> = (name, ...args) => {
-    if (!this.#routeRegistry) {
-      this.#routeRegistry = new RouteRegistry(this.#config.routes);
-    }
-    return this.#routeRegistry.url(name, ...args);
-  };
+	url: UrlFunction<RouteParams> = (name, ...args) => {
+		if (!this.#routeRegistry) {
+			this.#routeRegistry = new RouteRegistry(this.#config.routes);
+		}
+		return this.#routeRegistry.url(name, ...args);
+	};
 
-  async handleRequest(request: Request, context: RequestContext): Promise<Response> {
-    return this.withRequestContext(context, () => {
-      const router = this.container.get(Router);
-      return router.handle(request);
-    });
-  }
+	async handleRequest(request: Request, context: RequestContext): Promise<Response> {
+		return this.withRequestContext(context, () => {
+			const router = this.container.get(Router);
+			return router.handle(request);
+		});
+	}
 
-  withRequestContext<R>(context: RequestContext, callback: () => R): R {
-    if (this.container.hasScope) {
-      throw new BeynacError("Can't start a new request scope, we're already handling a request.");
-    }
-    return this.container.withScope(() => {
-      this.container.bind(RequestContext, {
-        lifecycle: "scoped",
-        factory: () => context,
-      });
-      return callback();
-    });
-  }
+	withRequestContext<R>(context: RequestContext, callback: () => R): R {
+		if (this.container.hasScope) {
+			throw new BeynacError("Can't start a new request scope, we're already handling a request.");
+		}
+		return this.container.withScope(() => {
+			this.container.bind(RequestContext, {
+				lifecycle: "scoped",
+				factory: () => context,
+			});
+			return callback();
+		});
+	}
 
-  /**
-   * Resolve middleware priority from configuration.
-   * If a function is provided, creates a builder and calls it.
-   * If an array is provided, returns it directly.
-   * If nothing is provided, returns the default priority list.
-   */
-  #resolveMiddlewarePriority(): MiddlewareReference[] {
-    const config = this.#config.middlewarePriority;
+	/**
+	 * Resolve middleware priority from configuration.
+	 * If a function is provided, creates a builder and calls it.
+	 * If an array is provided, returns it directly.
+	 * If nothing is provided, returns the default priority list.
+	 */
+	#resolveMiddlewarePriority(): MiddlewareReference[] {
+		const config = this.#config.middlewarePriority;
 
-    if (!config) {
-      return DEFAULT_MIDDLEWARE_PRIORITY;
-    }
+		if (!config) {
+			return DEFAULT_MIDDLEWARE_PRIORITY;
+		}
 
-    if (typeof config === "function") {
-      const builder = new MiddlewarePriorityBuilder(DEFAULT_MIDDLEWARE_PRIORITY);
-      config(builder);
-      return builder.toArray();
-    }
+		if (typeof config === "function") {
+			const builder = new MiddlewarePriorityBuilder(DEFAULT_MIDDLEWARE_PRIORITY);
+			config(builder);
+			return builder.toArray();
+		}
 
-    return config;
-  }
+		return config;
+	}
 }

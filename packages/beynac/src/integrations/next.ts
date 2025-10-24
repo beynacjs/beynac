@@ -18,10 +18,10 @@ type Verb = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS";
  * export const GET = makeRouteHandler(app);
  */
 export const makeRouteHandler = (app: Application): AppRouterHandler => {
-  return async (request) => {
-    const context = await createRequestContext("route handler", true);
-    return await app.handleRequest(request, context);
-  };
+	return async (request) => {
+		const context = await createRequestContext("route handler", true);
+		return await app.handleRequest(request, context);
+	};
 };
 
 /**
@@ -37,54 +37,54 @@ export const makeRouteHandler = (app: Application): AppRouterHandler => {
  * export const { GET, POST, PUT, DELETE, PATCH, OPTIONS } = makeRouteHandlers(app);
  */
 export const makeRouteHandlers = (app: Application): Record<Verb, AppRouterHandler> => {
-  const handler = makeRouteHandler(app);
-  return {
-    GET: handler,
-    POST: handler,
-    PUT: handler,
-    DELETE: handler,
-    PATCH: handler,
-    OPTIONS: handler,
-  };
+	const handler = makeRouteHandler(app);
+	return {
+		GET: handler,
+		POST: handler,
+		PUT: handler,
+		DELETE: handler,
+		PATCH: handler,
+		OPTIONS: handler,
+	};
 };
 
 export const wrapRouteHandler = <A extends unknown[], R>(
-  handler: (...args: A) => R,
+	handler: (...args: A) => R,
 ): ((...args: A) => R) => {
-  return (...args: A) => {
-    return handler(...args);
-  };
+	return (...args: A) => {
+		return handler(...args);
+	};
 };
 
 const createRequestContext = async (
-  context: string,
-  allowSetCookie: boolean,
+	context: string,
+	allowSetCookie: boolean,
 ): Promise<RequestContext> => {
-  const nextHeaders = await headers();
-  const nextCookies = await cookies();
-  return {
-    context: `NextJS ${context}`,
-    getCookie(name) {
-      return nextCookies.get(name)?.value ?? null;
-    },
-    getCookieNames() {
-      return nextCookies.getAll().map(({ name }) => name);
-    },
-    deleteCookie: allowSetCookie
-      ? (name) => {
-          nextCookies.delete(name);
-        }
-      : null,
-    setCookie: allowSetCookie
-      ? (name, value, options = {}) => {
-          nextCookies.set(name, value, options);
-        }
-      : null,
-    getRequestHeader(name) {
-      return nextHeaders.get(name);
-    },
-    getRequestHeaderNames() {
-      return nextHeaders.keys();
-    },
-  };
+	const nextHeaders = await headers();
+	const nextCookies = await cookies();
+	return {
+		context: `NextJS ${context}`,
+		getCookie(name) {
+			return nextCookies.get(name)?.value ?? null;
+		},
+		getCookieNames() {
+			return nextCookies.getAll().map(({ name }) => name);
+		},
+		deleteCookie: allowSetCookie
+			? (name) => {
+					nextCookies.delete(name);
+				}
+			: null,
+		setCookie: allowSetCookie
+			? (name, value, options = {}) => {
+					nextCookies.set(name, value, options);
+				}
+			: null,
+		getRequestHeader(name) {
+			return nextHeaders.get(name);
+		},
+		getRequestHeaderNames() {
+			return nextHeaders.keys();
+		},
+	};
 };

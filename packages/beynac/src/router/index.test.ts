@@ -3,14 +3,14 @@ import * as Helpers from "./helpers";
 import * as Index from "./index";
 
 describe("router public API exports", () => {
-  test("all helpers.ts exports are re-exported from index.ts NOTE ONLY ADD EXPORTS TO index.ts IF THEY SHOULD BECOME PART OF THE PUBLIC API OTHERWISE MOVE THEM TO A DIFFERENT FILE!", () => {
-    const helpersExports = Object.keys(Helpers).sort();
-    const indexExports = Object.keys(Index).sort();
+	test("all helpers.ts exports are re-exported from index.ts NOTE ONLY ADD EXPORTS TO index.ts IF THEY SHOULD BECOME PART OF THE PUBLIC API OTHERWISE MOVE THEM TO A DIFFERENT FILE!", () => {
+		const helpersExports = Object.keys(Helpers).sort();
+		const indexExports = Object.keys(Index).sort();
 
-    const missingExports = helpersExports.filter(
-      (exportName) => !indexExports.includes(exportName),
-    );
+		const missingExports = helpersExports.filter(
+			(exportName) => !indexExports.includes(exportName),
+		);
 
-    expect(missingExports).toEqual([]);
-  });
+		expect(missingExports).toEqual([]);
+	});
 });

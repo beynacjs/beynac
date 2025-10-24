@@ -21,32 +21,35 @@ type CreateStackArgs = { displayName?: string };
  * ```
  */
 export function createStack({ displayName = "Stack" }: CreateStackArgs = {}): {
-  Push: Component<PropsWithChildren>;
-  Out: Component;
+	Push: Component<PropsWithChildren>;
+	Out: Component;
 } {
-  const stackIdentity = Symbol(displayName);
+	const stackIdentity = Symbol(displayName);
 
-  const Push: Component<PropsWithChildren> = ({ children }) => {
-    return tagAsJsxElement(
-      Object.assign([children], { stackPush: stackIdentity, [SPECIAL_NODE]: true }),
-    );
-  };
-  Push.displayName = `${displayName}.Push`;
+	const Push: Component<PropsWithChildren> = ({ children }) => {
+		return tagAsJsxElement(
+			Object.assign([children], {
+				stackPush: stackIdentity,
+				[SPECIAL_NODE]: true,
+			}),
+		);
+	};
+	Push.displayName = `${displayName}.Push`;
 
-  const Out: Component<PropsWithChildren> = () => {
-    return tagAsJsxElement(Object.assign([], { stackOut: stackIdentity, [SPECIAL_NODE]: true }));
-  };
-  Out.displayName = `${displayName}.Out`;
+	const Out: Component<PropsWithChildren> = () => {
+		return tagAsJsxElement(Object.assign([], { stackOut: stackIdentity, [SPECIAL_NODE]: true }));
+	};
+	Out.displayName = `${displayName}.Out`;
 
-  return { Push, Out };
+	return { Push, Out };
 }
 
 export type StackPushNode = JSXNode[] & SpecialNode & { stackPush: symbol };
 
 export const isStackPushNode = (node: JSXNode): node is StackPushNode =>
-  typeof (node as StackPushNode)?.stackPush === "symbol";
+	typeof (node as StackPushNode)?.stackPush === "symbol";
 
 export type StackOutNode = JSXNode[] & SpecialNode & { stackOut: symbol };
 
 export const isStackOutNode = (node: JSXNode): node is StackOutNode =>
-  typeof (node as StackOutNode)?.stackOut === "symbol";
+	typeof (node as StackOutNode)?.stackOut === "symbol";

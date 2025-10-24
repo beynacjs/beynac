@@ -19,8 +19,8 @@ import { uneval } from "devalue";
  * ```
  */
 export function jsFrom(value: unknown): string {
-  const serialized = uneval(value);
-  // The (0, eval) pattern ensures evaluation in global scope
-  // Wrap in parentheses to ensure it's a valid expression
-  return `(0, eval)(${JSON.stringify(`(${serialized})`)})`;
+	const serialized = uneval(value);
+	// The (0, eval) pattern ensures evaluation in global scope
+	// Wrap in parentheses to ensure it's a valid expression
+	return `(0, eval)(${JSON.stringify(`(${serialized})`)})`;
 }

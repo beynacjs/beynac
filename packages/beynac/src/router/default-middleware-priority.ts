@@ -10,6 +10,6 @@ import type { MiddlewareReference } from "./Middleware";
  * This list will be populated as framework middleware are added.
  */
 export const DEFAULT_MIDDLEWARE_PRIORITY: MiddlewareReference[] = [
-  // Framework middleware will be added here
-  // Examples: Session, Auth, CSRF, RateLimit, etc.
+	// Framework middleware will be added here
+	// Examples: Session, Auth, CSRF, RateLimit, etc.
 ];

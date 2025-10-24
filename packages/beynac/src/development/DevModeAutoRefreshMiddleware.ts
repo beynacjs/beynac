@@ -6,150 +6,150 @@ import { renderResponse } from "../view/markup-stream";
 import type { JSX } from "../view/public-types";
 
 export class DevModeAutoRefreshMiddleware implements Middleware {
-  private reloadListeners = new Set<(reload: boolean) => void>();
+	private reloadListeners = new Set<(reload: boolean) => void>();
 
-  constructor(private config: Configuration = inject(Configuration)) {}
+	constructor(private config: Configuration = inject(Configuration)) {}
 
-  triggerReload(): void {
-    console.log(this.reloadListeners);
-    for (const listener of this.reloadListeners) {
-      listener(true);
-    }
-    this.reloadListeners.clear();
-  }
+	triggerReload(): void {
+		console.log(this.reloadListeners);
+		for (const listener of this.reloadListeners) {
+			listener(true);
+		}
+		this.reloadListeners.clear();
+	}
 
-  destroy(): void {
-    this.reloadListeners.clear();
-  }
+	destroy(): void {
+		this.reloadListeners.clear();
+	}
 
-  async handle(ctx: ControllerContext, next: MiddlewareNext): Promise<Response> {
-    const url = new URL(ctx.request.url);
+	async handle(ctx: ControllerContext, next: MiddlewareNext): Promise<Response> {
+		const url = new URL(ctx.request.url);
 
-    if (url.searchParams.has("__beynac_dev_mode_refresh")) {
-      return this.#handleSSERequest();
-    }
+		if (url.searchParams.has("__beynac_dev_mode_refresh")) {
+			return this.#handleSSERequest();
+		}
 
-    const result = await next(ctx);
-    const response = await this.#convertToResponse(result);
-    const contentType = response.headers.get("Content-Type");
-    if (contentType?.includes("text/html")) {
-      return this.#injectScript(response);
-    }
-    return response;
-  }
+		const result = await next(ctx);
+		const response = await this.#convertToResponse(result);
+		const contentType = response.headers.get("Content-Type");
+		if (contentType?.includes("text/html")) {
+			return this.#injectScript(response);
+		}
+		return response;
+	}
 
-  async #convertToResponse(result: Response | JSX.Element | null): Promise<Response> {
-    if (result instanceof Response) {
-      return result;
-    }
-    return renderResponse(result);
-  }
+	async #convertToResponse(result: Response | JSX.Element | null): Promise<Response> {
+		if (result instanceof Response) {
+			return result;
+		}
+		return renderResponse(result);
+	}
 
-  #handleSSERequest(): Response {
-    const encoder = new TextEncoder();
-    let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
-    let sendReload: ((reload: boolean) => void) | null = null;
+	#handleSSERequest(): Response {
+		const encoder = new TextEncoder();
+		let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+		let sendReload: ((reload: boolean) => void) | null = null;
 
-    const heartbeatMs = this.config.devMode?.autoRefreshHeartbeatMs ?? 15000;
-    const reloadListeners = this.reloadListeners;
+		const heartbeatMs = this.config.devMode?.autoRefreshHeartbeatMs ?? 15000;
+		const reloadListeners = this.reloadListeners;
 
-    const stream = new ReadableStream({
-      start(controller) {
-        const sendHeartbeat = () => {
-          controller.enqueue(encoder.encode(":heartbeat\n\n"));
-        };
-        sendReload = () => {
-          controller.enqueue(encoder.encode('data: {"reload": true}\n\n'));
-        };
-        sendHeartbeat();
-        heartbeatInterval = setInterval(sendHeartbeat, heartbeatMs);
+		const stream = new ReadableStream({
+			start(controller) {
+				const sendHeartbeat = () => {
+					controller.enqueue(encoder.encode(":heartbeat\n\n"));
+				};
+				sendReload = () => {
+					controller.enqueue(encoder.encode('data: {"reload": true}\n\n'));
+				};
+				sendHeartbeat();
+				heartbeatInterval = setInterval(sendHeartbeat, heartbeatMs);
 
-        reloadListeners.add(sendReload);
-      },
-      cancel() {
-        if (heartbeatInterval) {
-          clearInterval(heartbeatInterval);
-        }
-        if (sendReload) {
-          reloadListeners.delete(sendReload);
-        }
-      },
-    });
+				reloadListeners.add(sendReload);
+			},
+			cancel() {
+				if (heartbeatInterval) {
+					clearInterval(heartbeatInterval);
+				}
+				if (sendReload) {
+					reloadListeners.delete(sendReload);
+				}
+			},
+		});
 
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      },
-    });
-  }
+		return new Response(stream, {
+			headers: {
+				"Content-Type": "text/event-stream",
+				"Cache-Control": "no-cache",
+				Connection: "keep-alive",
+			},
+		});
+	}
 
-  #injectScript(response: Response): Response {
-    const script = this.generateScript();
-    const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
+	#injectScript(response: Response): Response {
+		const script = this.generateScript();
+		const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
 
-    const body = response.body as ReadableStream<Uint8Array> | null;
-    const reader = body?.getReader();
-    const writer = writable.getWriter();
-    const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
+		const body = response.body as ReadableStream<Uint8Array> | null;
+		const reader = body?.getReader();
+		const writer = writable.getWriter();
+		const encoder = new TextEncoder();
+		const decoder = new TextDecoder();
 
-    let injected = false;
+		let injected = false;
 
-    void (async () => {
-      if (!reader) {
-        await writer.close();
-        return;
-      }
+		void (async () => {
+			if (!reader) {
+				await writer.close();
+				return;
+			}
 
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          if (!value) continue;
+			try {
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done) break;
+					if (!value) continue;
 
-          if (!injected) {
-            let chunk = decoder.decode(value, { stream: true });
+					if (!injected) {
+						let chunk = decoder.decode(value, { stream: true });
 
-            const injectBefore = (tag: RegExp) => {
-              if (injected) return;
+						const injectBefore = (tag: RegExp) => {
+							if (injected) return;
 
-              const match = chunk.match(tag);
-              if (match?.index !== undefined) {
-                injected = true;
-                chunk = chunk.substring(0, match.index) + script + chunk.substring(match.index);
-              }
-            };
+							const match = chunk.match(tag);
+							if (match?.index !== undefined) {
+								injected = true;
+								chunk = chunk.substring(0, match.index) + script + chunk.substring(match.index);
+							}
+						};
 
-            injectBefore(/<\/body>/i);
-            injectBefore(/<\/html>/i);
+						injectBefore(/<\/body>/i);
+						injectBefore(/<\/html>/i);
 
-            await writer.write(encoder.encode(chunk));
-          } else {
-            await writer.write(value);
-          }
-        }
+						await writer.write(encoder.encode(chunk));
+					} else {
+						await writer.write(value);
+					}
+				}
 
-        if (!injected) {
-          await writer.write(encoder.encode(script));
-        }
+				if (!injected) {
+					await writer.write(encoder.encode(script));
+				}
 
-        await writer.close();
-      } catch (error) {
-        await writer.abort(error);
-      }
-    })();
+				await writer.close();
+			} catch (error) {
+				await writer.abort(error);
+			}
+		})();
 
-    return new Response(readable, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: response.headers,
-    });
-  }
+		return new Response(readable, {
+			status: response.status,
+			statusText: response.statusText,
+			headers: response.headers,
+		});
+	}
 
-  private generateScript(): string {
-    return /*ts*/ `
+	private generateScript(): string {
+		return /*ts*/ `
 <script>
 (function() {
   const eventSource = new EventSource('?__beynac_dev_mode_refresh');
@@ -179,5 +179,5 @@ export class DevModeAutoRefreshMiddleware implements Middleware {
 
 })();
 </script>`;
-  }
+	}
 }

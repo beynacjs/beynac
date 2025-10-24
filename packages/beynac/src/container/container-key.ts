@@ -6,10 +6,10 @@ import { AnyConstructor } from "../utils";
 export type KeyOrClass<T = unknown> = AnyConstructor<T> | TypeToken<T>;
 
 export const getKeyName = (key: KeyOrClass): string => {
-  if (typeof key === "function") {
-    return `[${key.name}]`;
-  }
-  return key?.toString() ?? "[unknown]";
+	if (typeof key === "function") {
+		return `[${key.name}]`;
+	}
+	return key?.toString() ?? "[unknown]";
 };
 
 const TYPE_TOKEN_BRAND: unique symbol = Symbol("TypeToken");
@@ -18,21 +18,21 @@ const TYPE_TOKEN_BRAND: unique symbol = Symbol("TypeToken");
  * A token representing an arbitrary type
  */
 export type TypeToken<T = unknown> = {
-  readonly [TYPE_TOKEN_BRAND]: T;
-  toString(): string;
+	readonly [TYPE_TOKEN_BRAND]: T;
+	toString(): string;
 };
 
 class TypeTokenImpl<T> implements TypeToken<T> {
-  readonly [TYPE_TOKEN_BRAND]!: T;
-  #name: string;
+	readonly [TYPE_TOKEN_BRAND]!: T;
+	#name: string;
 
-  constructor(name: string) {
-    this.#name = name;
-  }
+	constructor(name: string) {
+		this.#name = name;
+	}
 
-  toString(): string {
-    return `[${this.#name}]`;
-  }
+	toString(): string {
+		return `[${this.#name}]`;
+	}
 }
 
 export const isTypeToken = (value: unknown): value is TypeToken => value instanceof TypeTokenImpl;
@@ -53,5 +53,5 @@ export const isTypeToken = (value: unknown): value is TypeToken => value instanc
  * @param displayName - Optional name for debugging
  */
 export function createTypeToken<T = unknown>(displayName?: string): TypeToken<T> {
-  return new TypeTokenImpl<T>(displayName ?? "anonymous");
+	return new TypeTokenImpl<T>(displayName ?? "anonymous");
 }

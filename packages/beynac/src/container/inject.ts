@@ -23,14 +23,14 @@ const invalidInjectMessage = `Dependencies that use inject() must be created by 
  * const instance = new MyClass(new MockEmailService());
  */
 export function inject<T>(arg: KeyOrClass<T>): T {
-  if (!_currentInjectHandler) {
-    throw new BeynacError(invalidInjectMessage);
-  }
-  const result = _currentInjectHandler(arg, false);
-  if (result === NO_VALUE) {
-    throw new BeynacError(`Required dependency ${getKeyName(arg)} not found`);
-  }
-  return result;
+	if (!_currentInjectHandler) {
+		throw new BeynacError(invalidInjectMessage);
+	}
+	const result = _currentInjectHandler(arg, false);
+	if (result === NO_VALUE) {
+		throw new BeynacError(`Required dependency ${getKeyName(arg)} not found`);
+	}
+	return result;
 }
 
 /**
@@ -51,14 +51,14 @@ export function inject<T>(arg: KeyOrClass<T>): T {
  * const instance = new MyClass(new MockEmailService());
  */
 export function injectOptional<T>(arg: KeyOrClass<T>): T | null {
-  if (!_currentInjectHandler) {
-    throw new BeynacError(invalidInjectMessage);
-  }
-  let result: unknown = _currentInjectHandler(arg, true);
-  if (result === NO_VALUE) {
-    result = null;
-  }
-  return (result ?? null) as T;
+	if (!_currentInjectHandler) {
+		throw new BeynacError(invalidInjectMessage);
+	}
+	let result: unknown = _currentInjectHandler(arg, true);
+	if (result === NO_VALUE) {
+		result = null;
+	}
+	return (result ?? null) as T;
 }
 
 type InjectHandler = <T>(arg: KeyOrClass<T>, optional: boolean) => T | NoValue;
@@ -66,9 +66,9 @@ type InjectHandler = <T>(arg: KeyOrClass<T>, optional: boolean) => T | NoValue;
 let _currentInjectHandler: InjectHandler | null = null;
 
 export const _getInjectHandler = (): InjectHandler | null => {
-  return _currentInjectHandler;
+	return _currentInjectHandler;
 };
 
 export const _setInjectHandler = (handler: InjectHandler | null): void => {
-  _currentInjectHandler = handler;
+	_currentInjectHandler = handler;
 };

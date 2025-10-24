@@ -6,9 +6,9 @@ import type { JSXNode } from "./public-types";
  * Similar to React's Children.toArray utility.
  */
 export function childrenToArray(children: JSXNode): JSXNode[] {
-  const wrapped = arrayWrap(children);
-  return wrapped.filter(
-    (child): child is Exclude<JSXNode, null | undefined | boolean> =>
-      child != null && typeof child !== "boolean",
-  );
+	const wrapped = arrayWrap(children);
+	return wrapped.filter(
+		(child): child is Exclude<JSXNode, null | undefined | boolean> =>
+			child != null && typeof child !== "boolean",
+	);
 }
