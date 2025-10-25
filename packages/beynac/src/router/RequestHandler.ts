@@ -1,3 +1,4 @@
+import { inject } from "../container/inject";
 import { Configuration, Container, RequestLocals } from "../contracts";
 import { extendsClass } from "../utils";
 import { renderResponse } from "../view/markup-stream";
@@ -5,16 +6,16 @@ import { isJsxElement, type JSX } from "../view/public-types";
 import { AbortException, abortExceptionKey } from "./abort";
 import { Controller, type ControllerContext, type ControllerReturn } from "./Controller";
 import { throwOnMissingPropertyAccess } from "./params-access-checker";
-import type { ControllerReference, RouteDefinition } from "./router-types";
+import type { ControllerReference, RouteDefinition, RouteWithParams } from "./router-types";
 
 export class RequestHandler {
 	#throwOnInvalidParam: boolean;
 
 	constructor(
-		private container: Container = container.get(Container),
-		config?: Configuration,
+		private container: Container = inject(Container),
+		config: Configuration = inject(Configuration),
 	) {
-		switch (config?.throwOnInvalidParamAccess ?? "development") {
+		switch (config.throwOnInvalidParamAccess ?? "development") {
 			case "always":
 				this.#throwOnInvalidParam = true;
 				break;
@@ -22,24 +23,19 @@ export class RequestHandler {
 				this.#throwOnInvalidParam = false;
 				break;
 			case "development":
-				this.#throwOnInvalidParam = !!config?.development;
+				this.#throwOnInvalidParam = !!config.development;
 				break;
 		}
 	}
 
-	async handle(
-		route: RouteDefinition,
-		request: Request,
-		url: URL,
-		rawParams: Record<string, string>,
-	): Promise<Response> {
+	async handle(match: RouteWithParams): Promise<Response> {
 		// Get RequestLocals for this request (scoped)
 		const locals = this.container.get(RequestLocals);
 
 		try {
 			// Decode URL parameters
 			const decodedParams: Record<string, string> = {};
-			for (const [key, value] of Object.entries(rawParams)) {
+			for (const [key, value] of Object.entries(match.params)) {
 				try {
 					decodedParams[key] = decodeURIComponent(value);
 				} catch {
@@ -50,44 +46,46 @@ export class RequestHandler {
 
 			// Create controller context
 			const ctx: ControllerContext = {
-				request,
+				request: match.request,
 				params: this.#throwOnInvalidParam
 					? throwOnMissingPropertyAccess(decodedParams)
 					: decodedParams,
-				rawParams: this.#throwOnInvalidParam ? throwOnMissingPropertyAccess(rawParams) : rawParams,
-				url,
-				meta: route.meta || {},
+				rawParams: this.#throwOnInvalidParam
+					? throwOnMissingPropertyAccess(match.params)
+					: match.params,
+				url: match.url,
+				meta: match.route.meta || {},
 			};
 
 			// Build and execute pipeline
 			const finalHandler = async (ctx: ControllerContext): Promise<Response> => {
 				let result: ControllerReturn;
-				if (extendsClass(route.controller, Controller)) {
-					const controller = this.container.get(route.controller);
+				if (extendsClass(match.route.controller, Controller)) {
+					const controller = this.container.get(match.route.controller);
 					result = controller.handle(ctx);
 				} else {
 					// Check if controller is a class constructor that doesn't extend Controller
 					if (
-						typeof route.controller === "function" &&
-						route.controller.toString().startsWith("class ")
+						typeof match.route.controller === "function" &&
+						match.route.controller.toString().startsWith("class ")
 					) {
 						throw new Error(
-							`${controllerDescription(route.controller)} for ${route.path} is a class but does not extend Controller. ` +
+							`${controllerDescription(match.route.controller)} for ${match.route.path} is a class but does not extend Controller. ` +
 								`Class-based handlers must extend the Controller class.`,
 						);
 					}
-					result = route.controller(ctx);
+					result = match.route.controller(ctx);
 				}
 
-				return this.#convertToResponse(route, await result);
+				return this.#convertToResponse(match.route, await result);
 			};
 
-			const pipeline = route.middleware
-				? route.middleware.buildPipeline(this.container, finalHandler)
+			const pipeline = match.route.middleware
+				? match.route.middleware.buildPipeline(this.container, finalHandler)
 				: finalHandler;
 
 			const pipelineResult = await pipeline(ctx);
-			const response = await this.#convertToResponse(route, pipelineResult);
+			const response = await this.#convertToResponse(match.route, pipelineResult);
 
 			// Check if abort was caught by user code
 			const abortException = locals.get(abortExceptionKey);

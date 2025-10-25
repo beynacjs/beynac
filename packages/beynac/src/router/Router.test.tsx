@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, expectTypeOf, mock, spyOn, test } from "bun:test";
 import { ContainerImpl } from "../container/ContainerImpl";
 import { createTypeToken } from "../container/container-key";
-import { Application, Container } from "../contracts";
+import { Application, Configuration, Container } from "../contracts";
 import { createApplication } from "../entry";
 import { MockController, mockController, mockMiddleware, requestContext } from "../test-utils";
 import { NoArgConstructor } from "../utils";
@@ -494,9 +494,11 @@ describe("middleware priority", () => {
 		const applyPrioritySpy = spyOn(MiddlewareSet.prototype, "applyPriority");
 
 		container = new ContainerImpl();
-		router = new Router(container, {
+		container.instance(Container, container);
+		container.instance(Configuration, {
 			middlewarePriority: [Auth, RateLimit],
 		});
+		router = container.get(Router);
 
 		// Register routes - they share the same MiddlewareSet
 		router.register(

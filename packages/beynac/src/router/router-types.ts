@@ -171,6 +171,17 @@ export interface RouteDefinition {
 }
 
 /**
+ * A matched route with its request, URL and parameters.
+ * Returned by Router.lookup() and passed to RequestHandler.handle()
+ */
+export interface RouteWithParams {
+	route: RouteDefinition;
+	request: Request;
+	url: URL;
+	params: Record<string, string>;
+}
+
+/**
  * Extract parameter names from a path pattern
  * "/users/{id}/{...rest}" -> "id" | "rest"
  */

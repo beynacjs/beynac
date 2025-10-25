@@ -1,17 +1,15 @@
 import { ContainerImpl } from "../container/ContainerImpl";
-import type { Container } from "../contracts";
 import { Cookies, Headers, RequestLocals } from "../contracts";
 import { Application } from "../contracts/Application";
 import { Configuration } from "../contracts/Configuration";
+import { Container } from "../contracts/Container";
 import { type Dispatcher, Dispatcher as DispatcherKey } from "../contracts/Dispatcher";
 import { RequestContext } from "../contracts/RequestContext";
 import { DevModeAutoRefreshMiddleware } from "../development/DevModeAutoRefreshMiddleware";
 import { DevModeWatchService } from "../development/DevModeWatchService";
 import { BeynacError } from "../error";
 import { group, RouteRegistry, Router } from "../router";
-import { DEFAULT_MIDDLEWARE_PRIORITY } from "../router/default-middleware-priority";
-import type { MiddlewareReference } from "../router/Middleware";
-import { MiddlewarePriorityBuilder } from "../router/MiddlewarePriorityBuilder";
+import { RequestHandler } from "../router/RequestHandler";
 import { UrlFunction } from "../router/router-types";
 import { CookiesImpl } from "./CookiesImpl";
 import { HeadersImpl } from "./HeadersImpl";
@@ -20,7 +18,7 @@ import { RequestLocalsImpl } from "./RequestLocalsImpl";
 export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 	implements Application<RouteParams>
 {
-	container: Container;
+	readonly container: Container;
 	#bootstrapped = false;
 	#config: Configuration<RouteParams>;
 	#routeRegistry: RouteRegistry<RouteParams> | null = null;
@@ -33,24 +31,16 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 	bootstrap(): void {
 		if (this.#bootstrapped) return;
 		this.#bootstrapped = true;
-
-		// Bind core services
+		this.container.instance(Container, this.container);
+		this.container.instance(Configuration, this.#config);
+		this.container.instance(Application, this);
 		this.container.scoped(Headers, HeadersImpl);
 		this.container.scoped(Cookies, CookiesImpl);
 		this.container.scoped(RequestLocals, RequestLocalsImpl);
 		this.container.singleton(DevModeAutoRefreshMiddleware);
 		this.container.singleton(DevModeWatchService);
-		this.container.instance(Configuration, this.#config);
-		this.container.instance(Application, this);
-
-		this.container.instance(
-			Router,
-			new Router(
-				this.container,
-				{ middlewarePriority: this.#resolveMiddlewarePriority() },
-				this.#config,
-			),
-		);
+		this.container.singleton(Router);
+		this.container.singleton(RequestHandler);
 
 		// Register routes with dev mode middleware if needed
 		if (this.#config.routes) {
@@ -85,9 +75,17 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 	};
 
 	async handleRequest(request: Request, context: RequestContext): Promise<Response> {
-		return this.withRequestContext(context, () => {
+		return this.withRequestContext(context, async () => {
 			const router = this.container.get(Router);
-			return router.handle(request);
+			const requestHandler = this.container.get(RequestHandler);
+
+			const match = router.lookup(request);
+
+			if (!match) {
+				return new Response("Not Found", { status: 404 });
+			}
+
+			return requestHandler.handle(match);
 		});
 	}
 
@@ -102,27 +100,5 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 			});
 			return callback();
 		});
-	}
-
-	/**
-	 * Resolve middleware priority from configuration.
-	 * If a function is provided, creates a builder and calls it.
-	 * If an array is provided, returns it directly.
-	 * If nothing is provided, returns the default priority list.
-	 */
-	#resolveMiddlewarePriority(): MiddlewareReference[] {
-		const config = this.#config.middlewarePriority;
-
-		if (!config) {
-			return DEFAULT_MIDDLEWARE_PRIORITY;
-		}
-
-		if (typeof config === "function") {
-			const builder = new MiddlewarePriorityBuilder(DEFAULT_MIDDLEWARE_PRIORITY);
-			config(builder);
-			return builder.toArray();
-		}
-
-		return config;
 	}
 }

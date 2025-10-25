@@ -35,4 +35,5 @@ export type {
 	RouteGroupOptions,
 	RouteOptions,
 	Routes,
+	RouteWithParams,
 } from "./router-types";

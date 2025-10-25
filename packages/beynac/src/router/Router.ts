@@ -1,37 +1,27 @@
-import type { Configuration, Container } from "../contracts";
+import { inject } from "../container/inject";
+import { Configuration } from "../contracts";
+import { DEFAULT_MIDDLEWARE_PRIORITY } from "./default-middleware-priority";
 import type { MiddlewareReference } from "./Middleware";
+import { MiddlewarePriorityBuilder } from "./MiddlewarePriorityBuilder";
 import { addRoute, createMatcher, findRoute, type MatcherContext } from "./matcher";
-import { RequestHandler } from "./RequestHandler";
 import type {
 	BuiltInRouteConstraint,
 	ParamConstraint,
 	RouteDefinition,
 	Routes,
+	RouteWithParams,
 } from "./router-types";
-
-export interface RouterOptions {
-	/**
-	 * Global middleware priority list. Middleware in this list will execute first,
-	 * in the order specified. All other middleware will execute after, in their
-	 * original relative order.
-	 */
-	middlewarePriority?: MiddlewareReference[] | undefined;
-}
 
 export class Router {
 	#matcher: MatcherContext<{ route: RouteDefinition }>;
-	#middlewarePriority: MiddlewareReference[] | undefined;
+	#middlewarePriority: MiddlewareReference[];
 	#sortedMiddlewareSets = new WeakSet();
-	#requestHandler: RequestHandler;
+	#config: Configuration;
 
-	constructor(
-		private container: Container,
-		options?: RouterOptions,
-		config?: Pick<Configuration, "throwOnInvalidParamAccess" | "development">,
-	) {
+	constructor(config: Configuration = inject(Configuration)) {
+		this.#config = config;
 		this.#matcher = createMatcher<{ route: RouteDefinition }>();
-		this.#middlewarePriority = options?.middlewarePriority;
-		this.#requestHandler = new RequestHandler(this.container, config);
+		this.#middlewarePriority = this.#resolveMiddlewarePriority();
 	}
 
 	/**
@@ -44,11 +34,7 @@ export class Router {
 			}
 
 			// Apply priority sorting once per MiddlewareSet instance
-			if (
-				route.middleware &&
-				this.#middlewarePriority &&
-				!this.#sortedMiddlewareSets.has(route.middleware)
-			) {
+			if (route.middleware && !this.#sortedMiddlewareSets.has(route.middleware)) {
 				route.middleware.applyPriority(this.#middlewarePriority);
 				this.#sortedMiddlewareSets.add(route.middleware);
 			}
@@ -56,26 +42,27 @@ export class Router {
 	}
 
 	/**
-	 * Handle an HTTP request
+	 * Look up a route for the given request
+	 * @returns The matched route with request, URL and params, or null if no route found or constraints failed
 	 */
-	async handle(request: Request): Promise<Response> {
+	lookup(request: Request): RouteWithParams | null {
 		const url = new URL(request.url);
 		const hostname = url.hostname;
 
 		const result = findRoute(this.#matcher, request.method, url.pathname, hostname);
 
 		if (!result) {
-			return new Response("Not Found", { status: 404 });
+			return null;
 		}
 
 		const { route } = result.data;
 		const params = result.params ?? {};
 
 		if (!this.#checkConstraints(route, params)) {
-			return new Response("Not Found", { status: 404 });
+			return null;
 		}
 
-		return this.#requestHandler.handle(route, request, url, params);
+		return { route, request, url, params };
 	}
 
 	#checkConstraints(route: RouteDefinition, params: Record<string, string>): boolean {
@@ -97,6 +84,28 @@ export class Router {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Resolve middleware priority from configuration.
+	 * If a function is provided, creates a builder and calls it.
+	 * If an array is provided, returns it directly.
+	 * If nothing is provided, returns the default priority list.
+	 */
+	#resolveMiddlewarePriority(): MiddlewareReference[] {
+		const middlewarePriority = this.#config.middlewarePriority;
+
+		if (!middlewarePriority) {
+			return DEFAULT_MIDDLEWARE_PRIORITY;
+		}
+
+		if (typeof middlewarePriority === "function") {
+			const builder = new MiddlewarePriorityBuilder(DEFAULT_MIDDLEWARE_PRIORITY);
+			middlewarePriority(builder);
+			return builder.toArray();
+		}
+
+		return middlewarePriority;
 	}
 }
 
