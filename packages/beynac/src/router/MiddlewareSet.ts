@@ -43,12 +43,12 @@ export class MiddlewareSet {
 	}
 
 	buildPipeline(container: Container, finalHandler: MiddlewareNext): MiddlewareNext {
-		const middlewareInstances = Array.from(this.#middleware).map((ref) => container.get(ref));
+		const middlewareInstances = Array.from(this.#middleware);
 
 		let next: MiddlewareNext = finalHandler;
 
 		for (let i = middlewareInstances.length - 1; i >= 0; i--) {
-			const middleware = middlewareInstances[i];
+			const middleware = container.get(middlewareInstances[i]);
 			const currentNext = next;
 			next = (ctx) => middleware.handle(ctx, currentNext);
 		}
