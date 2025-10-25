@@ -1,4 +1,5 @@
 // Public types
+export { AbortException, abort } from "./abort";
 
 // Helper functions and constraints
 export {
@@ -29,9 +30,9 @@ export { RouteRegistry } from "./RouteRegistry";
 // Router and registry
 export { Router } from "./Router";
 export type {
+	ControllerReference as RouteHandler,
 	ParamConstraint,
 	RouteGroupOptions,
-	RouteHandler,
 	RouteOptions,
 	Routes,
 } from "./router-types";

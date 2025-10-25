@@ -1,32 +1,48 @@
+import { ContainerImpl } from "../container/ContainerImpl";
+import { RequestLocals } from "../contracts";
+import { createKey, Key } from "../keys";
 import { redirectStatus } from "./redirect";
 
 /**
- * Exception thrown to trigger an HTTP response with a specific status code.
- * Caught by the router and converted to an HTTP response.
+ * Exception thrown to abort request handling and return an HTTP response.
+ * Caught by the router and the wrapped response is returned.
+ *
+ * This exception extends Error to integrate properly with error handling,
+ * but the router catches it and returns the response instead of treating
+ * it as an error.
  */
-export class HttpException {
-	readonly status: number;
-	readonly message: string;
-	readonly headers: Headers | Record<string, string>;
+export class AbortException extends Error {
+	readonly response: Response;
 
-	constructor(status: number, message = "", headers: Headers | Record<string, string> = {}) {
-		this.status = status;
-		this.message = message;
-		this.headers = headers;
+	constructor(response: Response) {
+		super("Request aborted");
+		this.name = "AbortException";
+		this.response = response;
+	}
+
+	/**
+	 * Create an AbortException with the given status code, body, and headers.
+	 *
+	 * @param status - HTTP status code
+	 * @param body - Response body (optional)
+	 * @param headers - Response headers (optional)
+	 * @returns An AbortException wrapping a Response with the given parameters
+	 */
+	static forStatus(
+		status: number,
+		body: string | null = null,
+		headers: Headers | Record<string, string> = {},
+	): AbortException {
+		return new AbortException(new Response(body, { status, headers }));
 	}
 }
 
 /**
- * Exception thrown to trigger an HTTP response.
- * Caught by the router and the wrapped response is returned.
+ * Key for storing abort exceptions in RequestLocals
  */
-export class HttpResponseException {
-	readonly response: Response;
-
-	constructor(response: Response) {
-		this.response = response;
-	}
-}
+export const abortExceptionKey: Key<AbortException | undefined> = createKey<AbortException>({
+	displayName: "abortException",
+});
 
 /**
  * Provides methods to abort HTTP requests early
@@ -203,7 +219,21 @@ function _abort(
 	message = "",
 	headers: Headers | Record<string, string> = {},
 ): never {
-	throw new HttpException(status, message, headers);
+	const exception = AbortException.forStatus(status, message, headers);
+
+	const container = ContainerImpl.currentlyInScope();
+	if (!container) {
+		throw new Error("abort() can only be called within a request handler");
+	}
+
+	const locals = container.get(RequestLocals);
+	if (locals.has(abortExceptionKey)) {
+		// First abort wins - throw the existing one
+		throw locals.get(abortExceptionKey)!;
+	}
+	locals.set(abortExceptionKey, exception);
+
+	throw exception;
 }
 
 export const abort: Abort = Object.assign(_abort, {
@@ -253,6 +283,19 @@ export const abort: Abort = Object.assign(_abort, {
 	},
 
 	withResponse(response: Response): never {
-		throw new HttpResponseException(response);
+		const exception = new AbortException(response);
+
+		const container = ContainerImpl.currentlyInScope();
+		if (!container) {
+			throw new Error("abort() can only be called within a request handler");
+		}
+
+		const locals = container.get(RequestLocals);
+		if (locals.has(abortExceptionKey)) {
+			throw locals.get(abortExceptionKey)!;
+		}
+		locals.set(abortExceptionKey, exception);
+
+		throw exception;
 	},
 });

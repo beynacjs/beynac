@@ -1,12 +1,7 @@
 import type { Configuration, Container } from "../contracts";
-import { extendsClass } from "../utils";
-import { renderResponse } from "../view/markup-stream";
-import { isJsxElement, type JSX } from "../view/public-types";
-import { HttpException, HttpResponseException } from "./abort";
-import { Controller, ControllerContext, type ControllerReturn } from "./Controller";
 import type { MiddlewareReference } from "./Middleware";
 import { addRoute, createMatcher, findRoute, type MatcherContext } from "./matcher";
-import { throwOnMissingPropertyAccess } from "./params-access-checker";
+import { RequestHandler } from "./RequestHandler";
 import type {
 	BuiltInRouteConstraint,
 	ParamConstraint,
@@ -23,33 +18,20 @@ export interface RouterOptions {
 	middlewarePriority?: MiddlewareReference[] | undefined;
 }
 
-type ConfigRequiredByRouter = Pick<Configuration, "throwOnInvalidParamAccess" | "development">;
-
 export class Router {
 	#matcher: MatcherContext<{ route: RouteDefinition }>;
 	#middlewarePriority: MiddlewareReference[] | undefined;
 	#sortedMiddlewareSets = new WeakSet();
-	#throwOnInvalidParam: boolean;
+	#requestHandler: RequestHandler;
 
 	constructor(
 		private container: Container,
 		options?: RouterOptions,
-		config?: ConfigRequiredByRouter,
+		config?: Pick<Configuration, "throwOnInvalidParamAccess" | "development">,
 	) {
 		this.#matcher = createMatcher<{ route: RouteDefinition }>();
 		this.#middlewarePriority = options?.middlewarePriority;
-
-		switch (config?.throwOnInvalidParamAccess ?? "development") {
-			case "always":
-				this.#throwOnInvalidParam = true;
-				break;
-			case "never":
-				this.#throwOnInvalidParam = false;
-				break;
-			case "development":
-				this.#throwOnInvalidParam = !!config?.development;
-				break;
-		}
+		this.#requestHandler = new RequestHandler(this.container, config);
 	}
 
 	/**
@@ -93,7 +75,7 @@ export class Router {
 			return new Response("Not Found", { status: 404 });
 		}
 
-		return this.#executeRoute(route, request, url, params);
+		return this.#requestHandler.handle(route, request, url, params);
 	}
 
 	#checkConstraints(route: RouteDefinition, params: Record<string, string>): boolean {
@@ -115,107 +97,6 @@ export class Router {
 		}
 
 		return true;
-	}
-
-	async #executeRoute(
-		route: RouteDefinition,
-		request: Request,
-		url: URL,
-		rawParams: Record<string, string>,
-	): Promise<Response> {
-		const decodedParams: Record<string, string> = {};
-		for (const [key, value] of Object.entries(rawParams)) {
-			try {
-				decodedParams[key] = decodeURIComponent(value);
-			} catch {
-				// If decoding fails, use the original value
-				decodedParams[key] = value;
-			}
-		}
-
-		const ctx: ControllerContext = {
-			request,
-			params: this.#throwOnInvalidParam
-				? throwOnMissingPropertyAccess(decodedParams)
-				: decodedParams,
-			rawParams: this.#throwOnInvalidParam ? throwOnMissingPropertyAccess(rawParams) : rawParams,
-			url,
-			meta: route.meta || {},
-		};
-
-		const finalHandler = async (ctx: ControllerContext): Promise<Response> => {
-			let result: ControllerReturn;
-			if (extendsClass(route.handler, Controller)) {
-				const controller = this.container.get(route.handler);
-				result = controller.handle(ctx);
-			} else {
-				// Check if handler is a class constructor that doesn't extend Controller
-				if (typeof route.handler === "function" && route.handler.toString().startsWith("class ")) {
-					throw new Error(
-						`Route handler ${route.handler.name} for ${route.path} is a class but does not extend Controller. ` +
-							`Class-based handlers must extend the Controller class.`,
-					);
-				}
-				result = route.handler(ctx);
-			}
-
-			return this.#convertToResponse(route, await result);
-		};
-
-		const pipeline = route.middleware
-			? route.middleware.buildPipeline(this.container, finalHandler)
-			: finalHandler;
-
-		try {
-			const pipelineResult = await pipeline(ctx);
-			return this.#convertToResponse(route, pipelineResult);
-		} catch (error) {
-			// Handle HttpResponseException - return the wrapped response
-			if (error instanceof HttpResponseException) {
-				return error.response;
-			}
-
-			// Handle HttpException - convert to HTTP response
-			if (error instanceof HttpException) {
-				return new Response(error.message, {
-					status: error.status,
-					headers: error.headers,
-				});
-			}
-
-			// Re-throw any other errors
-			throw error;
-		}
-	}
-
-	async #convertToResponse(
-		route: RouteDefinition,
-		result: Response | JSX.Element | null,
-	): Promise<Response> {
-		if (result instanceof Response) {
-			return result;
-		}
-
-		if (result === null) {
-			return new Response();
-		}
-
-		if (isJsxElement(result)) {
-			return renderResponse(result);
-		}
-
-		const hasHandleMethod = typeof (result as Controller)?.handle !== "function";
-
-		if (hasHandleMethod) {
-			throw new Error(
-				`Route handler ${route.handler.name} for ${route.path} returned an object with a 'handle' method. This can happen if you have a controller that does not extend the Controller class.`,
-			);
-		}
-
-		throw new Error(
-			`Route handler ${route.handler.name} for ${route.path} returned an invalid value. Expected Response, JSX element, or null, ` +
-				`but got: ${Object.prototype.toString.call(result)}`,
-		);
 	}
 }
 

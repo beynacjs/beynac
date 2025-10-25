@@ -2305,6 +2305,79 @@ describe("Container withScope", () => {
 	});
 });
 
+describe("Container currentlyInScope", () => {
+	test("returns null when not in a scope", () => {
+		expect(ContainerImpl.currentlyInScope()).toBe(null);
+	});
+
+	test("returns container when inside a scope", () => {
+		container.withScope(() => {
+			expect(ContainerImpl.currentlyInScope()).toBe(container);
+		});
+	});
+
+	test("returns null after scope exits", () => {
+		container.withScope(() => {
+			expect(ContainerImpl.currentlyInScope()).toBe(container);
+		});
+
+		expect(ContainerImpl.currentlyInScope()).toBe(null);
+	});
+
+	test("returns container across async operations within scope", async () => {
+		await container.withScope(async () => {
+			expect(ContainerImpl.currentlyInScope()).toBe(container);
+
+			await Promise.resolve();
+			expect(ContainerImpl.currentlyInScope()).toBe(container);
+
+			await new Promise((resolve) => setTimeout(resolve, 0));
+			expect(ContainerImpl.currentlyInScope()).toBe(container);
+		});
+	});
+
+	test("nested scopes return same container", async () => {
+		await container.withScope(async () => {
+			const outer = ContainerImpl.currentlyInScope();
+			expect(outer).toBe(container);
+
+			await container.withScope(async () => {
+				const inner = ContainerImpl.currentlyInScope();
+				expect(inner).toBe(container);
+				expect(inner).toBe(outer); // Same container instance
+			});
+
+			expect(ContainerImpl.currentlyInScope()).toBe(container);
+		});
+	});
+
+	test("concurrent scopes return correct container", async () => {
+		const gate = asyncGate(["scope1", "scope2"]);
+		const scope1 = gate.task("scope1");
+		const scope2 = gate.task("scope2");
+
+		const container1 = new ContainerImpl();
+		const container2 = new ContainerImpl();
+		const results: (Container | null)[] = [];
+
+		const task1 = container1.withScope(async () => {
+			await scope1("scope1");
+			results[0] = ContainerImpl.currentlyInScope();
+		});
+
+		const task2 = container2.withScope(async () => {
+			await scope2("scope2");
+			results[1] = ContainerImpl.currentlyInScope();
+		});
+
+		await gate.run();
+		await Promise.all([task1, task2]);
+
+		expect(results[0]).toBe(container1);
+		expect(results[1]).toBe(container2);
+	});
+});
+
 describe("Container sugar methods", () => {
 	let bindSpy: ReturnType<typeof spyOn>;
 

@@ -1,21 +1,24 @@
 import { beforeEach, describe, expect, expectTypeOf, test } from "bun:test";
-import { ContainerImpl } from "../container/ContainerImpl";
-import { mockMiddleware } from "../test-utils";
+import { createApplication } from "../entry";
+import { mockMiddleware, requestContext } from "../test-utils";
 import { group, Routes } from ".";
 import type { ControllerContext } from "./Controller";
 import { apiResource, resource } from "./helpers";
 import { ResourceController } from "./ResourceController";
 import { RouteRegistry } from "./RouteRegistry";
-import { Router } from "./Router";
 
 beforeEach(() => {
 	mockMiddleware.reset();
 });
 
 const getMethodCalled = async (routes: Routes, path: string, method = "GET") => {
-	const router = new Router(new ContainerImpl());
-	router.register(routes);
-	const response = await router.handle(new Request("https://example.com" + path, { method }));
+	const app = createApplication({
+		routes,
+	});
+	const response = await app.handleRequest(
+		new Request("https://example.com" + path, { method }),
+		requestContext(),
+	);
 	return response.status === 200 ? await response.text() : response.status;
 };
 

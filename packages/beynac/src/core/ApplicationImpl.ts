@@ -1,6 +1,6 @@
 import { ContainerImpl } from "../container/ContainerImpl";
 import type { Container } from "../contracts";
-import { Cookies, Headers } from "../contracts";
+import { Cookies, Headers, RequestLocals } from "../contracts";
 import { Application } from "../contracts/Application";
 import { Configuration } from "../contracts/Configuration";
 import { type Dispatcher, Dispatcher as DispatcherKey } from "../contracts/Dispatcher";
@@ -15,6 +15,7 @@ import { MiddlewarePriorityBuilder } from "../router/MiddlewarePriorityBuilder";
 import { UrlFunction } from "../router/router-types";
 import { CookiesImpl } from "./CookiesImpl";
 import { HeadersImpl } from "./HeadersImpl";
+import { RequestLocalsImpl } from "./RequestLocalsImpl";
 
 export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 	implements Application<RouteParams>
@@ -36,6 +37,7 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 		// Bind core services
 		this.container.scoped(Headers, HeadersImpl);
 		this.container.scoped(Cookies, CookiesImpl);
+		this.container.scoped(RequestLocals, RequestLocalsImpl);
 		this.container.singleton(DevModeAutoRefreshMiddleware);
 		this.container.singleton(DevModeWatchService);
 		this.container.instance(Configuration, this.#config);

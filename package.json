@@ -9,11 +9,12 @@
     "test": "bun test",
     "build": "bun run --filter='*' build",
     "clean": "bun run --filter='*' clean",
-    "check": "bun run check:test && bun run check:projects && bun run check:lint",
+    "check": "bun run check:test && bun run check:projects && bun run check:lint && bun run check:format",
     "check:test": "bun test packages/*/src",
     "check:projects": "bun run --filter='*' check",
     "check:tsc": "bun run --filter='*' check:tsc",
     "check:lint": "bun run --filter=* lint",
+    "check:format": "biome check .",
     "format": "biome check --write .",
     "format:check": "biome check ."
   },

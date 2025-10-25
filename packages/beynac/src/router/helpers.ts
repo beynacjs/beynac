@@ -4,6 +4,7 @@ import { MiddlewareSet } from "./MiddlewareSet";
 import type { ApiResourceAction, ResourceAction } from "./ResourceController";
 import { redirectStatus } from "./redirect";
 import type {
+	ControllerReference,
 	ExtractDomainAndPathParams,
 	FilteredApiResourceRouteMap,
 	FilteredResourceRouteMap,
@@ -13,7 +14,6 @@ import type {
 	ParamConstraint,
 	RouteDefinition,
 	RouteGroupOptions,
-	RouteHandler,
 	RouteOptions,
 	Routes,
 } from "./router-types";
@@ -48,7 +48,7 @@ function createRoute<
 >(
 	method: string | readonly string[],
 	path: Path,
-	handler: RouteHandler,
+	controller: ControllerReference,
 	{
 		domain,
 		parameterPatterns,
@@ -72,7 +72,7 @@ function createRoute<
 	const route: RouteDefinition = {
 		methods,
 		path,
-		handler,
+		controller,
 		routeName: name,
 		middleware: MiddlewareSet.createIfRequired(middlewareOption, withoutMiddleware),
 		constraints: where || null,
@@ -93,7 +93,7 @@ type RouteMethodFunction = <
 	const Domain extends string | undefined = undefined,
 >(
 	path: Path,
-	handler: RouteHandler,
+	controller: ControllerReference,
 	options?: RouteOptions<Name, Path> & { domain?: Domain },
 ) => RouteMethodReturn<Path, Name, Domain>;
 
@@ -112,8 +112,8 @@ type RouteMethodReturn<
  * get('/users', UsersController)
  * get('/users/{id}', UserController, { name: 'users.show' })
  */
-export const get: RouteMethodFunction = (path, handler, options) =>
-	createRoute("GET", path, handler, options);
+export const get: RouteMethodFunction = (path, controller, options) =>
+	createRoute("GET", path, controller, options);
 
 /**
  * Register a route that responds to POST requests
@@ -121,8 +121,8 @@ export const get: RouteMethodFunction = (path, handler, options) =>
  * @example
  * post('/users', CreateUserController)
  */
-export const post: RouteMethodFunction = (path, handler, options) =>
-	createRoute("POST", path, handler, options);
+export const post: RouteMethodFunction = (path, controller, options) =>
+	createRoute("POST", path, controller, options);
 
 /**
  * Register a route that responds to PUT requests
@@ -130,8 +130,8 @@ export const post: RouteMethodFunction = (path, handler, options) =>
  * @example
  * put('/users/{id}', UpdateUserController)
  */
-export const put: RouteMethodFunction = (path, handler, options) =>
-	createRoute("PUT", path, handler, options);
+export const put: RouteMethodFunction = (path, controller, options) =>
+	createRoute("PUT", path, controller, options);
 
 /**
  * Register a route that responds to PATCH requests
@@ -139,8 +139,8 @@ export const put: RouteMethodFunction = (path, handler, options) =>
  * @example
  * patch('/users/{id}', PatchUserController)
  */
-export const patch: RouteMethodFunction = (path, handler, options) =>
-	createRoute("PATCH", path, handler, options);
+export const patch: RouteMethodFunction = (path, controller, options) =>
+	createRoute("PATCH", path, controller, options);
 
 /**
  * Register a route that responds to DELETE requests
@@ -148,8 +148,8 @@ export const patch: RouteMethodFunction = (path, handler, options) =>
  * @example
  * delete('/users/{id}', DeleteUserController)
  */
-export const delete_: RouteMethodFunction = (path, handler, options) =>
-	createRoute("DELETE", path, handler, options);
+export const delete_: RouteMethodFunction = (path, controller, options) =>
+	createRoute("DELETE", path, controller, options);
 
 export { delete_ as delete };
 
@@ -159,8 +159,8 @@ export { delete_ as delete };
  * @example
  * options('/users', OptionsController)
  */
-export const options: RouteMethodFunction = (path, handler, options) =>
-	createRoute("OPTIONS", path, handler, options);
+export const options: RouteMethodFunction = (path, controller, options) =>
+	createRoute("OPTIONS", path, controller, options);
 
 /**
  * Register a route that responds to specific HTTP methods
@@ -175,10 +175,10 @@ export function match<
 >(
 	methods: readonly string[],
 	path: Path,
-	handler: RouteHandler,
+	controller: ControllerReference,
 	options?: RouteOptions<Name, Path> & { domain?: Domain },
 ): RouteMethodReturn<Path, Name, Domain> {
-	return createRoute(methods, path, handler, options);
+	return createRoute(methods, path, controller, options);
 }
 
 /**
@@ -193,11 +193,11 @@ export function any<
 	const Domain extends string | undefined = undefined,
 >(
 	path: Path,
-	handler: RouteHandler,
+	controller: ControllerReference,
 	options?: RouteOptions<Name, Path> & { domain?: Domain },
 ): RouteMethodReturn<Path, Name, Domain> {
 	const methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"];
-	return match(methods, path, handler, options);
+	return match(methods, path, controller, options);
 }
 
 /**
@@ -425,7 +425,7 @@ export function resource<
 	const Except extends readonly ResourceAction[] | undefined = undefined,
 >(
 	path: Path,
-	controller: RouteHandler,
+	controller: ControllerReference,
 	options?: ResourceOptions<ResourceName, Path, Only, Except>,
 ): Routes<FilteredResourceRouteMap<ResourceName, Only, Except>> {
 	const { name: customName, only, except, ...routeOptions } = options ?? {};
@@ -505,7 +505,7 @@ export function apiResource<
 	const Except extends readonly ApiResourceAction[] | undefined = undefined,
 >(
 	path: Path,
-	controller: RouteHandler,
+	controller: ControllerReference,
 	options?: ResourceOptions<ResourceName, Path, Only, Except>,
 ): Routes<FilteredApiResourceRouteMap<ResourceName, Only, Except>> {
 	const apiActions: readonly ApiResourceAction[] = ["index", "store", "show", "update", "destroy"];

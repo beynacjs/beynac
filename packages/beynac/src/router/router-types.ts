@@ -141,7 +141,7 @@ export interface RouteGroupOptions<NamePrefix extends string = "", PathPrefix ex
 
 export type ControllerFunction = (ctx: ControllerContext) => ControllerReturn;
 
-export type RouteHandler = NoArgConstructor<Controller> | ControllerFunction;
+export type ControllerReference = NoArgConstructor<Controller> | ControllerFunction;
 
 export type UrlFunction<Params extends Record<string, string>> = <N extends keyof Params & string>(
 	name: N,
@@ -161,7 +161,7 @@ export type ParamConstraints = Record<string, ParamConstraint | undefined>;
 export interface RouteDefinition {
 	methods: readonly string[];
 	path: string;
-	handler: RouteHandler;
+	controller: ControllerReference;
 	routeName?: string | undefined;
 	middleware: MiddlewareSet | null;
 	constraints: ParamConstraints | null;

@@ -52,7 +52,7 @@ export interface ControllerContext {
 }
 
 /**
- * Base class for route controllers.
+ * Base class for controllers.
  */
 export abstract class Controller {
 	/**

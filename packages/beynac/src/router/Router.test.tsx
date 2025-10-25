@@ -2,8 +2,9 @@
 import { beforeEach, describe, expect, expectTypeOf, mock, spyOn, test } from "bun:test";
 import { ContainerImpl } from "../container/ContainerImpl";
 import { createTypeToken } from "../container/container-key";
-import { Container } from "../contracts";
-import { MockController, mockController, mockMiddleware } from "../test-utils";
+import { Application, Container } from "../contracts";
+import { createApplication } from "../entry";
+import { MockController, mockController, mockMiddleware, requestContext } from "../test-utils";
 import { NoArgConstructor } from "../utils";
 import { Controller, type ControllerContext, ControllerReturn } from "./Controller";
 import {
@@ -25,13 +26,15 @@ import {
 import type { Middleware } from "./Middleware";
 import { MiddlewareSet } from "./MiddlewareSet";
 
+let app: Application;
 let container: Container;
 let router: Router;
 let controller: MockController;
 
 beforeEach(() => {
-	container = new ContainerImpl();
-	router = new Router(container);
+	app = createApplication();
+	container = app.container;
+	router = app.container.get(Router);
 	controller = new MockController();
 	// Bind the controller instance so routes using MockController class get this instance
 	container.bind(MockController, { instance: controller });
@@ -44,7 +47,7 @@ const handle = async (url: string, method = "GET") => {
 	} else if (url.startsWith("/")) {
 		url = "https://example.com" + url;
 	}
-	return await router.handle(new Request(url, { method }));
+	return await app.handleRequest(new Request(url, { method }), requestContext());
 };
 
 // ============================================================================
@@ -379,7 +382,7 @@ describe("middleware", () => {
 
 		router.register(route);
 
-		const response = await router.handle(new Request("http://example.com/protected"));
+		const response = await handle("/protected");
 		expect(await response.text()).toBe("Unauthorized");
 		expect(controller.handle).not.toHaveBeenCalled();
 	});
@@ -411,7 +414,7 @@ describe("middleware", () => {
 
 		router.register(route);
 
-		const response = await router.handle(new Request("http://example.com/test"));
+		const response = await handle("/test");
 		expect(await response.text()).toBe("Modified");
 	});
 
@@ -432,11 +435,11 @@ describe("middleware", () => {
 		router.register(routes);
 
 		mockMiddleware.reset();
-		await router.handle(new Request("http://example.com/api/v1"));
+		await handle("/api/v1");
 		expect(mockMiddleware.log).toEqual(["GroupMiddleware", "v1"]);
 
 		mockMiddleware.reset();
-		await router.handle(new Request("http://example.com/api/v2"));
+		await handle("/api/v2");
 		expect(mockMiddleware.log).toEqual(["GroupMiddleware", "v2"]);
 	});
 });
@@ -448,10 +451,11 @@ describe("middleware priority", () => {
 		const Logger = mockMiddleware("Logger");
 		const CORS = mockMiddleware("CORS");
 
-		container = new ContainerImpl();
-		router = new Router(container, {
+		app = createApplication({
 			middlewarePriority: [Auth, RateLimit, Logger],
 		});
+		container = app.container;
+		router = container.get(Router);
 
 		router.register(
 			get(
@@ -524,10 +528,10 @@ describe("route groups", () => {
 
 		router.register(routes);
 
-		await router.handle(new Request("http://example.com/admin/dashboard"));
+		await handle("/admin/dashboard");
 		expect(mc1.mock.handle).toHaveBeenCalledTimes(1);
 
-		await router.handle(new Request("http://example.com/admin/users"));
+		await handle("/admin/users");
 		expect(mc2.mock.handle).toHaveBeenCalledTimes(1);
 	});
 
@@ -553,10 +557,10 @@ describe("route groups", () => {
 
 		router.register(apiRoutes);
 
-		await router.handle(new Request("http://example.com/api/users/"));
+		await handle("/api/users/");
 		expect(mc1.mock.handle).toHaveBeenCalledTimes(1);
 
-		await router.handle(new Request("http://example.com/api/users/123"));
+		await handle("/api/users/123");
 		expect(mc2.mock.params).toEqual({ id: "123" });
 
 		// Type check
@@ -1152,7 +1156,7 @@ describe("special routes", () => {
 		const route = any("/old", redirect("/new"));
 		router.register(route);
 
-		const response = await router.handle(new Request("http://example.com/old"));
+		const response = await handle("/old");
 		expect(response.status).toBe(303);
 		expect(response.headers.get("Location")).toBe("/new");
 	});
@@ -1161,9 +1165,7 @@ describe("special routes", () => {
 		const route = post("/old-api", redirect("/new-api", { preserveHttpMethod: true }));
 		router.register(route);
 
-		const response = await router.handle(
-			new Request("http://example.com/old-api", { method: "POST" }),
-		);
+		const response = await handle("/old-api", "POST");
 		expect(response.status).toBe(307);
 		expect(response.headers.get("Location")).toBe("/new-api");
 	});
@@ -1172,7 +1174,7 @@ describe("special routes", () => {
 		const route = get("/moved", redirect("/here", { permanent: true }));
 		router.register(route);
 
-		const response = await router.handle(new Request("http://example.com/moved"));
+		const response = await handle("/moved");
 		expect(response.status).toBe(301);
 		expect(response.headers.get("Location")).toBe("/here");
 	});
@@ -1184,7 +1186,7 @@ describe("special routes", () => {
 		);
 		router.register(route);
 
-		const response = await router.handle(new Request("http://example.com/api/v1"));
+		const response = await handle("/api/v1");
 		expect(response.status).toBe(308);
 		expect(response.headers.get("Location")).toBe("/api/v2");
 	});
@@ -1504,7 +1506,7 @@ describe("multi-method routes", () => {
 		expect(brewRequest.method).toEqual("BREW");
 		router.register(match(["BREW"], "/form", MockController));
 
-		const response1 = await router.handle(brewRequest);
+		const response1 = await app.handleRequest(brewRequest, requestContext());
 		expect(response1.status).toBe(200);
 
 		const response2 = await handle("/form", "GET");
@@ -1550,7 +1552,7 @@ describe("handler validation", () => {
 		expect(async () => {
 			await handle("/test");
 		}).toThrow(
-			"Route handler NotAController for /test is a class but does not extend Controller. Class-based handlers must extend the Controller class.",
+			"Controller NotAController for /test is a class but does not extend Controller. Class-based handlers must extend the Controller class.",
 		);
 	});
 
@@ -1560,7 +1562,7 @@ describe("handler validation", () => {
 		expect(async () => {
 			await handle("/test");
 		}).toThrow(
-			"Route handler  for /test returned an object with a 'handle' method. This can happen if you have a controller that does not extend the Controller class.",
+			"Controller for /test returned an object with a 'handle' method. This can happen if you have a controller that does not extend the Controller class.",
 		);
 	});
 
@@ -1619,106 +1621,108 @@ describe("param access checking", () => {
 		}
 	}
 	test("throwOnInvalidParamAccess: 'always' throws even when development: false", async () => {
-		router = new Router(new ContainerImpl(), undefined, {
+		app = createApplication({
 			development: false,
 			throwOnInvalidParamAccess: "always",
 		});
+		router = app.container.get(Router);
 
 		router.register(get("/user/{id}", ControllerInvalidParam));
 
 		expect(async () => {
-			await router.handle(new Request("http://example.com/user/123"));
+			await handle("/user/123");
 		}).toThrow('Route parameter "nonExistent" does not exist');
 	});
 
 	test("throwOnInvalidParamAccess: 'never' doesn't throw even when development: true", async () => {
-		router = new Router(new ContainerImpl(), undefined, {
+		app = createApplication({
 			development: true,
 			throwOnInvalidParamAccess: "never",
 		});
+		router = app.container.get(Router);
 
 		router.register(get("/user/{id}", ControllerInvalidParam));
 
-		const response = await router.handle(new Request("http://example.com/user/123"));
+		const response = await handle("/user/123");
 		expect(response.status).toBe(200);
 		expect(await response.text()).toBe("ctx.params.nonExistent: undefined");
 	});
 
 	test("throwOnInvalidParamAccess: 'development' throws when development: true", async () => {
-		router = new Router(new ContainerImpl(), undefined, {
+		app = createApplication({
 			development: true,
 			throwOnInvalidParamAccess: "development",
 		});
+		router = app.container.get(Router);
 
 		router.register(get("/user/{id}", ControllerInvalidParam));
 
 		expect(async () => {
-			await router.handle(new Request("http://example.com/user/123"));
+			await handle("/user/123");
 		}).toThrow('Route parameter "nonExistent" does not exist');
 	});
 
 	test("throwOnInvalidParamAccess: 'development' doesn't throw when development: false", async () => {
-		router = new Router(new ContainerImpl(), undefined, {
+		app = createApplication({
 			development: false,
 			throwOnInvalidParamAccess: "development",
 		});
+		router = app.container.get(Router);
 
 		router.register(get("/user/{id}", ControllerInvalidParam));
 
-		const response = await router.handle(new Request("http://example.com/user/123"));
+		const response = await handle("/user/123");
 		expect(response.status).toBe(200);
 		expect(await response.text()).toBe("ctx.params.nonExistent: undefined");
 	});
 
 	test("throwOnInvalidParamAccess: undefined (default) throws when development: true", async () => {
-		router = new Router(new ContainerImpl(), undefined, { development: true });
+		app = createApplication({ development: true });
+		router = app.container.get(Router);
 
 		router.register(get("/user/{id}", ControllerInvalidParam));
 
 		expect(async () => {
-			await router.handle(new Request("http://example.com/user/123"));
+			await handle("/user/123");
 		}).toThrow('Route parameter "nonExistent" does not exist');
 	});
 
 	test("throwOnInvalidParamAccess: undefined (default) doesn't throw when development: false", async () => {
-		router = new Router(new ContainerImpl(), undefined, { development: false });
+		app = createApplication({ development: false });
+		router = app.container.get(Router);
 
 		router.register(get("/user/{id}", ControllerInvalidParam));
 
-		const response = await router.handle(new Request("http://example.com/user/123"));
+		const response = await handle("/user/123");
 		expect(response.status).toBe(200);
 		expect(await response.text()).toBe("ctx.params.nonExistent: undefined");
 	});
 
 	test("valid param access works in all modes", async () => {
-		const config = {
+		app = createApplication({
 			development: true,
-			throwOnInvalidParamAccess: "always" as const,
-		};
-		const containerWithConfig = new ContainerImpl();
-		containerWithConfig.instance(createTypeToken("Configuration"), config);
-		const routerWithConfig = new Router(containerWithConfig, undefined, config);
+			throwOnInvalidParamAccess: "always",
+		});
+		router = app.container.get(Router);
 
 		let capturedId: string | undefined;
-		routerWithConfig.register(
+		router.register(
 			get("/user/{id}", (ctx: ControllerContext) => {
 				capturedId = ctx.params.id; // Should work fine
 				return new Response("ok");
 			}),
 		);
 
-		const response = await routerWithConfig.handle(new Request("http://example.com/user/123"));
+		const response = await handle("/user/123");
 		expect(response.status).toBe(200);
 		expect(capturedId).toBe("123");
 	});
 
 	test("rawParams also throws when configured", async () => {
-		const config = { development: true };
-		const containerWithConfig = new ContainerImpl();
-		containerWithConfig.instance(createTypeToken("Configuration"), config);
-		const routerWithConfig = new Router(containerWithConfig, undefined, config);
+		app = createApplication({ development: true });
+		router = app.container.get(Router);
 
-		routerWithConfig.register(
+		router.register(
 			get("/user/{id}", (ctx: ControllerContext) => {
 				const _unused = ctx.rawParams.nonExistent; // Should throw
 				return new Response(`ok: ${_unused}`);
@@ -1726,7 +1730,7 @@ describe("param access checking", () => {
 		);
 
 		expect(async () => {
-			await routerWithConfig.handle(new Request("http://example.com/user/123"));
+			await handle("/user/123");
 		}).toThrow('Route parameter "nonExistent" does not exist');
 	});
 });

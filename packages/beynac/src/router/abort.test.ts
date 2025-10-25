@@ -1,18 +1,20 @@
 import { describe, expect, test } from "bun:test";
-import { ContainerImpl } from "../container/ContainerImpl";
+import { createApplication } from "../index";
+import { requestContext } from "../test-utils";
 import { abort } from "./abort";
 import { get } from "./helpers";
 import { Router } from "./Router";
 
 async function getResponse(f: () => void) {
-	const router = new Router(new ContainerImpl());
+	const app = createApplication();
+	const router = app.container.get(Router);
 	router.register(
 		get("/", () => {
 			f();
 			return new Response();
 		}),
 	);
-	const response = await router.handle(new Request("http://example.com/"));
+	const response = await app.handleRequest(new Request("http://example.com/"), requestContext());
 	return {
 		status: response.status,
 		text: await response.text(),
@@ -138,12 +140,38 @@ describe(abort, () => {
 		expect(response.headers.get("Location")).toBe("/api/v2");
 	});
 
-	test("abort.withResponse throws HttpResponseException", async () => {
+	test("abort.withResponse provides custom response", async () => {
 		const response = await getResponse(() =>
 			abort.withResponse(new Response("Custom", { status: 418, headers: { "X-Test": "value" } })),
 		);
 		expect(response.status).toBe(418);
 		expect(response.text).toBe("Custom");
 		expect(response.headers.get("X-Test")).toBe("value");
+	});
+
+	test("first abort wins when caught and rethrown", async () => {
+		const response = await getResponse(() => {
+			try {
+				abort.notFound("First");
+			} catch {
+				abort.badRequest("Second"); // Should throw the first abort
+			}
+		});
+		expect(response.status).toBe(404);
+		expect(response.text).toBe("First");
+	});
+
+	test("caught abort still returns abort response", async () => {
+		const response = await getResponse(() => {
+			try {
+				abort.forbidden("Should not be caught");
+			} catch {
+				// User code swallows the abort
+			}
+		});
+
+		// Should still return the abort response
+		expect(response.status).toBe(403);
+		expect(response.text).toBe("Should not be caught");
 	});
 });

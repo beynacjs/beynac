@@ -14,6 +14,11 @@ import { getKeyName, type KeyOrClass, type TypeToken } from "./container-key";
 import { _getInjectHandler, _setInjectHandler } from "./inject";
 import { NO_VALUE, type NoValue } from "./no-value";
 
+/**
+ * Track which container is currently in scope for each async context
+ */
+const currentScopeContainer = new AsyncLocalStorage<Container>();
+
 export type FactoryFunction<T> = (container: Container) => {
 	[K in keyof T]: T[K];
 };
@@ -91,6 +96,10 @@ export class ContainerImpl implements Container {
 	#reboundCallbacks = new ArrayMultiMap<KeyOrClass, InstanceCallback<unknown>>();
 
 	#resolvingCallbacks = new ArrayMultiMap<KeyOrClass, InstanceCallback<unknown>>();
+
+	static currentlyInScope(): Container | null {
+		return currentScopeContainer.getStore() ?? null;
+	}
 
 	bind<T>(
 		type: KeyOrClass<T>,
@@ -486,7 +495,7 @@ export class ContainerImpl implements Container {
 
 	withScope<T>(callback: () => T): T {
 		const scopeInstances = new Map<KeyOrClass, unknown>();
-		return this.#scopeStorage.run(scopeInstances, callback);
+		return currentScopeContainer.run(this, () => this.#scopeStorage.run(scopeInstances, callback));
 	}
 
 	get hasScope(): boolean {

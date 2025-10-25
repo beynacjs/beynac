@@ -67,12 +67,24 @@ export const controllerContext = (
 
 export const requestContext = (): RequestContext => ({
 	context: "test",
-	getCookie: () => null,
-	getCookieNames: () => [],
-	deleteCookie: null,
-	setCookie: null,
-	getRequestHeader: () => null,
-	getRequestHeaderNames: () => [][Symbol.iterator](),
+	getCookie: () => {
+		throw new Error("Can't getCookie in mock request context");
+	},
+	getCookieNames: () => {
+		throw new Error("Can't getCookieNames in mock request context");
+	},
+	deleteCookie: () => {
+		throw new Error("Can't deleteCookie in mock request context");
+	},
+	setCookie: () => {
+		throw new Error("Can't setCookie in mock request context");
+	},
+	getRequestHeader: () => {
+		throw new Error("Can't getRequestHeader in mock request context");
+	},
+	getRequestHeaderNames: () => {
+		throw new Error("Can't getRequestHeaderNames in mock request context");
+	},
 });
 
 interface MockMiddlewareFunction {
