@@ -26,11 +26,7 @@ export function inject<T>(arg: KeyOrClass<T>): T {
 	if (!_currentInjectHandler) {
 		throw new BeynacError(invalidInjectMessage);
 	}
-	const result = _currentInjectHandler(arg, false);
-	if (result === NO_VALUE) {
-		throw new BeynacError(`Required dependency ${getKeyName(arg)} not found`);
-	}
-	return result;
+	return resolveRequired(_currentInjectHandler, arg);
 }
 
 /**
@@ -54,14 +50,87 @@ export function injectOptional<T>(arg: KeyOrClass<T>): T | null {
 	if (!_currentInjectHandler) {
 		throw new BeynacError(invalidInjectMessage);
 	}
-	let result: unknown = _currentInjectHandler(arg, true);
+	return resolveOptional(_currentInjectHandler, arg);
+}
+
+/**
+ * Inject a dependency factory into a class constructor. Use this method with
+ * JavaScript default argument syntax in the constructor of a class. Returns a
+ * no-argument function that when called returns the dependency.
+ *
+ * This is useful as an alternative to inject() for transient and scoped
+ * dependencies when you want to be able to create fresh instances on demand.
+ *
+ * @param token a type token created with typeKey or a class reference
+ *
+ * @example
+ * class MyClass {
+ *     // inferred type of this.getEmailService is () => EmailService
+ *     constructor(private getEmailService = injectFactory(EmailService)) {}
+ *     sendEmail() {
+ *         this.getEmailService().send(...);
+ *     }
+ * }
+ * // in your app: instance will have EmailService factory injected
+ * const instance = container.make(MyClass);
+ * // in your tests: you can supply a mock dependency factory
+ * const instance = new MyClass(() => new MockEmailService());
+ */
+export function injectFactory<T>(arg: KeyOrClass<T>): () => T {
+	if (!_currentInjectHandler) {
+		throw new BeynacError(invalidInjectMessage);
+	}
+	const handler = _currentInjectHandler;
+	return () => resolveRequired(handler, arg);
+}
+
+/**
+ * Inject an optional dependency factory into a class constructor. Use like
+ * `injectFactory()`. Returns a no-argument function that when called returns
+ * the dependency or null if not bound.
+ *
+ * @param token a type token created with typeKey or a class reference
+ * @see injectFactory
+ *
+ * @example
+ * class MyClass {
+ *     // inferred type of this.getEmailService is () => EmailService | null
+ *     constructor(private getEmailService = injectFactoryOptional(EmailService)) {}
+ *     sendEmail() {
+ *         const service = this.getEmailService();
+ *         if (service) service.send(...);
+ *     }
+ * }
+ * // in your app: instance will have EmailService factory injected if available
+ * const instance = container.make(MyClass);
+ * // in your tests: you can supply a mock dependency factory
+ * const instance = new MyClass(() => new MockEmailService());
+ */
+export function injectFactoryOptional<T>(arg: KeyOrClass<T>): () => T | null {
+	if (!_currentInjectHandler) {
+		throw new BeynacError(invalidInjectMessage);
+	}
+	const handler = _currentInjectHandler;
+	return () => resolveOptional(handler, arg);
+}
+
+type InjectHandler = <T>(arg: KeyOrClass<T>, optional: boolean) => T | NoValue;
+
+function resolveRequired<T>(handler: InjectHandler, arg: KeyOrClass<T>): T {
+	const result = handler(arg, false);
+	if (result === NO_VALUE) {
+		throw new BeynacError(`Required dependency ${getKeyName(arg)} not found`);
+	}
+	return result;
+}
+
+function resolveOptional<T>(handler: InjectHandler, arg: KeyOrClass<T>): T | null {
+	let result: unknown = handler(arg, true);
 	if (result === NO_VALUE) {
 		result = null;
 	}
 	return (result ?? null) as T;
 }
-
-type InjectHandler = <T>(arg: KeyOrClass<T>, optional: boolean) => T | NoValue;
 
 let _currentInjectHandler: InjectHandler | null = null;
 

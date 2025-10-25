@@ -4,7 +4,7 @@ import { asyncGate } from "../test-utils";
 import { ContainerImpl } from "./ContainerImpl";
 import type { KeyOrClass } from "./container-key";
 import { createTypeToken } from "./container-key";
-import { inject, injectOptional } from "./inject";
+import { inject, injectFactory, injectFactoryOptional, injectOptional } from "./inject";
 
 let container: Container;
 
@@ -538,6 +538,78 @@ test("resolution of class with optional dependency and contextual bindings", () 
 		.create(() => new AltDep());
 	const instance = container.get(OptionalInject);
 	expect(instance.defaultVal).toBeInstanceOf(AltDep);
+});
+
+test("resolution of class with factory dependency", () => {
+	class FactoryInject {
+		constructor(public getDep = injectFactory(Dep)) {}
+	}
+
+	const instance = container.get(FactoryInject);
+	expect(typeof instance.getDep).toBe("function");
+	expect(instance.getDep()).toBeInstanceOf(Dep);
+});
+
+test("resolution of class with factory dependency and contextual bindings", () => {
+	class AltDep extends Dep {}
+	class FactoryInject {
+		constructor(public getDep = injectFactory(Dep)) {}
+	}
+
+	container
+		.when(FactoryInject)
+		.needs(Dep)
+		.create(() => new AltDep());
+	const instance = container.get(FactoryInject);
+	expect(instance.getDep()).toBeInstanceOf(AltDep);
+});
+
+test("error when trying to use injectFactory with unbound dependencies", () => {
+	const unboundToken = createTypeToken<string>("unbound");
+	class FactoryInject {
+		constructor(public getDep = injectFactory(unboundToken)) {}
+	}
+
+	const instance = container.get(FactoryInject);
+	expect(() => instance.getDep()).toThrow();
+});
+
+test("injectFactory respects singleton lifecycle", () => {
+	class FactoryInject {
+		constructor(public getDep = injectFactory(Dep)) {}
+	}
+
+	container.singleton(Dep);
+	const instance = container.get(FactoryInject);
+	const dep1 = instance.getDep();
+	const dep2 = instance.getDep();
+	expect(dep1).toBe(dep2); // same instance each call for singleton
+});
+
+test("injectFactory respects transient lifecycle", () => {
+	class FactoryInject {
+		constructor(public getDep = injectFactory(Dep)) {}
+	}
+
+	container.bind(Dep);
+	const instance = container.get(FactoryInject);
+	const dep1 = instance.getDep();
+	const dep2 = instance.getDep();
+	expect(dep1).not.toBe(dep2); // different instance each call for transient
+});
+
+test("resolution of class with optional factory dependency", () => {
+	class OptionalFactoryInject {
+		constructor(public getDep = injectFactoryOptional(Dep)) {}
+	}
+
+	const instance = container.get(OptionalFactoryInject);
+	expect(typeof instance.getDep).toBe("function");
+	expect(instance.getDep()).toBe(null);
+
+	container.bind(Dep, { factory: () => new Dep() });
+	const instance2 = container.get(OptionalFactoryInject);
+	expect(instance2.getDep()).toBeInstanceOf(Dep);
 });
 
 test("bound", () => {
