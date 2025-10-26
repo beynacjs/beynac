@@ -701,6 +701,58 @@ describe("route matching", () => {
 		const match = findRoute(matcher, "POST", "/api", "api.example.com");
 		expect(match).toEqual({ found: false, methodMismatch: true });
 	});
+
+	describe("static cache usage", () => {
+		test("uses static cache for domain-agnostic routes", () => {
+			const matcher = _createMatcher<{ path: string }>();
+			addRoute(matcher, "GET", "/users", { path: "GET /users" });
+
+			const result = findRoute(matcher, "GET", "/users");
+			expect(result.found).toBe(true);
+			if (result.found) {
+				expect(result.static).toBe(true);
+			}
+		});
+
+		test("uses static cache for domain-specific routes", () => {
+			const matcher = _createMatcher<{ path: string }>();
+			addRoute(matcher, "GET", "/api", { path: "GET api.example.com/api" }, "api.example.com");
+
+			const result = findRoute(matcher, "GET", "/api", "api.example.com");
+			expect(result.found).toBe(true);
+			if (result.found) {
+				expect(result.static).toBe(true);
+			}
+		});
+
+		test("does not use static cache for parameterized routes", () => {
+			const matcher = _createMatcher<{ path: string }>();
+			addRoute(matcher, "GET", "/users/{id}", { path: "GET /users/{id}" });
+
+			const result = findRoute(matcher, "GET", "/users/123");
+			expect(result.found).toBe(true);
+			if (result.found) {
+				expect(result.static).toBeUndefined();
+			}
+		});
+
+		test("does not use static cache for domain routes with params", () => {
+			const matcher = _createMatcher<{ path: string }>();
+			addRoute(
+				matcher,
+				"GET",
+				"/users/{id}",
+				{ path: "GET api.example.com/users/{id}" },
+				"api.example.com",
+			);
+
+			const result = findRoute(matcher, "GET", "/users/123", "api.example.com");
+			expect(result.found).toBe(true);
+			if (result.found) {
+				expect(result.static).toBeUndefined();
+			}
+		});
+	});
 });
 
 export function createMatcher<T extends Record<string, string> = Record<string, string>>(

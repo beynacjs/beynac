@@ -1,8 +1,8 @@
-import { domainAndPathToSegments, getMatchParams } from "./matcher-utils";
+import { domainAndPathToSegments, getMatchParams, staticCacheKey } from "./matcher-utils";
 import type { MatchedRoute, MatcherContext, MethodData, Node } from "./types";
 
 export type FindRouteResult<T> =
-	| { found: true; match: MatchedRoute<T> }
+	| { found: true; match: MatchedRoute<T>; static?: boolean }
 	| { found: false; methodMismatch: boolean };
 
 /**
@@ -20,8 +20,12 @@ export function findRoute<T = unknown>(
 
 	const meta: { methodMismatch?: boolean } = {};
 
-	// Try domain-specific route first if hostname provided
 	if (hostname) {
+		const domainStatic = checkStaticCache(ctx, hostname, path, method, meta);
+		if (domainStatic) {
+			return { found: true, match: domainStatic, static: true };
+		}
+
 		const segments = domainAndPathToSegments(hostname, path);
 		const match = _lookupTree<T>(ctx.root, method, segments, 0, meta)?.[0];
 
@@ -36,22 +40,12 @@ export function findRoute<T = unknown>(
 		}
 	}
 
-	// Fallback to domain-agnostic routes
-	// Static
-	const staticNode = ctx.static[path];
-	if (staticNode && staticNode.methods) {
-		const staticMatch = staticNode.methods[method] || staticNode.methods[""];
-		if (staticMatch !== undefined) {
-			return {
-				found: true,
-				match: staticMatch[0],
-			};
-		}
-		// Path exists in static cache but method doesn't match
-		meta.methodMismatch = true;
+	const domainAgnosticStatic = checkStaticCache(ctx, undefined, path, method, meta);
+	if (domainAgnosticStatic) {
+		return { found: true, match: domainAgnosticStatic, static: true };
 	}
 
-	// Lookup tree
+	// Check domain-agnostic tree
 	const segments = domainAndPathToSegments(undefined, path);
 	const match = _lookupTree<T>(ctx.root, method, segments, 0, meta)?.[0];
 
@@ -66,6 +60,30 @@ export function findRoute<T = unknown>(
 	}
 
 	return { found: false, methodMismatch: meta.methodMismatch || false };
+}
+
+function checkStaticCache<T>(
+	ctx: MatcherContext<T>,
+	domain: string | undefined,
+	path: string,
+	method: string,
+	meta: { methodMismatch?: boolean },
+): MatchedRoute<T> | undefined {
+	const cacheKey = staticCacheKey(domain, path);
+	const staticNode = ctx.static[cacheKey];
+
+	if (!staticNode || !staticNode.methods) {
+		return undefined;
+	}
+
+	const staticMatch = staticNode.methods[method] || staticNode.methods[""];
+	if (staticMatch !== undefined) {
+		return staticMatch[0];
+	}
+
+	// Path exists in static cache but method doesn't match
+	meta.methodMismatch = true;
+	return undefined;
 }
 
 function _lookupTree<T>(

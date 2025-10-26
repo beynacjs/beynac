@@ -38,3 +38,7 @@ export function getMatchParams(
 	}
 	return params;
 }
+
+export function staticCacheKey(domain: string | undefined, path: string): string {
+	return domain ? `${domain}::${path}` : path;
+}

@@ -1,5 +1,5 @@
 import { PARAM_PATTERN, WILDCARD_PARAM_PATTERN } from "../syntax";
-import { domainAndPathToSegments, NullProtoObj } from "./matcher-utils";
+import { domainAndPathToSegments, NullProtoObj, staticCacheKey } from "./matcher-utils";
 import type { MatcherContext, ParamsIndexMap } from "./types";
 
 /**
@@ -91,9 +91,9 @@ export function addRoute<T>(
 		paramsMap: hasParams ? paramsMap : undefined,
 	});
 
-	// Static cache (only for domain-agnostic routes)
-	if (!hasParams && !domain) {
-		ctx.static[path] = node;
+	// Static cache
+	if (!hasParams) {
+		ctx.static[staticCacheKey(domain, path)] = node;
 	}
 }
 
