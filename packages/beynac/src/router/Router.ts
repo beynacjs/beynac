@@ -52,8 +52,8 @@ export class Router {
 
 		const result = findRoute(this.#matcher, request.method, url.pathname, hostname);
 
-		if (!result.found) {
-			return { match: null, methodMismatch: result.methodMismatch };
+		if (!result.match) {
+			return { match: null, methodMismatch: result.methodMismatch || false };
 		}
 
 		const { route } = result.match.data;

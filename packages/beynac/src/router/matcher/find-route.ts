@@ -1,9 +1,11 @@
 import { domainAndPathToSegments, getMatchParams, staticCacheKey } from "./matcher-utils";
 import type { MatchedRoute, MatcherContext, MethodData, Node } from "./types";
 
-export type FindRouteResult<T> =
-	| { found: true; match: MatchedRoute<T>; static?: boolean }
-	| { found: false; methodMismatch: boolean };
+export type FindRouteResult<T> = {
+	match?: MatchedRoute<T> | undefined;
+	methodMismatch?: boolean | undefined;
+	static?: boolean | undefined;
+};
 
 /**
  * Find a route by path and optionally hostname.
@@ -23,7 +25,7 @@ export function findRoute<T = unknown>(
 	if (hostname) {
 		const domainStatic = checkStaticCache(ctx, hostname, path, method, meta);
 		if (domainStatic) {
-			return { found: true, match: domainStatic, static: true };
+			return { match: domainStatic, static: true };
 		}
 
 		const segments = domainAndPathToSegments(hostname, path);
@@ -31,7 +33,6 @@ export function findRoute<T = unknown>(
 
 		if (match !== undefined) {
 			return {
-				found: true,
 				match: {
 					data: match.data,
 					params: match.paramsMap ? getMatchParams(segments, match.paramsMap) : undefined,
@@ -42,7 +43,7 @@ export function findRoute<T = unknown>(
 
 	const domainAgnosticStatic = checkStaticCache(ctx, undefined, path, method, meta);
 	if (domainAgnosticStatic) {
-		return { found: true, match: domainAgnosticStatic, static: true };
+		return { match: domainAgnosticStatic, static: true };
 	}
 
 	// Check domain-agnostic tree
@@ -51,7 +52,6 @@ export function findRoute<T = unknown>(
 
 	if (match !== undefined) {
 		return {
-			found: true,
 			match: {
 				data: match.data,
 				params: match.paramsMap ? getMatchParams(segments, match.paramsMap) : undefined,
@@ -59,7 +59,7 @@ export function findRoute<T = unknown>(
 		};
 	}
 
-	return { found: false, methodMismatch: meta.methodMismatch || false };
+	return { methodMismatch: meta.methodMismatch };
 }
 
 function checkStaticCache<T>(
@@ -77,11 +77,10 @@ function checkStaticCache<T>(
 	}
 
 	const staticMatch = staticNode.methods[method] || staticNode.methods[""];
-	if (staticMatch !== undefined) {
+	if (staticMatch) {
 		return staticMatch[0];
 	}
 
-	// Path exists in static cache but method doesn't match
 	meta.methodMismatch = true;
 	return undefined;
 }
