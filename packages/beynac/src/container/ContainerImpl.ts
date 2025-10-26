@@ -14,10 +14,15 @@ import { getKeyName, type KeyOrClass, type TypeToken } from "./container-key";
 import { _getInjectHandler, _setInjectHandler } from "./inject";
 import { NO_VALUE, type NoValue } from "./no-value";
 
+type ScopeContext = {
+	container: Container;
+	instances: Map<KeyOrClass, unknown>;
+};
+
 /**
- * Track which container is currently in scope for each async context
+ * Track the current container and its scoped instances for each async context
  */
-const currentScopeContainer = new AsyncLocalStorage<Container>();
+const scopeContext = new AsyncLocalStorage<ScopeContext>();
 
 export type FactoryFunction<T> = (container: Container) => {
 	[K in keyof T]: T[K];
@@ -91,14 +96,13 @@ export class ContainerImpl implements Container {
 	#bindings = new Map<KeyOrClass, Binding>();
 	#buildStack: Set<KeyOrClass> = new Set();
 	#tags = new SetMultiMap<KeyOrClass, KeyOrClass>();
-	#scopeStorage = new AsyncLocalStorage<Map<KeyOrClass, unknown>>();
 
 	#reboundCallbacks = new ArrayMultiMap<KeyOrClass, InstanceCallback<unknown>>();
 
 	#resolvingCallbacks = new ArrayMultiMap<KeyOrClass, InstanceCallback<unknown>>();
 
 	static currentlyInScope(): Container | null {
-		return currentScopeContainer.getStore() ?? null;
+		return scopeContext.getStore()?.container ?? null;
 	}
 
 	bind<T>(
@@ -255,7 +259,7 @@ export class ContainerImpl implements Container {
 			if (binding.kind === "concrete") {
 				// Check if this is a scoped binding
 				if (binding.lifecycle === "scoped") {
-					scopeInstances = this.#scopeStorage.getStore();
+					scopeInstances = scopeContext.getStore()?.instances;
 					if (!scopeInstances) {
 						throw this.#containerError(
 							`Cannot create ${getKeyName(type)} because it is scoped so can only be accessed within a request or job. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms`,
@@ -494,12 +498,15 @@ export class ContainerImpl implements Container {
 	}
 
 	withScope<T>(callback: () => T): T {
-		const scopeInstances = new Map<KeyOrClass, unknown>();
-		return currentScopeContainer.run(this, () => this.#scopeStorage.run(scopeInstances, callback));
+		const context: ScopeContext = {
+			container: this,
+			instances: new Map<KeyOrClass, unknown>(),
+		};
+		return scopeContext.run(context, callback);
 	}
 
 	get hasScope(): boolean {
-		return this.#scopeStorage.getStore() !== undefined;
+		return scopeContext.getStore() !== undefined;
 	}
 
 	extend<T>(type: KeyOrClass<T>, callback: ExtenderCallback<T>): void {
