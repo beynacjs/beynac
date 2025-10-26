@@ -2,38 +2,26 @@
 import { beforeEach, describe, expect, mock, spyOn, test } from "bun:test";
 import { ContainerImpl } from "../container/ContainerImpl";
 import { createTypeToken } from "../container/container-key";
-import { Application, Configuration, Container } from "../contracts";
-import { createApplication } from "../entry";
-import { MockController, mockMiddleware, requestContext } from "../test-utils";
+import { Configuration, Container } from "../contracts";
+import { createTestApplication, MockController, mockMiddleware } from "../test-utils";
 import { NoArgConstructor } from "../utils";
 import { Controller, type ControllerContext, type ControllerReturn } from "./Controller";
 import { any, get, group, post, Router } from "./index";
 import type { Middleware } from "./Middleware";
 import { MiddlewareSet } from "./MiddlewareSet";
 
-let app: Application;
 let container: Container;
 let router: Router;
+let handle: (url: string, method?: string) => Promise<Response>;
 let controller: MockController;
 
 beforeEach(() => {
-	app = createApplication();
-	container = app.container;
-	router = app.container.get(Router);
+	({ container, router, handle } = createTestApplication());
 	controller = new MockController();
 	// Bind the controller instance so routes using MockController class get this instance
 	container.bind(MockController, { instance: controller });
 	mockMiddleware.reset();
 });
-
-const handle = async (url: string, method = "GET") => {
-	if (url.startsWith("//")) {
-		url = "https:" + url;
-	} else if (url.startsWith("/")) {
-		url = "https://example.com" + url;
-	}
-	return await app.handleRequest(new Request(url, { method }), requestContext());
-};
 
 // ============================================================================
 // Controller Execution
@@ -295,11 +283,9 @@ describe("middleware priority", () => {
 		const Logger = mockMiddleware("Logger");
 		const CORS = mockMiddleware("CORS");
 
-		app = createApplication({
+		({ container, router, handle } = createTestApplication({
 			middlewarePriority: [Auth, RateLimit, Logger],
-		});
-		container = app.container;
-		router = container.get(Router);
+		}));
 
 		router.register(
 			get(
@@ -451,11 +437,10 @@ describe("param access checking", () => {
 		}
 	}
 	test("throwOnInvalidParamAccess: 'always' throws even when development: false", async () => {
-		app = createApplication({
+		({ container, router, handle } = createTestApplication({
 			development: false,
 			throwOnInvalidParamAccess: "always",
-		});
-		router = app.container.get(Router);
+		}));
 
 		router.register(get("/user/{id}", ControllerInvalidParam));
 
@@ -465,11 +450,10 @@ describe("param access checking", () => {
 	});
 
 	test("throwOnInvalidParamAccess: 'never' doesn't throw even when development: true", async () => {
-		app = createApplication({
+		({ container, router, handle } = createTestApplication({
 			development: true,
 			throwOnInvalidParamAccess: "never",
-		});
-		router = app.container.get(Router);
+		}));
 
 		router.register(get("/user/{id}", ControllerInvalidParam));
 
@@ -479,11 +463,10 @@ describe("param access checking", () => {
 	});
 
 	test("throwOnInvalidParamAccess: 'development' throws when development: true", async () => {
-		app = createApplication({
+		({ container, router, handle } = createTestApplication({
 			development: true,
 			throwOnInvalidParamAccess: "development",
-		});
-		router = app.container.get(Router);
+		}));
 
 		router.register(get("/user/{id}", ControllerInvalidParam));
 
@@ -493,11 +476,10 @@ describe("param access checking", () => {
 	});
 
 	test("throwOnInvalidParamAccess: 'development' doesn't throw when development: false", async () => {
-		app = createApplication({
+		({ container, router, handle } = createTestApplication({
 			development: false,
 			throwOnInvalidParamAccess: "development",
-		});
-		router = app.container.get(Router);
+		}));
 
 		router.register(get("/user/{id}", ControllerInvalidParam));
 
@@ -507,8 +489,7 @@ describe("param access checking", () => {
 	});
 
 	test("throwOnInvalidParamAccess: undefined (default) throws when development: true", async () => {
-		app = createApplication({ development: true });
-		router = app.container.get(Router);
+		({ container, router, handle } = createTestApplication({ development: true }));
 
 		router.register(get("/user/{id}", ControllerInvalidParam));
 
@@ -518,8 +499,7 @@ describe("param access checking", () => {
 	});
 
 	test("throwOnInvalidParamAccess: undefined (default) doesn't throw when development: false", async () => {
-		app = createApplication({ development: false });
-		router = app.container.get(Router);
+		({ container, router, handle } = createTestApplication({ development: false }));
 
 		router.register(get("/user/{id}", ControllerInvalidParam));
 
@@ -529,11 +509,10 @@ describe("param access checking", () => {
 	});
 
 	test("valid param access works in all modes", async () => {
-		app = createApplication({
+		({ container, router, handle } = createTestApplication({
 			development: true,
 			throwOnInvalidParamAccess: "always",
-		});
-		router = app.container.get(Router);
+		}));
 
 		let capturedId: string | undefined;
 		router.register(
@@ -549,8 +528,7 @@ describe("param access checking", () => {
 	});
 
 	test("rawParams also throws when configured", async () => {
-		app = createApplication({ development: true });
-		router = app.container.get(Router);
+		({ container, router, handle } = createTestApplication({ development: true }));
 
 		router.register(
 			get("/user/{id}", (ctx: ControllerContext) => {

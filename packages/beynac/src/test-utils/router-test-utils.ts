@@ -1,8 +1,12 @@
 import { Mock, mock } from "bun:test";
+import { Application, Container } from "../contracts";
+import type { Configuration } from "../contracts/Configuration";
 import type { RequestContext } from "../contracts/RequestContext";
+import { createApplication } from "../entry";
 import { ResourceController } from "../router";
 import { Controller, ControllerContext, type ControllerReturn } from "../router/Controller";
 import type { Middleware } from "../router/Middleware";
+import { Router } from "../router/Router";
 import { ControllerFunction } from "../router/router-types";
 
 export class MockController extends ResourceController {
@@ -152,3 +156,31 @@ export const mockMiddleware: MockMiddlewareFunction = Object.assign(
 		},
 	},
 );
+
+export const createTestApplication = <RouteParams extends Record<string, string> = {}>(
+	config: Configuration<RouteParams> = {},
+): {
+	app: Application<RouteParams>;
+	container: Container;
+	router: Router;
+	handle: (url: string, method?: string) => Promise<Response>;
+} => {
+	const app = createApplication({
+		...config,
+		devMode: { suppressAutoRefresh: true, ...config.devMode },
+	});
+
+	const container = app.container;
+	const router = container.get(Router);
+
+	const handle = async (url: string, method = "GET") => {
+		if (url.startsWith("//")) {
+			url = "https:" + url;
+		} else if (url.startsWith("/")) {
+			url = "https://example.com" + url;
+		}
+		return await app.handleRequest(new Request(url, { method }), requestContext());
+	};
+
+	return { app, container, router, handle };
+};

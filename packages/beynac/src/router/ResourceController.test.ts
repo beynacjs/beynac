@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, expectTypeOf, test } from "bun:test";
-import { createApplication } from "../entry";
-import { mockMiddleware, requestContext } from "../test-utils";
+import { createTestApplication, mockMiddleware } from "../test-utils";
 import { group, Routes } from ".";
 import type { ControllerContext } from "./Controller";
 import { apiResource, resource } from "./helpers";
@@ -12,13 +11,8 @@ beforeEach(() => {
 });
 
 const getMethodCalled = async (routes: Routes, path: string, method = "GET") => {
-	const app = createApplication({
-		routes,
-	});
-	const response = await app.handleRequest(
-		new Request("https://example.com" + path, { method }),
-		requestContext(),
-	);
+	const { handle } = createTestApplication({ routes });
+	const response = await handle(path, method);
 	return response.status === 200 ? await response.text() : response.status;
 };
 

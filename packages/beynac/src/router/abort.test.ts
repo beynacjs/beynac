@@ -1,20 +1,17 @@
-import { describe, expect, test } from "bun:test";
-import { createApplication } from "../index";
-import { requestContext } from "../test-utils";
+import { describe, expect, spyOn, test } from "bun:test";
+import { createTestApplication } from "../test-utils";
 import { abort } from "./abort";
 import { get } from "./helpers";
-import { Router } from "./Router";
 
 async function getResponse(f: () => void) {
-	const app = createApplication();
-	const router = app.container.get(Router);
+	const { router, handle } = createTestApplication();
 	router.register(
 		get("/", () => {
 			f();
 			return new Response();
 		}),
 	);
-	const response = await app.handleRequest(new Request("http://example.com/"), requestContext());
+	const response = await handle("/");
 	return {
 		status: response.status,
 		text: await response.text(),
@@ -162,6 +159,8 @@ describe(abort, () => {
 	});
 
 	test("caught abort still returns abort response", async () => {
+		const consoleErrorSpy = spyOn(console, "error").mockImplementation(() => {});
+
 		const response = await getResponse(() => {
 			try {
 				abort.forbidden("Should not be caught");
@@ -173,5 +172,12 @@ describe(abort, () => {
 		// Should still return the abort response
 		expect(response.status).toBe(403);
 		expect(response.text).toBe("Should not be caught");
+
+		// Should warn about caught abort
+		expect(consoleErrorSpy).toHaveBeenCalledWith(
+			"abort() was caught and ignored by user code. The abort response will be returned anyway, but unnecessary work has probably been done. Ensure that your code rethrows AbortException if caught.",
+		);
+
+		consoleErrorSpy.mockRestore();
 	});
 });

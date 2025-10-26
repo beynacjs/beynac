@@ -135,6 +135,7 @@ describe("ApplicationImpl", () => {
 		test("config flows from app to router - throws in development mode", async () => {
 			const app = new ApplicationImpl({
 				development: true,
+				devMode: { suppressAutoRefresh: true },
 				routes: get("/user/{id}", ControllerInvalidParam),
 			});
 
