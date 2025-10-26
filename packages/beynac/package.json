@@ -40,7 +40,7 @@
     }
   },
   "scripts": {
-    "test": "sh -c 'cd ../..; bun test packages/beynac/\"$@\"' --",
+    "test": "bun test",
     "check": "bun run check:tsc",
     "check:tsc": "tsgo --noEmit",
     "lint": "oxlint --type-aware src/",

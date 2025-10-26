@@ -3,11 +3,11 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 describe("mock cleanup sanity check", () => {
-	test("ERROR: tests must be run from repository root (use 'bun run test')", () => {
+	test("ERROR: tests must be run from package root (use 'bun run test')", () => {
 		// Added because The tests below fail when run from a different location
-		// because bum test fails to find the bunfig.toml
+		// because bun test fails to find the bunfig.toml
 		const cwd = process.cwd();
-		const packageJsonPath = join(cwd, "packages/beynac/package.json");
+		const packageJsonPath = join(cwd, "package.json");
 
 		expect(existsSync(packageJsonPath)).toBe(true);
 	});
