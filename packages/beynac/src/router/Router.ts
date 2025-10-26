@@ -43,26 +43,28 @@ export class Router {
 
 	/**
 	 * Look up a route for the given request
-	 * @returns The matched route with request, URL and params, or null if no route found or constraints failed
+	 * @returns The matched route with request, URL and params, or null if no route found or constraints failed.
+	 *          Also returns methodMismatch: true if the path exists but the HTTP method doesn't match.
 	 */
-	lookup(request: Request): RouteWithParams | null {
+	lookup(request: Request): { match: RouteWithParams | null; methodMismatch: boolean } {
 		const url = new URL(request.url);
 		const hostname = url.hostname;
 
 		const result = findRoute(this.#matcher, request.method, url.pathname, hostname);
 
-		if (!result) {
-			return null;
+		if (!result.found) {
+			return { match: null, methodMismatch: result.methodMismatch };
 		}
 
-		const { route } = result.data;
-		const params = result.params ?? {};
+		const { route } = result.match.data;
+		const params = result.match.params ?? {};
 
 		if (!this.#checkConstraints(route, params)) {
-			return null;
+			// Constraint failure is treated as 404, not 405
+			return { match: null, methodMismatch: false };
 		}
 
-		return { route, request, url, params };
+		return { match: { route, request, url, params }, methodMismatch: false };
 	}
 
 	#checkConstraints(route: RouteDefinition, params: Record<string, string>): boolean {

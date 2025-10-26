@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { createMatcher as _createMatcher, addRoute, findRoute } from ".";
-import type { MatcherContext, Node } from "./types";
+import { createMatcher as _createMatcher, addRoute, FindRouteResult, findRoute } from ".";
+import type { MatchedRoute, MatcherContext, Node } from "./types";
 
 type TestRoute = {
 	data: { path: string };
@@ -52,11 +52,12 @@ function testMatcher(
 			const expected = tests[path]!;
 			const findResult = findRoute(matcher, "GET", path);
 
-			// Bun's toMatchObject doesn't accept undefined, so handle it separately
+			// Handle not found case
 			if (expected === undefined) {
-				expect(findResult, `findRoute(GET, ${path})`).toBeUndefined();
+				expect(findResult.found, `findRoute(GET, ${path})`).toBe(false);
 			} else {
-				expect(findResult, `findRoute(GET, ${path})`).toMatchObject(expected);
+				expect(findResult.found, `findRoute(GET, ${path})`).toBe(true);
+				expect(getMatch(findResult), `findRoute(GET, ${path})`).toMatchObject(expected);
 			}
 		});
 	}
@@ -71,15 +72,15 @@ describe("Matcher lookup", function () {
 
 			// Should match domain-specific route
 			const match1 = findRoute(matcher, "GET", "/users", "api.example.com");
-			expect(match1).toMatchObject({ data: { path: "api.example.com/users" } });
+			expect(getMatch(match1)).toMatchObject({ data: { path: "api.example.com/users" } });
 
 			// Should fallback to domain-agnostic route with different domain
 			const match2 = findRoute(matcher, "GET", "/users", "other.example.com");
-			expect(match2).toMatchObject({ data: { path: "/users" } });
+			expect(getMatch(match2)).toMatchObject({ data: { path: "/users" } });
 
 			// Should fallback to domain-agnostic route with no hostname
 			const match3 = findRoute(matcher, "GET", "/users");
-			expect(match3).toMatchObject({ data: { path: "/users" } });
+			expect(getMatch(match3)).toMatchObject({ data: { path: "/users" } });
 		});
 
 		test("domain parameters", () => {
@@ -93,7 +94,7 @@ describe("Matcher lookup", function () {
 			);
 
 			const match = findRoute(matcher, "GET", "/dashboard", "acme.example.com");
-			expect(match).toMatchObject({
+			expect(getMatch(match)).toMatchObject({
 				data: { path: "{customer}.example.com/dashboard" },
 				params: { customer: "acme" },
 			});
@@ -108,15 +109,15 @@ describe("Matcher lookup", function () {
 
 			// Domain route
 			const match1 = findRoute(matcher, "GET", "/foo", "example.com");
-			expect(match1).toMatchObject({ data: { path: "example.com/foo" } });
+			expect(getMatch(match1)).toMatchObject({ data: { path: "example.com/foo" } });
 
 			// Path route (no domain)
 			const match2 = findRoute(matcher, "GET", "/example/com/foo");
-			expect(match2).toMatchObject({ data: { path: "/example/com/foo" } });
+			expect(getMatch(match2)).toMatchObject({ data: { path: "/example/com/foo" } });
 
 			// Should not confuse the two
 			const match3 = findRoute(matcher, "GET", "/example/com/foo", "example.com");
-			expect(match3).toMatchObject({ data: { path: "/example/com/foo" } });
+			expect(getMatch(match3)).toMatchObject({ data: { path: "/example/com/foo" } });
 		});
 
 		test("domain specificity - static before param", () => {
@@ -132,11 +133,11 @@ describe("Matcher lookup", function () {
 
 			// Static domain should match first
 			const match1 = findRoute(matcher, "GET", "/users", "api.example.com");
-			expect(match1).toMatchObject({ data: { path: "api.example.com/users" } });
+			expect(getMatch(match1)).toMatchObject({ data: { path: "api.example.com/users" } });
 
 			// Param domain should match other subdomains
 			const match2 = findRoute(matcher, "GET", "/users", "app.example.com");
-			expect(match2).toMatchObject({
+			expect(getMatch(match2)).toMatchObject({
 				data: { path: "{subdomain}.example.com/users" },
 				params: { subdomain: "app" },
 			});
@@ -607,52 +608,98 @@ describe("route matching", () => {
 
 	test("match routes", () => {
 		// Static
-		expect(findRoute(matcher, "GET", "/test")).toMatchObject({
-			data: { path: "/test" },
-		});
-		expect(findRoute(matcher, "GET", "/test/foo")).toMatchObject({
-			data: { path: "/test/foo" },
-		});
-		expect(findRoute(matcher, "GET", "/test/fooo")).toMatchObject({
-			data: { path: "/test/fooo" },
-		});
-		expect(findRoute(matcher, "GET", "/another/path")).toMatchObject({
-			data: { path: "/another/path" },
-		});
+		const r1 = findRoute(matcher, "GET", "/test");
+		expect(getMatch(r1)).toMatchObject({ data: { path: "/test" } });
+
+		const r2 = findRoute(matcher, "GET", "/test/foo");
+		expect(getMatch(r2)).toMatchObject({ data: { path: "/test/foo" } });
+
+		const r3 = findRoute(matcher, "GET", "/test/fooo");
+		expect(getMatch(r3)).toMatchObject({ data: { path: "/test/fooo" } });
+
+		const r4 = findRoute(matcher, "GET", "/another/path");
+		expect(getMatch(r4)).toMatchObject({ data: { path: "/another/path" } });
+
 		// Param
-		expect(findRoute(matcher, "GET", "/test/123")).toMatchObject({
-			data: { path: "/test/{id}" },
-			params: { id: "123" },
-		});
-		expect(findRoute(matcher, "GET", "/test/123/y")).toMatchObject({
-			data: { path: "/test/{idY}/y" },
-			params: { idY: "123" },
-		});
-		expect(findRoute(matcher, "GET", "/test/123/y/z")).toMatchObject({
+		const r5 = findRoute(matcher, "GET", "/test/123");
+		expect(getMatch(r5)).toMatchObject({ data: { path: "/test/{id}" }, params: { id: "123" } });
+
+		const r6 = findRoute(matcher, "GET", "/test/123/y");
+		expect(getMatch(r6)).toMatchObject({ data: { path: "/test/{idY}/y" }, params: { idY: "123" } });
+
+		const r7 = findRoute(matcher, "GET", "/test/123/y/z");
+		expect(getMatch(r7)).toMatchObject({
 			data: { path: "/test/{idYZ}/y/z" },
 			params: { idYZ: "123" },
 		});
-		expect(findRoute(matcher, "GET", "/test/foo/123")).toMatchObject({
+
+		const r8 = findRoute(matcher, "GET", "/test/foo/123");
+		expect(getMatch(r8)).toMatchObject({
 			data: { path: "/test/foo/{segment}" },
 			params: { segment: "123" },
 		});
+
 		// Wildcard
-		expect(findRoute(matcher, "GET", "/test/foo/123/456")).toMatchObject({
+		const r9 = findRoute(matcher, "GET", "/test/foo/123/456");
+		expect(getMatch(r9)).toMatchObject({
 			data: { path: "/test/foo/{...wildcard}" },
 			params: { wildcard: "123/456" },
 		});
-		expect(findRoute(matcher, "GET", "/wildcard/foo")).toMatchObject({
+
+		const r10 = findRoute(matcher, "GET", "/wildcard/foo");
+		expect(getMatch(r10)).toMatchObject({
 			data: { path: "/wildcard/{...wildcard}" },
 			params: { wildcard: "foo" },
 		});
-		expect(findRoute(matcher, "GET", "/wildcard/foo/bar")).toMatchObject({
+
+		const r11 = findRoute(matcher, "GET", "/wildcard/foo/bar");
+		expect(getMatch(r11)).toMatchObject({
 			data: { path: "/wildcard/{...wildcard}" },
 			params: { wildcard: "foo/bar" },
 		});
-		expect(findRoute(matcher, "GET", "/wildcard")).toMatchObject({
+
+		const r12 = findRoute(matcher, "GET", "/wildcard");
+		expect(getMatch(r12)).toMatchObject({
 			data: { path: "/wildcard/{...wildcard}" },
 			params: { wildcard: "" },
 		});
+	});
+
+	test("method mismatch detection", () => {
+		const matcher = _createMatcher<{ path: string }>();
+		addRoute(matcher, "GET", "/users", { path: "GET /users" });
+		addRoute(matcher, "POST", "/users", { path: "POST /users" });
+		addRoute(matcher, "GET", "/posts/{id}", { path: "GET /posts/{id}" });
+		addRoute(matcher, "GET", "/wildcard/{...rest}", { path: "GET /wildcard/{...rest}" });
+
+		// Exact match - should find
+		const match1 = findRoute(matcher, "GET", "/users");
+		expect(getMatch(match1)).toMatchObject({ data: { path: "GET /users" } });
+
+		// Wrong method on existing path - should set methodMismatch
+		const match2 = findRoute(matcher, "DELETE", "/users");
+		expect(match2).toEqual({ found: false, methodMismatch: true });
+
+		// Path doesn't exist - should not set methodMismatch
+		const match3 = findRoute(matcher, "GET", "/nonexistent");
+		expect(match3).toEqual({ found: false, methodMismatch: false });
+
+		// Method mismatch with params
+		const match4 = findRoute(matcher, "POST", "/posts/123");
+		expect(match4).toEqual({ found: false, methodMismatch: true });
+
+		// Method mismatch with wildcard
+		const match5 = findRoute(matcher, "POST", "/wildcard/foo/bar");
+		expect(match5).toEqual({ found: false, methodMismatch: true });
+	});
+
+	test("method mismatch with domain routes", () => {
+		const matcher = _createMatcher<{ path: string }>();
+		addRoute(matcher, "GET", "/api", { path: "GET api.example.com/api" }, "api.example.com");
+
+		// Wrong method on domain route
+		const match = findRoute(matcher, "POST", "/api", "api.example.com");
+		expect(match).toEqual({ found: false, methodMismatch: true });
 	});
 });
 
@@ -711,3 +758,10 @@ function _formatMethods(node: Node<{ path?: string }>) {
 		})
 		.join(", ")}`;
 }
+
+const getMatch = <T>(result: FindRouteResult<T>): MatchedRoute<T> => {
+	if (!result.found) {
+		throw new Error("getMatch: found is not true");
+	}
+	return result.match;
+};

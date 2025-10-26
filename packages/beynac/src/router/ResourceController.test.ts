@@ -201,9 +201,9 @@ describe("resource", () => {
 		const showResponse = await getMethodCalled(routes, "/photos/123", "GET");
 		expect(showResponse).toBe("show");
 
-		// Should 404 for excluded actions
+		// Should 405 for excluded actions (path exists but method not allowed)
 		const storeResponse = await getMethodCalled(routes, "/photos", "POST");
-		expect(storeResponse).toBe(404);
+		expect(storeResponse).toBe(405);
 	});
 
 	test("except option excludes actions", () => {

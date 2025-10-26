@@ -36,7 +36,7 @@ const lookup = (url: string, method = "GET") => {
 	} else if (url.startsWith("/")) {
 		url = "https://example.com" + url;
 	}
-	return router.lookup(new Request(url, { method }));
+	return router.lookup(new Request(url, { method })).match;
 };
 
 // ============================================================================

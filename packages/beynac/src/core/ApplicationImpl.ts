@@ -79,10 +79,12 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 			const router = this.container.get(Router);
 			const requestHandler = this.container.get(RequestHandler);
 
-			const match = router.lookup(request);
+			const { match, methodMismatch } = router.lookup(request);
 
 			if (!match) {
-				return new Response("Not Found", { status: 404 });
+				return methodMismatch
+					? new Response("Method Not Allowed", { status: 405 })
+					: new Response("Not Found", { status: 404 });
 			}
 
 			return requestHandler.handle(match);

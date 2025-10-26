@@ -1,6 +1,10 @@
 import { domainAndPathToSegments, getMatchParams } from "./matcher-utils";
 import type { MatchedRoute, MatcherContext, MethodData, Node } from "./types";
 
+export type FindRouteResult<T> =
+	| { found: true; match: MatchedRoute<T> }
+	| { found: false; methodMismatch: boolean };
+
 /**
  * Find a route by path and optionally hostname.
  */
@@ -9,20 +13,25 @@ export function findRoute<T = unknown>(
 	method: string,
 	path: string,
 	hostname?: string,
-): MatchedRoute<T> | undefined {
+): FindRouteResult<T> {
 	if (path.charCodeAt(path.length - 1) === 47 /* '/' */) {
 		path = path.slice(0, -1);
 	}
 
+	const meta: { methodMismatch?: boolean } = {};
+
 	// Try domain-specific route first if hostname provided
 	if (hostname) {
 		const segments = domainAndPathToSegments(hostname, path);
-		const match = _lookupTree<T>(ctx.root, method, segments, 0)?.[0];
+		const match = _lookupTree<T>(ctx.root, method, segments, 0, meta)?.[0];
 
 		if (match !== undefined) {
 			return {
-				data: match.data,
-				params: match.paramsMap ? getMatchParams(segments, match.paramsMap) : undefined,
+				found: true,
+				match: {
+					data: match.data,
+					params: match.paramsMap ? getMatchParams(segments, match.paramsMap) : undefined,
+				},
 			};
 		}
 	}
@@ -33,22 +42,30 @@ export function findRoute<T = unknown>(
 	if (staticNode && staticNode.methods) {
 		const staticMatch = staticNode.methods[method] || staticNode.methods[""];
 		if (staticMatch !== undefined) {
-			return staticMatch[0];
+			return {
+				found: true,
+				match: staticMatch[0],
+			};
 		}
+		// Path exists in static cache but method doesn't match
+		meta.methodMismatch = true;
 	}
 
 	// Lookup tree
 	const segments = domainAndPathToSegments(undefined, path);
-	const match = _lookupTree<T>(ctx.root, method, segments, 0)?.[0];
+	const match = _lookupTree<T>(ctx.root, method, segments, 0, meta)?.[0];
 
-	if (match === undefined) {
-		return;
+	if (match !== undefined) {
+		return {
+			found: true,
+			match: {
+				data: match.data,
+				params: match.paramsMap ? getMatchParams(segments, match.paramsMap) : undefined,
+			},
+		};
 	}
 
-	return {
-		data: match.data,
-		params: match.paramsMap ? getMatchParams(segments, match.paramsMap) : undefined,
-	};
+	return { found: false, methodMismatch: meta.methodMismatch || false };
 }
 
 function _lookupTree<T>(
@@ -56,6 +73,7 @@ function _lookupTree<T>(
 	method: string,
 	segments: string[],
 	index: number,
+	meta: { methodMismatch?: boolean },
 ): MethodData<T>[] | undefined {
 	// 0. End of path
 	if (index === segments.length) {
@@ -64,6 +82,8 @@ function _lookupTree<T>(
 			if (match) {
 				return match;
 			}
+			// Path found but method doesn't match
+			meta.methodMismatch = true;
 		}
 		// Fallback to dynamic for last child (/test and /test/ matches /test/*)
 		if (node.param && node.param.methods) {
@@ -74,6 +94,8 @@ function _lookupTree<T>(
 					return match;
 				}
 			}
+			// Path found but method doesn't match
+			meta.methodMismatch = true;
 		}
 		if (node.wildcard && node.wildcard.methods) {
 			const match = node.wildcard.methods[method] || node.wildcard.methods[""];
@@ -83,6 +105,8 @@ function _lookupTree<T>(
 					return match;
 				}
 			}
+			// Path found but method doesn't match
+			meta.methodMismatch = true;
 		}
 		return undefined;
 	}
@@ -93,7 +117,7 @@ function _lookupTree<T>(
 	if (node.static) {
 		const staticChild = node.static[segment];
 		if (staticChild) {
-			const match = _lookupTree(staticChild, method, segments, index + 1);
+			const match = _lookupTree(staticChild, method, segments, index + 1, meta);
 			if (match) {
 				return match;
 			}
@@ -102,7 +126,7 @@ function _lookupTree<T>(
 
 	// 2. Param
 	if (node.param) {
-		const match = _lookupTree(node.param, method, segments, index + 1);
+		const match = _lookupTree(node.param, method, segments, index + 1, meta);
 		if (match) {
 			if (node.param.hasRegexParam) {
 				const exactMatch =
@@ -116,7 +140,12 @@ function _lookupTree<T>(
 
 	// 3. Wildcard
 	if (node.wildcard && node.wildcard.methods) {
-		return node.wildcard.methods[method] || node.wildcard.methods[""];
+		const match = node.wildcard.methods[method] || node.wildcard.methods[""];
+		if (match) {
+			return match;
+		}
+		// Path found but method doesn't match
+		meta.methodMismatch = true;
 	}
 
 	// No match
