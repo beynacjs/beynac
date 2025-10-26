@@ -1,3 +1,4 @@
+import { abort } from "./abort";
 import { Controller, type ControllerContext, type ControllerReturn } from "./Controller";
 
 /**
@@ -47,30 +48,30 @@ export abstract class ResourceController extends Controller {
 	}
 
 	index(): ControllerReturn {
-		return new Response("Not Found", { status: 404 });
+		abort.notFound();
 	}
 
 	create(_ctx: ControllerContext): ControllerReturn {
-		return new Response("Not Found", { status: 404 });
+		abort.notFound();
 	}
 
 	store(_ctx: ControllerContext): ControllerReturn {
-		return new Response("Not Found", { status: 404 });
+		abort.notFound();
 	}
 
 	show(_ctx: ControllerContext): ControllerReturn {
-		return new Response("Not Found", { status: 404 });
+		abort.notFound();
 	}
 
 	edit(_ctx: ControllerContext): ControllerReturn {
-		return new Response("Not Found", { status: 404 });
+		abort.notFound();
 	}
 
 	update(_ctx: ControllerContext): ControllerReturn {
-		return new Response("Not Found", { status: 404 });
+		abort.notFound();
 	}
 
 	destroy(_ctx: ControllerContext): ControllerReturn {
-		return new Response("Not Found", { status: 404 });
+		abort.notFound();
 	}
 }
