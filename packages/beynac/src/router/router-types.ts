@@ -39,6 +39,7 @@ export type Status = number | "4xx" | "5xx";
 
 export type StatusPageComponent = Component<{
 	status: number;
+	statusText?: string | undefined;
 	error?: Error | undefined;
 }>;
 

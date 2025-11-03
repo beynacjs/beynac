@@ -135,7 +135,6 @@ export class DevModeAutoRefreshMiddleware extends BaseMiddleware {
 
 		return new Response(readable, {
 			status: response.status,
-			statusText: response.statusText,
 			headers: response.headers,
 		});
 	}

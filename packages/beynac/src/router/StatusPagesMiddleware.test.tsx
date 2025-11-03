@@ -16,11 +16,7 @@ const mockComponent =
 
 const mockComponentWithStatus =
 	(prefix: string): StatusPageComponent =>
-	({ status }) => (
-		<>
-			{prefix} {status}
-		</>
-	);
+	({ status, statusText }) => <>{[prefix, status, statusText].filter(Boolean).join(" ")}</>;
 
 const mockComponentWithError: StatusPageComponent = ({ status, error }) => (
 	<>
@@ -71,7 +67,7 @@ describe(StatusPagesMiddleware, () => {
 			const response = await handleMiddleware(middleware, 400);
 
 			expect(response.status).toBe(400);
-			expect(await response.text()).toBe("4xx page 400");
+			expect(await response.text()).toBe("4xx page 400 Bad Request");
 		});
 
 		test("4xx range matches status 499", async () => {
@@ -126,7 +122,7 @@ describe(StatusPagesMiddleware, () => {
 			const response = await handleMiddleware(middleware, 403);
 
 			expect(response.status).toBe(403);
-			expect(await response.text()).toBe("4xx page 403");
+			expect(await response.text()).toBe("4xx page 403 Forbidden");
 		});
 	});
 
@@ -141,7 +137,7 @@ describe(StatusPagesMiddleware, () => {
 			const response = await handleMiddleware(middleware, 500);
 
 			expect(response.status).toBe(500);
-			expect(await response.text()).toBe("5xx page 500");
+			expect(await response.text()).toBe("5xx page 500 Internal Server Error");
 		});
 
 		test("5xx range matches status 599", async () => {

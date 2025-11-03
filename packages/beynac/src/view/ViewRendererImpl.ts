@@ -143,7 +143,7 @@ export class ViewRendererImpl implements ViewRenderer {
 
 	async renderResponse(
 		content: JSXNode,
-		{ mode, context, headers, status, statusText, streaming }: RenderResponseOptions = {},
+		{ mode, context, headers, status, streaming }: RenderResponseOptions = {},
 	): Promise<Response> {
 		if (!(headers instanceof Headers)) {
 			headers = new Headers(headers);
@@ -156,7 +156,7 @@ export class ViewRendererImpl implements ViewRenderer {
 			);
 		}
 
-		const responseInit = withoutUndefinedValues({ headers, status, statusText });
+		const responseInit = withoutUndefinedValues({ headers, status });
 
 		if (streaming) {
 			const renderStream = this.renderStream.bind(this);

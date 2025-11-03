@@ -4,7 +4,6 @@ import type { JSXNode, RenderOptions } from "../view/public-types";
 
 export type RenderResponseOptions = {
 	readonly status?: number | undefined;
-	readonly statusText?: string | undefined;
 	readonly headers?: RequestInit["headers"] | undefined;
 	readonly streaming?: boolean | undefined;
 } & RenderOptions;
