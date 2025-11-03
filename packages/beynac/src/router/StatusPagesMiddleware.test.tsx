@@ -1,4 +1,6 @@
 /** @jsxImportSource ../view */
+
+import { describe, expect, mock, test } from "bun:test";
 import { RequestLocalsImpl } from "../core/RequestLocalsImpl";
 import { controllerContext } from "../test-utils";
 import { Component } from "../view";
@@ -6,7 +8,6 @@ import { AbortException } from "./abort";
 import { get } from "./helpers";
 import type { RouteDefinition, StatusPageComponent, StatusPages } from "./router-types";
 import { StatusPagesMiddleware } from "./StatusPagesMiddleware";
-import { describe, test, mock, expect } from "bun:test";
 
 const mockComponent =
 	(content: string): Component =>
