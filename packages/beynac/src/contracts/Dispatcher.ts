@@ -51,4 +51,4 @@ export interface Dispatcher {
 	dispatch<T extends object>(event: T): void;
 }
 
-export const Dispatcher: TypeToken<Dispatcher> = createTypeToken<Dispatcher>("Dispatcher");
+export const Dispatcher: TypeToken<Dispatcher> = createTypeToken("Dispatcher");

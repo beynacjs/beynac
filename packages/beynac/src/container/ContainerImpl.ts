@@ -161,13 +161,26 @@ export class ContainerImpl implements Container {
 		lifecycle ??= instance !== undefined ? "singleton" : "transient";
 
 		if (instance !== undefined) {
-			if (lifecycle !== "singleton") {
+			if (lifecycle === "transient") {
 				throw this.#containerError(
-					`Error binding ${getKeyName(type)}: an instance can only be provided for singletons, set lifecycle to "singleton" or omit the lifecycle parameter.`,
+					`Error binding ${getKeyName(type)}: an instance can not be provided for transient bindings.`,
 				);
 			}
 			// Apply any extenders that were registered before the instance
 			instance = this.#applyExtenders(type, instance);
+
+			// If scoped, store the instance in the current scope only
+			if (lifecycle === "scoped") {
+				const scopeInstances = scopeContext.getStore()?.instances;
+				if (!scopeInstances) {
+					throw this.#containerError(
+						`Error binding ${getKeyName(type)}: scoped instances can only be bound while handling a request.`,
+					);
+				}
+				scopeInstances.set(type, instance);
+				// Don't store in binding.instance for scoped - it belongs to the scope only
+				instance = undefined;
+			}
 		}
 
 		this.#bindings.set(type, {
@@ -222,12 +235,20 @@ export class ContainerImpl implements Container {
 		}
 	}
 
-	instance<T>(type: KeyOrClass<T>, instance: T): void {
+	singletonInstance<T>(type: KeyOrClass<T>, instance: T): void {
 		this.bind(type, { instance });
 	}
 
-	instanceIf<T>(type: KeyOrClass<T>, instance: T): void {
+	singletonInstanceIf<T>(type: KeyOrClass<T>, instance: T): void {
 		this.bind(type, { instance, ifNotBound: true });
+	}
+
+	scopedInstance<T>(type: KeyOrClass<T>, instance: T): void {
+		this.bind(type, { instance, lifecycle: "scoped" });
+	}
+
+	scopedInstanceIf<T>(type: KeyOrClass<T>, instance: T): void {
+		this.bind(type, { instance, ifNotBound: true, lifecycle: "scoped" });
 	}
 
 	bound(type: KeyOrClass): boolean {
@@ -262,7 +283,7 @@ export class ContainerImpl implements Container {
 					scopeInstances = scopeContext.getStore()?.instances;
 					if (!scopeInstances) {
 						throw this.#containerError(
-							`Cannot create ${getKeyName(type)} because it is scoped so can only be accessed within a request or job. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms`,
+							`Cannot create ${getKeyName(type)} because it is scoped so can only be accessed within a request`,
 							{ omitTopOfBuildStack: true },
 						);
 					}
@@ -518,6 +539,15 @@ export class ContainerImpl implements Container {
 		if (binding.kind === "concrete" && binding.instance !== undefined) {
 			binding.instance = callback(binding.instance as T, this);
 			this.#rebound(type);
+		} else if (binding.kind === "concrete" && binding.lifecycle === "scoped") {
+			// For scoped instances, apply to the instance in the current scope if it exists
+			const scopeInstances = scopeContext.getStore()?.instances;
+			if (scopeInstances?.has(type)) {
+				const instance = scopeInstances.get(type) as T;
+				const extended = callback(instance, this);
+				scopeInstances.set(type, extended);
+				this.#rebound(type);
+			}
 		} else if (this.resolved(type)) {
 			this.#rebound(type);
 		}

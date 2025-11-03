@@ -6,7 +6,12 @@ import { isJsxElement, type JSX } from "../view/public-types";
 import { AbortException, abortExceptionKey } from "./abort";
 import { Controller, type ControllerContext, type ControllerReturn } from "./Controller";
 import { throwOnMissingPropertyAccess } from "./params-access-checker";
-import type { ControllerReference, RouteDefinition, RouteWithParams } from "./router-types";
+import {
+	type ControllerReference,
+	CurrentRouteDefinition,
+	type RouteDefinition,
+	type RouteWithParams,
+} from "./router-types";
 
 export class RequestHandler {
 	#throwOnInvalidParam: boolean;
@@ -29,11 +34,12 @@ export class RequestHandler {
 	}
 
 	async handle(match: RouteWithParams): Promise<Response> {
-		// Get RequestLocals for this request (scoped)
 		const locals = this.container.get(RequestLocals);
 
+		// Store the route definition as a scoped instance for middleware access
+		this.container.scopedInstance(CurrentRouteDefinition, match.route);
+
 		try {
-			// Decode URL parameters
 			const decodedParams: Record<string, string> = {};
 			for (const [key, value] of Object.entries(match.params)) {
 				try {
@@ -44,7 +50,6 @@ export class RequestHandler {
 				}
 			}
 
-			// Create controller context
 			const ctx: ControllerContext = {
 				request: match.request,
 				params: this.#throwOnInvalidParam
@@ -57,18 +62,13 @@ export class RequestHandler {
 				meta: match.route.meta || {},
 			};
 
-			// Build and execute pipeline
 			const finalHandler = async (ctx: ControllerContext): Promise<Response> => {
 				let result: ControllerReturn;
 				if (extendsClass(match.route.controller, Controller)) {
 					const controller = this.container.get(match.route.controller);
 					result = controller.handle(ctx);
 				} else {
-					// Check if controller is a class constructor that doesn't extend Controller
-					if (
-						typeof match.route.controller === "function" &&
-						match.route.controller.toString().startsWith("class ")
-					) {
+					if (isNativeClassConstructor(match.route.controller)) {
 						throw new Error(
 							`${controllerDescription(match.route.controller)} for ${match.route.path} is a class but does not extend Controller. ` +
 								`Class-based handlers must extend the Controller class.`,
@@ -84,10 +84,8 @@ export class RequestHandler {
 				? match.route.middleware.buildPipeline(this.container, finalHandler)
 				: finalHandler;
 
-			const pipelineResult = await pipeline(ctx);
-			const response = await this.#convertToResponse(match.route, pipelineResult);
+			const response = await pipeline(ctx);
 
-			// Check if abort was caught by user code
 			const abortException = locals.get(abortExceptionKey);
 			if (abortException) {
 				// TODO: Connect to logging mechanism when available
@@ -99,13 +97,10 @@ export class RequestHandler {
 
 			return response;
 		} catch (error) {
-			// Handle AbortException - return the wrapped response
 			if (error instanceof AbortException) {
-				locals.delete(abortExceptionKey); // Mark as properly handled
+				locals.delete(abortExceptionKey);
 				return error.response;
 			}
-
-			// Re-throw any other errors
 			throw error;
 		}
 	}
@@ -114,6 +109,7 @@ export class RequestHandler {
 		route: RouteDefinition,
 		result: Response | JSX.Element | null,
 	): Promise<Response> {
+		result = await result;
 		if (result instanceof Response) {
 			return result;
 		}
@@ -127,10 +123,9 @@ export class RequestHandler {
 		}
 
 		const hasHandleMethod = typeof (result as Controller)?.handle !== "function";
-
 		if (hasHandleMethod) {
 			throw new Error(
-				`${controllerDescription(route.controller)} for ${route.path} returned an object with a 'handle' method. This can happen if you have a controller that does not extend the Controller class.`,
+				`${controllerDescription(route.controller)} for ${route.path} returned an object with a 'handle' method. This can happen if you have a controller that does not extend the Controller class. Ensure that controller classes extend Controller`,
 			);
 		}
 
@@ -144,3 +139,6 @@ export class RequestHandler {
 const controllerDescription = (controller: ControllerReference) => {
 	return "Controller" + (controller.name ? " " : "") + controller.name;
 };
+
+const isNativeClassConstructor = (value: unknown): boolean =>
+	typeof value === "function" && Function.prototype.toString.call(value).startsWith("class ");

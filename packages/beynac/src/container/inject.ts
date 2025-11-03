@@ -2,7 +2,7 @@ import { BeynacError } from "../error";
 import { getKeyName, type KeyOrClass } from "./container-key";
 import { NO_VALUE, type NoValue } from "./no-value";
 
-const invalidInjectMessage = `Dependencies that use inject() must be created by the container. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms`;
+const invalidInjectMessage = `Dependencies that use inject() must be created by the container`;
 
 /**
  * Inject a dependency into a class constructor. Use this method with JavaScript

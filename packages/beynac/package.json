@@ -40,10 +40,12 @@
     }
   },
   "scripts": {
-    "check": "bun run check:test && bun run check:tsc && bun run check:lint",
+    "check": "bun run check:test && bun run check:tsc && bun run check:lint && bun run check:format",
     "check:test": "bun test --only-failures",
     "check:tsc": "tsgo --noEmit",
     "check:lint": "oxlint --type-aware src/",
+    "check:format": "biome check",
+    "format": "biome check --write .",
     "lint": "oxlint --type-aware src/",
     "test:coverage": "bun test --coverage --coverage-reporter=lcov",
     "build": "tsdown",

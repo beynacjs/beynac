@@ -9,6 +9,7 @@ import { Controller, type ControllerContext, type ControllerReturn } from "./Con
 import { any, get, group, post, Router } from "./index";
 import type { Middleware } from "./Middleware";
 import { MiddlewareSet } from "./MiddlewareSet";
+import { ControllerReference } from "./router-types";
 
 let container: Container;
 let router: Router;
@@ -324,8 +325,8 @@ describe("middleware priority", () => {
 		const applyPrioritySpy = spyOn(MiddlewareSet.prototype, "applyPriority");
 
 		container = new ContainerImpl();
-		container.instance(Container, container);
-		container.instance(Configuration, {
+		container.singletonInstance(Container, container);
+		container.singletonInstance(Configuration, {
 			middlewarePriority: [Auth, RateLimit],
 		});
 		router = container.get(Router);
@@ -418,7 +419,7 @@ describe("handler validation", () => {
 			};
 		}
 
-		router.register(get("/item/{id}", NewableController));
+		router.register(get("/item/{id}", NewableController as unknown as ControllerReference));
 
 		expect(async () => {
 			await handle("/item/456");
@@ -586,5 +587,154 @@ describe("special routes", () => {
 		const response = await handle("/old-api", "POST");
 		expect(response.status).toBe(307);
 		expect(response.headers.get("Location")).toBe("/new-api");
+	});
+});
+
+// ============================================================================
+// Status Pages
+// ============================================================================
+
+describe("status pages", () => {
+	const NotFoundPage = ({ status }: { status: number }) => (
+		<div>
+			<h1>404 Not Found</h1>
+			<p>Status: {status}</p>
+		</div>
+	);
+
+	test("renders custom 404 page with correct status", async () => {
+		const { StatusPagesMiddleware } = await import("./index");
+
+		router.register(
+			get("/test", () => new Response("Not Found", { status: 404 }), {
+				middleware: StatusPagesMiddleware,
+				statusPages: { 404: NotFoundPage },
+			}),
+		);
+
+		const response = await handle("/test");
+		expect(response.status).toBe(404);
+		const html = await response.text();
+		expect(html).toContain("<h1>404 Not Found</h1>");
+		expect(html).toContain("<p>Status: 404</p>");
+	});
+
+	test("AbortException triggers status page", async () => {
+		const { StatusPagesMiddleware, abort } = await import("./index");
+
+		router.register(
+			get(
+				"/test",
+				() => {
+					return abort.notFound("Resource not found");
+				},
+				{
+					middleware: StatusPagesMiddleware,
+					statusPages: { 404: NotFoundPage },
+				},
+			),
+		);
+
+		const response = await handle("/test");
+		expect(response.status).toBe(404);
+		const html = await response.text();
+		expect(html).toContain("<h1>404 Not Found</h1>");
+	});
+
+	test("Response with error status triggers status page", async () => {
+		const { StatusPagesMiddleware } = await import("./index");
+
+		router.register(
+			get("/test", () => new Response("Not Found", { status: 404 }), {
+				middleware: StatusPagesMiddleware,
+				statusPages: { 404: NotFoundPage },
+			}),
+		);
+
+		const response = await handle("/test");
+		expect(response.status).toBe(404);
+		const html = await response.text();
+		expect(html).toContain("<h1>404 Not Found</h1>");
+	});
+
+	test("middleware throws abort triggers status page", async () => {
+		const { StatusPagesMiddleware, abort } = await import("./index");
+
+		class AuthMiddleware implements Middleware {
+			handle(_ctx: ControllerContext) {
+				return abort.unauthorized("Not authorized");
+			}
+		}
+
+		const UnauthorizedPage = ({ status }: { status: number }) => (
+			<div>
+				<h1>Unauthorized</h1>
+				<p>Status: {status}</p>
+			</div>
+		);
+
+		router.register(
+			get("/test", () => new Response("OK"), {
+				middleware: [AuthMiddleware, StatusPagesMiddleware],
+				statusPages: { 401: UnauthorizedPage },
+			}),
+		);
+
+		const response = await handle("/test");
+		expect(response.status).toBe(401);
+		const html = await response.text();
+		expect(html).toContain("<h1>Unauthorized</h1>");
+	});
+
+	// TODO restore this when we have sync and async response rendering, it currently doesn't work because abort is thrown asynchronously
+	// test("status page throws abort returns plain text", async () => {
+	// 	const { StatusPagesMiddleware, abort } = await import("./index");
+
+	// 	const ThrowingErrorPage = () => {
+	// 		return abort.internalServerError("Error page failed");
+	// 	};
+
+	// 	router.register(
+	// 		get("/test", () => new Response("Not Found", { status: 404 }), {
+	// 			middleware: StatusPagesMiddleware,
+	// 			statusPages: { 404: ThrowingErrorPage },
+	// 		}),
+	// 	);
+
+	// 	const response = await handle("/test");
+	// 	expect(response.status).toBe(500);
+	// 	const text = await response.text();
+	// 	expect(text).toBe("Error page failed");
+	// });
+
+	test("Error thrown in middleware before StatusPagesMiddleware can catch it gets a default plaintext response", async () => {
+		const { abort, StatusPagesMiddleware } = await import("./index");
+
+		class EarlyMiddleware implements Middleware {
+			handle() {
+				return abort.unauthorized();
+			}
+		}
+
+		const UnauthorizedPage = () => <h1>Custom Unauthorized</h1>;
+
+		// Create new test application with middleware priority
+		// EarlyMiddleware has higher priority, so it runs before (outermost) StatusPagesMiddleware
+		// When it throws, StatusPagesMiddleware never gets to catch it
+		const testApp = createTestApplication({
+			middlewarePriority: [EarlyMiddleware, StatusPagesMiddleware],
+		});
+
+		testApp.router.register(
+			get("/test", () => new Response("OK"), {
+				middleware: [EarlyMiddleware, StatusPagesMiddleware],
+				statusPages: { 401: UnauthorizedPage },
+			}),
+		);
+
+		const response = await testApp.handle("/test");
+		expect(response.status).toBe(401);
+		const text = await response.text();
+		expect(text).toBe("Unauthorized"); // Plain text, not the custom page
 	});
 });

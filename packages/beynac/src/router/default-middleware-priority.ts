@@ -1,4 +1,5 @@
 import type { MiddlewareReference } from "./Middleware";
+import { StatusPagesMiddleware } from "./StatusPagesMiddleware";
 
 /**
  * Default middleware execution priority order.
@@ -12,4 +13,5 @@ import type { MiddlewareReference } from "./Middleware";
 export const DEFAULT_MIDDLEWARE_PRIORITY: MiddlewareReference[] = [
 	// Framework middleware will be added here
 	// Examples: Session, Auth, CSRF, RateLimit, etc.
+	StatusPagesMiddleware,
 ];

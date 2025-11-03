@@ -12,12 +12,14 @@ import { redirectStatus } from "./redirect";
  * it as an error.
  */
 export class AbortException extends Error {
+	override readonly cause?: Error | undefined;
 	readonly response: Response;
 
-	constructor(response: Response) {
+	constructor(response: Response, cause?: Error) {
 		super("Request aborted");
 		this.name = "AbortException";
 		this.response = response;
+		this.cause = cause;
 	}
 
 	/**
@@ -26,14 +28,16 @@ export class AbortException extends Error {
 	 * @param status - HTTP status code
 	 * @param body - Response body (optional)
 	 * @param headers - Response headers (optional)
+	 * @param cause - Original error that caused this abort (optional)
 	 * @returns An AbortException wrapping a Response with the given parameters
 	 */
 	static forStatus(
 		status: number,
 		body: string | null = null,
 		headers: Headers | Record<string, string> = {},
+		cause?: Error,
 	): AbortException {
-		return new AbortException(new Response(body, { status, headers }));
+		return new AbortException(new Response(body, { status, headers }), cause);
 	}
 }
 
@@ -182,11 +186,19 @@ export type Abort = {
 	 * Abort the current request and return a 500 Internal Server Error response.
 	 *
 	 * @param message - Optional response message (default: "Internal Server Error")
+	 * @param cause - Optional error that caused this internal server error
 	 *
 	 * @example
 	 * abort.internalServerError('Database connection failed');
+	 *
+	 * @example
+	 * try {
+	 *   await database.query();
+	 * } catch (error) {
+	 *   abort.internalServerError('Database error', error);
+	 * }
 	 */
-	internalServerError(message?: string): never;
+	internalServerError(message?: string, cause?: Error): never;
 
 	/**
 	 * Abort the current request and return a 503 Service Unavailable response.
@@ -204,6 +216,7 @@ export type Abort = {
 	 * Abort the current request and return a custom Response object.
 	 *
 	 * @param response - The Response object to return
+	 * @param cause - Optional error that caused this abort
 	 *
 	 * @example
 	 * abort.withResponse(new Response('Custom', { status: 418, headers: { 'X-Custom': 'header' } }));
@@ -211,15 +224,16 @@ export type Abort = {
 	 * @example
 	 * abort.withResponse(Response.json({ error: 'Not found' }, { status: 404 }));
 	 */
-	withResponse(response: Response): never;
+	withResponse(response: Response, cause?: Error): never;
 };
 
 function _abort(
 	status: number,
 	message = "",
 	headers: Headers | Record<string, string> = {},
+	cause?: Error,
 ): never {
-	const exception = AbortException.forStatus(status, message, headers);
+	const exception = AbortException.forStatus(status, message, headers, cause);
 
 	const container = ContainerImpl.currentlyInScope();
 	if (!container) {
@@ -274,16 +288,16 @@ export const abort: Abort = Object.assign(_abort, {
 		_abort(429, message);
 	},
 
-	internalServerError(message = "Internal Server Error"): never {
-		_abort(500, message);
+	internalServerError(message = "Internal Server Error", cause?: Error): never {
+		_abort(500, message, {}, cause);
 	},
 
 	serviceUnavailable(message = "Service Unavailable"): never {
 		_abort(503, message);
 	},
 
-	withResponse(response: Response): never {
-		const exception = new AbortException(response);
+	withResponse(response: Response, cause?: Error): never {
+		const exception = new AbortException(response, cause);
 
 		const container = ContainerImpl.currentlyInScope();
 		if (!container) {

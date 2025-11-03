@@ -2,7 +2,14 @@ import { arrayWrap, withoutUndefinedValues } from "../utils";
 import { type ClassAttributeValue, classAttribute } from "./class-attribute";
 import { ContextImpl } from "./context";
 import { isOnceNode, type OnceKey } from "./once";
-import type { Context, CSSProperties, JSXNode, RenderOptions } from "./public-types";
+import {
+	type Context,
+	type CSSProperties,
+	JSXElement,
+	type JSXNode,
+	type RenderOptions,
+	tagAsJsxElement,
+} from "./public-types";
 import { RawContent } from "./raw";
 import { isSpecialNode } from "./special-node";
 import { isStackOutNode, isStackPushNode } from "./stack";
@@ -29,8 +36,17 @@ export class MarkupStream {
 		this.attributes = attributes;
 		this.content = children == null ? null : arrayWrap(children);
 		this.displayName = displayName ?? tag ?? null;
+		tagAsJsxElement(this);
 	}
 }
+
+// factory function with correct typing - MarkupStream isn't recognised as an Element because the tag is set dynamically in the constructor
+export const newMarkupStreamAsElement = (
+	tag: string | null,
+	attributes: Record<string, unknown> | null,
+	children: JSXNode,
+	displayName?: string | null,
+): JSXElement => new MarkupStream(tag, attributes, children, displayName) as unknown as JSXElement;
 
 /**
  * Renders content to a complete HTML/XML string.
@@ -102,6 +118,11 @@ export async function renderResponse(
 	return new Response(stream, withoutUndefinedValues({ headers, status, statusText }));
 }
 
+type ComponentStack = {
+	name: string;
+	parent: ComponentStack | null;
+};
+
 /**
  * Renders content to an async generator that yields HTML/XML strings.
  * This enables streaming responses where content is sent to the client as it's generated.
@@ -117,11 +138,6 @@ export async function renderResponse(
  * }
  * ```
  */
-type ComponentStack = {
-	name: string;
-	parent: ComponentStack | null;
-};
-
 export function renderStream(
 	content: JSXNode,
 	{ mode = "html", context }: RenderOptions = {},

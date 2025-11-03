@@ -31,9 +31,9 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 	bootstrap(): void {
 		if (this.#bootstrapped) return;
 		this.#bootstrapped = true;
-		this.container.instance(Container, this.container);
-		this.container.instance(Configuration, this.#config);
-		this.container.instance(Application, this);
+		this.container.singletonInstance(Container, this.container);
+		this.container.singletonInstance(Configuration, this.#config);
+		this.container.singletonInstance(Application, this);
 		this.container.scoped(Headers, HeadersImpl);
 		this.container.scoped(Cookies, CookiesImpl);
 		this.container.scoped(RequestLocals, RequestLocalsImpl);

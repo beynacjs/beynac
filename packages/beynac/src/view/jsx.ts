@@ -1,6 +1,6 @@
 import { BeynacError } from "../error";
 import { arrayWrap, describeType } from "../utils";
-import { MarkupStream } from "./markup-stream";
+import { MarkupStream, newMarkupStreamAsElement } from "./markup-stream";
 import type { Component, JSX, JSXNode } from "./public-types";
 import { tagAsJsxElement } from "./public-types";
 
@@ -48,5 +48,5 @@ export const jsxDEV: JSXFactory = jsx;
 
 export const Fragment = (props: Record<string, unknown> | null): JSX.Element => {
 	const children = props?.children ?? null;
-	return new MarkupStream(null, null, arrayWrap(children) as JSXNode[]);
+	return newMarkupStreamAsElement(null, null, arrayWrap(children) as JSXNode[]);
 };

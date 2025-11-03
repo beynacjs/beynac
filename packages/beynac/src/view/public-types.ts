@@ -40,7 +40,7 @@ export function isJsxElement(value: unknown): value is JSXElement {
 }
 
 export namespace JSX {
-	export type Element = JSXElement | object;
+	export type Element = JSXElement | Promise<JSXElement | null> | null;
 
 	export type Children = JSXNode;
 
@@ -59,7 +59,7 @@ export namespace JSX {
 export type Props = Record<string, any>;
 
 export type Component<P = Props> = {
-	(props: P, context: Context): JSX.Element | Promise<JSX.Element | null> | null;
+	(props: P, context: Context): JSX.Element;
 	displayName?: string | undefined;
 };
 

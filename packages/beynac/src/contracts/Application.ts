@@ -40,4 +40,4 @@ export interface Application<RouteParams extends Record<string, string> = {}> {
 	url: UrlFunction<RouteParams>;
 }
 
-export const Application: TypeToken<Application> = createTypeToken<Application>("Application");
+export const Application: TypeToken<Application> = createTypeToken("Application");

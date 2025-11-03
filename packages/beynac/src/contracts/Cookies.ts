@@ -60,4 +60,4 @@ export interface Cookies {
 	set(name: string, value: string, options?: CookieAttributes): void;
 }
 
-export const Cookies: TypeToken<Cookies> = createTypeToken<Cookies>("Cookies");
+export const Cookies: TypeToken<Cookies> = createTypeToken("Cookies");

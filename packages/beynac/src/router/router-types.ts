@@ -1,4 +1,6 @@
+import { createTypeToken, TypeToken } from "../container/container-key";
 import { NoArgConstructor } from "../utils";
+import type { Component } from "../view/public-types";
 import type { Controller, ControllerContext, ControllerReturn } from "./Controller";
 import type { MiddlewareReference } from "./Middleware";
 import type { MiddlewareSet } from "./MiddlewareSet";
@@ -34,6 +36,10 @@ export type Routes<Params extends Record<string, string> = {}> = readonly RouteD
 	readonly __nameParamsMap?: Params; // Phantom type for type inference
 };
 
+export type Status = number | "4xx" | "5xx";
+
+export type StatusPageComponent = Component<{ status: number; error?: Error | undefined }>;
+
 /**
  * Base options shared by both routes and groups
  */
@@ -41,18 +47,18 @@ interface BaseRouteOptions<PathPart extends string> {
 	/**
 	 * A middleware class or array of classes
 	 */
-	middleware?: MiddlewareReference | MiddlewareReference[];
+	middleware?: MiddlewareReference | MiddlewareReference[] | undefined;
 
 	/**
 	 * Remove middleware that was added in this or a parent group
 	 */
-	withoutMiddleware?: MiddlewareReference | MiddlewareReference[];
+	withoutMiddleware?: MiddlewareReference | MiddlewareReference[] | undefined;
 
 	/**
 	 * Domain pattern constraint, e.g. "api.example.com". Can contain patterns
 	 * capture a parameter e.g. "{customer}.example.com"
 	 */
-	domain?: string;
+	domain?: string | undefined;
 
 	/**
 	 * Define a required format for parameters. If the route matches but the
@@ -63,7 +69,7 @@ interface BaseRouteOptions<PathPart extends string> {
 	 * @example
 	 * get(/user/{id}, UserController, {where: {id: 'uuid'}})
 	 */
-	where?: Partial<Record<ExtractRouteParams<PathPart>, ParamConstraint>>;
+	where?: Partial<Record<ExtractRouteParams<PathPart>, ParamConstraint>> | undefined;
 
 	/**
 	 * Define a required format for parameters. This is like `where`, but can
@@ -79,7 +85,7 @@ interface BaseRouteOptions<PathPart extends string> {
 	 *    ... define child routes...
 	 * ])
 	 */
-	parameterPatterns?: Record<string, ParamConstraint>;
+	parameterPatterns?: Record<string, ParamConstraint> | undefined;
 
 	/**
 	 * Metadata to pass to the controller. This can be any additional data
@@ -90,7 +96,16 @@ interface BaseRouteOptions<PathPart extends string> {
 	 * @example
 	 * get('/users', UserController, { meta: { action: 'list' } })
 	 */
-	meta?: Record<string, unknown>;
+	meta?: Record<string, unknown> | undefined;
+
+	/**
+	 * Custom error page components to render for specific HTTP status codes.
+	 *
+	 * Status codes can be:
+	 * - Exact numbers (400-599): e.g. 404, 500
+	 * - Either '4xx' or '5xx' to handle any number in that range
+	 */
+	statusPages?: StatusPages | undefined;
 }
 
 /**
@@ -106,7 +121,7 @@ export interface RouteOptions<Name extends string, Path extends string>
 	 * // later
 	 * app.url('users.show', {id: '123'}); // returns 'https://example.com/user/123'
 	 */
-	name?: Name;
+	name?: Name | undefined;
 }
 
 /**
@@ -124,7 +139,7 @@ export interface RouteGroupOptions<NamePrefix extends string = "", PathPrefix ex
 	 *   get('/users', UsersController), // matches '/api/v1/users'
 	 * ])
 	 */
-	prefix?: PathPrefix;
+	prefix?: PathPrefix | undefined;
 
 	/**
 	 * Name prefix for all routes in the group. The prefix will be prepended to
@@ -136,7 +151,7 @@ export interface RouteGroupOptions<NamePrefix extends string = "", PathPrefix ex
 	 *   get('/users', UsersController, { name: 'users' }), // name: 'admin.users'
 	 * ])
 	 */
-	namePrefix?: NamePrefix;
+	namePrefix?: NamePrefix | undefined;
 }
 
 export type ControllerFunction = (ctx: ControllerContext) => ControllerReturn;
@@ -158,6 +173,8 @@ export type ParamConstraint = BuiltInRouteConstraint | RegExp | ((value: string)
 
 export type ParamConstraints = Record<string, ParamConstraint | undefined>;
 
+export type StatusPages = Partial<Record<Status, StatusPageComponent>>;
+
 export interface RouteDefinition {
 	methods: readonly string[];
 	path: string;
@@ -168,7 +185,11 @@ export interface RouteDefinition {
 	globalConstraints: ParamConstraints | null;
 	domainPattern?: string | undefined;
 	meta: Record<string, unknown> | null;
+	statusPages: StatusPages | null;
 }
+
+export const CurrentRouteDefinition: TypeToken<RouteDefinition> =
+	createTypeToken("CurrentRouteDefinition");
 
 /**
  * A matched route with its request, URL and parameters.

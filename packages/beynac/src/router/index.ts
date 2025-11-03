@@ -37,3 +37,5 @@ export type {
 	Routes,
 	RouteWithParams,
 } from "./router-types";
+export { CurrentRouteDefinition } from "./router-types";
+export { StatusPagesMiddleware } from "./StatusPagesMiddleware";

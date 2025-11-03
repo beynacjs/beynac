@@ -251,8 +251,8 @@ export interface Container {
 	scopedIf<T>(type: KeyOrClass<T>, impl: NoArgConstructor<T>): void;
 
 	/**
-	 * Bind a type to a pre-existing instance. The instance will be returned
-	 * for all calls to container.get(type).
+	 * Bind a type to a pre-existing instance as a singleton. The instance
+	 * will be returned for all calls to container.get(type).
 	 *
 	 * Equivalent to `bind(type, { instance });`
 	 *
@@ -261,10 +261,11 @@ export interface Container {
 	 * container.instance(Config, config);
 	 * container.get(Config); // returns the same config instance
 	 */
-	instance<T>(type: KeyOrClass<T>, instance: T): void;
+	singletonInstance<T>(type: KeyOrClass<T>, instance: T): void;
 
 	/**
-	 * Bind a type to a pre-existing instance, if the type is not bound already.
+	 * Bind a type to a pre-existing instance as a singleton, if the type is
+	 * not bound already.
 	 * The instance will be returned for all calls to container.get(type).
 	 *
 	 * Equivalent to `bind(type, { instance, ifNotBound: true });`
@@ -274,7 +275,39 @@ export interface Container {
 	 * container.instanceIf(Config, config);
 	 * container.get(Config); // returns the same config instance
 	 */
-	instanceIf<T>(type: KeyOrClass<T>, instance: T): void;
+	singletonInstanceIf<T>(type: KeyOrClass<T>, instance: T): void;
+
+	/**
+	 * Bind a type to a pre-existing instance with the current request scope.
+	 * The instance will be returned for all calls to container.get(type)
+	 * while the request is in being handled.
+	 *
+	 * Equivalent to `bind(type, { instance, lifecycle: "scoped" });`
+	 *
+	 * @example
+	 * const routeData = new RouteData();
+	 * container.withScope(() => {
+	 *   container.scopedInstance(RouteData, routeData);
+	 *   container.get(RouteData); // returns the same routeData instance
+	 * });
+	 */
+	scopedInstance<T>(type: KeyOrClass<T>, instance: T): void;
+
+	/**
+	 * Bind a type to a pre-existing instance with the current request scope,
+	 * if the type is not already bound. The instance will be returned for
+	 * all calls to container.get(type) while the request is in being handled.
+	 *
+	 * Equivalent to `bind(type, { instance, lifecycle: "scoped", ifNotBound: true });`
+	 *
+	 * @example
+	 * container.withScope(() => {
+	 *   const routeData = new RouteData();
+	 *   container.scopedInstanceIf(RouteData, routeData);
+	 *   container.get(RouteData); // returns the same routeData instance
+	 * });
+	 */
+	scopedInstanceIf<T>(type: KeyOrClass<T>, instance: T): void;
 
 	/**
 	 * Determine if a binding exists for the given type.
@@ -433,4 +466,4 @@ export interface Container {
 	when(dependent: KeyOrClass | KeyOrClass[]): ContextualBindingBuilder;
 }
 
-export const Container: TypeToken<Container> = createTypeToken<Container>("Container");
+export const Container: TypeToken<Container> = createTypeToken("Container");

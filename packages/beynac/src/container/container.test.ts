@@ -63,7 +63,7 @@ test("error when trying to instantiate a value with unbound dependencies", () =>
 		constructor(public name = inject(nameToken)) {}
 	}
 	expect(() => new HasNameDependency()).toThrowErrorMatchingInlineSnapshot(
-		`"Dependencies that use inject() must be created by the container. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`,
+		`"Dependencies that use inject() must be created by the container"`,
 	);
 });
 
@@ -373,8 +373,8 @@ test("can bind an instance using a class with required args as a key", () => {
 		constructor(public value: string) {}
 	}
 
-	container.instance(Mandatory, new Mandatory("value"));
-	container.instanceIf(Mandatory, new Mandatory("value"));
+	container.singletonInstance(Mandatory, new Mandatory("value"));
+	container.singletonInstanceIf(Mandatory, new Mandatory("value"));
 });
 
 test("type error on attempting to use a class with mandatory args as an implementation", () => {
@@ -749,7 +749,7 @@ test("call method with object and method name", () => {
 	expect(name).toBe("default");
 
 	expect(() => new Foo().getDepName()).toThrowErrorMatchingInlineSnapshot(
-		`"Dependencies that use inject() must be created by the container. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`,
+		`"Dependencies that use inject() must be created by the container"`,
 	);
 });
 
@@ -766,7 +766,7 @@ test("call closure with dependency injection", () => {
 		const dep = inject(Dep);
 		return dep.name;
 	}).toThrowErrorMatchingInlineSnapshot(
-		`"Dependencies that use inject() must be created by the container. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`,
+		`"Dependencies that use inject() must be created by the container"`,
 	);
 });
 
@@ -2041,7 +2041,7 @@ describe("Container withScope", () => {
 			lifecycle: "scoped",
 		});
 		expect(() => container.get(token)).toThrowErrorMatchingInlineSnapshot(
-			`"Cannot create [token] because it is scoped so can only be accessed within a request or job. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`,
+			`"Cannot create [token] because it is scoped so can only be accessed within a request"`,
 		);
 	});
 
@@ -2049,7 +2049,7 @@ describe("Container withScope", () => {
 		class Foo {}
 		container.scoped(Foo);
 		expect(() => container.get(Foo)).toThrowErrorMatchingInlineSnapshot(
-			`"Cannot create [Foo] because it is scoped so can only be accessed within a request or job. See https://beynac.dev/xyz TODO make online explainer for this error and list causes and symptoms"`,
+			`"Cannot create [Foo] because it is scoped so can only be accessed within a request"`,
 		);
 	});
 
@@ -2450,6 +2450,127 @@ describe("Container currentlyInScope", () => {
 	});
 });
 
+describe("Scoped instances", () => {
+	test("scoped instance throws when accessed outside scope", () => {
+		class Foo {}
+		container.withScope(() => {
+			container.scopedInstance(Foo, new Foo());
+		});
+
+		expect(() => container.get(Foo)).toThrowErrorMatchingInlineSnapshot(
+			`"Cannot create [Foo] because it is scoped so can only be accessed within a request"`,
+		);
+	});
+
+	test("scoped instance works within withScope", async () => {
+		class Foo {}
+		const instance = new Foo();
+
+		await container.withScope(async () => {
+			container.scopedInstance(Foo, instance);
+			const foo1 = container.get(Foo);
+			const foo2 = container.get(Foo);
+			expect(foo1).toBe(instance);
+			expect(foo2).toBe(instance);
+			expect(foo1).toBe(foo2);
+		});
+	});
+
+	test("different scopes get different scoped instances", async () => {
+		class Foo {}
+		const instance1 = new Foo();
+		const instance2 = new Foo();
+
+		const [result1, result2] = await Promise.all([
+			container.withScope(async () => {
+				container.scopedInstance(Foo, instance1);
+				return container.get(Foo);
+			}),
+			container.withScope(async () => {
+				container.scopedInstance(Foo, instance2);
+				return container.get(Foo);
+			}),
+		]);
+
+		expect(result1).toBe(instance1);
+		expect(result2).toBe(instance2);
+		expect(result1).not.toBe(result2);
+	});
+
+	test("extend can be called before binding scoped instance", async () => {
+		type T = { value: string; extended?: string };
+		const token = createTypeToken<T>("token");
+
+		container.extend(token, (obj) => {
+			obj.extended = "yes";
+			return obj;
+		});
+
+		await container.withScope(async () => {
+			container.scopedInstance(token, { value: "original" });
+			const result = container.get(token);
+			expect(result.value).toBe("original");
+			expect(result.extended).toBe("yes");
+		});
+	});
+
+	test("extend scoped instance applies immediately when bound", async () => {
+		type T = { value: string; extended?: string };
+		const token = createTypeToken<T>("token");
+
+		await container.withScope(async () => {
+			container.scopedInstance(token, { value: "original" });
+
+			container.extend(token, (obj) => {
+				obj.extended = "yes";
+				return obj;
+			});
+
+			const result = container.get(token);
+			expect(result.value).toBe("original");
+			expect(result.extended).toBe("yes");
+		});
+	});
+
+	test("extend scoped instance rebinding callback", async () => {
+		let testRebind = false;
+		const token = createTypeToken<object>("token");
+
+		container.onRebinding(token, () => {
+			testRebind = true;
+		});
+
+		await container.withScope(async () => {
+			container.scopedInstance(token, {});
+
+			container.extend(token, (obj) => obj);
+
+			expect(testRebind).toBe(true);
+		});
+	});
+
+	test("contextual binding works with scoped instance bindings", async () => {
+		container.bind(Dep, { instance: new Dep("instance"), lifecycle: "singleton" });
+
+		class A {
+			constructor(public dep = inject(Dep)) {}
+		}
+
+		container
+			.when(A)
+			.needs(Dep)
+			.create(() => new Dep("contextual"));
+
+		await container.withScope(async () => {
+			// Bind A with scoped lifecycle (not instance, just scoped class)
+			container.scoped(A);
+
+			// When we get A, it should use contextual Dep
+			expect(container.get(A).dep.name).toBe("contextual");
+		});
+	});
+});
+
 describe("Container sugar methods", () => {
 	let bindSpy: ReturnType<typeof spyOn>;
 
@@ -2552,33 +2673,79 @@ describe("Container sugar methods", () => {
 		});
 	});
 
-	test("instance(cls, obj) delegates to bind", () => {
+	test("singletonInstance(cls, obj) delegates to bind", () => {
 		const obj = new Dep();
-		container.instance(Dep, obj);
+		container.singletonInstance(Dep, obj);
 		expect(bindSpy).toHaveBeenCalledWith(Dep, { instance: obj });
 	});
 
-	test("instance(key, obj) delegates to bind", () => {
+	test("singletonInstance(key, obj) delegates to bind", () => {
 		const obj = new Dep();
-		container.instance(IDep, obj);
+		container.singletonInstance(IDep, obj);
 		expect(bindSpy).toHaveBeenCalledWith(IDep, { instance: obj });
 	});
 
-	test("instanceIf(cls, obj) delegates to bind", () => {
+	test("singletonInstanceIf(cls, obj) delegates to bind", () => {
 		const obj = new Dep();
-		container.instanceIf(Dep, obj);
+		container.singletonInstanceIf(Dep, obj);
 		expect(bindSpy).toHaveBeenCalledWith(Dep, {
 			instance: obj,
 			ifNotBound: true,
 		});
 	});
 
-	test("instanceIf(key, obj) delegates to bind", () => {
+	test("singletonInstanceIf(key, obj) delegates to bind", () => {
 		const obj = new Dep();
-		container.instanceIf(IDep, obj);
+		container.singletonInstanceIf(IDep, obj);
 		expect(bindSpy).toHaveBeenCalledWith(IDep, {
 			instance: obj,
 			ifNotBound: true,
+		});
+	});
+
+	test("scopedInstance(cls, obj) delegates to bind", () => {
+		const obj = new Dep();
+		container.withScope(() => {
+			container.scopedInstance(Dep, obj);
+		});
+		expect(bindSpy).toHaveBeenCalledWith(Dep, {
+			instance: obj,
+			lifecycle: "scoped",
+		});
+	});
+
+	test("scopedInstance(key, obj) delegates to bind", () => {
+		const obj = new Dep();
+		container.withScope(() => {
+			container.scopedInstance(IDep, obj);
+		});
+		expect(bindSpy).toHaveBeenCalledWith(IDep, {
+			instance: obj,
+			lifecycle: "scoped",
+		});
+	});
+
+	test("scopedInstanceIf(cls, obj) delegates to bind", () => {
+		const obj = new Dep();
+		container.withScope(() => {
+			container.scopedInstanceIf(Dep, obj);
+		});
+		expect(bindSpy).toHaveBeenCalledWith(Dep, {
+			instance: obj,
+			ifNotBound: true,
+			lifecycle: "scoped",
+		});
+	});
+
+	test("scopedInstanceIf(key, obj) delegates to bind", () => {
+		const obj = new Dep();
+		container.withScope(() => {
+			container.scopedInstanceIf(IDep, obj);
+		});
+		expect(bindSpy).toHaveBeenCalledWith(IDep, {
+			instance: obj,
+			ifNotBound: true,
+			lifecycle: "scoped",
 		});
 	});
 });
