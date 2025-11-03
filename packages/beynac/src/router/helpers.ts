@@ -1,5 +1,5 @@
 import { arrayWrapOptional } from "../utils";
-import type { ControllerContext, ControllerReference } from "./Controller";
+import type { Controller, ControllerContext } from "./Controller";
 import { MiddlewareSet } from "./MiddlewareSet";
 import type { ApiResourceAction, ResourceAction } from "./ResourceController";
 import { redirectStatus } from "./redirect";
@@ -67,7 +67,7 @@ function createRoute<
 >(
 	method: string | readonly string[],
 	path: Path,
-	controller: ControllerReference,
+	controller: Controller,
 	{
 		domain,
 		parameterPatterns,
@@ -116,7 +116,7 @@ type RouteMethodFunction = <
 	const Domain extends string | undefined = undefined,
 >(
 	path: Path,
-	controller: ControllerReference,
+	controller: Controller,
 	options?: RouteOptions<Name, Path> & { domain?: Domain },
 ) => RouteMethodReturn<Path, Name, Domain>;
 
@@ -198,7 +198,7 @@ export function match<
 >(
 	methods: readonly string[],
 	path: Path,
-	controller: ControllerReference,
+	controller: Controller,
 	options?: RouteOptions<Name, Path> & { domain?: Domain },
 ): RouteMethodReturn<Path, Name, Domain> {
 	return createRoute(methods, path, controller, options);
@@ -216,7 +216,7 @@ export function any<
 	const Domain extends string | undefined = undefined,
 >(
 	path: Path,
-	controller: ControllerReference,
+	controller: Controller,
 	options?: RouteOptions<Name, Path> & { domain?: Domain },
 ): RouteMethodReturn<Path, Name, Domain> {
 	const methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"];
@@ -451,7 +451,7 @@ export function resource<
 	const Except extends readonly ResourceAction[] | undefined = undefined,
 >(
 	path: Path,
-	controller: ControllerReference,
+	controller: Controller,
 	options?: ResourceOptions<ResourceName, Path, Only, Except>,
 ): Routes<FilteredResourceRouteMap<ResourceName, Only, Except>> {
 	const { name: customName, only, except, ...routeOptions } = options ?? {};
@@ -531,7 +531,7 @@ export function apiResource<
 	const Except extends readonly ApiResourceAction[] | undefined = undefined,
 >(
 	path: Path,
-	controller: ControllerReference,
+	controller: Controller,
 	options?: ResourceOptions<ResourceName, Path, Only, Except>,
 ): Routes<FilteredApiResourceRouteMap<ResourceName, Only, Except>> {
 	const apiActions: readonly ApiResourceAction[] = ["index", "store", "show", "update", "destroy"];

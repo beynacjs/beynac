@@ -5,7 +5,7 @@ import type { RequestContext } from "../contracts/RequestContext";
 import { createApplication } from "../entry";
 import { ResourceController } from "../router";
 import {
-	Controller,
+	BaseController,
 	ControllerContext,
 	type ControllerReturn,
 	FunctionController,
@@ -14,7 +14,7 @@ import { type ClassMiddleware } from "../router/Middleware";
 import { Router } from "../router/Router";
 
 export class MockController extends ResourceController {
-	override handle: Mock<Controller["handle"]>;
+	override handle: Mock<BaseController["handle"]>;
 
 	constructor(response: Response | (() => Response) | null = null) {
 		super();

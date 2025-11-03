@@ -2,7 +2,8 @@
 import { expect, test } from "bun:test";
 import { createKey } from "../keys";
 import { render } from "../test-utils";
-import { Component, JSXNode } from "./public-types";
+import { BaseComponent, Component } from "./Component";
+import type { Context, JSX, JSXNode, Props } from "./public-types";
 
 test("renders single element with attributes and text child", async () => {
 	expect(await render(<span id="foo">hello</span>)).toBe('<span id="foo">hello</span>');
@@ -100,14 +101,64 @@ test("renders components", async () => {
 	).toBe(`<div><span the-value="42"></span></div>`);
 });
 
+test("gives type error when function component prop has incorrect value", async () => {
+	const Component = (props: { value: number }) => <span the-value={props.value} />;
+	void (<Component value={42} />);
+	void (
+		<Component
+			// @ts-expect-error
+			value="string"
+		/>
+	);
+	void (
+		<Component
+			// @ts-expect-error
+			value={undefined}
+		/>
+	);
+	void (
+		(
+			// @ts-expect-error
+			<Component />
+		)
+	);
+});
+
+test("gives type error when class component prop has incorrect value", async () => {
+	class C extends BaseComponent<{ value: number }> {
+		render() {
+			return <span the-value={this.props.value} />;
+		}
+	}
+	void (<BaseComponent value={42} />);
+	void (
+		<C
+			// @ts-expect-error
+			value="string"
+		/>
+	);
+	void (
+		<C
+			// @ts-expect-error
+			value={undefined}
+		/>
+	);
+	void (
+		(
+			// @ts-expect-error
+			<C />
+		)
+	);
+});
+
 test("passes context to components", async () => {
 	const k = createKey<number>();
 	const C: Component = (_, context) => <span>{context.get(k)}</span>;
 
 	expect(
-		await render((ctx) => {
+		await render((ctx: Context) => {
 			ctx.set(k, 42);
-			return <C value={ctx.get(k)} />;
+			return <C />;
 		}),
 	).toBe(`<span>42</span>`);
 });
@@ -134,36 +185,115 @@ test("renders async component", async () => {
 });
 
 test("provides correct stack when a component throws an error", async () => {
-	const Component = () => {
-		throw new Error("Intentional error");
-	};
-	expect(Component.name).toBe("Component");
+	class ClassComponent extends BaseComponent {
+		render(): JSX.Element {
+			throw new Error("Intentional error");
+		}
+	}
+	const FunctionComponent = () => <ClassComponent />;
+	expect(FunctionComponent.name).toBe("FunctionComponent");
+	expect(ClassComponent.name).toBe("ClassComponent");
 	expect(
 		render(
 			<div>
-				<Component />
+				<FunctionComponent />
 			</div>,
 		),
 	).rejects.toThrowErrorMatchingInlineSnapshot(
-		`"Rendering error: Intentional error; Component stack: <div> -> <Component>"`,
+		`"Rendering error: Intentional error; Component stack: <div> -> <FunctionComponent> -> <ClassComponent>"`,
 	);
 });
 
 test("Respects displayName in component stacks", async () => {
-	const Component = () => {
-		throw new Error("Intentional error");
-	};
-	Component.displayName = "MyDisplayName";
-	expect(Component.name).toBe("Component");
+	class ClassComponent extends BaseComponent {
+		static displayName = "MyClassDisplayName";
+		render(): JSX.Element {
+			throw new Error("Intentional error");
+		}
+	}
+	const FunctionComponent = () => <ClassComponent />;
+	FunctionComponent.displayName = "MyFunctionDisplayName";
+	expect(FunctionComponent.name).toBe("FunctionComponent");
+	expect(ClassComponent.name).toBe("ClassComponent");
 	expect(
 		render(
 			<div>
-				<Component />
+				<FunctionComponent />
 			</div>,
 		),
 	).rejects.toThrowErrorMatchingInlineSnapshot(
-		`"Rendering error: Intentional error; Component stack: <div> -> <MyDisplayName>"`,
+		`"Rendering error: Intentional error; Component stack: <div> -> <MyFunctionDisplayName> -> <MyClassDisplayName>"`,
 	);
+});
+
+test("renders class component", async () => {
+	class TestComponent extends BaseComponent {
+		render() {
+			return <span>from class</span>;
+		}
+	}
+	expect(await render(<TestComponent />)).toBe("<span>from class</span>");
+});
+
+test("class component receives props", async () => {
+	class TestComponent extends BaseComponent<{ value: string }> {
+		render() {
+			return <span>{this.props.value}</span>;
+		}
+	}
+	expect(await render(<TestComponent value="hello" />)).toBe("<span>hello</span>");
+});
+
+test("class component receives context", async () => {
+	const key = createKey<string>({ displayName: "test-key" });
+	class TestComponent extends BaseComponent {
+		render(context: Context): JSX.Element {
+			const value = context.get(key);
+			return <span>{value}</span>;
+		}
+	}
+	const SetKey = (_props: Props, ctx: Context) => {
+		ctx.set(key, "from context");
+		return <TestComponent />;
+	};
+	expect(await render(<SetKey />)).toBe("<span>from context</span>");
+});
+
+test("renders async class component", async () => {
+	class AsyncComponent extends BaseComponent {
+		async render() {
+			await Promise.resolve();
+			return <span>async result</span>;
+		}
+	}
+	expect(await render(<AsyncComponent />)).toBe("<span>async result</span>");
+});
+
+test("class component with dependency injection", async () => {
+	const { ContainerImpl } = await import("../container/ContainerImpl");
+	const { createTypeToken } = await import("../container/container-key");
+	const { ViewRendererImpl } = await import("./ViewRendererImpl");
+
+	const messageKey = createTypeToken<string>();
+	const container = new ContainerImpl();
+	container.bind(messageKey, { instance: "injected value" });
+
+	class DIComponent extends BaseComponent {
+		constructor(
+			props: Props,
+			private message: string = container.get(messageKey),
+		) {
+			super(props);
+		}
+
+		render() {
+			return <span>{this.message}</span>;
+		}
+	}
+
+	const renderer = new ViewRendererImpl(container);
+	const result = await renderer.render(<DIComponent />);
+	expect(result).toBe("<span>injected value</span>");
 });
 
 test("does not evaluate components until rendered", async () => {

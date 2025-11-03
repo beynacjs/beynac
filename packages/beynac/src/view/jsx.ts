@@ -1,7 +1,8 @@
 import { BeynacError } from "../error";
 import { arrayWrap, describeType } from "../utils";
+import { type Component, ComponentInstantiator } from "./Component";
 import { MarkupStream, newMarkupStreamAsElement } from "./markup-stream";
-import type { Component, JSX, JSXNode } from "./public-types";
+import type { Context, JSX, JSXNode } from "./public-types";
 import { tagAsJsxElement } from "./public-types";
 
 type JSXFactory = (
@@ -28,9 +29,16 @@ export const jsx: JSXFactory = (
 		} else if (tag.name) {
 			displayName = tag.name;
 		}
-		return tagAsJsxElement(
-			new MarkupStream(null, null, (ctx) => tag(props ?? {}, ctx), displayName),
-		);
+		const callback = (ctx: Context) => {
+			const instantiator = ctx.get(ComponentInstantiator);
+			if (!instantiator) {
+				throw new BeynacError(
+					"Missing ComponentInstantiator: this usually means that you are attempting to render a markup stream without going through ViewRenderer methods like render and renderResponse",
+				);
+			}
+			return instantiator(tag, props ?? {})(ctx);
+		};
+		return tagAsJsxElement(new MarkupStream(null, null, callback, displayName));
 	} else if (typeof tag === "string") {
 		let children = null;
 		if (props != null) {

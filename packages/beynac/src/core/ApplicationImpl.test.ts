@@ -4,7 +4,7 @@ import { RequestContext } from "../contracts/RequestContext";
 import { createApplication } from "../entry";
 import { Cookies, Headers } from "../facades";
 import { get, group } from "../router";
-import { Controller, ControllerContext } from "../router/Controller";
+import { BaseController, ControllerContext } from "../router/Controller";
 import { MockController, mockMiddleware, requestContext } from "../test-utils";
 import { ApplicationImpl } from "./ApplicationImpl";
 import { DispatcherImpl } from "./DispatcherImpl";
@@ -77,7 +77,7 @@ describe("ApplicationImpl", () => {
 	});
 
 	test("handles HTTP request through RouterV2", async () => {
-		class TestController extends Controller {
+		class TestController extends BaseController {
 			handle() {
 				const testCookie = Cookies.get("c");
 				const testHeader = Headers.get("h");
@@ -126,7 +126,7 @@ describe("ApplicationImpl", () => {
 		// These tests are here to ensure that the router configuration is passed
 		// through to the router instance. They are not intended to test the
 		// functionality of the router itself.
-		class ControllerInvalidParam extends Controller {
+		class ControllerInvalidParam extends BaseController {
 			handle(ctx: ControllerContext) {
 				return new Response(`ctx.params.nonExistent: ${ctx.params.nonExistent}`);
 			}

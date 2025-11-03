@@ -3,14 +3,15 @@
 import { describe, expect, mock, test } from "bun:test";
 import { RequestLocalsImpl } from "../core/RequestLocalsImpl";
 import { controllerContext, mockViewRenderer } from "../test-utils";
-import { Component } from "../view";
+import { BaseComponent, FunctionComponent } from "../view";
+import type { Context } from "../view/public-types";
 import { AbortException } from "./abort";
 import { get } from "./helpers";
 import type { RouteDefinition, StatusPageComponent, StatusPages } from "./router-types";
 import { StatusPagesMiddleware } from "./StatusPagesMiddleware";
 
 const mockComponent =
-	(content: string): Component =>
+	(content: string): FunctionComponent =>
 	() => <>{content}</>;
 
 const mockComponentWithStatus =
@@ -202,6 +203,37 @@ describe(StatusPagesMiddleware, () => {
 
 			expect(response.status).toBe(404);
 			expect(await response.text()).toBe("error 404 - Request aborted");
+		});
+
+		test("class component receives error prop", async () => {
+			class ErrorPageWithError extends BaseComponent<{
+				status: number;
+				error?: Error | undefined;
+			}> {
+				render(_context: Context) {
+					return (
+						<>
+							error {this.props.status} - {this.props.error?.message}
+						</>
+					);
+				}
+			}
+
+			const middleware = new StatusPagesMiddleware(
+				mockRoute({ 404: ErrorPageWithError }),
+				new RequestLocalsImpl(),
+				mockViewRenderer,
+			);
+
+			const response = await middleware.handle(controllerContext(), () => {
+				throw new AbortException(
+					new Response("default response", { status: 404 }),
+					new Error("Not found"),
+				);
+			});
+
+			expect(response.status).toBe(404);
+			expect(await response.text()).toBe("error 404 - Not found");
 		});
 	});
 

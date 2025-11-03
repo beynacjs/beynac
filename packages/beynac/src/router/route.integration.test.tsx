@@ -5,14 +5,14 @@ import { createTypeToken } from "../container/container-key";
 import { Configuration, Container } from "../contracts";
 import { createTestApplication, MockController, mockMiddleware } from "../test-utils";
 import {
+	BaseController,
 	ClassController,
 	Controller,
 	type ControllerContext,
-	ControllerReference,
 	type ControllerReturn,
 } from "./Controller";
 import { any, get, group, post, Router } from "./index";
-import { FunctionMiddleware, Middleware } from "./Middleware";
+import { BaseMiddleware, FunctionMiddleware } from "./Middleware";
 import { MiddlewareSet } from "./MiddlewareSet";
 
 let container: Container;
@@ -34,7 +34,7 @@ beforeEach(() => {
 
 describe("controller execution", () => {
 	test("handles controller class", async () => {
-		class TestController extends Controller {
+		class TestController extends BaseController {
 			handle(): Response {
 				return new Response("From controller class");
 			}
@@ -61,7 +61,7 @@ describe("controller execution", () => {
 		const messageKey = createTypeToken<string>();
 		container.bind(messageKey, { instance: "injected message" });
 
-		class InjectedController extends Controller {
+		class InjectedController extends BaseController {
 			constructor(private message: string = container.get(messageKey)) {
 				super();
 			}
@@ -90,7 +90,7 @@ describe("middleware", () => {
 			return next(ctx);
 		});
 
-		class TestMiddleware extends Middleware {
+		class TestMiddleware extends BaseMiddleware {
 			handle(
 				ctx: ControllerContext,
 				next: (ctx: ControllerContext) => Response | Promise<Response>,
@@ -212,7 +212,7 @@ describe("middleware", () => {
 	});
 
 	test("middleware can short-circuit", async () => {
-		class AuthMiddleware extends Middleware {
+		class AuthMiddleware extends BaseMiddleware {
 			handle(
 				_ctx: ControllerContext,
 				_next: (ctx: ControllerContext) => Response | Promise<Response>,
@@ -233,7 +233,7 @@ describe("middleware", () => {
 	});
 
 	test("middleware can replace request", async () => {
-		class ModifyRequestMiddleware extends Middleware {
+		class ModifyRequestMiddleware extends BaseMiddleware {
 			handle(
 				ctx: ControllerContext,
 				next: (ctx: ControllerContext) => Response | Promise<Response>,
@@ -409,12 +409,12 @@ describe("handler validation", () => {
 
 	test("accepts newable function that extends Controller", async () => {
 		// A constructor function that extends Controller via prototype
-		function NewableController(this: Controller) {
+		function NewableController(this: BaseController) {
 			this.handle = (ctx: ControllerContext) => {
 				return new Response(`Newable controller, id: ${ctx.params.id}`);
 			};
 		}
-		NewableController.prototype = Object.create(Controller.prototype);
+		NewableController.prototype = Object.create(BaseController.prototype);
 		(NewableController as unknown as { isClassController: boolean }).isClassController = true;
 
 		router.register(get("/item/{id}", NewableController as unknown as ClassController));
@@ -434,7 +434,7 @@ describe("handler validation", () => {
 			};
 		}
 
-		router.register(get("/item/{id}", NewableController as unknown as ControllerReference));
+		router.register(get("/item/{id}", NewableController as unknown as Controller));
 
 		expect(async () => {
 			await handle("/item/456");
@@ -447,7 +447,7 @@ describe("handler validation", () => {
 // ============================================================================
 
 describe("param access checking", () => {
-	class ControllerInvalidParam extends Controller {
+	class ControllerInvalidParam extends BaseController {
 		handle(ctx: ControllerContext) {
 			return new Response(`ctx.params.nonExistent: ${ctx.params.nonExistent}`);
 		}
@@ -675,7 +675,7 @@ describe("status pages", () => {
 	test("middleware throws abort triggers status page", async () => {
 		const { StatusPagesMiddleware, abort } = await import("./index");
 
-		class AuthMiddleware extends Middleware {
+		class AuthMiddleware extends BaseMiddleware {
 			handle(_ctx: ControllerContext) {
 				return abort.unauthorized("Not authorized");
 			}
@@ -725,7 +725,7 @@ describe("status pages", () => {
 	test("Error thrown in middleware before StatusPagesMiddleware can catch it gets a default plaintext response", async () => {
 		const { abort, StatusPagesMiddleware } = await import("./index");
 
-		class EarlyMiddleware extends Middleware {
+		class EarlyMiddleware extends BaseMiddleware {
 			handle() {
 				return abort.unauthorized();
 			}

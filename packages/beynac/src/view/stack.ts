@@ -1,4 +1,5 @@
-import type { Component, JSXNode, PropsWithChildren } from "./public-types";
+import type { FunctionComponent } from "./Component";
+import type { JSXNode, PropsWithChildren } from "./public-types";
 import { tagAsJsxElement } from "./public-types";
 import { SPECIAL_NODE, SpecialNode } from "./special-node";
 
@@ -21,12 +22,12 @@ type CreateStackArgs = { displayName?: string };
  * ```
  */
 export function createStack({ displayName = "Stack" }: CreateStackArgs = {}): {
-	Push: Component<PropsWithChildren>;
-	Out: Component;
+	Push: FunctionComponent<PropsWithChildren>;
+	Out: FunctionComponent;
 } {
 	const stackIdentity = Symbol(displayName);
 
-	const Push: Component<PropsWithChildren> = ({ children }) => {
+	const Push: FunctionComponent<PropsWithChildren> = ({ children }) => {
 		return tagAsJsxElement(
 			Object.assign([children], {
 				stackPush: stackIdentity,
@@ -36,7 +37,7 @@ export function createStack({ displayName = "Stack" }: CreateStackArgs = {}): {
 	};
 	Push.displayName = `${displayName}.Push`;
 
-	const Out: Component<PropsWithChildren> = () => {
+	const Out: FunctionComponent<PropsWithChildren> = () => {
 		return tagAsJsxElement(Object.assign([], { stackOut: stackIdentity, [SPECIAL_NODE]: true }));
 	};
 	Out.displayName = `${displayName}.Out`;

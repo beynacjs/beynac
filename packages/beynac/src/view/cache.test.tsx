@@ -2,9 +2,9 @@
 import { expect, test } from "bun:test";
 import { createKey } from "../keys";
 import { render } from "../test-utils";
+import type { Component } from "./Component";
 import { Cache } from "./cache";
 import { Once } from "./once";
-import type { Component } from "./public-types";
 import { createStack } from "./stack";
 
 test("caches rendered content on first render", async () => {

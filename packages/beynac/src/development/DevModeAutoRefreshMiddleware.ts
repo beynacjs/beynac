@@ -1,9 +1,9 @@
 import { inject } from "../container/inject";
 import { Configuration } from "../contracts/Configuration";
 import { ControllerContext } from "../router/Controller";
-import { Middleware, type MiddlewareNext } from "../router/Middleware";
+import { BaseMiddleware, type MiddlewareNext } from "../router/Middleware";
 
-export class DevModeAutoRefreshMiddleware extends Middleware {
+export class DevModeAutoRefreshMiddleware extends BaseMiddleware {
 	private reloadListeners = new Set<(reload: boolean) => void>();
 
 	constructor(private config: Configuration = inject(Configuration)) {

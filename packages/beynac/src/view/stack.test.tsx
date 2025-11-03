@@ -2,8 +2,9 @@
 import { expect, test } from "bun:test";
 import { createKey } from "../keys";
 import { asyncGate, nextTick, render, renderStream } from "../test-utils";
+import type { Component } from "./Component";
 import { Once } from "./once";
-import type { Component, Context } from "./public-types";
+import type { Context } from "./public-types";
 import { createStack } from "./stack";
 
 test("basic Stack push and out functionality", async () => {
@@ -38,7 +39,7 @@ test("Stack preserves document order with async components", async () => {
 
 	let fastSecondHasRun = false;
 
-	const SlowFirst: Component = async () => {
+	const SlowFirst = async () => {
 		await Promise.resolve();
 		await Promise.resolve();
 		if (!fastSecondHasRun) {
@@ -47,7 +48,7 @@ test("Stack preserves document order with async components", async () => {
 		return <MyStack.Push>Slow but first</MyStack.Push>;
 	};
 
-	const FastSecond: Component = async () => {
+	const FastSecond = async () => {
 		await Promise.resolve();
 		fastSecondHasRun = true;
 		return <MyStack.Push>Fast but second</MyStack.Push>;
@@ -160,7 +161,7 @@ test("Stack with null and undefined content", async () => {
 test("Stack preserves order across nested async components", async () => {
 	const MyStack = createStack();
 
-	const AsyncOuter: Component = async () => {
+	const AsyncOuter = async () => {
 		await Promise.resolve();
 		return (
 			<>
@@ -170,7 +171,7 @@ test("Stack preserves order across nested async components", async () => {
 		);
 	};
 
-	const AsyncInner: Component = async () => {
+	const AsyncInner = async () => {
 		await Promise.resolve();
 		await Promise.resolve();
 		return <MyStack.Push>From inner</MyStack.Push>;
@@ -582,22 +583,22 @@ test("first Stack.Out streams immediately without buffering", async () => {
 	// Use asyncGate to control when content is produced
 	const gate = asyncGate(["pushHead1", "pushHead2", "pushFooter1", "pushFooter2"]);
 
-	const AsyncHeadProducer: Component = async () => {
+	const AsyncHeadProducer = async () => {
 		await gate("pushHead1");
 		return <HeadStack.Push>Head1</HeadStack.Push>;
 	};
 
-	const AsyncHeadProducer2: Component = async () => {
+	const AsyncHeadProducer2 = async () => {
 		await gate("pushHead2");
 		return <HeadStack.Push>Head2</HeadStack.Push>;
 	};
 
-	const AsyncFooterProducer: Component = async () => {
+	const AsyncFooterProducer = async () => {
 		await gate("pushFooter1");
 		return <FooterStack.Push>Footer1</FooterStack.Push>;
 	};
 
-	const AsyncFooterProducer2: Component = async () => {
+	const AsyncFooterProducer2 = async () => {
 		await gate("pushFooter2");
 		return <FooterStack.Push>Footer2</FooterStack.Push>;
 	};

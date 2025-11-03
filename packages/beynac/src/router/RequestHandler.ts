@@ -3,9 +3,9 @@ import { Configuration, Container, RequestLocals, ViewRenderer } from "../contra
 import { isJsxElement, type JSX } from "../view/public-types";
 import { AbortException, abortExceptionKey } from "./abort";
 import {
-	Controller,
+	BaseController,
+	type Controller,
 	type ControllerContext,
-	type ControllerReference,
 	type ControllerReturn,
 	isClassController,
 } from "./Controller";
@@ -122,7 +122,7 @@ export class RequestHandler {
 			return this.viewRenderer.renderResponse(result);
 		}
 
-		const hasHandleMethod = typeof (result as Controller)?.handle !== "function";
+		const hasHandleMethod = typeof (result as BaseController)?.handle !== "function";
 		if (hasHandleMethod) {
 			throw new Error(
 				`${controllerDescription(route.controller)} for ${route.path} returned an object with a 'handle' method. This can happen if you have a controller that does not extend the Controller class. Ensure that controller classes extend Controller`,
@@ -136,7 +136,7 @@ export class RequestHandler {
 	}
 }
 
-const controllerDescription = (controller: ControllerReference) => {
+const controllerDescription = (controller: Controller) => {
 	return "Controller" + (controller.name ? " " : "") + controller.name;
 };
 

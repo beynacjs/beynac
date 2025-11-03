@@ -1,10 +1,10 @@
 // Public types
 export { AbortException, abort } from "./abort";
 export {
+	BaseController,
 	type ClassController,
-	Controller,
+	type Controller as ControllerReference,
 	type ControllerContext,
-	type ControllerReference,
 	type ControllerReturn,
 	type FunctionController,
 } from "./Controller";
@@ -26,9 +26,9 @@ export {
 	resource,
 } from "./helpers";
 export {
+	BaseMiddleware,
 	type ClassMiddleware,
 	type FunctionMiddleware,
-	Middleware,
 	type MiddlewareNext,
 	type MiddlewareReference,
 } from "./Middleware";

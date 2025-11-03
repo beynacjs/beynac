@@ -1,6 +1,6 @@
 import { createTypeToken, TypeToken } from "../container/container-key";
-import type { Component } from "../view/public-types";
-import { ControllerReference } from "./Controller";
+import type { Component } from "../view/Component";
+import { Controller } from "./Controller";
 import type { MiddlewareReference } from "./Middleware";
 import type { MiddlewareSet } from "./MiddlewareSet";
 import type { ApiResourceAction, ResourceAction } from "./ResourceController";
@@ -37,7 +37,10 @@ export type Routes<Params extends Record<string, string> = {}> = readonly RouteD
 
 export type Status = number | "4xx" | "5xx";
 
-export type StatusPageComponent = Component<{ status: number; error?: Error | undefined }>;
+export type StatusPageComponent = Component<{
+	status: number;
+	error?: Error | undefined;
+}>;
 
 /**
  * Base options shared by both routes and groups
@@ -173,7 +176,7 @@ export type StatusPages = Partial<Record<Status, StatusPageComponent>>;
 export interface RouteDefinition {
 	methods: readonly string[];
 	path: string;
-	controller: ControllerReference;
+	controller: Controller;
 	routeName?: string | undefined;
 	middleware: MiddlewareSet | null;
 	constraints: ParamConstraints | null;

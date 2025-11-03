@@ -1,4 +1,5 @@
-import type { Component, JSXNode, PropsWithChildren } from "./public-types";
+import type { FunctionComponent } from "./Component";
+import type { JSXNode, PropsWithChildren } from "./public-types";
 import { tagAsJsxElement } from "./public-types";
 import { SPECIAL_NODE, SpecialNode } from "./special-node";
 
@@ -11,18 +12,18 @@ export const isOnceNode = (node: JSXNode): node is OnceNode =>
 
 type OnceProps = PropsWithChildren<{ key: OnceKey }>;
 
-type OnceComponent = Component<OnceProps> & {
-	createComponent: (key?: OnceKey) => Component<PropsWithChildren>;
+type OnceComponent = FunctionComponent<OnceProps> & {
+	createComponent: (key?: OnceKey) => FunctionComponent<PropsWithChildren>;
 };
 
-const OnceImpl: Component<OnceProps> = ({ children, key }) => {
+const OnceImpl: FunctionComponent<OnceProps> = ({ children, key }) => {
 	return tagAsJsxElement(Object.assign([children], { onceKey: key, [SPECIAL_NODE]: true }));
 };
 
 let anonOnceCounter = 0;
 
 const createComponent = (key: OnceKey = Symbol(`once-${++anonOnceCounter}`)) => {
-	const component: Component<PropsWithChildren> = ({ children }) => {
+	const component: FunctionComponent<PropsWithChildren> = ({ children }) => {
 		return tagAsJsxElement(Object.assign([children], { onceKey: key, [SPECIAL_NODE]: true }));
 	};
 	const name = (typeof key === "symbol" ? key.description : String(key)) || "anonymous";

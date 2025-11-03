@@ -1,5 +1,6 @@
 import { ContainerImpl } from "../container/ContainerImpl";
-import type { Component, PropsWithChildren } from "./public-types";
+import type { Component } from "./Component";
+import type { PropsWithChildren } from "./public-types";
 import { tagAsJsxElement } from "./public-types";
 import { RawContent } from "./raw";
 import { ViewRendererImpl } from "./ViewRendererImpl";

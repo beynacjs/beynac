@@ -3,7 +3,7 @@ import { inject } from "../container/inject";
 import { RequestLocals, ViewRenderer } from "../contracts";
 import { AbortException, abort, abortExceptionKey } from "./abort";
 import type { ControllerContext } from "./Controller";
-import { Middleware, type MiddlewareNext } from "./Middleware";
+import { BaseMiddleware, type MiddlewareNext } from "./Middleware";
 import {
 	CurrentRouteDefinition,
 	RouteDefinition,
@@ -14,7 +14,7 @@ import {
 /**
  * Middleware that renders custom error pages for 4xx and 5xx responses.
  */
-export class StatusPagesMiddleware extends Middleware {
+export class StatusPagesMiddleware extends BaseMiddleware {
 	constructor(
 		private currentRoute: RouteDefinition = inject(CurrentRouteDefinition),
 		private locals: RequestLocals = inject(RequestLocals),

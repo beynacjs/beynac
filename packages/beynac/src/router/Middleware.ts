@@ -5,7 +5,7 @@ import type { ControllerContext } from "./Controller";
  * Base class for middleware that processes HTTP requests.
  * Middleware can modify requests, short-circuit responses, or pass through to the next handler.
  */
-export abstract class Middleware {
+export abstract class BaseMiddleware {
 	static readonly isClassMiddleware = true;
 
 	/**
@@ -25,7 +25,7 @@ export type FunctionMiddleware = (
 	next: MiddlewareNext,
 ) => Response | Promise<Response>;
 
-export type ClassMiddleware = NoArgConstructor<Middleware> & { isClassMiddleware: true };
+export type ClassMiddleware = NoArgConstructor<BaseMiddleware> & { isClassMiddleware: true };
 
 export type MiddlewareReference = FunctionMiddleware | ClassMiddleware;
 

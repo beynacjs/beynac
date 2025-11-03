@@ -2,10 +2,11 @@
 import { describe, expect, expectTypeOf, test } from "bun:test";
 import { createKey } from "../keys";
 import { render } from "../test-utils";
+import { type Component } from "./Component";
 import { ContextImpl } from "./context";
 import { MarkupStream } from "./markup-stream";
 import { Once } from "./once";
-import { Component, Context, PropsWithChildren } from "./public-types";
+import { Context, PropsWithChildren } from "./public-types";
 
 describe("basic operations", () => {
 	test("get returns null for non-existent key", () => {

@@ -3,9 +3,9 @@ import type { JSX } from "../view/public-types";
 
 export type FunctionController = (ctx: ControllerContext) => ControllerReturn;
 
-export type ClassController = NoArgConstructor<Controller> & { isClassController: true };
+export type ClassController = NoArgConstructor<BaseController> & { isClassController: true };
 
-export type ControllerReference = FunctionController | ClassController;
+export type Controller = FunctionController | ClassController;
 
 export function isClassController(value: unknown): value is ClassController {
 	return (
@@ -67,7 +67,7 @@ export interface ControllerContext {
 /**
  * Base class for controllers.
  */
-export abstract class Controller {
+export abstract class BaseController {
 	static readonly isClassController = true;
 
 	/**

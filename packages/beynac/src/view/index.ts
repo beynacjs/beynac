@@ -1,3 +1,11 @@
+export {
+	BaseComponent,
+	type ClassComponent,
+	type Component,
+	ComponentInstantiator,
+	type FunctionComponent,
+	isClassComponent,
+} from "./Component";
 export { childrenToArray } from "./children";
 export { html } from "./html";
 export { jsFrom } from "./js-from";

@@ -2,11 +2,18 @@ import { inject } from "../container/inject";
 import { Container } from "../contracts/Container";
 import type { RenderResponseOptions, ViewRenderer } from "../contracts/ViewRenderer";
 import { withoutUndefinedValues } from "../utils";
+import { type Component, ComponentInstantiator, isClassComponent } from "./Component";
 import { type ClassAttributeValue, classAttribute } from "./class-attribute";
 import { ContextImpl } from "./context";
 import { MarkupStream } from "./markup-stream";
 import { isOnceNode, type OnceKey } from "./once";
-import { type Context, type CSSProperties, type JSXNode, type RenderOptions } from "./public-types";
+import {
+	type Context,
+	type CSSProperties,
+	type JSXNode,
+	Props,
+	type RenderOptions,
+} from "./public-types";
 import { RawContent } from "./raw";
 import { isSpecialNode } from "./special-node";
 import { isStackOutNode, isStackPushNode } from "./stack";
@@ -124,9 +131,7 @@ function isReactElement(value: unknown): boolean {
 }
 
 export class ViewRendererImpl implements ViewRenderer {
-	// Container will be used in the future for dependency injection within components
-	// @ts-expect-error: _container will be used when component injection is implemented
-	constructor(private _container: Container = inject(Container)) {}
+	constructor(private container: Container = inject(Container)) {}
 
 	async render(content: JSXNode, options?: RenderOptions): Promise<string> {
 		let result = "";
@@ -181,6 +186,14 @@ export class ViewRendererImpl implements ViewRenderer {
 			rootContext = context;
 		} else {
 			rootContext = new ContextImpl();
+			rootContext.set(ComponentInstantiator, (tag: Component, props: Props) => {
+				if (isClassComponent(tag)) {
+					// Instantiate using container.call() so inject() works in constructor
+					const instance = this.container.call(() => new tag(props));
+					return (ctx: Context) => instance.render(ctx);
+				}
+				return (ctx: Context) => tag(props, ctx);
+			});
 		}
 		const componentStack: ComponentStack | null = null;
 		const onceKeys = new Set<OnceKey>(); // Track used Once keys

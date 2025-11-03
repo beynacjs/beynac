@@ -2,7 +2,6 @@
 import { expect, test } from "bun:test";
 import { render } from "../test-utils";
 import { Once } from "./once";
-import type { Component } from "./public-types";
 
 test("Once renders content the first time a key is encountered", async () => {
 	const result = await render(
@@ -55,13 +54,13 @@ test("Once works with complex children", async () => {
 });
 
 test("Once works within components", async () => {
-	const Header: Component = () => (
+	const Header = () => (
 		<Once key="header">
 			<style>{`h1 { color: blue; }`}</style>
 		</Once>
 	);
 
-	const Page: Component = () => (
+	const Page = () => (
 		<div>
 			<Header />
 			<h1>Page 1</h1>
@@ -89,21 +88,21 @@ test("Once with null or undefined children", async () => {
 });
 
 test("Once persists state across nested components", async () => {
-	const ChildA: Component = () => (
+	const ChildA = () => (
 		<>
 			<Once key="shared">From A</Once>
 			<span>A</span>
 		</>
 	);
 
-	const ChildB: Component = () => (
+	const ChildB = () => (
 		<>
 			<Once key="shared">From B</Once>
 			<span>B</span>
 		</>
 	);
 
-	const Parent: Component = () => (
+	const Parent = () => (
 		<div>
 			<ChildA />
 			<ChildB />
@@ -115,7 +114,7 @@ test("Once persists state across nested components", async () => {
 });
 
 test("Once works across multiple renders", async () => {
-	const Component1: Component = () => (
+	const Component1 = () => (
 		<div>
 			<Once key="style">
 				<style>{`body { margin: 0; }`}</style>
@@ -185,7 +184,7 @@ test("Once accepts number and symbol keys", async () => {
 test("Once respects document order with async content", async () => {
 	let fastSecondHasRun = false;
 
-	const SlowFirst: Component = async () => {
+	const SlowFirst = async () => {
 		await Promise.resolve();
 		await Promise.resolve();
 		if (!fastSecondHasRun) {
@@ -194,7 +193,7 @@ test("Once respects document order with async content", async () => {
 		return <Once key="async">Slow but first</Once>;
 	};
 
-	const FastSecond: Component = async () => {
+	const FastSecond = async () => {
 		await Promise.resolve();
 		fastSecondHasRun = true;
 		return <Once key="async">Fast but second</Once>;
@@ -211,7 +210,7 @@ test("Once respects document order with async content", async () => {
 });
 
 test("Once respects document order with mixed sync and async content", async () => {
-	const AsyncComponent: Component = async () => {
+	const AsyncComponent = async () => {
 		await Promise.resolve();
 		return <Once key="mixed">From async</Once>;
 	};

@@ -53,15 +53,18 @@ export namespace JSX {
 	}
 
 	export interface IntrinsicAttributes {}
+
+	export interface ElementAttributesProperty {
+		props: {};
+	}
+
+	export interface ElementClass {
+		render(context: Context): Element;
+	}
 }
 
 // oxlint-disable-next-line no-explicit-any -- we follow react in using any here
 export type Props = Record<string, any>;
-
-export type Component<P = Props> = {
-	(props: P, context: Context): JSX.Element;
-	displayName?: string | undefined;
-};
 
 export type PropsWithChildren<P = unknown> = P & {
 	children?: JSX.Children | undefined;
