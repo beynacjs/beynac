@@ -8,7 +8,7 @@ This project builds upon ideas and code from several excellent open-source proje
 **License:** MIT
 **Copyright:** Taylor Otwell and contributors
 
-Laravel has been a huge source of inspiration for Beynac's overall design and architecture. While Beynac is implemented in TypeScript rather than PHP, we have used Laravel extensively as a reference implementation for framework patterns and conventions.
+Laravel has been a huge source of inspiration for Beynac's overall design and architecture. Often the implementation of each feature ends up very different, since Laravel's PHP patterns don't translate well to TypeScript. But there isn't a feature in Beynac that didn't at least start with wondering how Laravel handles the same.
 
 ## Hono
 
@@ -17,7 +17,7 @@ Laravel has been a huge source of inspiration for Beynac's overall design and ar
 **License:** MIT
 **Copyright:** Yusuke Wada and contributors
 
-Hono inspired the design of Beynac's JSX renderer. Additionally, portions of Beynac's test suite have been directly adapted from Hono's tests to ensure compatibility and correctness. The implementation itself is original to Beynac.
+Hono inspired the design of Beynac's JSX renderer. Portions of our JSX renderer tests have been directly adapted from Hono's tests to ensure compatibility and correctness. The implementation itself is original to Beynac.
 
 ## Rou3
 
@@ -25,7 +25,7 @@ Hono inspired the design of Beynac's JSX renderer. Additionally, portions of Bey
 **License:** MIT
 **Copyright:** Binyamin Aron Green
 
-Beynac's routing engine is a fork of Rou3, adapted for our specific requirements. The core radix tree algorithm remains largely unchanged from the original implementation, with modifications made to integrate with Beynac's architecture and feature set.
+Beynac's routing engine is a fork of Rou3, adapted for our specific requirements. The core radix tree algorithm remains largely unchanged from the original implementation.
 
 ---
 
