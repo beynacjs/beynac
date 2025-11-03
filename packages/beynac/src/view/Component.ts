@@ -14,8 +14,10 @@ export type FunctionComponent<P = Props> = {
  */
 export type ClassComponent<P = Props> = (new (
 	props: P,
-	...args: never[]
-) => BaseComponent<P>) & {
+) => {
+	props: P;
+	render(context: Context): JSX.Element;
+}) & {
 	isClassComponent: true;
 };
 
@@ -52,7 +54,7 @@ export function isClassComponent(value: unknown): value is ClassComponent {
 export abstract class BaseComponent<P = Props> {
 	static readonly isClassComponent = true;
 
-	protected props: P;
+	props: P;
 
 	constructor(props: P) {
 		this.props = props;
