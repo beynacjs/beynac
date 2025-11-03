@@ -143,7 +143,7 @@ export class ViewRendererImpl implements ViewRenderer {
 
 	async renderResponse(
 		content: JSXNode,
-		{ mode, context, headers, status, statusText }: RenderResponseOptions = {},
+		{ mode, context, headers, status, statusText, streaming }: RenderResponseOptions = {},
 	): Promise<Response> {
 		if (!(headers instanceof Headers)) {
 			headers = new Headers(headers);
@@ -156,21 +156,28 @@ export class ViewRendererImpl implements ViewRenderer {
 			);
 		}
 
-		const renderStream = this.renderStream.bind(this);
-		const stream = new ReadableStream({
-			async start(controller) {
-				try {
-					for await (const chunk of renderStream(content, { mode, context })) {
-						controller.enqueue(new TextEncoder().encode(chunk));
-					}
-					controller.close();
-				} catch (error) {
-					controller.error(error);
-				}
-			},
-		});
+		const responseInit = withoutUndefinedValues({ headers, status, statusText });
 
-		return new Response(stream, withoutUndefinedValues({ headers, status, statusText }));
+		if (streaming) {
+			const renderStream = this.renderStream.bind(this);
+			const stream = new ReadableStream({
+				async start(controller) {
+					try {
+						for await (const chunk of renderStream(content, { mode, context })) {
+							controller.enqueue(new TextEncoder().encode(chunk));
+						}
+						controller.close();
+					} catch (error) {
+						controller.error(error);
+					}
+				},
+			});
+
+			return new Response(stream, responseInit);
+		}
+
+		const html = await this.render(content, { mode, context });
+		return new Response(html, responseInit);
 	}
 
 	renderStream(

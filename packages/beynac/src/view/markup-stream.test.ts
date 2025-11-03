@@ -1135,7 +1135,7 @@ describe("renderResponse", () => {
 			" after",
 		]);
 
-		const response = await renderResponse(stream);
+		const response = await renderResponse(stream, { streaming: true });
 
 		// Start reading response body asynchronously
 		const reader = response.body?.getReader();
@@ -1169,6 +1169,13 @@ describe("renderResponse", () => {
 
 		// Verify complete output
 		expect(chunks.join("")).toBe("<div>before delayed after</div>");
+	});
+
+	test("buffers content when streaming is false", async () => {
+		const stream = new MarkupStream("div", null, ["before ", Promise.resolve("async"), " after"]);
+
+		const response = await renderResponse(stream, { streaming: false });
+		expect(await response.text()).toBe("<div>before async after</div>");
 	});
 
 	test("can be used as controller return value", async () => {

@@ -6,6 +6,7 @@ export type RenderResponseOptions = {
 	readonly status?: number | undefined;
 	readonly statusText?: string | undefined;
 	readonly headers?: RequestInit["headers"] | undefined;
+	readonly streaming?: boolean | undefined;
 } & RenderOptions;
 
 export interface ViewRenderer {
@@ -26,10 +27,10 @@ export interface ViewRenderer {
 
 	/**
 	 * Renders content to a Response object for use in request handlers.
-	 * This streams the content as it's rendered, enabling efficient handling of async content.
 	 *
 	 * @param node - The content tree to render, e.g. <jsx>...</jsx> or html`...`
 	 * @param options - Response options (status, headers, etc.) and render options (mode, context)
+	 * @param options.streaming - If true, streams content as it's rendered. If false/undefined, buffers the entire response.
 	 *
 	 * @example
 	 * ```ts

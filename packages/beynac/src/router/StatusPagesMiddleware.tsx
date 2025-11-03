@@ -64,8 +64,11 @@ export class StatusPagesMiddleware extends BaseMiddleware {
 						/>
 					);
 
-					// Return rendered response with original status code
-					return this.viewRenderer.renderResponse(jsx, { status: response.status });
+					// Return rendered response with original status code (never streamed)
+					return this.viewRenderer.renderResponse(jsx, {
+						status: response.status,
+						streaming: false,
+					});
 				}
 			}
 		}

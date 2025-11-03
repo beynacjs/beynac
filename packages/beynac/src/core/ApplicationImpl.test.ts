@@ -132,9 +132,8 @@ describe("ApplicationImpl", () => {
 			}
 		}
 
-		test("config flows from app to router - throws in development mode", async () => {
+		test("config flows from app to router - invalid param access throws by default", async () => {
 			const app = new ApplicationImpl({
-				development: true,
 				devMode: { suppressAutoRefresh: true },
 				routes: get("/user/{id}", ControllerInvalidParam),
 			});
@@ -145,9 +144,10 @@ describe("ApplicationImpl", () => {
 			}).toThrow('Route parameter "nonExistent" does not exist');
 		});
 
-		test("config flows from app to router - doesn't throw in production mode", async () => {
+		test("config flows from app to router - invalid param access can be disabled", async () => {
 			const app = new ApplicationImpl({
 				development: false,
+				throwOnInvalidParamAccess: "never",
 				routes: get("/user/{id}", ControllerInvalidParam),
 			});
 

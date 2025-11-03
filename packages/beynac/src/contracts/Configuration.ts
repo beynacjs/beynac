@@ -93,11 +93,52 @@ export interface Configuration<RouteParams extends Record<string, string> = {}> 
 	 * - 'always': Always throw when accessing invalid parameters
 	 * - 'never': Never throw, return undefined (production-like behavior)
 	 * - 'development': Throw only when development mode is enabled
+	 * - 'production': Throw only when development mode is disabled
 	 *
-	 * @default 'development'
+	 * @default 'always'
 	 */
-	throwOnInvalidParamAccess?: "always" | "never" | "development" | undefined;
+	throwOnInvalidParamAccess?: EnvironmentChoice | undefined;
+
+	/**
+	 * Control when to use streaming responses for rendering.
+	 *
+	 * When enabled, responses are streamed to the client as content is generated,
+	 * which can improve time-to-first-byte. When disabled, the entire response is
+	 * buffered before sending.
+	 *
+	 * Note: When streaming responses, the headers will be sent before the
+	 * whole response is generated, so template components cannot set headers
+	 * and cookies.
+	 *
+	 * - 'always': Always use streaming responses
+	 * - 'never': Never use streaming, always buffer
+	 * - 'development': Stream only when development mode is enabled
+	 * - 'production': Stream only when development mode is disabled
+	 *
+	 * @default 'always'
+	 */
+	streamResponses?: EnvironmentChoice | undefined;
 }
 
 export const Configuration: TypeToken<Configuration> =
 	createTypeToken<Configuration>("Configuration");
+
+export type EnvironmentChoice = "always" | "never" | "development" | "production";
+
+export function resolveEnvironmentChoice(
+	value: EnvironmentChoice | undefined,
+	defaultValue: EnvironmentChoice,
+	isDevelopment: boolean,
+): boolean {
+	const choice = value ?? defaultValue;
+	switch (choice) {
+		case "always":
+			return true;
+		case "never":
+			return false;
+		case "development":
+			return isDevelopment;
+		case "production":
+			return !isDevelopment;
+	}
+}

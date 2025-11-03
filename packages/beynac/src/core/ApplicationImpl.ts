@@ -97,10 +97,7 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 			throw new BeynacError("Can't start a new request scope, we're already handling a request.");
 		}
 		return this.container.withScope(() => {
-			this.container.bind(RequestContext, {
-				lifecycle: "scoped",
-				factory: () => context,
-			});
+			this.container.scopedInstance(RequestContext, context);
 			return callback();
 		});
 	}

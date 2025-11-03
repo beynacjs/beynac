@@ -1,3 +1,4 @@
+import { JSXElement, tagAsJsxElement } from "./public-types";
 import { SPECIAL_NODE } from "./special-node";
 
 export class RawContent {
@@ -6,6 +7,7 @@ export class RawContent {
 	constructor(content: string) {
 		this.#content = content;
 		Object.assign(this, { [SPECIAL_NODE]: true });
+		tagAsJsxElement(this);
 	}
 
 	toString(): string {
@@ -24,8 +26,8 @@ export class RawContent {
  * Can be used within JSX and html`` templates.
  *
  * @example
- * <div>{renderMarkdownToHtml(markdown)}</div>
+ * <div>{raw(renderMarkdownToHtml(markdown))}</div>
  */
-export function raw(content: string): RawContent {
-	return new RawContent(content);
+export function raw(content: string): JSXElement {
+	return new RawContent(content) as unknown as JSXElement;
 }

@@ -514,14 +514,14 @@ describe("param access checking", () => {
 		}).toThrow('Route parameter "nonExistent" does not exist');
 	});
 
-	test("throwOnInvalidParamAccess: undefined (default) doesn't throw when development: false", async () => {
+	test("throwOnInvalidParamAccess: undefined (default) throws when development: false", async () => {
 		({ container, router, handle } = createTestApplication({ development: false }));
 
 		router.register(get("/user/{id}", ControllerInvalidParam));
 
-		const response = await handle("/user/123");
-		expect(response.status).toBe(200);
-		expect(await response.text()).toBe("ctx.params.nonExistent: undefined");
+		expect(async () => {
+			await handle("/user/123");
+		}).toThrow('Route parameter "nonExistent" does not exist');
 	});
 
 	test("valid param access works in all modes", async () => {

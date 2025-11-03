@@ -1,5 +1,6 @@
 import { inject } from "../container/inject";
 import { Configuration, Container, RequestLocals, ViewRenderer } from "../contracts";
+import { resolveEnvironmentChoice } from "../contracts/Configuration";
 import { isJsxElement, type JSX } from "../view/public-types";
 import { AbortException, abortExceptionKey } from "./abort";
 import {
@@ -14,23 +15,24 @@ import { CurrentRouteDefinition, type RouteDefinition, type RouteWithParams } fr
 
 export class RequestHandler {
 	#throwOnInvalidParam: boolean;
+	#streamResponses: boolean;
 
 	constructor(
 		private container: Container = inject(Container),
 		private viewRenderer: ViewRenderer = inject(ViewRenderer),
 		config: Configuration = inject(Configuration),
 	) {
-		switch (config.throwOnInvalidParamAccess ?? "development") {
-			case "always":
-				this.#throwOnInvalidParam = true;
-				break;
-			case "never":
-				this.#throwOnInvalidParam = false;
-				break;
-			case "development":
-				this.#throwOnInvalidParam = !!config.development;
-				break;
-		}
+		const isDevelopment = !!config.development;
+		this.#throwOnInvalidParam = resolveEnvironmentChoice(
+			config.throwOnInvalidParamAccess,
+			"always",
+			isDevelopment,
+		);
+		this.#streamResponses = resolveEnvironmentChoice(
+			config.streamResponses,
+			"always",
+			isDevelopment,
+		);
 	}
 
 	async handle(match: RouteWithParams): Promise<Response> {
@@ -119,7 +121,7 @@ export class RequestHandler {
 		}
 
 		if (isJsxElement(result)) {
-			return this.viewRenderer.renderResponse(result);
+			return this.viewRenderer.renderResponse(result, { streaming: this.#streamResponses });
 		}
 
 		const hasHandleMethod = typeof (result as BaseController)?.handle !== "function";
