@@ -1,7 +1,14 @@
 // Public types
 export { AbortException, abort } from "./abort";
+export {
+	type ClassController,
+	Controller,
+	type ControllerContext,
+	type ControllerReference,
+	type ControllerReturn,
+	type FunctionController,
+} from "./Controller";
 
-// Helper functions and constraints
 export {
 	any,
 	apiResource,
@@ -18,19 +25,18 @@ export {
 	redirect,
 	resource,
 } from "./helpers";
-export type {
+export {
+	type ClassMiddleware,
+	type FunctionMiddleware,
 	Middleware,
-	MiddlewareNext,
-	MiddlewareReference,
+	type MiddlewareNext,
+	type MiddlewareReference,
 } from "./Middleware";
-export type { ResourceAction } from "./ResourceController";
-// Controllers
-export { ResourceController } from "./ResourceController";
+export { type ResourceAction, ResourceController } from "./ResourceController";
 export { RouteRegistry } from "./RouteRegistry";
 // Router and registry
 export { Router } from "./Router";
 export type {
-	ControllerReference as RouteHandler,
 	ParamConstraint,
 	RouteGroupOptions,
 	RouteOptions,

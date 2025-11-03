@@ -14,6 +14,7 @@ import {
 	Router,
 	type Routes,
 } from "./index";
+import { Middleware } from "./Middleware";
 import { MiddlewareSet } from "./MiddlewareSet";
 
 /**
@@ -881,12 +882,12 @@ describe("MiddlewareSet sharing", () => {
 	// For middleware execution tests, see routing.integration.test.tsx
 
 	// Dummy middleware classes for testing
-	class M1 {
+	class M1 extends Middleware {
 		handle() {
 			return new Response();
 		}
 	}
-	class M2 {
+	class M2 extends Middleware {
 		handle() {
 			return new Response();
 		}

@@ -4,10 +4,14 @@ import type { Configuration } from "../contracts/Configuration";
 import type { RequestContext } from "../contracts/RequestContext";
 import { createApplication } from "../entry";
 import { ResourceController } from "../router";
-import { Controller, ControllerContext, type ControllerReturn } from "../router/Controller";
-import type { Middleware } from "../router/Middleware";
+import {
+	Controller,
+	ControllerContext,
+	type ControllerReturn,
+	FunctionController,
+} from "../router/Controller";
+import { type ClassMiddleware } from "../router/Middleware";
 import { Router } from "../router/Router";
-import { ControllerFunction } from "../router/router-types";
 
 export class MockController extends ResourceController {
 	override handle: Mock<Controller["handle"]>;
@@ -51,7 +55,7 @@ export class MockController extends ResourceController {
 	}
 }
 
-export const mockController = (): ControllerFunction & {
+export const mockController = (): FunctionController & {
 	mock: MockController;
 } => {
 	const mock = new MockController();
@@ -92,7 +96,7 @@ export const requestContext = (): RequestContext => ({
 });
 
 interface MockMiddlewareFunction {
-	(name: string): new () => Middleware;
+	(name: string): ClassMiddleware;
 	log: string[];
 	beforeAfterLog: string[];
 	reset(): void;
@@ -133,6 +137,9 @@ export const mockMiddleware: MockMiddlewareFunction = Object.assign(
 		// Call the function to get the class
 		const ClassConstructor = createClass();
 
+		// Add the static property to mark it as a class middleware
+		ClassConstructor.isClassMiddleware = true;
+
 		// Add the handle method to the prototype
 		ClassConstructor.prototype.handle = async function (
 			ctx: ControllerContext,
@@ -145,7 +152,7 @@ export const mockMiddleware: MockMiddlewareFunction = Object.assign(
 			return result;
 		};
 
-		return ClassConstructor as new () => Middleware;
+		return ClassConstructor as ClassMiddleware;
 	},
 	{
 		log: [] as string[],

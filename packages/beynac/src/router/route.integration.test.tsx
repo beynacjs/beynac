@@ -4,12 +4,16 @@ import { ContainerImpl } from "../container/ContainerImpl";
 import { createTypeToken } from "../container/container-key";
 import { Configuration, Container } from "../contracts";
 import { createTestApplication, MockController, mockMiddleware } from "../test-utils";
-import { NoArgConstructor } from "../utils";
-import { Controller, type ControllerContext, type ControllerReturn } from "./Controller";
+import {
+	ClassController,
+	Controller,
+	type ControllerContext,
+	ControllerReference,
+	type ControllerReturn,
+} from "./Controller";
 import { any, get, group, post, Router } from "./index";
-import type { Middleware } from "./Middleware";
+import { FunctionMiddleware, Middleware } from "./Middleware";
 import { MiddlewareSet } from "./MiddlewareSet";
-import { ControllerReference } from "./router-types";
 
 let container: Container;
 let router: Router;
@@ -80,25 +84,19 @@ describe("controller execution", () => {
 	});
 });
 
-// ============================================================================
-// Middleware Pipeline
-// ============================================================================
-
 describe("middleware", () => {
-	test("executes middleware with context", async () => {
-		const handleMock = mock(
-			(ctx: ControllerContext, next: (ctx: ControllerContext) => Response | Promise<Response>) => {
-				expect(ctx.request).toBeInstanceOf(Request);
-				expect(ctx.params).toEqual({ page: "foo" });
-				return next(ctx);
-			},
-		);
+	test("executes class middleware with context", async () => {
+		const handleMock: FunctionMiddleware = mock((ctx, next) => {
+			return next(ctx);
+		});
 
-		class TestMiddleware implements Middleware {
+		class TestMiddleware extends Middleware {
 			handle(
 				ctx: ControllerContext,
 				next: (ctx: ControllerContext) => Response | Promise<Response>,
 			): Response | Promise<Response> {
+				expect(ctx.request).toBeInstanceOf(Request);
+				expect(ctx.params).toEqual({ page: "foo" });
 				return handleMock(ctx, next);
 			}
 		}
@@ -112,6 +110,24 @@ describe("middleware", () => {
 
 		await handle("/test/foo");
 		expect(handleMock).toHaveBeenCalledTimes(1);
+	});
+
+	test("executes function middleware with context", async () => {
+		const middleware: FunctionMiddleware = mock((ctx, next) => {
+			expect(ctx.request).toBeInstanceOf(Request);
+			expect(ctx.params).toEqual({ page: "foo" });
+			return next(ctx);
+		});
+
+		router.register(
+			get("/test/{page}", MockController, {
+				name: "test",
+				middleware,
+			}),
+		);
+
+		await handle("/test/foo");
+		expect(middleware).toHaveBeenCalledTimes(1);
 	});
 
 	test("executes multiple middleware in correct order", async () => {
@@ -196,7 +212,7 @@ describe("middleware", () => {
 	});
 
 	test("middleware can short-circuit", async () => {
-		class AuthMiddleware implements Middleware {
+		class AuthMiddleware extends Middleware {
 			handle(
 				_ctx: ControllerContext,
 				_next: (ctx: ControllerContext) => Response | Promise<Response>,
@@ -217,7 +233,7 @@ describe("middleware", () => {
 	});
 
 	test("middleware can replace request", async () => {
-		class ModifyRequestMiddleware implements Middleware {
+		class ModifyRequestMiddleware extends Middleware {
 			handle(
 				ctx: ControllerContext,
 				next: (ctx: ControllerContext) => Response | Promise<Response>,
@@ -360,7 +376,7 @@ describe("handler validation", () => {
 			}
 		}
 
-		router.register(get("/test", NotAController as unknown as NoArgConstructor<Controller>));
+		router.register(get("/test", NotAController as unknown as ClassController));
 
 		expect(async () => {
 			await handle("/test");
@@ -399,10 +415,9 @@ describe("handler validation", () => {
 			};
 		}
 		NewableController.prototype = Object.create(Controller.prototype);
+		(NewableController as unknown as { isClassController: boolean }).isClassController = true;
 
-		router.register(
-			get("/item/{id}", NewableController as unknown as NoArgConstructor<Controller>),
-		);
+		router.register(get("/item/{id}", NewableController as unknown as ClassController));
 
 		const response = await handle("/item/456");
 		expect(response.status).toBe(200);
@@ -660,7 +675,7 @@ describe("status pages", () => {
 	test("middleware throws abort triggers status page", async () => {
 		const { StatusPagesMiddleware, abort } = await import("./index");
 
-		class AuthMiddleware implements Middleware {
+		class AuthMiddleware extends Middleware {
 			handle(_ctx: ControllerContext) {
 				return abort.unauthorized("Not authorized");
 			}
@@ -710,7 +725,7 @@ describe("status pages", () => {
 	test("Error thrown in middleware before StatusPagesMiddleware can catch it gets a default plaintext response", async () => {
 		const { abort, StatusPagesMiddleware } = await import("./index");
 
-		class EarlyMiddleware implements Middleware {
+		class EarlyMiddleware extends Middleware {
 			handle() {
 				return abort.unauthorized();
 			}

@@ -1,10 +1,9 @@
 import { arrayWrapOptional } from "../utils";
-import type { ControllerContext } from "./Controller";
+import type { ControllerContext, ControllerReference } from "./Controller";
 import { MiddlewareSet } from "./MiddlewareSet";
 import type { ApiResourceAction, ResourceAction } from "./ResourceController";
 import { redirectStatus } from "./redirect";
 import type {
-	ControllerReference,
 	ExtractDomainAndPathParams,
 	FilteredApiResourceRouteMap,
 	FilteredResourceRouteMap,

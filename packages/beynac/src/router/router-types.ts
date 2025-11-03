@@ -1,7 +1,6 @@
 import { createTypeToken, TypeToken } from "../container/container-key";
-import { NoArgConstructor } from "../utils";
 import type { Component } from "../view/public-types";
-import type { Controller, ControllerContext, ControllerReturn } from "./Controller";
+import { ControllerReference } from "./Controller";
 import type { MiddlewareReference } from "./Middleware";
 import type { MiddlewareSet } from "./MiddlewareSet";
 import type { ApiResourceAction, ResourceAction } from "./ResourceController";
@@ -153,10 +152,6 @@ export interface RouteGroupOptions<NamePrefix extends string = "", PathPrefix ex
 	 */
 	namePrefix?: NamePrefix | undefined;
 }
-
-export type ControllerFunction = (ctx: ControllerContext) => ControllerReturn;
-
-export type ControllerReference = NoArgConstructor<Controller> | ControllerFunction;
 
 export type UrlFunction<Params extends Record<string, string>> = <N extends keyof Params & string>(
 	name: N,

@@ -1,4 +1,17 @@
+import { NoArgConstructor } from "../utils";
 import type { JSX } from "../view/public-types";
+
+export type FunctionController = (ctx: ControllerContext) => ControllerReturn;
+
+export type ClassController = NoArgConstructor<Controller> & { isClassController: true };
+
+export type ControllerReference = FunctionController | ClassController;
+
+export function isClassController(value: unknown): value is ClassController {
+	return (
+		typeof value === "function" && "isClassController" in value && value.isClassController === true
+	);
+}
 
 /**
  * The return type for controllers.
@@ -55,6 +68,8 @@ export interface ControllerContext {
  * Base class for controllers.
  */
 export abstract class Controller {
+	static readonly isClassController = true;
+
 	/**
 	 * Handle an HTTP request and return a response.
 	 *

@@ -1,16 +1,16 @@
 import { inject } from "../container/inject";
 import { Configuration, Container, RequestLocals, ViewRenderer } from "../contracts";
-import { extendsClass } from "../utils";
 import { isJsxElement, type JSX } from "../view/public-types";
 import { AbortException, abortExceptionKey } from "./abort";
-import { Controller, type ControllerContext, type ControllerReturn } from "./Controller";
-import { throwOnMissingPropertyAccess } from "./params-access-checker";
 import {
+	Controller,
+	type ControllerContext,
 	type ControllerReference,
-	CurrentRouteDefinition,
-	type RouteDefinition,
-	type RouteWithParams,
-} from "./router-types";
+	type ControllerReturn,
+	isClassController,
+} from "./Controller";
+import { throwOnMissingPropertyAccess } from "./params-access-checker";
+import { CurrentRouteDefinition, type RouteDefinition, type RouteWithParams } from "./router-types";
 
 export class RequestHandler {
 	#throwOnInvalidParam: boolean;
@@ -64,7 +64,7 @@ export class RequestHandler {
 
 			const finalHandler = async (ctx: ControllerContext): Promise<Response> => {
 				let result: ControllerReturn;
-				if (extendsClass(match.route.controller, Controller)) {
+				if (isClassController(match.route.controller)) {
 					const controller = this.container.get(match.route.controller);
 					result = controller.handle(ctx);
 				} else {

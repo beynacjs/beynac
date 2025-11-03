@@ -2,10 +2,12 @@ import type { NoArgConstructor } from "../utils";
 import type { ControllerContext } from "./Controller";
 
 /**
- * Middleware interface for processing HTTP requests.
+ * Base class for middleware that processes HTTP requests.
  * Middleware can modify requests, short-circuit responses, or pass through to the next handler.
  */
-export interface Middleware {
+export abstract class Middleware {
+	static readonly isClassMiddleware = true;
+
 	/**
 	 * Handle an HTTP request and optionally pass it to the next handler.
 	 *
@@ -13,9 +15,22 @@ export interface Middleware {
 	 * @param next - Function to call the next middleware or final handler
 	 * @returns Response or Promise resolving to Response
 	 */
-	handle(ctx: ControllerContext, next: MiddlewareNext): Response | Promise<Response>;
+	abstract handle(ctx: ControllerContext, next: MiddlewareNext): Response | Promise<Response>;
 }
 
 export type MiddlewareNext = (ctx: ControllerContext) => Response | Promise<Response>;
 
-export type MiddlewareReference = NoArgConstructor<Middleware>;
+export type FunctionMiddleware = (
+	ctx: ControllerContext,
+	next: MiddlewareNext,
+) => Response | Promise<Response>;
+
+export type ClassMiddleware = NoArgConstructor<Middleware> & { isClassMiddleware: true };
+
+export type MiddlewareReference = FunctionMiddleware | ClassMiddleware;
+
+export function isClassMiddleware(value: unknown): value is ClassMiddleware {
+	return (
+		typeof value === "function" && "isClassMiddleware" in value && value.isClassMiddleware === true
+	);
+}

@@ -1,6 +1,6 @@
 import type { Container } from "../contracts";
 import { arrayWrapOptional } from "../utils";
-import type { MiddlewareNext, MiddlewareReference } from "./Middleware";
+import { isClassMiddleware, type MiddlewareNext, type MiddlewareReference } from "./Middleware";
 
 export class MiddlewareSet {
 	#middleware: Set<MiddlewareReference>;
@@ -48,9 +48,17 @@ export class MiddlewareSet {
 		let next: MiddlewareNext = finalHandler;
 
 		for (let i = middlewareInstances.length - 1; i >= 0; i--) {
-			const middleware = container.get(middlewareInstances[i]);
+			const middlewareRef = middlewareInstances[i];
 			const currentNext = next;
-			next = (ctx) => middleware.handle(ctx, currentNext);
+
+			if (isClassMiddleware(middlewareRef)) {
+				// Class middleware - get from container
+				const middleware = container.get(middlewareRef);
+				next = (ctx) => middleware.handle(ctx, currentNext);
+			} else {
+				// Function middleware - call directly
+				next = (ctx) => middlewareRef(ctx, currentNext);
+			}
 		}
 
 		return next;
