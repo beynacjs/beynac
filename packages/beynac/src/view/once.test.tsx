@@ -1,6 +1,6 @@
 /** @jsxImportSource ./ */
 import { expect, test } from "bun:test";
-import { render } from "./markup-stream";
+import { render } from "../test-utils";
 import { Once } from "./once";
 import type { Component } from "./public-types";
 

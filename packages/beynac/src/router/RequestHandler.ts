@@ -1,7 +1,6 @@
 import { inject } from "../container/inject";
-import { Configuration, Container, RequestLocals } from "../contracts";
+import { Configuration, Container, RequestLocals, ViewRenderer } from "../contracts";
 import { extendsClass } from "../utils";
-import { renderResponse } from "../view/markup-stream";
 import { isJsxElement, type JSX } from "../view/public-types";
 import { AbortException, abortExceptionKey } from "./abort";
 import { Controller, type ControllerContext, type ControllerReturn } from "./Controller";
@@ -18,6 +17,7 @@ export class RequestHandler {
 
 	constructor(
 		private container: Container = inject(Container),
+		private viewRenderer: ViewRenderer = inject(ViewRenderer),
 		config: Configuration = inject(Configuration),
 	) {
 		switch (config.throwOnInvalidParamAccess ?? "development") {
@@ -119,7 +119,7 @@ export class RequestHandler {
 		}
 
 		if (isJsxElement(result)) {
-			return renderResponse(result);
+			return this.viewRenderer.renderResponse(result);
 		}
 
 		const hasHandleMethod = typeof (result as Controller)?.handle !== "function";

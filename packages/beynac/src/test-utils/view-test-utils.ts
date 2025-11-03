@@ -1,0 +1,25 @@
+import { ContainerImpl } from "../container/ContainerImpl";
+import type { RenderResponseOptions } from "../contracts/ViewRenderer";
+import { ViewRenderer } from "../contracts/ViewRenderer";
+import type { JSXNode, RenderOptions } from "../view/public-types";
+import { ViewRendererImpl } from "../view/ViewRendererImpl";
+
+const container = new ContainerImpl();
+container.singleton(ViewRenderer, ViewRendererImpl);
+
+export const mockViewRenderer: ViewRenderer = container.get(ViewRenderer);
+
+export const render = (node: JSXNode, options?: RenderOptions): Promise<string> => {
+	return mockViewRenderer.render(node, options);
+};
+
+export const renderResponse = (
+	node: JSXNode,
+	options?: RenderResponseOptions,
+): Promise<Response> => {
+	return mockViewRenderer.renderResponse(node, options);
+};
+
+export const renderStream = (node: JSXNode, options?: RenderOptions): AsyncGenerator<string> => {
+	return mockViewRenderer.renderStream(node, options);
+};

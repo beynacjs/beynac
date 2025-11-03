@@ -1,5 +1,5 @@
 import { ContainerImpl } from "../container/ContainerImpl";
-import { Cookies, Headers, RequestLocals } from "../contracts";
+import { Cookies, Headers, RequestLocals, ViewRenderer } from "../contracts";
 import { Application } from "../contracts/Application";
 import { Configuration } from "../contracts/Configuration";
 import { Container } from "../contracts/Container";
@@ -11,6 +11,7 @@ import { BeynacError } from "../error";
 import { group, RouteRegistry, Router } from "../router";
 import { RequestHandler } from "../router/RequestHandler";
 import { UrlFunction } from "../router/router-types";
+import { ViewRendererImpl } from "../view/ViewRendererImpl";
 import { CookiesImpl } from "./CookiesImpl";
 import { HeadersImpl } from "./HeadersImpl";
 import { RequestLocalsImpl } from "./RequestLocalsImpl";
@@ -31,12 +32,12 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 	bootstrap(): void {
 		if (this.#bootstrapped) return;
 		this.#bootstrapped = true;
-		this.container.singletonInstance(Container, this.container);
 		this.container.singletonInstance(Configuration, this.#config);
 		this.container.singletonInstance(Application, this);
 		this.container.scoped(Headers, HeadersImpl);
 		this.container.scoped(Cookies, CookiesImpl);
 		this.container.scoped(RequestLocals, RequestLocalsImpl);
+		this.container.singleton(ViewRenderer, ViewRendererImpl);
 		this.container.singleton(DevModeAutoRefreshMiddleware);
 		this.container.singleton(DevModeWatchService);
 		this.container.singleton(Router);

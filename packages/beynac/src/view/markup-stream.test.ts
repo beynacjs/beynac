@@ -1,14 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { createKey } from "../keys";
+import { render, renderResponse, renderStream } from "../test-utils";
 import { asyncGate } from "../test-utils/async-gate";
-import {
-	MarkupStream,
-	RenderingError,
-	render,
-	renderResponse,
-	renderStream,
-} from "./markup-stream";
+import { MarkupStream } from "./markup-stream";
 import type { Context, JSXNode } from "./public-types";
+import { RenderingError } from "./ViewRendererImpl";
 
 describe("basic functionality", () => {
 	test("renders empty content", async () => {

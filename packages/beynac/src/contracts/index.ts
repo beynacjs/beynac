@@ -6,3 +6,4 @@ export { Dispatcher } from "./Dispatcher";
 export { Headers } from "./Headers";
 export { RequestContext } from "./RequestContext";
 export { RequestLocals } from "./RequestLocals";
+export { ViewRenderer } from "./ViewRenderer";

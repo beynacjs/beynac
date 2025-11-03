@@ -1,7 +1,7 @@
 /** @jsxImportSource ./ */
 import { expect, test } from "bun:test";
+import { render } from "../test-utils";
 import { childrenToArray } from "./children";
-import { render } from "./markup-stream";
 import type { JSX, JSXNode } from "./public-types";
 
 test("childrenToArray filters out null, undefined, and boolean values", () => {

@@ -1,8 +1,9 @@
 /** @jsxImportSource ./ */
 import { describe, expect, expectTypeOf, test } from "bun:test";
 import { createKey } from "../keys";
+import { render } from "../test-utils";
 import { ContextImpl } from "./context";
-import { MarkupStream, render } from "./markup-stream";
+import { MarkupStream } from "./markup-stream";
 import { Once } from "./once";
 import { Component, Context, PropsWithChildren } from "./public-types";
 

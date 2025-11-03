@@ -1,7 +1,7 @@
 /** @jsxImportSource ./ */
 import { expect, test } from "bun:test";
 import { createKey } from "../keys";
-import { render } from "./markup-stream";
+import { render } from "../test-utils";
 import { Component, JSXNode } from "./public-types";
 
 test("renders single element with attributes and text child", async () => {

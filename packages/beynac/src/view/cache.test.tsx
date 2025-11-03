@@ -1,8 +1,8 @@
 /** @jsxImportSource ./ */
 import { expect, test } from "bun:test";
 import { createKey } from "../keys";
+import { render } from "../test-utils";
 import { Cache } from "./cache";
-import { render } from "./markup-stream";
 import { Once } from "./once";
 import type { Component } from "./public-types";
 import { createStack } from "./stack";

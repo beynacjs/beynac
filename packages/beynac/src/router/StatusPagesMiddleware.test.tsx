@@ -2,7 +2,7 @@
 
 import { describe, expect, mock, test } from "bun:test";
 import { RequestLocalsImpl } from "../core/RequestLocalsImpl";
-import { controllerContext } from "../test-utils";
+import { controllerContext, mockViewRenderer } from "../test-utils";
 import { Component } from "../view";
 import { AbortException } from "./abort";
 import { get } from "./helpers";
@@ -49,6 +49,7 @@ describe(StatusPagesMiddleware, () => {
 					"4xx": mockComponent("4xx status page"),
 				}),
 				new RequestLocalsImpl(),
+				mockViewRenderer,
 			);
 
 			const response = await handleMiddleware(middleware, 404);
@@ -63,6 +64,7 @@ describe(StatusPagesMiddleware, () => {
 			const middleware = new StatusPagesMiddleware(
 				mockRoute({ "4xx": mockComponentWithStatus("4xx page") }),
 				new RequestLocalsImpl(),
+				mockViewRenderer,
 			);
 
 			const response = await handleMiddleware(middleware, 400);
@@ -75,6 +77,7 @@ describe(StatusPagesMiddleware, () => {
 			const middleware = new StatusPagesMiddleware(
 				mockRoute({ "4xx": mockComponentWithStatus("4xx page") }),
 				new RequestLocalsImpl(),
+				mockViewRenderer,
 			);
 
 			const response = await handleMiddleware(middleware, 499);
@@ -87,6 +90,7 @@ describe(StatusPagesMiddleware, () => {
 			const middleware = new StatusPagesMiddleware(
 				mockRoute({ "4xx": mockComponent("4xx status page") }),
 				new RequestLocalsImpl(),
+				mockViewRenderer,
 			);
 
 			const response = await handleMiddleware(middleware, 399);
@@ -99,6 +103,7 @@ describe(StatusPagesMiddleware, () => {
 			const middleware = new StatusPagesMiddleware(
 				mockRoute({ "4xx": mockComponent("4xx status page") }),
 				new RequestLocalsImpl(),
+				mockViewRenderer,
 			);
 
 			const response = await handleMiddleware(middleware, 500);
@@ -114,6 +119,7 @@ describe(StatusPagesMiddleware, () => {
 					"4xx": mockComponentWithStatus("4xx page"),
 				}),
 				new RequestLocalsImpl(),
+				mockViewRenderer,
 			);
 
 			const response = await handleMiddleware(middleware, 403);
@@ -128,6 +134,7 @@ describe(StatusPagesMiddleware, () => {
 			const middleware = new StatusPagesMiddleware(
 				mockRoute({ "5xx": mockComponentWithStatus("5xx page") }),
 				new RequestLocalsImpl(),
+				mockViewRenderer,
 			);
 
 			const response = await handleMiddleware(middleware, 500);
@@ -140,6 +147,7 @@ describe(StatusPagesMiddleware, () => {
 			const middleware = new StatusPagesMiddleware(
 				mockRoute({ "5xx": mockComponentWithStatus("5xx page") }),
 				new RequestLocalsImpl(),
+				mockViewRenderer,
 			);
 
 			const response = await handleMiddleware(middleware, 599);
@@ -152,6 +160,7 @@ describe(StatusPagesMiddleware, () => {
 			const middleware = new StatusPagesMiddleware(
 				mockRoute({ "5xx": mockComponent("5xx status page") }),
 				new RequestLocalsImpl(),
+				mockViewRenderer,
 			);
 
 			const response = await handleMiddleware(middleware, 499);
@@ -166,6 +175,7 @@ describe(StatusPagesMiddleware, () => {
 			const middleware = new StatusPagesMiddleware(
 				mockRoute({ 500: mockComponentWithError }),
 				new RequestLocalsImpl(),
+				mockViewRenderer,
 			);
 
 			const response = await middleware.handle(controllerContext(), () => {
@@ -183,6 +193,7 @@ describe(StatusPagesMiddleware, () => {
 			const middleware = new StatusPagesMiddleware(
 				mockRoute({ 404: mockComponentWithError }),
 				new RequestLocalsImpl(),
+				mockViewRenderer,
 			);
 
 			const response = await middleware.handle(controllerContext(), () => {
@@ -199,6 +210,7 @@ describe(StatusPagesMiddleware, () => {
 			const middleware = new StatusPagesMiddleware(
 				mockRoute({ 500: mockComponent("500 page") }),
 				new RequestLocalsImpl(),
+				mockViewRenderer,
 			);
 
 			const response = await handleMiddleware(middleware, 404);

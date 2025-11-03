@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { Container } from "../contracts/Container";
+import { Container } from "../contracts/Container";
 import { BeynacError } from "../error";
 import {
 	type AnyConstructor,
@@ -100,6 +100,10 @@ export class ContainerImpl implements Container {
 	#reboundCallbacks = new ArrayMultiMap<KeyOrClass, InstanceCallback<unknown>>();
 
 	#resolvingCallbacks = new ArrayMultiMap<KeyOrClass, InstanceCallback<unknown>>();
+
+	constructor() {
+		this.singletonInstance(Container, this);
+	}
 
 	static currentlyInScope(): Container | null {
 		return scopeContext.getStore()?.container ?? null;

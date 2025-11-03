@@ -1,7 +1,6 @@
 /** @jsxImportSource ../view */
 import { inject } from "../container/inject";
-import { RequestLocals } from "../contracts";
-import { renderResponse } from "../view/markup-stream";
+import { RequestLocals, ViewRenderer } from "../contracts";
 import { AbortException, abort, abortExceptionKey } from "./abort";
 import type { ControllerContext } from "./Controller";
 import type { Middleware, MiddlewareNext } from "./Middleware";
@@ -19,6 +18,7 @@ export class StatusPagesMiddleware implements Middleware {
 	constructor(
 		private currentRoute: RouteDefinition = inject(CurrentRouteDefinition),
 		private locals: RequestLocals = inject(RequestLocals),
+		private viewRenderer: ViewRenderer = inject(ViewRenderer),
 	) {}
 
 	async handle(ctx: ControllerContext, next: MiddlewareNext): Promise<Response> {
@@ -63,7 +63,7 @@ export class StatusPagesMiddleware implements Middleware {
 					);
 
 					// Return rendered response with original status code
-					return renderResponse(jsx, { status: response.status });
+					return this.viewRenderer.renderResponse(jsx, { status: response.status });
 				}
 			}
 		}

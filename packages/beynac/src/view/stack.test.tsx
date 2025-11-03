@@ -1,8 +1,8 @@
 /** @jsxImportSource ./ */
 import { expect, test } from "bun:test";
 import { createKey } from "../keys";
+import { render, renderStream } from "../test-utils";
 import { asyncGate, nextTick } from "../test-utils/async-gate";
-import { render, renderStream } from "./markup-stream";
 import { Once } from "./once";
 import type { Component, Context } from "./public-types";
 import { createStack } from "./stack";

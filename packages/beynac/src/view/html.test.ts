@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { render } from "../test-utils";
 import { html } from "./html";
-import { render } from "./markup-stream";
 import { raw } from "./raw";
 
 describe("html template literal", () => {
