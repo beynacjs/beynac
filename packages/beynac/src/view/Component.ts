@@ -14,10 +14,7 @@ export type FunctionComponent<P = Props> = {
  */
 export type ClassComponent<P = Props> = (new (
 	props: P,
-) => {
-	props: P;
-	render(context: Context): JSX.Element;
-}) & {
+) => IClassComponentInstance) & {
 	isClassComponent: true;
 };
 
@@ -39,6 +36,11 @@ export function isClassComponent(value: unknown): value is ClassComponent {
 	);
 }
 
+interface IClassComponentInstance<P = Props> {
+	props: P;
+	render(context: Context): JSX.Element;
+}
+
 /**
  * Base class for components. All class-based components must either extend this
  * class or define a `static isClassComponent = true` member so that the
@@ -51,7 +53,7 @@ export function isClassComponent(value: unknown): value is ClassComponent {
  *   }
  * }
  */
-export abstract class BaseComponent<P = Props> {
+export abstract class BaseComponent<P = Props> implements IClassComponentInstance<P> {
 	static readonly isClassComponent = true;
 
 	props: P;

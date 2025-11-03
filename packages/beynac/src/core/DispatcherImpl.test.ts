@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { ContainerImpl } from "../container/ContainerImpl";
 import { inject } from "../container/inject";
+import { BaseListener } from "../contracts/Dispatcher";
 import { DispatcherImpl } from "./DispatcherImpl";
 
 let container: ContainerImpl;
@@ -11,25 +12,8 @@ beforeEach(() => {
 	dispatcher = new DispatcherImpl(container);
 });
 
-describe("Dispatcher", () => {
-	test("addListener registers a listener", () => {
-		class TestEvent {
-			constructor(public message: string) {}
-		}
-
-		const listener = mock(() => {});
-		dispatcher.addListener(TestEvent, listener);
-
-		expect(dispatcher.hasListener(TestEvent)).toBe(true);
-	});
-
-	test("hasListener returns false when no listeners registered", () => {
-		class TestEvent {}
-
-		expect(dispatcher.hasListener(TestEvent)).toBe(false);
-	});
-
-	test("dispatch calls registered listener with event", () => {
+describe(DispatcherImpl, () => {
+	test("function listeners can be added and invoked", () => {
 		class TestEvent {
 			constructor(public message: string) {}
 		}
@@ -75,7 +59,7 @@ describe("Dispatcher", () => {
 		dispatcher.dispatch(new TestEvent());
 	});
 
-	test("removeListener removes a specific listener", () => {
+	test("function listeners can be removed", () => {
 		class TestEvent {}
 
 		const listener1 = mock(() => {});
@@ -86,13 +70,9 @@ describe("Dispatcher", () => {
 
 		dispatcher.removeListener(TestEvent, listener1);
 		dispatcher.dispatch(new TestEvent());
-		expect(dispatcher.hasListener(TestEvent)).toBe(true);
 
 		expect(listener1).not.toHaveBeenCalled();
 		expect(listener2).toHaveBeenCalledTimes(1);
-
-		dispatcher.removeListener(TestEvent, listener2);
-		expect(dispatcher.hasListener(TestEvent)).toBe(false);
 	});
 
 	test("removeListener handles non-existent event", () => {
@@ -117,29 +97,6 @@ describe("Dispatcher", () => {
 
 		dispatcher.dispatch(new TestEvent());
 		expect(listener1).toHaveBeenCalledTimes(1);
-	});
-
-	test("listeners can use dependency injection", () => {
-		class TestEvent {
-			constructor(public value: number) {}
-		}
-
-		class Service {
-			multiply(n: number) {
-				return n * 2;
-			}
-		}
-
-		container.bind(Service);
-
-		const listener = mock((event: TestEvent, service: Service = inject(Service)) => {
-			expect(service.multiply(event.value)).toBe(42);
-		});
-
-		dispatcher.addListener(TestEvent, listener);
-		dispatcher.dispatch(new TestEvent(21));
-
-		expect(listener).toHaveBeenCalledTimes(1);
 	});
 
 	test("different event types are isolated", () => {
@@ -171,22 +128,31 @@ describe("Dispatcher", () => {
 		expect(listener).toHaveBeenCalledTimes(1);
 	});
 
-	test("hasListener returns false after removing all listeners", () => {
-		class TestEvent {}
+	test("class listeners can use dependency injection", () => {
+		class TestEvent {
+			constructor(public value: number) {}
+		}
 
-		const listener1 = mock(() => {});
-		const listener2 = mock(() => {});
+		class Service {
+			multiply(n: number) {
+				return n * 2;
+			}
+		}
 
-		dispatcher.addListener(TestEvent, listener1);
-		dispatcher.addListener(TestEvent, listener2);
+		class TestListener extends BaseListener<TestEvent> {
+			constructor(private service: Service = inject(Service)) {
+				super();
+			}
 
-		expect(dispatcher.hasListener(TestEvent)).toBe(true);
+			handle(event: TestEvent): void {
+				expect(this.service.multiply(event.value)).toBe(42);
+			}
+		}
 
-		dispatcher.removeListener(TestEvent, listener1);
-		expect(dispatcher.hasListener(TestEvent)).toBe(true);
+		container.bind(Service);
 
-		dispatcher.removeListener(TestEvent, listener2);
-		expect(dispatcher.hasListener(TestEvent)).toBe(false);
+		dispatcher.addListener(TestEvent, TestListener);
+		dispatcher.dispatch(new TestEvent(21));
 	});
 
 	test("dispatch triggers listeners on parent class", () => {
@@ -223,20 +189,6 @@ describe("Dispatcher", () => {
 		expect(baseListener).toHaveBeenCalledTimes(1);
 		expect(childListener).toHaveBeenCalledTimes(1);
 		expect(objectListener).toHaveBeenCalledTimes(1);
-	});
-
-	test("hasListener returns true for parent class listeners", () => {
-		class BaseEvent {}
-		class ChildEvent extends BaseEvent {}
-
-		const listener = mock(() => {});
-
-		expect(dispatcher.hasListener(ChildEvent)).toBe(false);
-
-		dispatcher.addListener(BaseEvent, listener);
-
-		expect(dispatcher.hasListener(BaseEvent)).toBe(true);
-		expect(dispatcher.hasListener(ChildEvent)).toBe(true);
 	});
 
 	test("listeners are called in order from most specific to least specific", () => {

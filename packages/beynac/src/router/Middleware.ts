@@ -1,11 +1,26 @@
 import type { NoArgConstructor } from "../utils";
 import type { ControllerContext } from "./Controller";
 
+export type MiddlewareNext = (ctx: ControllerContext) => Response | Promise<Response>;
+
+export type FunctionMiddleware = (
+	ctx: ControllerContext,
+	next: MiddlewareNext,
+) => Response | Promise<Response>;
+
+interface IClassMiddlewareInstance {
+	handle(ctx: ControllerContext, next: MiddlewareNext): Response | Promise<Response>;
+}
+
+export type ClassMiddleware = NoArgConstructor<IClassMiddlewareInstance> & {
+	isClassMiddleware: true;
+};
+
 /**
  * Base class for middleware that processes HTTP requests.
  * Middleware can modify requests, short-circuit responses, or pass through to the next handler.
  */
-export abstract class BaseMiddleware {
+export abstract class BaseMiddleware implements IClassMiddlewareInstance {
 	static readonly isClassMiddleware = true;
 
 	/**
@@ -17,15 +32,6 @@ export abstract class BaseMiddleware {
 	 */
 	abstract handle(ctx: ControllerContext, next: MiddlewareNext): Response | Promise<Response>;
 }
-
-export type MiddlewareNext = (ctx: ControllerContext) => Response | Promise<Response>;
-
-export type FunctionMiddleware = (
-	ctx: ControllerContext,
-	next: MiddlewareNext,
-) => Response | Promise<Response>;
-
-export type ClassMiddleware = NoArgConstructor<BaseMiddleware> & { isClassMiddleware: true };
 
 export type MiddlewareReference = FunctionMiddleware | ClassMiddleware;
 

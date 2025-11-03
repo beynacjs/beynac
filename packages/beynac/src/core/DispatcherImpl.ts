@@ -1,8 +1,9 @@
 import type { Container } from "../contracts/Container";
-import type { Dispatcher } from "../contracts/Dispatcher";
+import type { Dispatcher, EventListener } from "../contracts/Dispatcher";
+import { isClassListener } from "../contracts/Dispatcher";
 import { AnyConstructor, getPrototypeChain, SetMultiMap } from "../utils";
 
-type AnyEventListener = (event: unknown) => void;
+type AnyEventListener = EventListener<object>;
 
 export class DispatcherImpl implements Dispatcher {
 	#listeners = new SetMultiMap<AnyConstructor, AnyEventListener>();
@@ -13,7 +14,7 @@ export class DispatcherImpl implements Dispatcher {
 		this.#container = container;
 	}
 
-	addListener<T extends object>(eventClass: AnyConstructor<T>, listener: (event: T) => void): void {
+	addListener<T extends object>(eventClass: AnyConstructor<T>, listener: EventListener<T>): void {
 		this.#listeners.add(eventClass, listener as AnyEventListener);
 	}
 
@@ -21,19 +22,54 @@ export class DispatcherImpl implements Dispatcher {
 		this.#listeners.delete(eventClass, listener as AnyEventListener);
 	}
 
-	hasListener(eventClass: AnyConstructor): boolean {
-		for (const constructor of getPrototypeChain(eventClass)) {
-			if (this.#listeners.hasAny(constructor)) {
-				return true;
-			}
-		}
-		return false;
+	dispatch<T extends object>(event: T): void {
+		const listeners = this.#getListeners(event);
+		this.#invokeAllListeners(listeners, event);
 	}
 
-	dispatch<T extends object>(event: T): void {
-		for (const constructor of getPrototypeChain(event)) {
+	dispatchIfHasListeners<T extends object>(eventClass: AnyConstructor<T>, factory: () => T): void;
+
+	dispatchIfHasListeners<T extends object>(
+		eventClass: AnyConstructor<T>,
+		factory: () => Promise<T>,
+	): Promise<void>;
+
+	dispatchIfHasListeners<T extends object>(
+		eventClass: AnyConstructor<T>,
+		factory: () => T | Promise<T>,
+	): void | Promise<void> {
+		const listeners = this.#getListeners(eventClass);
+
+		if (listeners.length === 0) {
+			return;
+		}
+
+		const result = factory();
+		if (result instanceof Promise) {
+			return result.then((event) => {
+				this.#invokeAllListeners(listeners, event);
+			});
+		}
+		this.#invokeAllListeners(listeners, result);
+	}
+
+	#getListeners(eventOrClass: object | AnyConstructor): AnyEventListener[] {
+		const listeners: AnyEventListener[] = [];
+		for (const constructor of getPrototypeChain(eventOrClass)) {
 			for (const listener of this.#listeners.get(constructor)) {
-				this.#container.call(() => listener(event));
+				listeners.push(listener);
+			}
+		}
+		return listeners;
+	}
+
+	#invokeAllListeners<T extends object>(listeners: AnyEventListener[], event: T): void {
+		for (const listener of listeners) {
+			if (isClassListener(listener)) {
+				const instance = this.#container.get(listener);
+				instance.handle(event);
+			} else {
+				listener(event);
 			}
 		}
 	}
