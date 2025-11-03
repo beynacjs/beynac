@@ -1,4 +1,6 @@
 /** @jsxImportSource ../view */
+
+import { STATUS_CODES } from "node:http";
 import { inject } from "../container/inject";
 import { RequestLocals, ViewRenderer } from "../contracts";
 import { AbortException, abort, abortExceptionKey } from "./abort";
@@ -10,7 +12,6 @@ import {
 	type StatusPageComponent,
 	StatusPages,
 } from "./router-types";
-import { ERROR_STATUS_CODES } from "./status-codes";
 
 /**
  * Middleware that renders custom error pages for 4xx and 5xx responses.
@@ -58,7 +59,7 @@ export class StatusPagesMiddleware extends BaseMiddleware {
 						this.locals.delete(abortExceptionKey);
 					}
 
-					const statusText = ERROR_STATUS_CODES[response.status];
+					const statusText = STATUS_CODES[response.status];
 					const jsx = (
 						<StatusPageComponent
 							status={response.status}
