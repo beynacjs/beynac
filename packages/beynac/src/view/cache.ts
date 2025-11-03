@@ -1,9 +1,10 @@
-import { ContainerImpl } from "../container/ContainerImpl";
-import type { Component } from "./Component";
-import type { PropsWithChildren } from "./public-types";
+import { inject } from "../container/inject";
+import type { ViewRenderer } from "../contracts/ViewRenderer";
+import { ViewRenderer as ViewRendererToken } from "../contracts/ViewRenderer";
+import { BaseComponent } from "./Component";
+import type { Context, JSXElement, PropsWithChildren } from "./public-types";
 import { tagAsJsxElement } from "./public-types";
 import { RawContent } from "./raw";
-import { ViewRendererImpl } from "./ViewRendererImpl";
 
 type CacheProps = PropsWithChildren<{
 	map: Map<string, string>;
@@ -25,17 +26,26 @@ type CacheProps = PropsWithChildren<{
  * </Cache>
  * ```
  */
-export const Cache: Component<CacheProps> = async ({ map, key, children }, context) => {
-	const cached = map.get(key);
-	if (cached != null) {
-		return tagAsJsxElement(new RawContent(cached));
+export class Cache extends BaseComponent<CacheProps> {
+	static displayName = "Cache";
+
+	constructor(
+		props: CacheProps,
+		private renderer: ViewRenderer = inject(ViewRendererToken),
+	) {
+		super(props);
 	}
 
-	// TODO: When component injection is implemented, inject the real container instead of creating a new empty one
-	const renderer = new ViewRendererImpl(new ContainerImpl());
-	const rendered = await renderer.render(children, { context });
-	map.set(key, rendered);
+	async render(context: Context): Promise<JSXElement> {
+		const { map, key, children } = this.props;
+		const cached = map.get(key);
+		if (cached != null) {
+			return tagAsJsxElement(new RawContent(cached));
+		}
 
-	return tagAsJsxElement(new RawContent(rendered));
-};
-Cache.displayName = "Cache";
+		const rendered = await this.renderer.render(children, { context });
+		map.set(key, rendered);
+
+		return tagAsJsxElement(new RawContent(rendered));
+	}
+}
