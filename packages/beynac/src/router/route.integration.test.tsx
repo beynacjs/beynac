@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, mock, spyOn, test } from "bun:test";
 import { ContainerImpl } from "../container/ContainerImpl";
 import { createTypeToken } from "../container/container-key";
 import { Configuration, Container } from "../contracts";
+import { BaseListener, Dispatcher } from "../contracts/Dispatcher";
+import { RequestHandled } from "../events";
 import { createTestApplication, MockController, mockMiddleware } from "../test-utils";
 import {
 	BaseController,
@@ -752,4 +754,45 @@ describe("status pages", () => {
 		const text = await response.text();
 		expect(text).toBe("Unauthorized"); // Plain text, not the custom page
 	});
+});
+
+test("RequestHandled event allows listeners to access responses", async () => {
+	let capturedContext: ControllerContext | undefined;
+	let capturedStatus: number | undefined;
+	let capturedHeaders: Headers | undefined;
+	let capturedBody: Promise<string> | undefined;
+
+	class TestListener extends BaseListener {
+		handle(event: RequestHandled) {
+			capturedContext = event.context;
+			capturedStatus = event.responseStatus;
+			capturedHeaders = event.responseHeaders;
+
+			// Clone and read response body
+			const clonedResponse = event.cloneResponse();
+			capturedBody = clonedResponse.text();
+		}
+	}
+
+	container.get(Dispatcher).addListener(RequestHandled, TestListener);
+
+	router.register(
+		get("/test/{id}", (ctx) => {
+			return new Response(`Hello ${ctx.params.id}`, {
+				status: 201,
+				headers: { "X-Custom": "test-header" },
+			});
+		}),
+	);
+
+	const response = await handle("/test/123");
+
+	expect(response.status).toBe(201);
+	expect(await response.text()).toBe("Hello 123");
+
+	expect(capturedStatus).toBe(201);
+	expect(capturedHeaders?.get("X-Custom")).toBe("test-header");
+	expect(capturedContext?.params.id).toBe("123");
+	// Check that the listener can clone and consume the response body
+	expect(await capturedBody).toBe("Hello 123");
 });

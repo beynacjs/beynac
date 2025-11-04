@@ -139,7 +139,7 @@ describe(DispatcherImpl, () => {
 			}
 		}
 
-		class TestListener extends BaseListener<TestEvent> {
+		class TestListener extends BaseListener {
 			constructor(private service: Service = inject(Service)) {
 				super();
 			}

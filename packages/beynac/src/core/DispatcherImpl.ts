@@ -1,4 +1,5 @@
-import type { Container } from "../contracts/Container";
+import { inject } from "../container";
+import { Container } from "../contracts/Container";
 import type { Dispatcher, EventListener } from "../contracts/Dispatcher";
 import { isClassListener } from "../contracts/Dispatcher";
 import { AnyConstructor, getPrototypeChain, SetMultiMap } from "../utils";
@@ -10,7 +11,7 @@ export class DispatcherImpl implements Dispatcher {
 
 	#container: Container;
 
-	constructor(container: Container) {
+	constructor(container: Container = inject(Container)) {
 		this.#container = container;
 	}
 

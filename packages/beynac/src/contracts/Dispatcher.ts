@@ -22,7 +22,7 @@ export type ClassListener<T extends object> = NoArgConstructor<IClassListenerIns
  * allowing them to receive dependencies via constructor injection.
  *
  * @example
- * class UserRegisteredListener extends BaseListener<UserRegistered> {
+ * class UserRegisteredListener extends BaseListener {
  *   constructor(private emailService = inject(EmailService)) {
  *     super();
  *   }
@@ -34,10 +34,10 @@ export type ClassListener<T extends object> = NoArgConstructor<IClassListenerIns
  *
  * dispatcher.addListener(UserRegistered, UserRegisteredListener);
  */
-export abstract class BaseListener<T extends object> implements IClassListenerInstance<T> {
+export abstract class BaseListener implements IClassListenerInstance<object> {
 	static readonly isClassListener = true;
 
-	abstract handle(event: T): void;
+	abstract handle(event: object): void;
 }
 
 export type EventListener<T extends object> = FunctionListener<T> | ClassListener<T>;

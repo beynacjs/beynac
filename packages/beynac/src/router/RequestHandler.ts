@@ -1,5 +1,5 @@
 import { inject } from "../container/inject";
-import { Configuration, Container, RequestLocals, ViewRenderer } from "../contracts";
+import { Configuration, Container, Dispatcher, RequestLocals, ViewRenderer } from "../contracts";
 import { resolveEnvironmentChoice } from "../contracts/Configuration";
 import { isJsxElement, type JSX } from "../view/public-types";
 import { AbortException, abortExceptionKey } from "./abort";
@@ -10,6 +10,7 @@ import {
 	type ControllerReturn,
 	isClassController,
 } from "./Controller";
+import { RequestHandled } from "./http-events";
 import { throwOnMissingPropertyAccess } from "./params-access-checker";
 import { CurrentRouteDefinition, type RouteDefinition, type RouteWithParams } from "./router-types";
 
@@ -20,6 +21,7 @@ export class RequestHandler {
 	constructor(
 		private container: Container = inject(Container),
 		private viewRenderer: ViewRenderer = inject(ViewRenderer),
+		private dispatcher: Dispatcher = inject(Dispatcher),
 		config: Configuration = inject(Configuration),
 	) {
 		const isDevelopment = !!config.development;
@@ -87,6 +89,11 @@ export class RequestHandler {
 				: finalHandler;
 
 			const response = await pipeline(ctx);
+
+			this.dispatcher.dispatchIfHasListeners(
+				RequestHandled,
+				() => new RequestHandled(ctx, response.status, response.headers, response),
+			);
 
 			const abortException = locals.get(abortExceptionKey);
 			if (abortException) {

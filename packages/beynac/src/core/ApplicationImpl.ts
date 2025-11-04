@@ -13,6 +13,7 @@ import { RequestHandler } from "../router/RequestHandler";
 import { UrlFunction } from "../router/router-types";
 import { ViewRendererImpl } from "../view/ViewRendererImpl";
 import { CookiesImpl } from "./CookiesImpl";
+import { DispatcherImpl } from "./DispatcherImpl";
 import { HeadersImpl } from "./HeadersImpl";
 import { RequestLocalsImpl } from "./RequestLocalsImpl";
 
@@ -38,6 +39,7 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 		this.container.scoped(Cookies, CookiesImpl);
 		this.container.scoped(RequestLocals, RequestLocalsImpl);
 		this.container.singleton(ViewRenderer, ViewRendererImpl);
+		this.container.singleton(DispatcherKey, DispatcherImpl);
 		this.container.singleton(DevModeAutoRefreshMiddleware);
 		this.container.singleton(DevModeWatchService);
 		this.container.singleton(Router);

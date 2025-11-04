@@ -37,6 +37,10 @@
     "./router": {
       "types": "./dist/router/index.d.ts",
       "import": "./dist/router/index.js"
+    },
+    "./events": {
+      "types": "./dist/events.d.ts",
+      "import": "./dist/events.js"
     }
   },
   "scripts": {
