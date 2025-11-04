@@ -213,6 +213,21 @@ describe("middleware", () => {
 		expect(mockMiddleware.log).toEqual(["M2", "M1"]);
 	});
 
+	test("withoutMiddleware: 'all' removes all parent middleware", async () => {
+		const M1 = mockMiddleware("M1");
+		const M2 = mockMiddleware("M2");
+		const M3 = mockMiddleware("M3");
+
+		router.register(
+			group({ middleware: [M1, M2] }, [
+				get("/test", MockController, { withoutMiddleware: "all", middleware: M3 }),
+			]),
+		);
+
+		await handle("/test");
+		expect(mockMiddleware.log).toEqual(["M3"]);
+	});
+
 	test("middleware can short-circuit", async () => {
 		class AuthMiddleware extends BaseMiddleware {
 			handle(

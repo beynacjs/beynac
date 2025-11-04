@@ -4,17 +4,20 @@ import { isClassMiddleware, type MiddlewareNext, type MiddlewareReference } from
 
 export class MiddlewareSet {
 	#middleware: Set<MiddlewareReference>;
-	#withoutMiddleware: Set<MiddlewareReference>;
+	#withoutMiddleware: Set<MiddlewareReference | "all">;
 	#prioritySorted = false;
 
-	private constructor(middleware: MiddlewareReference[], withoutMiddleware: MiddlewareReference[]) {
+	private constructor(
+		middleware: MiddlewareReference[],
+		withoutMiddleware: (MiddlewareReference | "all")[],
+	) {
 		this.#middleware = new Set(middleware);
 		this.#withoutMiddleware = new Set(withoutMiddleware);
 	}
 
 	static createIfRequired(
 		middleware?: MiddlewareReference | MiddlewareReference[] | null,
-		withoutMiddleware?: MiddlewareReference | MiddlewareReference[] | null,
+		withoutMiddleware?: MiddlewareReference | MiddlewareReference[] | "all" | null,
 	): MiddlewareSet | null {
 		const mw = arrayWrapOptional(middleware);
 		const without = arrayWrapOptional(withoutMiddleware);
@@ -31,8 +34,12 @@ export class MiddlewareSet {
 
 	mergeWithGroup(
 		groupMiddleware: MiddlewareReference[],
-		groupWithout: MiddlewareReference[],
+		groupWithout: (MiddlewareReference | "all")[],
 	): void {
+		if (this.#withoutMiddleware.has("all")) {
+			return;
+		}
+
 		groupWithout.forEach((m) => this.#withoutMiddleware.add(m));
 
 		// Rebuild Set with group middleware first

@@ -53,9 +53,10 @@ interface BaseRouteOptions<PathPart extends string> {
 	middleware?: MiddlewareReference | MiddlewareReference[] | undefined;
 
 	/**
-	 * Remove middleware that was added in this or a parent group
+	 * Remove middleware that was added in this or a parent group.
+	 * Use "all" to remove all parent middleware.
 	 */
-	withoutMiddleware?: MiddlewareReference | MiddlewareReference[] | undefined;
+	withoutMiddleware?: MiddlewareReference | MiddlewareReference[] | "all" | undefined;
 
 	/**
 	 * Domain pattern constraint, e.g. "api.example.com". Can contain patterns
