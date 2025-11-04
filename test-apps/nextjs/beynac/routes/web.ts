@@ -1,4 +1,4 @@
-import { delete as delete_, get, group, post } from "beynac/router";
+import { delete as delete_, get, group, post } from "beynac/http";
 import {
 	DeleteCookieController,
 	GetCookiesController,

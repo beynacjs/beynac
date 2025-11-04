@@ -3,15 +3,15 @@ import type { IntegrationContext } from "../contracts";
 import { Application, Container } from "../contracts";
 import type { Configuration } from "../contracts/Configuration";
 import { createApplication } from "../entry";
-import { ResourceController } from "../router";
+import { ResourceController } from "../http";
 import {
 	BaseController,
 	ControllerContext,
 	type ControllerReturn,
 	FunctionController,
-} from "../router/Controller";
-import { type ClassMiddleware } from "../router/Middleware";
-import { Router } from "../router/Router";
+} from "../http/Controller";
+import { type ClassMiddleware } from "../http/Middleware";
+import { Router } from "../http/Router";
 
 export class MockController extends ResourceController {
 	override handle: Mock<BaseController["handle"]>;

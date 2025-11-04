@@ -1,1 +1,1 @@
-export * from "./router/http-events";
+export * from "./http/http-events";

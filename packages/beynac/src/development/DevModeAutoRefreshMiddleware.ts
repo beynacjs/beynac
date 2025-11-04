@@ -1,7 +1,7 @@
 import { inject } from "../container/inject";
 import { Configuration } from "../contracts/Configuration";
-import { ControllerContext } from "../router/Controller";
-import { BaseMiddleware, type MiddlewareNext } from "../router/Middleware";
+import { ControllerContext } from "../http/Controller";
+import { BaseMiddleware, type MiddlewareNext } from "../http/Middleware";
 
 export class DevModeAutoRefreshMiddleware extends BaseMiddleware {
 	private reloadListeners = new Set<(reload: boolean) => void>();

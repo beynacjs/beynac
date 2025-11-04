@@ -9,7 +9,7 @@ export default defineConfig({
     "view/index": "src/view/index.ts",
     "view/jsx-runtime": "src/view/jsx-runtime.ts",
     "view/jsx-dev-runtime": "src/view/jsx-dev-runtime.ts",
-    "router/index": "src/router/index.ts",
+    "http/index": "src/http/index.ts",
   },
   format: ["esm"],
   outDir: "dist",
@@ -17,4 +17,5 @@ export default defineConfig({
     resolve: true,
   },
   clean: true,
+  exports: true
 });

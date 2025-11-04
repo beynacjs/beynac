@@ -13,7 +13,7 @@ import {
 	type ControllerContext,
 	type ControllerReturn,
 } from "./Controller";
-import { any, get, group, post, Router } from "./index";
+import { any, get, group, post, Router, redirect } from "./index";
 import { BaseMiddleware, FunctionMiddleware } from "./Middleware";
 import { MiddlewareSet } from "./MiddlewareSet";
 
@@ -602,7 +602,6 @@ describe("meta property", () => {
 
 describe("special routes", () => {
 	test("redirect returns 303 by default (changes to GET)", async () => {
-		const { redirect } = await import("../router/index");
 		const route = any("/old", redirect("/new"));
 		router.register(route);
 
@@ -612,7 +611,6 @@ describe("special routes", () => {
 	});
 
 	test("redirect with preserveHttpMethod returns 307", async () => {
-		const { redirect } = await import("../router/index");
 		const route = post("/old-api", redirect("/new-api", { preserveHttpMethod: true }));
 		router.register(route);
 

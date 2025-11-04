@@ -1,8 +1,8 @@
 import type { TypeToken } from "../container/container-key";
 import { createTypeToken } from "../container/container-key";
-import type { Routes } from "../router";
-import type { MiddlewareReference } from "../router/Middleware";
-import type { MiddlewarePriorityBuilder } from "../router/MiddlewarePriorityBuilder";
+import type { Routes } from "../http";
+import type { MiddlewareReference } from "../http/Middleware";
+import type { MiddlewarePriorityBuilder } from "../http/MiddlewarePriorityBuilder";
 
 export interface Configuration<RouteParams extends Record<string, string> = {}> {
 	/**
