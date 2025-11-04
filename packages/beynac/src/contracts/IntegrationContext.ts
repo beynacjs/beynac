@@ -63,6 +63,14 @@ export interface IntegrationContext {
 	 * A function that sets a cookie, or null if cookies can't be set in this context
 	 */
 	readonly setCookie: ((name: string, value: string, options?: CookieAttributes) => void) | null;
+
+	/**
+	 * A function to add a promise to keep the environment alive until it has
+	 * completed. The integration should pass the promise to an environment
+	 * primitive like waitUntil. If the environment is a long-running process
+	 * like NodeJS this can be a no-op since the process stays alive by default
+	 */
+	readonly addKeepAliveTask: ((task: Promise<void>) => void) | null;
 }
 
 export const IntegrationContext: TypeToken<IntegrationContext> =

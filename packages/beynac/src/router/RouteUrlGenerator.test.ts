@@ -330,7 +330,7 @@ describe(RouteUrlGenerator, () => {
 			};
 
 			const context = integrationContext({
-				requestUrl: new URL("http://example.com/test"), // Should be overridden
+				requestUrl: "http://example.com/test", // Should be overridden
 			});
 
 			container.singletonInstance(IntegrationContext, context);
@@ -342,7 +342,7 @@ describe(RouteUrlGenerator, () => {
 
 		test("protocol precedence: requestUrl used as fallback", () => {
 			const context = integrationContext({
-				requestUrl: new URL("https://example.com:8443/test"),
+				requestUrl: "https://example.com:8443/test",
 			});
 
 			container.singletonInstance(IntegrationContext, context);
@@ -421,7 +421,7 @@ describe(RouteUrlGenerator, () => {
 			};
 
 			const context = integrationContext({
-				requestUrl: new URL("http://request.example.com/test"), // Should be overridden
+				requestUrl: "http://request.example.com/test", // Should be overridden
 			});
 
 			container.singletonInstance(IntegrationContext, context);
@@ -433,7 +433,7 @@ describe(RouteUrlGenerator, () => {
 
 		test("host precedence: requestUrl used as fallback", () => {
 			const context = integrationContext({
-				requestUrl: new URL("https://request.example.com:9000/test"),
+				requestUrl: "https://request.example.com:9000/test",
 			});
 
 			container.singletonInstance(IntegrationContext, context);

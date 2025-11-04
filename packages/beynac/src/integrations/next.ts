@@ -1,4 +1,5 @@
 import { cookies, headers } from "next/headers";
+import { after } from "next/server";
 import { Application, IntegrationContext } from "../contracts";
 
 type AppRouterHandler = (req: Request) => Promise<Response>;
@@ -85,6 +86,9 @@ const createContext = async (
 		},
 		getRequestHeaderNames() {
 			return nextHeaders.keys();
+		},
+		addKeepAliveTask(task) {
+			after(task);
 		},
 	};
 };

@@ -1,5 +1,5 @@
 import { ContainerImpl } from "../container/ContainerImpl";
-import { Cookies, Headers, RequestLocals, ViewRenderer } from "../contracts";
+import { Cookies, Headers, KeepAlive, RequestLocals, ViewRenderer } from "../contracts";
 import { Application, UrlOptionsNoParams, UrlOptionsWithParams } from "../contracts/Application";
 import { Configuration } from "../contracts/Configuration";
 import { Container } from "../contracts/Container";
@@ -14,6 +14,7 @@ import { ViewRendererImpl } from "../view/ViewRendererImpl";
 import { CookiesImpl } from "./CookiesImpl";
 import { DispatcherImpl } from "./DispatcherImpl";
 import { HeadersImpl } from "./HeadersImpl";
+import { KeepAliveImpl } from "./KeepAliveImpl";
 import { RequestLocalsImpl } from "./RequestLocalsImpl";
 
 export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
@@ -48,6 +49,7 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 		this.container.scoped(Headers, HeadersImpl);
 		this.container.scoped(Cookies, CookiesImpl);
 		this.container.scoped(RequestLocals, RequestLocalsImpl);
+		this.container.scoped(KeepAlive, KeepAliveImpl);
 		this.container.singleton(ViewRenderer, ViewRendererImpl);
 		this.container.singleton(DispatcherKey, DispatcherImpl);
 		this.container.singleton(DevModeAutoRefreshMiddleware);

@@ -86,12 +86,12 @@ export const integrationContext = (options?: {
 	request?: Request | undefined;
 	headers?: Record<string, string> | undefined;
 	cookies?: Record<string, string> | undefined;
-	requestUrl?: URL | undefined;
+	requestUrl?: string | undefined;
 }): IntegrationContext => {
 	// Determine requestUrl
 	let requestUrl: URL | undefined;
 	if (options?.requestUrl) {
-		requestUrl = options.requestUrl;
+		requestUrl = new URL(options.requestUrl);
 	} else if (options?.request) {
 		requestUrl = new URL(options.request.url);
 	}
@@ -135,6 +135,7 @@ export const integrationContext = (options?: {
 		setCookie: null,
 		getRequestHeader,
 		getRequestHeaderNames,
+		addKeepAliveTask: () => {},
 	};
 };
 
