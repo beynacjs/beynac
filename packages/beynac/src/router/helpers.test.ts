@@ -207,7 +207,7 @@ import { resource } from "./helpers";
 import { ResourceController } from "./ResourceController";
 
 describe("resource routes", () => {
-	test("resource() creates routes that work with RouteRegistry", () => {
+	test("resource() creates routes that work with RouteUrlGenerator", () => {
 		class PhotoController extends ResourceController {}
 
 		const routes = resource("/photos", PhotoController);

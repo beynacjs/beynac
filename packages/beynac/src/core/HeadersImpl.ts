@@ -1,14 +1,11 @@
 import { inject } from "../container/inject";
+import { IntegrationContext } from "../contracts";
 import type { Headers } from "../contracts/Headers";
-import {
-	type RequestContext as IRequestContext,
-	RequestContext,
-} from "../contracts/RequestContext";
 
 export class HeadersImpl implements Headers {
 	#keys: string[] | undefined;
 
-	constructor(private requestContext: IRequestContext = inject(RequestContext)) {}
+	constructor(private requestContext: IntegrationContext = inject(IntegrationContext)) {}
 
 	get size(): number {
 		return this.#getKeys().length;

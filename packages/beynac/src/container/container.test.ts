@@ -612,6 +612,29 @@ test("resolution of class with optional factory dependency", () => {
 	expect(instance2.getDep()).toBeInstanceOf(Dep);
 });
 
+test("getIfAvailable", () => {
+	class TransientDep {}
+	class SingletonDep {}
+	class ScopedDep {}
+
+	// Should be available before bound because implicit binding is transient
+	expect(container.getIfAvailable(TransientDep)).toBeInstanceOf(TransientDep);
+
+	container.bind(TransientDep);
+	expect(container.getIfAvailable(TransientDep)).toBeInstanceOf(TransientDep);
+
+	container.singleton(SingletonDep);
+	expect(container.getIfAvailable(SingletonDep)).toBeInstanceOf(SingletonDep);
+
+	container.scoped(ScopedDep);
+	// Null outside scope
+	expect(container.getIfAvailable(ScopedDep)).toBeNull();
+	// Available in scope
+	container.withScope(() => {
+		expect(container.getIfAvailable(ScopedDep)).toBeInstanceOf(ScopedDep);
+	});
+});
+
 test("bound", () => {
 	class Foo {}
 	const alias = createTypeToken<Foo>();

@@ -1,7 +1,7 @@
 import { Mock, mock } from "bun:test";
+import type { IntegrationContext } from "../contracts";
 import { Application, Container } from "../contracts";
 import type { Configuration } from "../contracts/Configuration";
-import type { RequestContext } from "../contracts/RequestContext";
 import { createApplication } from "../entry";
 import { ResourceController } from "../router";
 import {
@@ -73,7 +73,7 @@ export const controllerContext = (
 	meta: {},
 });
 
-export const requestContext = (): RequestContext => ({
+export const requestContext = (): IntegrationContext => ({
 	context: "test",
 	getCookie: () => {
 		throw new Error("Can't getCookie in mock request context");
@@ -93,6 +93,20 @@ export const requestContext = (): RequestContext => ({
 	getRequestHeaderNames: () => {
 		throw new Error("Can't getRequestHeaderNames in mock request context");
 	},
+});
+
+/**
+ * Create a request context that provides header access from a Request object
+ */
+export const requestContextWithHeaders = (request: Request): IntegrationContext => ({
+	context: "test",
+	requestUrl: new URL(request.url),
+	getCookie: () => null,
+	getCookieNames: () => [],
+	deleteCookie: () => {},
+	setCookie: null,
+	getRequestHeader: (name: string) => request.headers.get(name),
+	getRequestHeaderNames: () => request.headers.keys(),
 });
 
 interface MockMiddlewareFunction {

@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, expectTypeOf, test } from "bun:test";
+import { ContainerImpl } from "../container/ContainerImpl";
+import { Configuration } from "../contracts/Configuration";
+import type { Container } from "../contracts/Container";
 import { createTestApplication, mockMiddleware } from "../test-utils";
 import { group, Routes } from ".";
 import type { ControllerContext } from "./Controller";
 import { apiResource, resource } from "./helpers";
 import { ResourceController } from "./ResourceController";
-import { RouteRegistry } from "./RouteRegistry";
+import { RouteUrlGenerator } from "./RouteUrlGenerator";
 
 beforeEach(() => {
 	mockMiddleware.reset();
@@ -415,31 +418,42 @@ describe("apiResource", () => {
 // ============================================================================
 
 describe("resource type inference", () => {
-	test("routes work with RouteRegistry", () => {
-		const registry = new RouteRegistry(resource("/photos", TestController));
+	let urlGenerator: RouteUrlGenerator;
+	let container: Container;
+	let config: Configuration;
+
+	beforeEach(() => {
+		container = new ContainerImpl();
+		config = {};
+		container.singletonInstance(Configuration, config);
+		urlGenerator = new RouteUrlGenerator(container, config);
+	});
+
+	test("routes work with RouteUrlGenerator", () => {
+		urlGenerator.register(resource("/photos", TestController));
 
 		// These should compile and work at runtime:
-		const url1 = registry.url("photos.index");
-		const url2 = registry.url("photos.show", { resourceId: "123" });
+		const url1 = urlGenerator.url("photos.index");
+		const url2 = urlGenerator.url("photos.show", { params: { resourceId: "123" } });
 
 		expect(url1).toContain("/photos");
 		expect(url2).toContain("/photos/123");
 	});
 
-	test("custom name works with RouteRegistry", () => {
-		const registry = new RouteRegistry(resource("/photos", TestController, { name: "pics" }));
+	test("custom name works with RouteUrlGenerator", () => {
+		urlGenerator.register(resource("/photos", TestController, { name: "pics" }));
 
 		// Should be able to use custom route names:
-		const url = registry.url("pics.index");
+		const url = urlGenerator.url("pics.index");
 		expect(url).toContain("/photos");
 	});
 
-	test("apiResource works with RouteRegistry", () => {
-		const registry = new RouteRegistry(apiResource("/photos", TestController));
+	test("apiResource works with RouteUrlGenerator", () => {
+		urlGenerator.register(apiResource("/photos", TestController));
 
 		// These should compile and work:
-		const url1 = registry.url("photos.index");
-		const url2 = registry.url("photos.show", { resourceId: "123" });
+		const url1 = urlGenerator.url("photos.index");
+		const url2 = urlGenerator.url("photos.show", { params: { resourceId: "123" } });
 
 		expect(url1).toContain("/photos");
 		expect(url2).toContain("/photos/123");

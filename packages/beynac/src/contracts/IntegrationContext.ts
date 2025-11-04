@@ -5,13 +5,18 @@ import { createTypeToken } from "../container/container-key";
  * The interface used by framework integrations to provide access to the request
  * and response
  */
-export interface RequestContext {
+export interface IntegrationContext {
 	/**
 	 * The name of the context, for debugging purposes. Should include framework
 	 * name, and the kind of request, if the framework has multiple kinds of
 	 * request. For example `"NextJS route handler"`
 	 */
 	readonly context: string;
+
+	/**
+	 * The request URL, used for URL generation fallback
+	 */
+	readonly requestUrl?: URL | null | undefined;
 
 	/**
 	 * A function to get a request header
@@ -60,8 +65,8 @@ export interface RequestContext {
 	readonly setCookie: ((name: string, value: string, options?: CookieAttributes) => void) | null;
 }
 
-export const RequestContext: TypeToken<RequestContext> =
-	createTypeToken<RequestContext>("RequestContext");
+export const IntegrationContext: TypeToken<IntegrationContext> =
+	createTypeToken<IntegrationContext>("IntegrationContext");
 
 export interface CookieAttributes {
 	/**

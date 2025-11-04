@@ -12,7 +12,6 @@ Laravel has been a huge source of inspiration for Beynac's overall design and ar
 
 ## Hono
 
-**Website:** https://hono.dev/
 **Repository:** https://github.com/honojs/hono
 **License:** MIT
 **Copyright:** Yusuke Wada and contributors
@@ -21,11 +20,19 @@ Hono inspired the design of Beynac's JSX renderer. Portions of our JSX renderer 
 
 ## Rou3
 
-**Repository:** https://github.com/binyamin/rou3
+**Repository:** https://github.com/h3js/rou3
 **License:** MIT
-**Copyright:** Binyamin Aron Green
+**Copyright:** Pooya Parsa
 
 Beynac's routing engine is a fork of Rou3, adapted for our specific requirements. The core radix tree algorithm remains largely unchanged from the original implementation.
+
+## original-url
+
+**Repository:** https://github.com/watson/original-url
+**License:** MIT
+**Copyright:** Thomas Watson Steen
+
+Beynac's URL generation feature includes logic adapted from original-url for extracting the original protocol and host from proxy headers. The implementation has been adapted for Beynac's Headers interface and excludes support for the Forwarded header.
 
 ---
 

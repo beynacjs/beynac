@@ -260,11 +260,27 @@ export class ContainerImpl implements Container {
 	}
 
 	get<T>(type: KeyOrClass<T>): T {
+		const result = this.#get<T>(type);
+		if (result instanceof ContainerError) {
+			throw result;
+		}
+		return result;
+	}
+
+	getIfAvailable<T>(type: KeyOrClass<T>): T | null {
+		const result = this.#get<T>(type);
+		if (result instanceof ContainerError) {
+			return null;
+		}
+		return result;
+	}
+
+	#get<T>(type: KeyOrClass<T>): T | ContainerError {
 		const binding = this.#getConcreteBinding(type);
 		type = binding.type as KeyOrClass<T>;
 
 		if (this.#buildStack.has(type)) {
-			throw this.#containerError(
+			return this.#containerError(
 				`Circular dependency detected: ${formatKeyCycle(this.#buildStack, type)}`,
 			);
 		}
@@ -286,7 +302,7 @@ export class ContainerImpl implements Container {
 				if (binding.lifecycle === "scoped") {
 					scopeInstances = scopeContext.getStore()?.instances;
 					if (!scopeInstances) {
-						throw this.#containerError(
+						return this.#containerError(
 							`Cannot create ${getKeyName(type)} because it is scoped so can only be accessed within a request`,
 							{ omitTopOfBuildStack: true },
 						);
@@ -314,7 +330,7 @@ export class ContainerImpl implements Container {
 				// allow implicitly bound keys to be resolved if they're class references
 				// Runtime check: ensure no required constructor arguments
 				if (type.length > 0) {
-					throw this.#containerError(
+					return this.#containerError(
 						`Can't create an instance of ${getKeyName(type)} because it looks like it has required constructor arguments. Either bind it to the container, or ensure that all arguments have default values e.g. constructor(arg = "default")`,
 						{ omitTopOfBuildStack: true },
 					);
@@ -324,7 +340,7 @@ export class ContainerImpl implements Container {
 
 			if (!factory) {
 				const name = getKeyName(type);
-				throw this.#containerError(
+				return this.#containerError(
 					`Can't create an instance of ${name} because no value or factory function was supplied`,
 					{ omitTopOfBuildStack: true },
 				);

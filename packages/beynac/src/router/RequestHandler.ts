@@ -12,7 +12,12 @@ import {
 } from "./Controller";
 import { RequestHandled } from "./http-events";
 import { throwOnMissingPropertyAccess } from "./params-access-checker";
-import { CurrentRouteDefinition, type RouteDefinition, type RouteWithParams } from "./router-types";
+import {
+	CurrentControllerContext,
+	CurrentRouteDefinition,
+	type RouteDefinition,
+	type RouteWithParams,
+} from "./router-types";
 
 export class RequestHandler {
 	#throwOnInvalidParam: boolean;
@@ -65,6 +70,7 @@ export class RequestHandler {
 				url: match.url,
 				meta: match.route.meta || {},
 			};
+			this.container.scopedInstance(CurrentControllerContext, ctx);
 
 			const finalHandler = async (ctx: ControllerContext): Promise<Response> => {
 				let result: ControllerReturn;

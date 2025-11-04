@@ -1,16 +1,15 @@
 import { ContainerImpl } from "../container/ContainerImpl";
 import { Cookies, Headers, RequestLocals, ViewRenderer } from "../contracts";
-import { Application } from "../contracts/Application";
+import { Application, UrlOptionsNoParams, UrlOptionsWithParams } from "../contracts/Application";
 import { Configuration } from "../contracts/Configuration";
 import { Container } from "../contracts/Container";
 import { type Dispatcher, Dispatcher as DispatcherKey } from "../contracts/Dispatcher";
-import { RequestContext } from "../contracts/RequestContext";
+import { IntegrationContext } from "../contracts/IntegrationContext";
 import { DevModeAutoRefreshMiddleware } from "../development/DevModeAutoRefreshMiddleware";
 import { DevModeWatchService } from "../development/DevModeWatchService";
 import { BeynacError } from "../error";
-import { group, RouteRegistry, Router } from "../router";
+import { group, Router, RouteUrlGenerator } from "../router";
 import { RequestHandler } from "../router/RequestHandler";
-import { UrlFunction } from "../router/router-types";
 import { ViewRendererImpl } from "../view/ViewRendererImpl";
 import { CookiesImpl } from "./CookiesImpl";
 import { DispatcherImpl } from "./DispatcherImpl";
@@ -23,7 +22,7 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 	readonly container: Container;
 	#bootstrapped = false;
 	#config: Configuration<RouteParams>;
-	#routeRegistry: RouteRegistry<RouteParams> | null = null;
+	#urlGenerator?: RouteUrlGenerator;
 
 	constructor(config: Configuration<RouteParams> = {}) {
 		this.container = new ContainerImpl();
@@ -33,6 +32,33 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 	bootstrap(): void {
 		if (this.#bootstrapped) return;
 		this.#bootstrapped = true;
+
+		// Validate appUrl configuration
+		if (this.#config.appUrl?.overrideHost) {
+			if (this.#config.appUrl.overrideHost.includes("/")) {
+				throw new Error(
+					`Invalid appUrl.overrideHost: "${this.#config.appUrl.overrideHost}". Host must not contain slashes.`,
+				);
+			}
+			if (this.#config.appUrl.overrideHost.includes("://")) {
+				throw new Error(
+					`Invalid appUrl.overrideHost: "${this.#config.appUrl.overrideHost}". Host must not contain protocol prefix.`,
+				);
+			}
+		}
+		if (this.#config.appUrl?.defaultHost) {
+			if (this.#config.appUrl.defaultHost.includes("/")) {
+				throw new Error(
+					`Invalid appUrl.defaultHost: "${this.#config.appUrl.defaultHost}". Host must not contain slashes.`,
+				);
+			}
+			if (this.#config.appUrl.defaultHost.includes("://")) {
+				throw new Error(
+					`Invalid appUrl.defaultHost: "${this.#config.appUrl.defaultHost}". Host must not contain protocol prefix.`,
+				);
+			}
+		}
+
 		this.container.singletonInstance(Configuration, this.#config);
 		this.container.singletonInstance(Application, this);
 		this.container.scoped(Headers, HeadersImpl);
@@ -44,6 +70,9 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 		this.container.singleton(DevModeWatchService);
 		this.container.singleton(Router);
 		this.container.singleton(RequestHandler);
+		this.container.singleton(RouteUrlGenerator);
+
+		this.#urlGenerator = this.container.get(RouteUrlGenerator);
 
 		// Register routes with dev mode middleware if needed
 		if (this.#config.routes) {
@@ -55,8 +84,10 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 					this.#config.routes,
 				]);
 				router.register(wrappedRoutes);
+				this.#urlGenerator.register(wrappedRoutes);
 			} else {
 				router.register(this.#config.routes);
+				this.#urlGenerator.register(this.#config.routes);
 			}
 		}
 
@@ -70,15 +101,26 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 		return this.container.get(DispatcherKey);
 	}
 
-	url: UrlFunction<RouteParams> = (name, ...args) => {
-		if (!this.#routeRegistry) {
-			this.#routeRegistry = new RouteRegistry(this.#config.routes);
+	url<N extends keyof RouteParams & string>(
+		name: N,
+		...args: RouteParams[N] extends never
+			? [] | [options?: UrlOptionsNoParams]
+			: [options: UrlOptionsWithParams<RouteParams[N]>]
+	): string {
+		if (!this.#urlGenerator) {
+			throw new Error("Can't call url() before the application is bootstrapped.");
 		}
-		return this.#routeRegistry.url(name, ...args);
-	};
+		return this.#urlGenerator.url(name, args[0]);
+	}
 
-	async handleRequest(request: Request, context: RequestContext): Promise<Response> {
-		return this.withRequestContext(context, async () => {
+	async handleRequest(request: Request, context: IntegrationContext): Promise<Response> {
+		// Enrich context with requestUrl if not already provided
+		const enrichedContext: IntegrationContext = {
+			...context,
+			requestUrl: context.requestUrl ?? new URL(request.url),
+		};
+
+		return this.withIntegration(enrichedContext, async () => {
 			const router = this.container.get(Router);
 			const requestHandler = this.container.get(RequestHandler);
 
@@ -94,12 +136,12 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 		});
 	}
 
-	withRequestContext<R>(context: RequestContext, callback: () => R): R {
+	withIntegration<R>(context: IntegrationContext, callback: () => R): R {
 		if (this.container.hasScope) {
 			throw new BeynacError("Can't start a new request scope, we're already handling a request.");
 		}
 		return this.container.withScope(() => {
-			this.container.scopedInstance(RequestContext, context);
+			this.container.scopedInstance(IntegrationContext, context);
 			return callback();
 		});
 	}

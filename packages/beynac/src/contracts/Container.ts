@@ -320,6 +320,14 @@ export interface Container {
 	get<T>(type: KeyOrClass<T>): T;
 
 	/**
+	 * Get an instance of the given type from the container if available,
+	 * or null if the dependency is not bound or if it's scoped but no scope is active.
+	 *
+	 * @returns The instance if available, null otherwise
+	 */
+	getIfAvailable<T>(type: KeyOrClass<T>): T | null;
+
+	/**
 	 * Alias a type to a different name. After setting up an alias,
 	 * `container.get(from)` will return the same value as `container.get(to)`
 	 */

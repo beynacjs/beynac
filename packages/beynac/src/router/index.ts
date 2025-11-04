@@ -33,9 +33,9 @@ export {
 	type MiddlewareReference,
 } from "./Middleware";
 export { type ResourceAction, ResourceController } from "./ResourceController";
-export { RouteRegistry } from "./RouteRegistry";
-// Router and registry
+// Router and URL generator
 export { Router } from "./Router";
+export { RouteUrlGenerator } from "./RouteUrlGenerator";
 export type {
 	ParamConstraint,
 	RouteGroupOptions,

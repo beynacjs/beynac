@@ -1,6 +1,6 @@
 import { createTypeToken, TypeToken } from "../container/container-key";
 import type { Component } from "../view/Component";
-import { Controller } from "./Controller";
+import { Controller, type ControllerContext } from "./Controller";
 import type { MiddlewareReference } from "./Middleware";
 import type { MiddlewareSet } from "./MiddlewareSet";
 import type { ApiResourceAction, ResourceAction } from "./ResourceController";
@@ -11,7 +11,7 @@ import type { ApiResourceAction, ResourceAction } from "./ResourceController";
  * names and their parameters, enabling type-safe URL generation.
  *
  * The generic parameter `Params` is a map of route names to their parameter
- * names, used for type-safe URL generation with RouteRegistry.url().
+ * names, used for type-safe URL generation with RouteUrlGenerator.url().
  *
  * @example
  * // Single route with no parameters
@@ -158,13 +158,6 @@ export interface RouteGroupOptions<NamePrefix extends string = "", PathPrefix ex
 	namePrefix?: NamePrefix | undefined;
 }
 
-export type UrlFunction<Params extends Record<string, string>> = <N extends keyof Params & string>(
-	name: N,
-	...args: Params[N] extends never
-		? [] | [params?: ParamsObject<Params[N]>]
-		: [params: ParamsObject<Params[N]>]
-) => string;
-
 export type ParamsObject<U extends string> = Prettify<Record<U, string | number>>;
 
 export type BuiltInRouteConstraint = "numeric" | "alphanumeric" | "uuid" | "ulid";
@@ -190,6 +183,14 @@ export interface RouteDefinition {
 
 export const CurrentRouteDefinition: TypeToken<RouteDefinition> =
 	createTypeToken("CurrentRouteDefinition");
+
+/**
+ * The current controller context, available during request handling.
+ * Contains the Request object, params, URL, and metadata.
+ */
+export const CurrentControllerContext: TypeToken<ControllerContext> = createTypeToken(
+	"CurrentControllerContext",
+);
 
 /**
  * A matched route with its request, URL and parameters.

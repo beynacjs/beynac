@@ -1,5 +1,5 @@
 import { cookies, headers } from "next/headers";
-import { Application, RequestContext } from "../contracts";
+import { Application, IntegrationContext } from "../contracts";
 
 type AppRouterHandler = (req: Request) => Promise<Response>;
 
@@ -19,7 +19,7 @@ type Verb = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS";
  */
 export const makeRouteHandler = (app: Application): AppRouterHandler => {
 	return async (request) => {
-		const context = await createRequestContext("route handler", true);
+		const context = await createContext("route handler", true);
 		return await app.handleRequest(request, context);
 	};
 };
@@ -56,10 +56,10 @@ export const wrapRouteHandler = <A extends unknown[], R>(
 	};
 };
 
-const createRequestContext = async (
+const createContext = async (
 	context: string,
 	allowSetCookie: boolean,
-): Promise<RequestContext> => {
+): Promise<IntegrationContext> => {
 	const nextHeaders = await headers();
 	const nextCookies = await cookies();
 	return {

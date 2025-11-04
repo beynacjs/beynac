@@ -4,6 +4,6 @@ export { Container } from "./Container";
 export { Cookies } from "./Cookies";
 export { Dispatcher } from "./Dispatcher";
 export { Headers } from "./Headers";
-export { RequestContext } from "./RequestContext";
+export { IntegrationContext } from "./IntegrationContext";
 export { RequestLocals } from "./RequestLocals";
 export { ViewRenderer } from "./ViewRenderer";

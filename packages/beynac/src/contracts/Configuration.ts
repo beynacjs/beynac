@@ -118,6 +118,44 @@ export interface Configuration<RouteParams extends Record<string, string> = {}> 
 	 * @default 'always'
 	 */
 	streamResponses?: EnvironmentChoice | undefined;
+
+	/**
+	 * Application URL configuration for generating absolute URLs
+	 *
+	 * URL generation follows this precedence (highest to lowest priority):
+	 * 1. Override config (overrideHost, overrideHttps) - always used, ignores request
+	 * 2. Request headers (X-Forwarded-*, Host) - from proxy or load balancer
+	 * 3. Request URL - protocol, hostname, and port from the actual request
+	 * 4. Default config (defaultHost, defaultHttps) - fallback when request unavailable
+	 */
+	appUrl?: {
+		/**
+		 * Always use this host, regardless of request headers or URL.
+		 * Hostname with optional port (e.g., 'example.com', 'api.example.com:8080').
+		 * Must not contain protocol prefix or slashes.
+		 */
+		overrideHost?: string | undefined;
+
+		/**
+		 * Fallback host to use when request headers/URL are unavailable
+		 * (e.g., generating URLs outside of request context).
+		 * Hostname with optional port (e.g., 'example.com', 'api.example.com:8080').
+		 * Must not contain protocol prefix or slashes.
+		 */
+		defaultHost?: string | undefined;
+
+		/**
+		 * Always use HTTPS (true) or HTTP (false), regardless of request.
+		 * When set, this overrides X-Forwarded-Proto and request URL protocol.
+		 */
+		overrideHttps?: boolean | undefined;
+
+		/**
+		 * Default to HTTPS (true) or HTTP (false) when protocol unavailable
+		 * from request headers or URL (e.g., generating URLs outside request context).
+		 */
+		defaultHttps?: boolean | undefined;
+	};
 }
 
 export const Configuration: TypeToken<Configuration> =

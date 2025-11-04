@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, expectTypeOf, test } from "bun:test";
+import { ContainerImpl } from "../container/ContainerImpl";
+import { Configuration } from "../contracts/Configuration";
 import { MockController, mockController } from "../test-utils";
 import {
 	delete_,
@@ -10,9 +12,9 @@ import {
 	patch,
 	post,
 	put,
-	RouteRegistry,
 	Router,
 	type Routes,
+	RouteUrlGenerator,
 } from "./index";
 import { BaseMiddleware } from "./Middleware";
 import { MiddlewareSet } from "./MiddlewareSet";
@@ -680,9 +682,13 @@ describe("domain routing", () => {
 			domain: "{subdomain}.example.com",
 		});
 
-		const registry = new RouteRegistry(route);
+		const container = new ContainerImpl();
+		const config = {};
+		container.singletonInstance(Configuration, config);
+		const urlGenerator = new RouteUrlGenerator(container, config);
+		urlGenerator.register(route);
 
-		expect(registry.url("users.show", { subdomain: "acme", id: 123 })).toBe(
+		expect(urlGenerator.url("users.show", { params: { subdomain: "acme", id: 123 } })).toBe(
 			"//acme.example.com/users/123",
 		);
 	});
