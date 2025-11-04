@@ -325,7 +325,7 @@ export interface Container {
 	 *
 	 * @returns The instance if available, null otherwise
 	 */
-	getIfAvailable<T>(type: KeyOrClass<T>): T | null;
+	getIfAvailable<T>(type: KeyOrClass<T>): T | undefined;
 
 	/**
 	 * Alias a type to a different name. After setting up an alias,

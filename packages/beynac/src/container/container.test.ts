@@ -628,7 +628,7 @@ test("getIfAvailable", () => {
 
 	container.scoped(ScopedDep);
 	// Null outside scope
-	expect(container.getIfAvailable(ScopedDep)).toBeNull();
+	expect(container.getIfAvailable(ScopedDep)).toBeUndefined();
 	// Available in scope
 	container.withScope(() => {
 		expect(container.getIfAvailable(ScopedDep)).toBeInstanceOf(ScopedDep);

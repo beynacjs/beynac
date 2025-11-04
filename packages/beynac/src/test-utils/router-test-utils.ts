@@ -73,41 +73,70 @@ export const controllerContext = (
 	meta: {},
 });
 
-export const requestContext = (): IntegrationContext => ({
-	context: "test",
-	getCookie: () => {
-		throw new Error("Can't getCookie in mock request context");
-	},
-	getCookieNames: () => {
-		throw new Error("Can't getCookieNames in mock request context");
-	},
-	deleteCookie: () => {
-		throw new Error("Can't deleteCookie in mock request context");
-	},
-	setCookie: () => {
-		throw new Error("Can't setCookie in mock request context");
-	},
-	getRequestHeader: () => {
-		throw new Error("Can't getRequestHeader in mock request context");
-	},
-	getRequestHeaderNames: () => {
-		throw new Error("Can't getRequestHeaderNames in mock request context");
-	},
-});
-
 /**
- * Create a request context that provides header access from a Request object
+ * Create an integration context for testing with configurable behavior.
+ *
+ * @param options Configuration options
+ * @param options.request Extract headers and requestUrl from a Request object
+ * @param options.headers Custom header map for testing
+ * @param options.cookies Custom cookie map for testing
+ * @param options.requestUrl Override the requestUrl
  */
-export const requestContextWithHeaders = (request: Request): IntegrationContext => ({
-	context: "test",
-	requestUrl: new URL(request.url),
-	getCookie: () => null,
-	getCookieNames: () => [],
-	deleteCookie: () => {},
-	setCookie: null,
-	getRequestHeader: (name: string) => request.headers.get(name),
-	getRequestHeaderNames: () => request.headers.keys(),
-});
+export const integrationContext = (options?: {
+	request?: Request | undefined;
+	headers?: Record<string, string> | undefined;
+	cookies?: Record<string, string> | undefined;
+	requestUrl?: URL | undefined;
+}): IntegrationContext => {
+	// Determine requestUrl
+	let requestUrl: URL | undefined;
+	if (options?.requestUrl) {
+		requestUrl = options.requestUrl;
+	} else if (options?.request) {
+		requestUrl = new URL(options.request.url);
+	}
+
+	// Determine header handling
+	let getRequestHeader: (name: string) => string | null;
+	let getRequestHeaderNames: () => IterableIterator<string>;
+
+	if (options?.request) {
+		// Extract from Request object
+		getRequestHeader = (name: string) => options.request!.headers.get(name);
+		getRequestHeaderNames = () => options.request!.headers.keys();
+	} else if (options?.headers) {
+		// Use custom header map
+		getRequestHeader = (name: string) => options.headers![name] ?? null;
+		getRequestHeaderNames = () => Object.keys(options.headers!)[Symbol.iterator]();
+	} else {
+		// Default: return null/empty
+		getRequestHeader = () => null;
+		getRequestHeaderNames = () => [][Symbol.iterator]();
+	}
+
+	// Determine cookie handling
+	let getCookie: (name: string) => string | null;
+	let getCookieNames: () => string[];
+
+	if (options?.cookies) {
+		getCookie = (name: string) => options.cookies![name] ?? null;
+		getCookieNames = () => Object.keys(options.cookies!);
+	} else {
+		getCookie = () => null;
+		getCookieNames = () => [];
+	}
+
+	return {
+		context: "test",
+		requestUrl,
+		getCookie,
+		getCookieNames,
+		deleteCookie: () => {},
+		setCookie: null,
+		getRequestHeader,
+		getRequestHeaderNames,
+	};
+};
 
 interface MockMiddlewareFunction {
 	(name: string): ClassMiddleware;
@@ -200,7 +229,7 @@ export const createTestApplication = <RouteParams extends Record<string, string>
 		} else if (url.startsWith("/")) {
 			url = "https://example.com" + url;
 		}
-		return await app.handleRequest(new Request(url, { method }), requestContext());
+		return await app.handleRequest(new Request(url, { method }), integrationContext());
 	};
 
 	return { app, container, router, handle };

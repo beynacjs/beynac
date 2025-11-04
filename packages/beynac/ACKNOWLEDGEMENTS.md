@@ -26,14 +26,6 @@ Hono inspired the design of Beynac's JSX renderer. Portions of our JSX renderer 
 
 Beynac's routing engine is a fork of Rou3, adapted for our specific requirements. The core radix tree algorithm remains largely unchanged from the original implementation.
 
-## original-url
-
-**Repository:** https://github.com/watson/original-url
-**License:** MIT
-**Copyright:** Thomas Watson Steen
-
-Beynac's URL generation feature includes logic adapted from original-url for extracting the original protocol and host from proxy headers. The implementation has been adapted for Beynac's Headers interface and excludes support for the Forwarded header.
-
 ---
 
 All incorporated code is used in compliance with the MIT License terms, which require preservation of copyright notices and license text in distributed copies.

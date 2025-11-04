@@ -1,10 +1,11 @@
 import { inject } from "../container/inject";
+import { Headers } from "../contracts";
 import type { QueryParams } from "../contracts/Application";
 import { Configuration } from "../contracts/Configuration";
 import { Container } from "../contracts/Container";
-import { Headers } from "../contracts/Headers";
 import { IntegrationContext } from "../contracts/IntegrationContext";
-import { getHostAndPortFromHeaders, getProtocolFromHeaders, parseHostString } from "./original-url";
+import { HeadersImpl } from "../core/HeadersImpl";
+import { arrayWrapOptional } from "../utils";
 import { type RouteDefinition, type Routes } from "./router-types";
 import { replaceRouteParams } from "./syntax";
 
@@ -44,152 +45,102 @@ export class RouteUrlGenerator {
 		const routeParams = options?.params ?? {};
 		const path = replaceRouteParams(route.path, routeParams);
 
-		// ============================================================
-		// 2. Gather context information (if in request scope)
-		// ============================================================
 		const appUrl = this.#config.appUrl;
-		let headers: Headers | undefined;
-		let requestUrl: URL | undefined;
-
 		const integrationContext = this.#container.getIfAvailable(IntegrationContext);
-		headers = this.#container.getIfAvailable(Headers) ?? undefined;
-		if (integrationContext) {
-			requestUrl = integrationContext.requestUrl ?? undefined;
-		}
+		const requestUrl = integrationContext?.requestUrl;
+		const headers = integrationContext ? new HeadersImpl(integrationContext) : null;
 
-		// ============================================================
-		// 3. Resolve PROTOCOL using precedence hierarchy
-		// ============================================================
+		// Resolve protocol
 		let protocol: string | null = null;
-
-		// Step 1: Check config override (highest priority)
-		if (appUrl?.overrideHttps !== undefined) {
-			protocol = appUrl.overrideHttps ? "https:" : "http:";
+		if (appUrl?.overrideProtocol) {
+			protocol = `${appUrl.overrideProtocol}:`;
 		}
-
-		// Step 2: Check request headers (X-Forwarded-Proto, etc.)
-		if (protocol === null && headers) {
+		if (!protocol && headers) {
 			protocol = getProtocolFromHeaders(headers);
 		}
-
-		// Step 3: Check config default
-		if (protocol === null && appUrl?.defaultHttps !== undefined) {
-			protocol = appUrl.defaultHttps ? "https:" : "http:";
+		if (!protocol && appUrl?.defaultProtocol) {
+			protocol = `${appUrl.defaultProtocol}:`;
 		}
-
-		// Step 4: Check request URL (lowest priority)
-		if (protocol === null && requestUrl) {
+		if (!protocol && requestUrl) {
 			protocol = requestUrl.protocol;
 		}
 
-		// ============================================================
-		// 4. Resolve HOST using precedence hierarchy
-		// ============================================================
+		// Resolve host
 		let host: string | null = null;
-
-		// Step 1: Check config override (highest priority)
-		if (appUrl?.overrideHost) {
-			const { hostname, port } = parseHostString(appUrl.overrideHost);
-			host = port ? `${hostname}:${port}` : hostname;
-		}
-
-		// Step 2: Check request headers (X-Forwarded-Host, Host, X-Forwarded-Port)
-		if (host === null && headers) {
-			const { hostname, port } = getHostAndPortFromHeaders(headers);
-			if (hostname) {
-				host = port ? `${hostname}:${port}` : hostname;
-			}
-		}
-
-		// Step 3: Check config default
-		if (host === null && appUrl?.defaultHost) {
-			const { hostname, port } = parseHostString(appUrl.defaultHost);
-			host = port ? `${hostname}:${port}` : hostname;
-		}
-
-		// Step 4: Check request URL (lowest priority)
-		if (host === null && requestUrl) {
-			host = requestUrl.port ? `${requestUrl.hostname}:${requestUrl.port}` : requestUrl.hostname;
-		}
-
-		// ============================================================
-		// 5. Build final URL with domain route special handling
-		// ============================================================
-
-		// Build base URL first
-		let baseUrl: string;
-
-		// For domain routes, use the domain from the route but protocol from resolution
 		if (route.domainPattern) {
-			const domain = replaceRouteParams(route.domainPattern, routeParams);
-
-			if (protocol && domain) {
-				// Build absolute URL with port omission rules
-				const { hostname: domainHostname, port: domainPort } = parseHostString(domain);
-				const shouldOmitPort =
-					(protocol === "http:" && domainPort === "80") ||
-					(protocol === "https:" && domainPort === "443");
-				const finalHost =
-					shouldOmitPort || !domainPort ? domainHostname : `${domainHostname}:${domainPort}`;
-
-				baseUrl = `${protocol}//${finalHost}${path}`;
-			} else {
-				// Fallback to protocol-relative URL
-				baseUrl = `//${domain}${path}`;
-			}
-		} else if (protocol && host) {
-			// For regular routes, try to build absolute URL
-			const { hostname, port: hostPort } = parseHostString(host);
-			const shouldOmitPort =
-				(protocol === "http:" && hostPort === "80") ||
-				(protocol === "https:" && hostPort === "443");
-			const finalHost = shouldOmitPort || !hostPort ? hostname : `${hostname}:${hostPort}`;
-
-			baseUrl = `${protocol}//${finalHost}${path}`;
-		} else {
-			// Fallback to site-absolute URL
-			baseUrl = path;
+			host = replaceRouteParams(route.domainPattern, routeParams);
+		}
+		if (!host && appUrl?.overrideHost) {
+			host = appUrl.overrideHost;
+		}
+		if (!host && headers) {
+			host = getHostFromHeaders(headers);
+		}
+		if (!host && appUrl?.defaultHost) {
+			host = appUrl.defaultHost;
+		}
+		if (!host && requestUrl) {
+			host = requestUrl.host;
 		}
 
-		// ============================================================
-		// 6. Append query string if provided
-		// ============================================================
+		// Strip default ports before building URL
+		if (host && protocol) {
+			if (protocol === "http:" && host.endsWith(":80")) {
+				host = host.slice(0, -3);
+			} else if (protocol === "https:" && host.endsWith(":443")) {
+				host = host.slice(0, -4);
+			}
+		}
+
+		const baseUrl = host ? `${protocol ?? ""}//${host}${path}` : path;
+
 		const queryString = this.#buildQueryString(options?.query);
 		return queryString ? `${baseUrl}?${queryString}` : baseUrl;
 	}
 
 	#buildQueryString(query: QueryParams | undefined): string {
-		if (!query) {
-			return "";
-		}
+		if (!query) return "";
 
-		// Handle URLSearchParams directly
 		if (query instanceof URLSearchParams) {
 			return query.toString();
 		}
 
-		// Build query string from Record
 		const params = new URLSearchParams();
-
-		for (const [key, value] of Object.entries(query)) {
-			if (value === null || value === undefined) {
-				// Skip null and undefined values
-				continue;
-			}
-
-			if (Array.isArray(value)) {
-				// Handle arrays - add multiple entries
-				for (const item of value) {
-					if (item !== null && item !== undefined) {
-						params.append(key, String(item));
-					}
+		for (const [key, values] of Object.entries(query)) {
+			for (const value of arrayWrapOptional(values)) {
+				if (value != null) {
+					params.append(key, String(value));
 				}
-			} else {
-				// Handle scalar values
-				params.append(key, String(value));
 			}
 		}
 
 		return params.toString();
 	}
+}
+
+const firstHeaderValue = (headers: Headers, name: string): string | null =>
+	headers.get(name)?.split(",")[0]?.trim() ?? null;
+
+export function getProtocolFromHeaders(headers: Headers): string | null {
+	const forwardedProto =
+		firstHeaderValue(headers, "x-forwarded-proto") ??
+		firstHeaderValue(headers, "x-forwarded-protocol") ??
+		firstHeaderValue(headers, "x-url-scheme");
+	if (forwardedProto) {
+		return forwardedProto.includes(":") ? forwardedProto : `${forwardedProto}:`;
+	}
+
+	const frontEndHttps =
+		firstHeaderValue(headers, "front-end-https") ?? firstHeaderValue(headers, "x-forwarded-ssl");
+	if (frontEndHttps === "on") {
+		return "https:";
+	}
+
+	return null;
+}
+
+export function getHostFromHeaders(headers: Headers): string | null {
+	const host = firstHeaderValue(headers, "x-forwarded-host") ?? firstHeaderValue(headers, "host");
+
+	return host;
 }

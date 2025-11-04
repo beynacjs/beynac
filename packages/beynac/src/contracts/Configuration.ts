@@ -123,10 +123,10 @@ export interface Configuration<RouteParams extends Record<string, string> = {}> 
 	 * Application URL configuration for generating absolute URLs
 	 *
 	 * URL generation follows this precedence (highest to lowest priority):
-	 * 1. Override config (overrideHost, overrideHttps) - always used, ignores request
+	 * 1. Override config (overrideHost, overrideProtocol) - always used, ignores request
 	 * 2. Request headers (X-Forwarded-*, Host) - from proxy or load balancer
 	 * 3. Request URL - protocol, hostname, and port from the actual request
-	 * 4. Default config (defaultHost, defaultHttps) - fallback when request unavailable
+	 * 4. Default config (defaultHost, defaultProtocol) - fallback when request unavailable
 	 */
 	appUrl?: {
 		/**
@@ -145,16 +145,16 @@ export interface Configuration<RouteParams extends Record<string, string> = {}> 
 		defaultHost?: string | undefined;
 
 		/**
-		 * Always use HTTPS (true) or HTTP (false), regardless of request.
+		 * Always use this protocol, regardless of request headers or URL.
 		 * When set, this overrides X-Forwarded-Proto and request URL protocol.
 		 */
-		overrideHttps?: boolean | undefined;
+		overrideProtocol?: "http" | "https" | undefined;
 
 		/**
-		 * Default to HTTPS (true) or HTTP (false) when protocol unavailable
-		 * from request headers or URL (e.g., generating URLs outside request context).
+		 * Default protocol to use when unavailable from request headers or URL
+		 * (e.g., generating URLs outside request context).
 		 */
-		defaultHttps?: boolean | undefined;
+		defaultProtocol?: "http" | "https" | undefined;
 	};
 }
 

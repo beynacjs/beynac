@@ -5,14 +5,14 @@ import type { Headers } from "../contracts/Headers";
 export class HeadersImpl implements Headers {
 	#keys: string[] | undefined;
 
-	constructor(private requestContext: IntegrationContext = inject(IntegrationContext)) {}
+	constructor(private context: IntegrationContext = inject(IntegrationContext)) {}
 
 	get size(): number {
 		return this.#getKeys().length;
 	}
 
 	get(name: string): string | null {
-		return this.requestContext.getRequestHeader(name);
+		return this.context.getRequestHeader(name);
 	}
 
 	keys(): ReadonlyArray<string> {
@@ -34,13 +34,13 @@ export class HeadersImpl implements Headers {
 	}
 
 	get canModify(): boolean {
-		return this.requestContext.setCookie !== null;
+		return this.context.setCookie !== null;
 	}
 
 	set(name: string, _value: string): void {
 		if (!this.canModify) {
 			throw new Error(
-				`Cannot set header "${name}" in context "${this.requestContext.context}": headers are read-only`,
+				`Cannot set header "${name}" in context "${this.context.context}": headers are read-only`,
 			);
 		}
 		// TODO: Implement setResponseHeader in RequestContext
@@ -48,7 +48,7 @@ export class HeadersImpl implements Headers {
 	}
 
 	#getKeys() {
-		const names = this.requestContext.getRequestHeaderNames();
+		const names = this.context.getRequestHeaderNames();
 		return Array.from(names).map((name) => name.toLowerCase());
 	}
 }

@@ -27,37 +27,21 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 	constructor(config: Configuration<RouteParams> = {}) {
 		this.container = new ContainerImpl();
 		this.#config = config;
+		if (config.appUrl?.overrideHost?.includes("/")) {
+			throw new Error(
+				`Invalid appUrl.overrideHost: "${config.appUrl.overrideHost}". Host must not contain slashes.`,
+			);
+		}
+		if (config.appUrl?.defaultHost?.includes("/")) {
+			throw new Error(
+				`Invalid appUrl.defaultHost: "${config.appUrl.defaultHost}". Host must not contain slashes.`,
+			);
+		}
 	}
 
 	bootstrap(): void {
 		if (this.#bootstrapped) return;
 		this.#bootstrapped = true;
-
-		// Validate appUrl configuration
-		if (this.#config.appUrl?.overrideHost) {
-			if (this.#config.appUrl.overrideHost.includes("/")) {
-				throw new Error(
-					`Invalid appUrl.overrideHost: "${this.#config.appUrl.overrideHost}". Host must not contain slashes.`,
-				);
-			}
-			if (this.#config.appUrl.overrideHost.includes("://")) {
-				throw new Error(
-					`Invalid appUrl.overrideHost: "${this.#config.appUrl.overrideHost}". Host must not contain protocol prefix.`,
-				);
-			}
-		}
-		if (this.#config.appUrl?.defaultHost) {
-			if (this.#config.appUrl.defaultHost.includes("/")) {
-				throw new Error(
-					`Invalid appUrl.defaultHost: "${this.#config.appUrl.defaultHost}". Host must not contain slashes.`,
-				);
-			}
-			if (this.#config.appUrl.defaultHost.includes("://")) {
-				throw new Error(
-					`Invalid appUrl.defaultHost: "${this.#config.appUrl.defaultHost}". Host must not contain protocol prefix.`,
-				);
-			}
-		}
 
 		this.container.singletonInstance(Configuration, this.#config);
 		this.container.singletonInstance(Application, this);

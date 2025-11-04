@@ -1,12 +1,11 @@
 import { afterEach, describe, expect, expectTypeOf, test } from "bun:test";
 import { Dispatcher } from "../contracts/Dispatcher";
-import { IntegrationContext } from "../contracts/IntegrationContext";
 import { createApplication } from "../entry";
 import { Cookies, Headers } from "../facades";
 import { get, group } from "../router";
 import { BaseController, ControllerContext } from "../router/Controller";
 import type { Routes } from "../router/router-types";
-import { MockController, mockMiddleware, requestContext } from "../test-utils";
+import { integrationContext, MockController, mockMiddleware } from "../test-utils";
 import { ApplicationImpl } from "./ApplicationImpl";
 import { DispatcherImpl } from "./DispatcherImpl";
 import { setFacadeApplication } from "./facade";
@@ -77,6 +76,49 @@ describe("ApplicationImpl", () => {
 		}
 	});
 
+	test("url() with query params", () => {
+		const routes = get("/search", MockController, { name: "search" });
+		const app = new ApplicationImpl({ routes });
+		app.bootstrap();
+
+		// Basic query params
+		expect(app.url("search", { query: { q: "test" } })).toBe("/search?q=test");
+
+		// Multiple query value types: string, number, array
+		expect(app.url("search", { query: { q: "test", page: 1, tags: ["a", "b"] } })).toBe(
+			"/search?q=test&page=1&tags=a&tags=b",
+		);
+
+		// null and undefined are omitted
+		expect(app.url("search", { query: { q: "test", filter: null, sort: undefined } })).toBe(
+			"/search?q=test",
+		);
+
+		// URLSearchParams
+		const params = new URLSearchParams();
+		params.append("q", "test");
+		params.append("page", "2");
+		expect(app.url("search", { query: params })).toBe("/search?q=test&page=2");
+
+		// All param variations work for no-param routes
+		expect(app.url("search", { query: { q: "test" } })).toBe("/search?q=test");
+		expect(app.url("search", { params: undefined, query: { q: "test" } })).toBe("/search?q=test");
+		expect(app.url("search", { params: {}, query: { q: "test" } })).toBe("/search?q=test");
+	});
+
+	test("url() with query params and route params", () => {
+		const routes = get("/users/{id}", MockController, { name: "users.show" });
+		const app = new ApplicationImpl({ routes });
+		app.bootstrap();
+
+		expect(app.url("users.show", { params: { id: 123 }, query: { tab: "profile" } })).toBe(
+			"/users/123?tab=profile",
+		);
+
+		// @ts-expect-error
+		app.url("users.show", { params: { incorrect: 123 }, query: { tab: "profile" } });
+	});
+
 	test("handles HTTP request through RouterV2", async () => {
 		class TestController extends BaseController {
 			handle() {
@@ -90,15 +132,10 @@ describe("ApplicationImpl", () => {
 		const app = createApplication({ routes });
 
 		const request = new Request("http://example.com/hello");
-		const context: IntegrationContext = {
-			context: "test",
-			getCookie: (name) => (name === "c" ? "cookie" : null),
-			getCookieNames: () => ["c"],
-			deleteCookie: null,
-			setCookie: null,
-			getRequestHeader: (name) => (name === "h" ? "header" : null),
-			getRequestHeaderNames: () => ["h"],
-		};
+		const context = integrationContext({
+			cookies: { c: "cookie" },
+			headers: { h: "header" },
+		});
 
 		const response = await app.handleRequest(request, context);
 		expect(await response.text()).toBe("Cookie: cookie, Header: header");
@@ -117,7 +154,7 @@ describe("ApplicationImpl", () => {
 			app.bootstrap();
 			mockMiddleware.reset();
 
-			await app.handleRequest(new Request("http://example.com/test"), requestContext());
+			await app.handleRequest(new Request("http://example.com/test"), integrationContext());
 
 			expect(mockMiddleware.log).toEqual(["M2", "M1"]);
 		});
@@ -141,7 +178,7 @@ describe("ApplicationImpl", () => {
 
 			app.bootstrap();
 			expect(async () => {
-				await app.handleRequest(new Request("http://example.com/user/123"), requestContext());
+				await app.handleRequest(new Request("http://example.com/user/123"), integrationContext());
 			}).toThrow('Route parameter "nonExistent" does not exist');
 		});
 
@@ -155,7 +192,7 @@ describe("ApplicationImpl", () => {
 			app.bootstrap();
 			const response = await app.handleRequest(
 				new Request("http://example.com/user/123"),
-				requestContext(),
+				integrationContext(),
 			);
 
 			expect(response.status).toBe(200);
@@ -297,23 +334,13 @@ describe("ApplicationImpl", () => {
 			const app = createApplication({
 				appUrl: {
 					overrideHost: "config.example.com:9000",
-					overrideHttps: true,
+					overrideProtocol: "https",
 				},
 				routes,
 			});
 
 			const request = new Request("http://localhost/test");
-			const context: IntegrationContext = {
-				context: "test",
-				getCookie: () => null,
-				getCookieNames: () => [],
-				deleteCookie: null,
-				setCookie: null,
-				getRequestHeader: () => null,
-				getRequestHeaderNames: () => [],
-			};
-
-			const response = await app.handleRequest(request, context);
+			const response = await app.handleRequest(request, integrationContext());
 			expect(await response.text()).toBe("https://config.example.com:9000/test");
 		});
 
@@ -328,82 +355,15 @@ describe("ApplicationImpl", () => {
 			const app = createApplication({ routes });
 
 			const request = new Request("http://localhost/test");
-			const context: IntegrationContext = {
-				context: "test",
-				getCookie: () => null,
-				getCookieNames: () => [],
-				deleteCookie: null,
-				setCookie: null,
-				getRequestHeader: (name) => {
-					if (name === "x-forwarded-proto") return "https";
-					if (name === "x-forwarded-host") return "proxy.example.com";
-					if (name === "x-forwarded-port") return "8443";
-					return null;
+			const context = integrationContext({
+				headers: {
+					"x-forwarded-proto": "https",
+					"x-forwarded-host": "proxy.example.com:8443",
 				},
-				getRequestHeaderNames: () => ["x-forwarded-proto", "x-forwarded-host", "x-forwarded-port"],
-			};
+			});
 
 			const response = await app.handleRequest(request, context);
 			expect(await response.text()).toBe("https://proxy.example.com:8443/test");
-		});
-	});
-
-	describe("URL generation with query params", () => {
-		test("generates URLs with query params for routes without params", () => {
-			const routes = get("/search", MockController, { name: "search" });
-			const app = new ApplicationImpl({ routes });
-			app.bootstrap();
-
-			expect(app.url("search", { query: { q: "test" } })).toBe("/search?q=test");
-		});
-
-		test("generates URLs with query params for routes with params", () => {
-			const routes = get("/users/{id}", MockController, { name: "users.show" });
-			const app = new ApplicationImpl({ routes });
-			app.bootstrap();
-
-			expect(app.url("users.show", { params: { id: 123 }, query: { tab: "profile" } })).toBe(
-				"/users/123?tab=profile",
-			);
-		});
-
-		test("accepts various query value types", () => {
-			const routes = get("/search", MockController, { name: "search" });
-			const app = new ApplicationImpl({ routes });
-			app.bootstrap();
-
-			// String, number, array
-			expect(app.url("search", { query: { q: "test", page: 1, tags: ["a", "b"] } })).toBe(
-				"/search?q=test&page=1&tags=a&tags=b",
-			);
-
-			// null and undefined
-			expect(app.url("search", { query: { q: "test", filter: null, sort: undefined } })).toBe(
-				"/search?q=test",
-			);
-		});
-
-		test("accepts URLSearchParams", () => {
-			const routes = get("/search", MockController, { name: "search" });
-			const app = new ApplicationImpl({ routes });
-			app.bootstrap();
-
-			const params = new URLSearchParams();
-			params.append("q", "test");
-			params.append("page", "2");
-
-			expect(app.url("search", { query: params })).toBe("/search?q=test&page=2");
-		});
-
-		test("query works with all param variations for no-param routes", () => {
-			const routes = get("/search", MockController, { name: "search" });
-			const app = new ApplicationImpl({ routes });
-			app.bootstrap();
-
-			// All these should compile and work
-			expect(app.url("search", { query: { q: "test" } })).toBe("/search?q=test");
-			expect(app.url("search", { params: undefined, query: { q: "test" } })).toBe("/search?q=test");
-			expect(app.url("search", { params: {}, query: { q: "test" } })).toBe("/search?q=test");
 		});
 	});
 });

@@ -267,10 +267,10 @@ export class ContainerImpl implements Container {
 		return result;
 	}
 
-	getIfAvailable<T>(type: KeyOrClass<T>): T | null {
+	getIfAvailable<T>(type: KeyOrClass<T>): T | undefined {
 		const result = this.#get<T>(type);
 		if (result instanceof ContainerError) {
-			return null;
+			return undefined;
 		}
 		return result;
 	}
