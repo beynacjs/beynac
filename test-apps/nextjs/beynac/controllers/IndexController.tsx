@@ -1,6 +1,6 @@
 /** @jsxImportSource beynac/view **/
-import { Controller } from "beynac";
-import { Component, PropsWithChildren, raw, renderResponse } from "beynac/view";
+import { BaseController } from "beynac/http";
+import { Component, PropsWithChildren, raw } from "beynac/view";
 import { readFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
@@ -10,9 +10,9 @@ const __dirname = dirname(__filename);
 
 const clientScript = readFileSync(join(__dirname, "../public/client.js"), "utf-8");
 
-export class IndexController implements Controller {
+export class IndexController extends BaseController {
 	handle() {
-		return renderResponse(<IndexView />);
+		return <IndexView />;
 	}
 }
 

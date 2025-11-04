@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "next:build": "next build --turbopack",
-    "next:start": "next start"
+    "next:start": "next start",
+    "test:integration": "bun test integration/"
   },
   "dependencies": {
     "react": "19.1.0",

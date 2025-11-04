@@ -1,5 +1,5 @@
-import { Controller, ControllerContext } from "beynac";
 import { Cookies } from "beynac/facades";
+import { BaseController, type ControllerContext } from "beynac/http";
 
 function jsonResponse(data: unknown, status = 200): Response {
 	return new Response(JSON.stringify(data), {
@@ -8,35 +8,31 @@ function jsonResponse(data: unknown, status = 200): Response {
 	});
 }
 
-export class GetCookiesController implements Controller {
+export class GetCookiesController extends BaseController {
 	handle() {
 		const cookies = Object.fromEntries(Cookies.entries());
 		return jsonResponse({ cookies });
 	}
 }
 
-export class SetCookieController implements Controller {
+export class SetCookieController extends BaseController {
 	async handle({ request }: ControllerContext) {
-		const body = (await request.json()) as {
-			name: string;
-			value: string;
-			options?: unknown;
-		};
+		const body = (await request.json()) as any;
 
 		if (!body.name) {
 			return jsonResponse({ error: "Cookie name is required" }, 400);
 		}
 
-		Cookies.set(body.name, body.value || "");
+		Cookies.set(body.name, body.value || "", body.options);
 
 		return jsonResponse({
 			success: true,
-			cookie: { name: body.name, value: body.value },
+			cookie: { name: body.name, value: body.value, options: body.options },
 		});
 	}
 }
 
-export class DeleteCookieController implements Controller {
+export class DeleteCookieController extends BaseController {
 	handle({ params }: ControllerContext) {
 		const { name } = params;
 
@@ -47,5 +43,11 @@ export class DeleteCookieController implements Controller {
 		Cookies.delete(name);
 
 		return jsonResponse({ success: true, deleted: name });
+	}
+}
+
+export class EchoParamController extends BaseController {
+	handle({ params }: ControllerContext) {
+		return jsonResponse({ param: params.param });
 	}
 }

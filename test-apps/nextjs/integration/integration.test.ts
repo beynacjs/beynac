@@ -1,0 +1,192 @@
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { spawn, type ChildProcess } from "child_process";
+import { resolve } from "path";
+
+const PORT = 3456;
+const BASE_URL = `http://localhost:${PORT}`;
+let serverProcess: ChildProcess;
+
+beforeAll(async () => {
+  // Spawn the dev server on a custom port to avoid clashing
+  console.log("Starting nextjs dev server...");
+  const projectRoot = resolve(import.meta.dir, "..");
+  serverProcess = spawn("bun", ["run", "dev"], {
+    cwd: projectRoot,
+    stdio: "pipe",
+    env: { ...process.env, PORT: String(PORT) },
+  });
+
+  // Wait for the server to be ready
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error("Server failed to start within 30 seconds"));
+    }, 30000);
+
+    serverProcess.stdout?.on("data", (data) => {
+      const output = data.toString();
+      if (output.includes("Ready in")) {
+        clearTimeout(timeout);
+        resolve();
+      }
+    });
+
+    serverProcess.stderr?.on("data", () => {
+      // Ignore stderr warnings from Next.js
+    });
+
+    serverProcess.on("error", (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+  });
+});
+
+afterAll(() => {
+  if (serverProcess) {
+    serverProcess.kill("SIGTERM");
+  }
+});
+
+describe("Cookie API", () => {
+  test("basic cookie flow: get empty, set, get, delete, get empty", async () => {
+    // Get cookies - should be empty
+    let response = await fetch(`${BASE_URL}/beynac/api/cookies`);
+    let data = await response.json();
+    expect(data.cookies).toEqual({});
+
+    // Set a cookie
+    response = await fetch(`${BASE_URL}/beynac/api/cookies`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "testCookie", value: "testValue" }),
+    });
+    data = await response.json();
+    expect(data.success).toBe(true);
+    expect(data.cookie.name).toBe("testCookie");
+    expect(data.cookie.value).toBe("testValue");
+
+    // Verify cookie is set by sending it back
+    response = await fetch(`${BASE_URL}/beynac/api/cookies`, {
+      headers: { Cookie: "testCookie=testValue" },
+    });
+    data = await response.json();
+    expect(data.cookies.testCookie).toBe("testValue");
+
+    // Delete the cookie
+    response = await fetch(`${BASE_URL}/beynac/api/cookies/testCookie`, {
+      method: "DELETE",
+    });
+    data = await response.json();
+    expect(data.success).toBe(true);
+    expect(data.deleted).toBe("testCookie");
+
+    // Verify cookie is deleted (no cookie header sent)
+    response = await fetch(`${BASE_URL}/beynac/api/cookies`);
+    data = await response.json();
+    expect(data.cookies).toEqual({});
+  });
+
+  test("cookie options are properly set in Set-Cookie headers", async () => {
+    const expiresDate = new Date("2026-01-01T00:00:00.000Z");
+
+    // Set multiple cookies with different options in one request
+    const response = await fetch(`${BASE_URL}/beynac/api/cookies`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "optionsCookie",
+        value: "testValue",
+        options: {
+          path: "/beynac",
+          domain: "localhost",
+          secure: true,
+          httpOnly: true,
+          maxAge: 3600,
+          expires: expiresDate.toISOString(),
+          sameSite: "lax",
+        },
+      }),
+    });
+
+    const setCookieHeader = response.headers.get("set-cookie");
+    expect(setCookieHeader).toBeTruthy();
+
+    // Verify all options are present in the Set-Cookie header
+    expect(setCookieHeader).toContain("optionsCookie=testValue");
+    expect(setCookieHeader).toContain("Path=/beynac");
+    expect(setCookieHeader).toContain("Domain=localhost");
+    expect(setCookieHeader).toContain("Secure");
+    expect(setCookieHeader).toContain("HttpOnly");
+    expect(setCookieHeader).toContain("Max-Age=3600");
+    expect(setCookieHeader).toContain("SameSite=lax");
+  });
+
+  test("sameSite strict option", async () => {
+    const response = await fetch(`${BASE_URL}/beynac/api/cookies`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "strictCookie",
+        value: "value",
+        options: { sameSite: "strict" },
+      }),
+    });
+
+    const setCookieHeader = response.headers.get("set-cookie");
+    expect(setCookieHeader).toContain("SameSite=strict");
+  });
+
+  test("sameSite none option with secure", async () => {
+    const response = await fetch(`${BASE_URL}/beynac/api/cookies`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "noneCookie",
+        value: "value",
+        options: { sameSite: "none", secure: true },
+      }),
+    });
+
+    const setCookieHeader = response.headers.get("set-cookie");
+    expect(setCookieHeader).toContain("SameSite=none");
+    expect(setCookieHeader).toContain("Secure");
+  });
+
+  test("partitioned option with secure", async () => {
+    const response = await fetch(`${BASE_URL}/beynac/api/cookies`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "partitionedCookie",
+        value: "value",
+        options: { partitioned: true, secure: true },
+      }),
+    });
+
+    const setCookieHeader = response.headers.get("set-cookie");
+    expect(setCookieHeader).toContain("Partitioned");
+    expect(setCookieHeader).toContain("Secure");
+  });
+});
+
+describe("Param API", () => {
+  test("param decoding works with URL-encoded slashes", async () => {
+    const response = await fetch(`${BASE_URL}/beynac/api/param/either%2For/test`);
+    const data = await response.json();
+    expect(data.param).toBe("either/or");
+  });
+
+  test("param decoding works with multiple encoded characters", async () => {
+    const response = await fetch(`${BASE_URL}/beynac/api/param/hello%20world%2Ftest/test`);
+    const data = await response.json();
+    expect(data.param).toBe("hello world/test");
+  });
+
+  test("param decoding works with special characters", async () => {
+    const response = await fetch(
+      `${BASE_URL}/beynac/api/param/${encodeURIComponent("foo?bar&baz=qux")}/test`,
+    );
+    const data = await response.json();
+    expect(data.param).toBe("foo?bar&baz=qux");
+  });
+});
