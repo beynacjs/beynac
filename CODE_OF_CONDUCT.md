@@ -4,7 +4,7 @@
 
 ### 1. Be Nice to Each Other
 
-We encourage kindness, respect, and empathy in all interactions. When communicating:
+We expect kindness, respect, and empathy in all interactions. When communicating:
 
 - Offer constructive feedback that helps others improve
 - Acknowledge the efforts and contributions of community members
