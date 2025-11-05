@@ -60,12 +60,18 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 
 		this.#urlGenerator = this.container.get(RouteUrlGenerator);
 
+		const autoRefreshEnabled =
+			this.#config.development &&
+			// TODO add configuration defaults so that each code usage doesn't need to know about the correct default
+			this.#config.devMode?.autoRefresh !== false;
+
 		// Register routes with dev mode middleware if needed
 		if (this.#config.routes) {
 			const router = this.container.get(Router);
 
 			// Wrap routes with dev mode middleware if enabled
-			if (this.#config.development && !this.#config.devMode?.suppressAutoRefresh) {
+			// TODO add configuration defaults so that each code usage doesn't need to know about the correct default
+			if (autoRefreshEnabled) {
 				const wrappedRoutes = group({ middleware: DevModeAutoRefreshMiddleware }, [
 					this.#config.routes,
 				]);
@@ -76,9 +82,7 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 				this.#urlGenerator.register(this.#config.routes);
 			}
 		}
-
-		// Start dev mode watch service
-		if (this.#config.development && !this.#config.devMode?.suppressAutoRefresh) {
+		if (autoRefreshEnabled) {
 			this.container.get(DevModeWatchService).start();
 		}
 	}

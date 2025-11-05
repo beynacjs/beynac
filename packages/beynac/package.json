@@ -9,6 +9,7 @@
     ".": "./dist/index.js",
     "./contracts": "./dist/contracts/index.js",
     "./facades": "./dist/facades.js",
+    "./helpers": "./dist/helpers/index.js",
     "./http": "./dist/http/index.js",
     "./integrations/next": "./dist/integrations/next.js",
     "./view": "./dist/view/index.js",

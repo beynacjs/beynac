@@ -426,8 +426,10 @@ export interface ResourceOptions<
  *
  * Creates routes for API-focused resource actions:
  * - GET /resource -> index
+ * - POST /resource/create -> create
  * - POST /resource -> store
  * - GET /resource/{resourceId} -> show
+ * - GET /resource/{resourceId}/edit -> edit
  * - PUT/PATCH /resource/{resourceId} -> update
  * - DELETE /resource/{resourceId} -> destroy
  *

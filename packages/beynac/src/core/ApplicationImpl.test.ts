@@ -172,7 +172,7 @@ describe("ApplicationImpl", () => {
 
 		test("config flows from app to router - invalid param access throws by default", async () => {
 			const app = new ApplicationImpl({
-				devMode: { suppressAutoRefresh: true },
+				devMode: { autoRefresh: false },
 				routes: get("/user/{id}", ControllerInvalidParam),
 			});
 

@@ -55,7 +55,7 @@ export interface Configuration<RouteParams extends Record<string, string> = {}> 
 		/**
 		 * Suppress automatic page refresh in development mode
 		 */
-		suppressAutoRefresh?: boolean;
+		autoRefresh?: boolean;
 
 		/**
 		 * List of absolute file paths to folders to watch for changes. If undefined, `process.cwd()` will be used

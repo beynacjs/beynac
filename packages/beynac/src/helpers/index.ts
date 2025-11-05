@@ -6,3 +6,4 @@ export {
 	type ParsedHeader,
 	parseAttributeHeader,
 } from "./ContentDisposition";
+export { parseDurationAsFutureDate, parseDurationAsMs } from "./duration";

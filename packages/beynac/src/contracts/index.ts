@@ -7,4 +7,5 @@ export { Headers } from "./Headers";
 export { IntegrationContext } from "./IntegrationContext";
 export { KeepAlive } from "./KeepAlive";
 export { RequestLocals } from "./RequestLocals";
+export { Storage } from "./Storage";
 export { ViewRenderer } from "./ViewRenderer";

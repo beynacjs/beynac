@@ -218,7 +218,7 @@ export const createTestApplication = <RouteParams extends Record<string, string>
 } => {
 	const app = createApplication({
 		...config,
-		devMode: { suppressAutoRefresh: true, ...config.devMode },
+		devMode: { autoRefresh: false, ...config.devMode },
 	});
 
 	const container = app.container;

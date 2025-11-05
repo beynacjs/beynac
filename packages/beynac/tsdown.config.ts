@@ -10,6 +10,7 @@ export default defineConfig({
     "view/jsx-runtime": "src/view/jsx-runtime.ts",
     "view/jsx-dev-runtime": "src/view/jsx-dev-runtime.ts",
     "http/index": "src/http/index.ts",
+    "helpers/index": "src/helpers/index.ts",
   },
   format: ["esm"],
   outDir: "dist",
