@@ -22,7 +22,7 @@ There is a side benefit: lots of projects have a CODE_OF_CONDUCT.md with a long 
 
 ### 3. Channel Your Frustration Effectively
 
-We all feel frustrated from time to time. Directing that frustration at specific individuals or at the project in general is not a good way to achieve anything.
+We all feel frustrated from time to time. Directing that frustration at specific individuals or at the project in general is not an effective way to achieve anything.
 
 - Maintainers: are people always asking the same questions or filing the same "not an issue" issues? Try adding content to the docs or the issue template to help people realise that their issue has already been solved.
 - Users: annoyed that some bug or missing feature got in the way of your work? Search the issues to see if it's been reported. If it has, add any missing context to that issue. If it hasn't, take the time to file a good issue, following the guidelines in the new issue template. Or even better, if you have the skills to fix the issue, open a PR!
