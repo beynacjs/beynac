@@ -8,9 +8,6 @@ packages/website/public/api/
 # Dot directories (but not dotfiles)
 **/.*/
 
-# Other projects
-laravel/
-
 # Lock files
 bun.lockb
 package-lock.json

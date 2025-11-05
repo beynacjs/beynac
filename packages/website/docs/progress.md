@@ -6,8 +6,6 @@ title: Laravel Port Progress
 
 This page tracks our progress porting Laravel to TypeScript.
 
-<<< @/docs/progress-content.html
-
 ## How to Read This Report
 
 - **Lines ported**: Percentage of lines of code that have been ported
