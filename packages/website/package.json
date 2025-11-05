@@ -1,0 +1,18 @@
+{
+  "name": "@beynac/website",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "bun run build:api && bun run build:vitepress",
+    "build:api": "typedoc",
+    "build:vitepress": "vitepress build",
+    "preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "beynac": "workspace:",
+    "typedoc": "^0.28.9",
+    "vitepress": "^1.5.0",
+    "vue": "^3.5.13"
+  }
+}

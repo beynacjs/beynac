@@ -1,0 +1,9 @@
+{
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "cSpell.words": ["Beynac", "bunfig", "jsxs", "laravel", "unitless", "vendored"],
+  "typescript.tsdk": "node_modules/typescript/lib"
+}

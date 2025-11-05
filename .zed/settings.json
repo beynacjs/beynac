@@ -1,0 +1,46 @@
+{
+  "lsp": {
+    "eslint": {
+      "settings": {
+        "enable": false
+      }
+    },
+    "oxc": {
+      "initialization_options": {
+        "options": {
+          "run": "onType",
+          "typeAware": true,
+          "tsConfigPath": "packages/beynac/tsconfig.json",
+          "configPath": "packages/beynac/.oxlintrc.json"
+        }
+      }
+    }
+  },
+  "languages": {
+    "TypeScript": {
+      "formatter": { "language_server": { "name": "biome" } },
+      "code_actions_on_format": {
+        "source.fixAll.biome": true,
+        "source.organizeImports.biome": true
+      }
+    },
+    "JavaScript": {
+      "formatter": { "language_server": { "name": "biome" } },
+      "code_actions_on_format": {
+        "source.fixAll.biome": true,
+        "source.organizeImports.biome": true
+      }
+    },
+    "TSX": {
+      "formatter": { "language_server": { "name": "biome" } },
+      "code_actions_on_format": {
+        "source.fixAll.biome": true,
+        "source.organizeImports.biome": true
+      }
+    },
+    "JSON": {
+      "formatter": { "language_server": { "name": "biome" } }
+    }
+  },
+  "format_on_save": "on"
+}

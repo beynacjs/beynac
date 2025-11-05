@@ -1,0 +1,4 @@
+[test]
+
+exclude = ["**/dist/**"]
+preload = ["./test-setup.ts"]

@@ -1,0 +1,5 @@
+
+# Generated files
+.vitepress/cache
+.vitepress/dist
+public/api

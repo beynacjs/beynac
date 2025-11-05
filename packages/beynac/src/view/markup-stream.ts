@@ -1,0 +1,34 @@
+import { arrayWrap } from "../utils";
+import { JSXElement, type JSXNode, tagAsJsxElement } from "./public-types";
+
+/**
+ * A MarkupStream represents an HTML/XML element with optional tag, attributes, and children.
+ * It serves as the primary building block for the virtual DOM representation.
+ */
+export class MarkupStream {
+	readonly tag: string | null;
+	readonly displayName: string | null;
+	readonly attributes: Record<string, unknown> | null;
+	readonly content: JSXNode[] | null;
+
+	constructor(
+		tag: string | null,
+		attributes: Record<string, unknown> | null,
+		children: JSXNode,
+		displayName?: string | null,
+	) {
+		this.tag = tag;
+		this.attributes = attributes;
+		this.content = children == null ? null : arrayWrap(children);
+		this.displayName = displayName ?? tag ?? null;
+		tagAsJsxElement(this);
+	}
+}
+
+// factory function with correct typing - MarkupStream isn't recognised as an Element because the tag is set dynamically in the constructor
+export const newMarkupStreamAsElement = (
+	tag: string | null,
+	attributes: Record<string, unknown> | null,
+	children: JSXNode,
+	displayName?: string | null,
+): JSXElement => new MarkupStream(tag, attributes, children, displayName) as unknown as JSXElement;
