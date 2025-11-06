@@ -1,79 +1,64 @@
-/*!
- * This file imported from content-disposition package
- * Original Copyright(c) 2014-2017 Douglas Christopher Wilson
- * MIT Licensed
- *
- * It has been modified from the original
- */
-
 import { basename } from "node:path";
 
-/**
- * Options for contentDisposition function
- */
-export interface ContentDispositionOptions {
-	/**
-	 * The disposition type (default: 'attachment')
-	 */
-	type?: string;
-	/**
-	 * Fallback filename for non-UTF-8 browsers
-	 * - true (default): auto-generate ISO-8859-1 fallback
-	 * - false: no fallback
-	 * - string: custom ISO-8859-1 fallback
-	 */
-	fallback?: string | boolean;
-}
-
-/**
- * Parsed header with value and attributes
- */
-export interface ParsedHeader {
+export interface HeaderValueWithAttributes {
 	/**
 	 * The header value (e.g., 'attachment', 'inline')
 	 */
 	value: string;
 	/**
-	 * Attributes from the header
+	 * Attributes from the header e.g. { filename: 'example.txt' }
 	 */
 	attributes: Record<string, string | undefined>;
 }
 
 /**
- * Create an attachment Content-Disposition header.
+ * Generate a Content-Disposition "attachment" header
  *
- * @param {string} [filename]
- * @param {ContentDispositionOptions} [options]
- * @return {string}
- * @public
+ * @param filename
+ * @param options.fallback either an ASCII file name to use as a fallback for clients that don't support unicode file names, or `false` to disable the default behaviour of automatically generating a fallback by stripping unicode characters
  */
-export function contentDisposition(filename?: string, options?: ContentDispositionOptions): string {
-	const opts = options || {};
-
-	// get type
-	const type = opts.type || "attachment";
-
-	// get parameters
-	const params = createparams(filename, opts.fallback);
-
-	// format into string
-	return format({ value: type, attributes: params || {} });
+export function contentDisposition(
+	filename: string,
+	options?: {
+		fallback?: string | boolean;
+	},
+): string {
+	const params = createparams(filename, options?.fallback);
+	return format({ value: "attachment", attributes: params || {} });
 }
 
 /**
- * Format attribute header with value and attributes.
+ * Format attribute header with value and attributes. This is the format used by
+ * headers like Content-Disposition: <value>; <attribute>=<value>; ...
  *
- * @param {object} options
- * @param {string} options.value - Header value (e.g., 'attachment', 'inline')
- * @param {Record<string, string | number>} [options.attributes] - Attributes to include
- * @param {Record<string, string | boolean>} [options.fallbacks] - Fallback values for attributes
- * @return {string}
- * @public
+ * This uses RFC 5987 formatting, where headers with unicode characters are sent
+ * in special fields like `filename*=UTF-8''encoded-filename`, with a fallback
+ * at `filename=ascii-filename` for clients who don't support it the new format.
+ *
+ * @param options.value - Header value (e.g., 'attachment', 'inline')
+ * @param options.attributes - an object of key/value pairs e.g. { filename: 'example.txt' }
+ * @param options.fallbacks - control fallback values for each attribute, pass `false` to disable the default behaviour of automatically generating a fallback by stripping unicode characters
+ *
+ * @example
+ * formatAttributeHeader({
+ *   value: 'attachment',
+ *   attributes: { filename: 'example.txt' },
+ * }); // -> "attachment; filename=example.txt"
+ * formatAttributeHeader({
+ *   value: 'attachment',
+ *   attributes: { filename: '❤️.txt' },
+ *   fallback: { filename: 'love.txt' },
+ * }); // -> "attachment; filename*=UTF-8''%F0%9F%92%96.txt; filename=love.txt"
+ * formatAttributeHeader({
+ *   value: 'attachment',
+ *   attributes: { filename: '❤️.txt' },
+ *   fallback: false, // or { filename: false }
+ * }); // -> "attachment; filename*=UTF-8''%F0%9F%92%96.txt"
  */
 export function formatAttributeHeader(options: {
 	value: string;
 	attributes?: Record<string, string | number>;
-	fallbacks?: Record<string, string | boolean>;
+	fallbacks?: Record<string, string | boolean> | boolean;
 }): string {
 	const { value, attributes = {}, fallbacks = {} } = options;
 	const params = buildAttributesWithFallbacks(attributes, fallbacks);
@@ -107,10 +92,10 @@ export function formatContentDispositionHeader(options: {
  * Parse attribute header string.
  *
  * @param {string} string
- * @return {ParsedHeader}
+ * @return {HeaderValueWithAttributes}
  * @public
  */
-export function parseAttributeHeader(string: string): ParsedHeader {
+export function parseAttributeHeader(string: string): HeaderValueWithAttributes {
 	if (!string || typeof string !== "string") {
 		throw new TypeError("argument string is required");
 	}
@@ -182,11 +167,18 @@ export function parseAttributeHeader(string: string): ParsedHeader {
 //
 // IMPLEMENTATION
 //
+// This part of the file imported from content-disposition package
+// Original Copyright(c) 2014-2017 Douglas Christopher Wilson
+// MIT Licensed
+//
+// It has been modified from the original
+//
 
 /**
  * RegExp to match non attr-char, *after* encodeURIComponent (i.e. not including "%")
  * @private
  */
+// eslint-disable-next-line no-control-regex
 const ENCODE_URL_ATTR_CHAR_REGEXP = /[\x00-\x20"'()*,/:;<=>?@[\\\]{}\x7f]/g;
 
 /**
@@ -209,6 +201,7 @@ const NON_LATIN1_REGEXP = /[^\x20-\x7e\xa0-\xff]/g;
  * CHAR        = <any US-ASCII character (octets 0 - 127)>
  * @private
  */
+// eslint-disable-next-line no-control-regex
 const QESC_REGEXP = /\\([\u0000-\u007f])/g;
 
 /**
@@ -242,6 +235,7 @@ const QUOTE_REGEXP = /([\\"])/g;
  * @private
  */
 const PARAM_REGEXP =
+	// eslint-disable-next-line no-control-regex
 	/;[\x09\x20]*([!#$%&'*+.0-9A-Z^_`a-z|~-]+)[\x09\x20]*=[\x09\x20]*("(?:[\x20!\x23-\x5b\x5d-\x7e\x80-\xff]|\\[\x20-\x7e])*"|[!#$%&'*+.0-9A-Z^_`a-z|~-]+)[\x09\x20]*/g;
 const TEXT_REGEXP = /^[\x20-\x7e\x80-\xff]+$/;
 const TOKEN_REGEXP = /^[!#$%&'*+.0-9A-Z^_`a-z|~-]+$/;
@@ -283,25 +277,31 @@ const EXT_VALUE_REGEXP =
  * ext-token        = <the characters in token, followed by "*">
  * @private
  */
+// eslint-disable-next-line no-control-regex
 const DISPOSITION_TYPE_REGEXP = /^([!#$%&'*+.0-9A-Z^_`a-z|~-]+)[\x09\x20]*(?:$|;)/;
 
 /**
  * Build attributes with fallbacks for multiple parameters.
  *
  * @param {Record<string, string | number>} attributes
- * @param {Record<string, string | boolean>} [fallbacks]
+ * @param {Record<string, string | boolean> | boolean} [fallbacks]
  * @return {Record<string, string>}
  * @private
  */
 function buildAttributesWithFallbacks(
 	attributes: Record<string, string | number>,
-	fallbacks: Record<string, string | boolean> = {},
+	fallbacks: Record<string, string | boolean> | boolean = {},
 ): Record<string, string> {
 	const result: Record<string, string> = {};
 
 	for (const [key, rawValue] of Object.entries(attributes)) {
 		const value = String(rawValue);
-		const fallback = fallbacks[key] !== undefined ? fallbacks[key] : true;
+		const fallback =
+			typeof fallbacks === "boolean"
+				? fallbacks
+				: fallbacks[key] !== undefined
+					? fallbacks[key]
+					: true;
 
 		// Special handling for filename attribute
 		if (key === "filename") {
@@ -418,11 +418,11 @@ function createparams(
 /**
  * Format object to header string.
  *
- * @param {ParsedHeader} obj
+ * @param {HeaderValueWithAttributes} obj
  * @return {string}
  * @private
  */
-function format(obj: ParsedHeader): string {
+function format(obj: HeaderValueWithAttributes): string {
 	const attributes = obj.attributes;
 	const headerValue = obj.value;
 
@@ -439,10 +439,11 @@ function format(obj: ParsedHeader): string {
 
 		for (let i = 0; i < params.length; i++) {
 			const param = params[i];
-
-			const val = param.slice(-1) === "*" ? ustring(attributes[param]) : qstring(attributes[param]);
-
-			string += "; " + param + "=" + val;
+			const attribute = attributes[param];
+			if (attribute != null) {
+				const val = param.slice(-1) === "*" ? ustring(attribute) : qstring(attribute);
+				string += "; " + param + "=" + val;
+			}
 		}
 	}
 

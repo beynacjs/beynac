@@ -1,11 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { contentDisposition, parseAttributeHeader } from "./headers";
+import { contentDisposition, formatAttributeHeader, parseAttributeHeader } from "./headers";
 
 describe(contentDisposition, () => {
-	test("should create an attachment header", () => {
-		expect(contentDisposition()).toBe("attachment");
-	});
-
 	describe("with filename - success cases", () => {
 		test.each([
 			// Basic filenames
@@ -133,33 +129,48 @@ describe(contentDisposition, () => {
 		])("%s: %s", (_, input, fallback, expected) => {
 			expect(contentDisposition(input, { fallback })).toBe(expected);
 		});
-
-		test("should do nothing without filename", () => {
-			expect(contentDisposition(undefined, { fallback: "plans.pdf" })).toBe("attachment");
-		});
 	});
+});
 
-	describe("with type option", () => {
-		test("should default to attachment", () => {
-			expect(contentDisposition()).toBe("attachment");
+describe(formatAttributeHeader, () => {
+	describe("api test cases", () => {
+		test("basic attachment with ASCII filename", () => {
+			expect(
+				formatAttributeHeader({
+					value: "attachment",
+					attributes: { filename: "example.txt" },
+				}),
+			).toBe('attachment; filename="example.txt"');
 		});
 
-		test("should require a string", () => {
-			expect(() => contentDisposition(undefined, { type: 42 as unknown as string })).toThrow(
-				/invalid type/,
-			);
+		test("attachment with unicode filename and custom fallback", () => {
+			expect(
+				formatAttributeHeader({
+					value: "attachment",
+					attributes: { filename: "❤️.txt" },
+					fallbacks: { filename: "love.txt" },
+				}),
+			).toBe("attachment; filename=\"love.txt\"; filename*=UTF-8''%E2%9D%A4%EF%B8%8F.txt");
 		});
 
-		test("should require a valid type", () => {
-			expect(() => contentDisposition(undefined, { type: "invalid;type" })).toThrow(/invalid type/);
+		test("attachment with unicode filename and fallback disabled (false)", () => {
+			expect(
+				formatAttributeHeader({
+					value: "attachment",
+					attributes: { filename: "❤️.txt" },
+					fallbacks: false,
+				}),
+			).toBe("attachment; filename*=UTF-8''%E2%9D%A4%EF%B8%8F.txt");
 		});
 
-		test.each([
-			["inline", undefined, "inline", "inline"],
-			["inline with filename", "plans.pdf", "inline", 'inline; filename="plans.pdf"'],
-			["normalized type", undefined, "INLINE", "inline"],
-		])("%s", (_, filename, type, expected) => {
-			expect(contentDisposition(filename, { type })).toBe(expected);
+		test("attachment with unicode filename and fallback disabled (object with false)", () => {
+			expect(
+				formatAttributeHeader({
+					value: "attachment",
+					attributes: { filename: "❤️.txt" },
+					fallbacks: { filename: false },
+				}),
+			).toBe("attachment; filename*=UTF-8''%E2%9D%A4%EF%B8%8F.txt");
 		});
 	});
 });

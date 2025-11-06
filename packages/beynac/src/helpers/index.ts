@@ -1,9 +1,8 @@
+export { parseDurationAsFutureDate, parseDurationAsMs } from "./duration";
 export {
-	type ContentDispositionOptions,
 	contentDisposition,
 	formatAttributeHeader,
 	formatContentDispositionHeader,
-	type ParsedHeader,
+	type HeaderValueWithAttributes,
 	parseAttributeHeader,
-} from "./ContentDisposition";
-export { parseDurationAsFutureDate, parseDurationAsMs } from "./duration";
+} from "./headers";
