@@ -4,51 +4,52 @@ import type {
 	StorageEndpoint,
 	StorageFile,
 } from "../contracts/Storage";
+import { StorageDirectoryImpl } from "./StorageDirectoryImpl";
 
 /**
  * Implementation of the StorageDisk interface
  */
 export class StorageDiskImpl implements StorageDisk {
 	readonly name: string;
-	// @ts-expect-error - Will be used in future implementation
-	readonly #endpoint: StorageEndpoint;
+	readonly #rootDirectory: StorageDirectoryImpl;
 
 	constructor(name: string, endpoint: StorageEndpoint) {
 		this.name = name;
-		this.#endpoint = endpoint;
+		// Create a root directory at path ""
+		this.#rootDirectory = new StorageDirectoryImpl(this, endpoint, "");
 	}
 
-	// StorageDirectoryOperations
+	// StorageDirectoryOperations - delegate to root directory
 
-	exists(): Promise<boolean> {
-		throw new Error("Not implemented");
+	async exists(): Promise<boolean> {
+		return await this.#rootDirectory.exists();
 	}
 
-	files(): Promise<StorageFile[]> {
-		throw new Error("Not implemented");
+	async files(): Promise<StorageFile[]> {
+		return await this.#rootDirectory.files();
 	}
 
-	allFiles(): Promise<StorageFile[]> {
-		throw new Error("Not implemented");
+	async allFiles(): Promise<StorageFile[]> {
+		return await this.#rootDirectory.allFiles();
 	}
 
-	directories(): Promise<StorageDirectory[]> {
-		throw new Error("Not implemented");
+	async directories(): Promise<StorageDirectory[]> {
+		return await this.#rootDirectory.directories();
 	}
 
-	allDirectories(): Promise<StorageDirectory[]> {
-		throw new Error("Not implemented");
+	async allDirectories(): Promise<StorageDirectory[]> {
+		return await this.#rootDirectory.allDirectories();
 	}
 
-	deleteAll(): Promise<void> {
-		throw new Error("Not implemented");
+	async deleteAll(): Promise<void> {
+		return await this.#rootDirectory.deleteAll();
 	}
 
-	directory(_path: string): StorageDirectory {
-		throw new Error("Not implemented");
+	directory(path: string): StorageDirectory {
+		return this.#rootDirectory.directory(path);
 	}
 
-	file(_path: string): StorageFile {
-		throw new Error("Not implemented");
+	file(path: string): StorageFile {
+		return this.#rootDirectory.file(path);
 	}
 }

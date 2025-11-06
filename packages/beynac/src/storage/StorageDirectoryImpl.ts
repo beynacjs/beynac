@@ -4,6 +4,7 @@ import type {
 	StorageEndpoint,
 	StorageFile,
 } from "../contracts/Storage";
+import { StorageFileImpl } from "./StorageFileImpl";
 
 /**
  * Implementation of the StorageDirectory interface
@@ -12,47 +13,58 @@ export class StorageDirectoryImpl implements StorageDirectory {
 	readonly type = "directory" as const;
 	readonly disk: StorageDisk;
 	readonly path: string;
-	// @ts-expect-error - Will be used in future implementation
 	readonly #endpoint: StorageEndpoint;
 
 	constructor(disk: StorageDisk, endpoint: StorageEndpoint, path: string) {
 		this.disk = disk;
 		this.#endpoint = endpoint;
-		// Ensure path ends with slash
-		this.path = path.endsWith("/") ? path : `${path}/`;
+		// Ensure path ends with slash (but keep empty path as empty)
+		this.path = path === "" ? "" : path.endsWith("/") ? path : `${path}/`;
 	}
 
 	// StorageDirectoryOperations
 
-	exists(): Promise<boolean> {
-		throw new Error("Not implemented");
+	async exists(): Promise<boolean> {
+		return await this.#endpoint.existsAnyUnderPrefix(this.path);
 	}
 
-	files(): Promise<StorageFile[]> {
-		throw new Error("Not implemented");
+	async files(): Promise<StorageFile[]> {
+		const filePaths = await this.#endpoint.listFiles(this.path, false);
+		return filePaths.map((filePath) => new StorageFileImpl(this.disk, this.#endpoint, filePath));
 	}
 
-	allFiles(): Promise<StorageFile[]> {
-		throw new Error("Not implemented");
+	async allFiles(): Promise<StorageFile[]> {
+		const filePaths = await this.#endpoint.listFiles(this.path, true);
+		return filePaths.map((filePath) => new StorageFileImpl(this.disk, this.#endpoint, filePath));
 	}
 
-	directories(): Promise<StorageDirectory[]> {
-		throw new Error("Not implemented");
+	async directories(): Promise<StorageDirectory[]> {
+		const dirPaths = await this.#endpoint.listDirectories(this.path, false);
+		return dirPaths.map((dirPath) => new StorageDirectoryImpl(this.disk, this.#endpoint, dirPath));
 	}
 
-	allDirectories(): Promise<StorageDirectory[]> {
-		throw new Error("Not implemented");
+	async allDirectories(): Promise<StorageDirectory[]> {
+		const dirPaths = await this.#endpoint.listDirectories(this.path, true);
+		return dirPaths.map((dirPath) => new StorageDirectoryImpl(this.disk, this.#endpoint, dirPath));
 	}
 
-	deleteAll(): Promise<void> {
-		throw new Error("Not implemented");
+	async deleteAll(): Promise<void> {
+		await this.#endpoint.deleteAllUnderPrefix(this.path);
 	}
 
-	directory(_path: string): StorageDirectory {
-		throw new Error("Not implemented");
+	directory(path: string): StorageDirectory {
+		// Remove leading slash if present
+		const cleanPath = path.startsWith("/") ? path.slice(1) : path;
+		// Join paths
+		const fullPath = `${this.path}${cleanPath}`;
+		return new StorageDirectoryImpl(this.disk, this.#endpoint, fullPath);
 	}
 
-	file(_path: string): StorageFile {
-		throw new Error("Not implemented");
+	file(path: string): StorageFile {
+		// Remove leading slash if present
+		const cleanPath = path.startsWith("/") ? path.slice(1) : path;
+		// Join paths
+		const fullPath = `${this.path}${cleanPath}`;
+		return new StorageFileImpl(this.disk, this.#endpoint, fullPath);
 	}
 }

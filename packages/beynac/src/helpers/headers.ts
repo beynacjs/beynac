@@ -36,7 +36,7 @@ export interface ParsedHeader {
 	/**
 	 * Attributes from the header
 	 */
-	attributes: Record<string, string>;
+	attributes: Record<string, string | undefined>;
 }
 
 /**

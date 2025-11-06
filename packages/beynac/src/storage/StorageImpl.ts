@@ -5,7 +5,9 @@ import type {
 	StorageEndpoint,
 	StorageFile,
 } from "../contracts/Storage";
+import { MemoryDriver } from "./drivers/memory/MemoryDriver";
 import type { StorageConfig } from "./StorageConfig";
+import { StorageDiskImpl } from "./StorageDiskImpl";
 
 /**
  * Implementation of the Storage interface
@@ -32,53 +34,65 @@ export class StorageImpl implements Storage {
 		}
 	}
 
-	#register(_name: string, _endpoint: StorageEndpoint): void {
-		throw new Error("Not implemented");
+	#register(name: string, endpoint: StorageEndpoint): void {
+		const disk = new StorageDiskImpl(name, endpoint);
+		this.#disks.set(name, disk);
 	}
 
-	disk(_name?: string | undefined): StorageDisk {
-		throw new Error("Not implemented");
+	disk(name?: string | undefined): StorageDisk {
+		const diskName = name ?? this.#defaultDiskName;
+		const disk = this.#disks.get(diskName);
+
+		if (!disk) {
+			throw new Error(`Disk "${diskName}" not found`);
+		}
+
+		return disk;
 	}
 
-	build(_endpoint: StorageEndpoint): StorageDisk {
-		throw new Error("Not implemented");
+	build(endpoint: StorageEndpoint): StorageDisk {
+		// Generate a unique name for the one-off disk
+		const name = `__built_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+		return new StorageDiskImpl(name, endpoint);
 	}
 
-	mock(_diskName: string): void {
-		throw new Error("Not implemented");
+	mock(diskName: string): void {
+		// Replace the disk with a memory driver
+		const memoryEndpoint = new MemoryDriver({});
+		this.#register(diskName, memoryEndpoint);
 	}
 
 	// StorageDirectoryOperations delegation to default disk
 
-	exists(): Promise<boolean> {
-		throw new Error("Not implemented");
+	async exists(): Promise<boolean> {
+		return await this.disk().exists();
 	}
 
-	files(): Promise<StorageFile[]> {
-		throw new Error("Not implemented");
+	async files(): Promise<StorageFile[]> {
+		return await this.disk().files();
 	}
 
-	allFiles(): Promise<StorageFile[]> {
-		throw new Error("Not implemented");
+	async allFiles(): Promise<StorageFile[]> {
+		return await this.disk().allFiles();
 	}
 
-	directories(): Promise<StorageDirectory[]> {
-		throw new Error("Not implemented");
+	async directories(): Promise<StorageDirectory[]> {
+		return await this.disk().directories();
 	}
 
-	allDirectories(): Promise<StorageDirectory[]> {
-		throw new Error("Not implemented");
+	async allDirectories(): Promise<StorageDirectory[]> {
+		return await this.disk().allDirectories();
 	}
 
-	deleteAll(): Promise<void> {
-		throw new Error("Not implemented");
+	async deleteAll(): Promise<void> {
+		return await this.disk().deleteAll();
 	}
 
-	directory(_path: string): StorageDirectory {
-		throw new Error("Not implemented");
+	directory(path: string): StorageDirectory {
+		return this.disk().directory(path);
 	}
 
-	file(_path: string): StorageFile {
-		throw new Error("Not implemented");
+	file(path: string): StorageFile {
+		return this.disk().file(path);
 	}
 }

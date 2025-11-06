@@ -1,11 +1,13 @@
+import { parseAttributeHeader } from "../../helpers/headers";
+
 /**
  * Extract filename from a File object
  *
  * @param file - The File object
  * @returns Suggested filename, or undefined if not available
  */
-export function getNameFromFile(_file: File): string | undefined {
-	throw new Error("Not implemented");
+export function getNameFromFile(file: File): string | null {
+	return file.name ?? null;
 }
 
 /**
@@ -16,6 +18,21 @@ export function getNameFromFile(_file: File): string | undefined {
  * @param request - The Request object
  * @returns Suggested filename, or undefined if not available
  */
-export function getNameFromRequest(_request: Request): string | undefined {
-	throw new Error("Not implemented");
+export function getNameFromRequest(request: Request): string | null {
+	// Check X-File-Name header first (priority)
+	const fileNameHeader = request.headers.get("X-File-Name");
+	if (fileNameHeader) {
+		return fileNameHeader;
+	}
+
+	// Check Content-Disposition header
+	const contentDisposition = request.headers.get("Content-Disposition");
+	if (contentDisposition) {
+		const parsed = parseAttributeHeader(contentDisposition);
+		if (parsed.attributes.filename) {
+			return parsed.attributes.filename;
+		}
+	}
+
+	return null;
 }
