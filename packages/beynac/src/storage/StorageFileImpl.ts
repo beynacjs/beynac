@@ -8,7 +8,7 @@ import type {
 	StoragePutResponse,
 	UploadUrlOptions,
 } from "../contracts/Storage";
-import { parseDurationAsFutureDate } from "../helpers/duration";
+import { durationStringToDate } from "../helpers/time";
 import { createFileName, mimeTypeFromFileName } from "./helpers/file-names";
 import { getNameFromFile, getNameFromRequest } from "./helpers/MetadataExtractor";
 
@@ -66,7 +66,7 @@ export class StorageFileImpl implements StorageFile {
 	async url(options?: DownloadUrlOptions | undefined): Promise<string> {
 		// Default expiry to far future if not provided
 		const expires = options?.expires
-			? parseDurationAsFutureDate(options.expires)
+			? durationStringToDate(options.expires)
 			: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000); // 100 years
 
 		return await this.#endpoint.getTemporaryDownloadUrl(this.path, expires, options?.downloadAs);
@@ -160,7 +160,7 @@ export class StorageFileImpl implements StorageFile {
 	async uploadUrl(options?: UploadUrlOptions | undefined): Promise<string> {
 		// Default expiry to far future if not provided
 		const expires = options?.expires
-			? parseDurationAsFutureDate(options.expires)
+			? durationStringToDate(options.expires)
 			: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000); // 100 years
 
 		return await this.#endpoint.getTemporaryUploadUrl(this.path, expires);

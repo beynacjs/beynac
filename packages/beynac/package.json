@@ -17,6 +17,7 @@
     "./view/jsx-runtime": "./dist/view/jsx-runtime.js",
     "./package.json": "./package.json"
   },
+  "sideEffects": false,
   "scripts": {
     "check": "bun run check:test && bun run check:tsc && bun run check:lint && bun run check:format",
     "check:test": "bun test --only-failures",
