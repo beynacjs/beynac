@@ -45,6 +45,16 @@ describe(transliterate, () => {
 		expect(transliterate("Straße")).toBe("Strasse");
 	});
 
+	test("imported", () => {
+		expect(transliterate("Я люблю единорогов")).toBe("Ya lyublyu edinorogov");
+		expect(transliterate("'أنا أحب حيدات'")).toBe("'ana ahb hydat'");
+		expect(transliterate("tôi yêu những chú kỳ lân")).toBe("toi yeu nhung chu ky lan");
+		expect(transliterate("En–dashes and em—dashes are normalized")).toBe(
+			"En-dashes and em-dashes are normalized",
+		);
+		expect(transliterate("Fußgängerübergänge")).toBe("Fussgaengeruebergaenge");
+	});
+
 	test("converts all German umlauts", () => {
 		expect(transliterate("äöü ÄÖÜ ß")).toBe("aeoeue AeOeUe ss");
 	});

@@ -34,7 +34,10 @@ export function withoutMarks(value: string): string {
  */
 export function transliterate(value: string): string {
 	unicodeReplacer ??= keyValueReplacer(unicodeReplacements);
-	return unicodeReplacer(value);
+	let result = unicodeReplacer(value);
+	// Normalize all Unicode dash punctuation (en-dash, em-dash, etc.) to regular hyphens
+	result = result.replaceAll(/\p{Dash_Punctuation}/gu, "-");
+	return result;
 }
 let unicodeReplacer: Replacer | undefined;
 

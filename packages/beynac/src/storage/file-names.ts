@@ -178,7 +178,6 @@ export function createFileName(
 
 	const cleanMimeType = mimeType.split(";")[0].trim().toLowerCase();
 
-	// Handle extension enforcement for backends that don't support MIME types
 	if (!supportsMimeTypes) {
 		const expectedExtension = mimeToExtensionPrimary.get(cleanMimeType);
 		if (expectedExtension) {

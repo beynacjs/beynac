@@ -1928,8 +1928,7 @@ export const unicodeReplacements: Record<string, string> = {
 	"🙵": "&",
 	"🙶": '"',
 	"🙷": '"',
-	// Hmmm, "Right Angle With Dot"I am of the opinion that this is not appropriate.
-	// "🙸": '"',
+	"🙸": '"',
 	"‽": "?!",
 	"🙹": "?!",
 	"🙺": "?!",
