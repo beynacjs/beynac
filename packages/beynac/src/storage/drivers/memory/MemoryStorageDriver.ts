@@ -1,28 +1,37 @@
 import type {
 	StorageEndpoint,
+	StorageEndpointFileInfo,
 	StorageEndpointWriteOptions,
-	StorageFileInfo,
 } from "../../../contracts/Storage";
+import { describeType } from "../../../utils";
+
+type SynchronousBinaryContent = string | ArrayBuffer | ArrayBufferView;
 
 /**
  * Configuration for the memory driver
  */
-export interface MemoryDriverConfig {
+export interface MemoryStorageDriverConfig {
 	/**
 	 * Pre-populate the driver with initial files. Useful for test fixtures.
 	 *
 	 * @example
 	 * initialFiles: {
-	 *   'users/avatar.png': { data: avatarBytes, mimeType: 'image/png' },
 	 *   'readme.txt': { data: 'Hello world', mimeType: 'text/plain' }
+	 *   'users/avatar.png': { data: avatarBytes },
 	 * }
 	 */
-	initialFiles?: Record<string, { data: string | Uint8Array; mimeType: string }> | undefined;
+	initialFiles?:
+		| Record<
+				string,
+				{
+					data: SynchronousBinaryContent | null | undefined;
+					mimeType?: string | undefined;
+				}
+		  >
+		| undefined;
 
 	/**
 	 * Whether this driver supports MIME types natively.
-	 * If false, MIME types will be inferred from file extensions.
-	 * Default: true
 	 */
 	supportsMimeTypes?: boolean | undefined;
 
@@ -32,57 +41,81 @@ export interface MemoryDriverConfig {
 	 * Default: "" (no invalid characters)
 	 *
 	 * @example
-	 * invalidFilenameChars: '<>:"/\\|?*' // Windows-style restrictions
+	 * invalidNameChars: '<>:"/\\|?*' // Windows-style restrictions
 	 */
-	invalidFilenameChars?: string | undefined;
+	invalidNameChars?: string | undefined;
+
+	/**
+	 * Name of this endpoint for identification purposes.
+	 * Default: "memory"
+	 */
+	name?: string | undefined;
 }
 
 interface MemoryFile {
 	data: Uint8Array;
-	mimeType: string;
+	mimeType: string | undefined;
 	etag: string;
 }
 
 /**
  * In-memory storage driver for testing and temporary storage
  */
-export class MemoryDriver implements StorageEndpoint {
+export class MemoryStorageDriver implements StorageEndpoint {
 	readonly #files: Map<string, MemoryFile> = new Map();
 
+	readonly name: string;
 	readonly supportsMimeTypes: boolean;
-	readonly invalidFilenameChars: string;
+	readonly invalidNameChars: string;
 
-	constructor(config: MemoryDriverConfig) {
+	constructor(config: MemoryStorageDriverConfig) {
+		this.name = config.name ?? "memory";
 		this.supportsMimeTypes = config.supportsMimeTypes ?? true;
-		this.invalidFilenameChars = config.invalidFilenameChars ?? "";
+		this.invalidNameChars = config.invalidNameChars ?? "";
 
 		// Pre-populate with initial files if provided
 		if (config.initialFiles) {
 			for (const [path, fileData] of Object.entries(config.initialFiles)) {
-				this.writeSingle({
-					data: fileData.data,
-					mimeType: fileData.mimeType,
-					suggestedName: path,
-				});
-				// Convert data to Uint8Array
-				const data =
-					typeof fileData.data === "string"
-						? new TextEncoder().encode(fileData.data)
-						: fileData.data;
-
-				// TODO: Use proper hash function for ETag when hash helpers are available
-				const etag = `"${data.length}-${Date.now()}"`;
-
-				this.#files.set(path, {
-					data,
-					mimeType: fileData.mimeType,
-					etag,
-				});
+				if (fileData.data != null) {
+					this.#writeSingleSync(
+						path.startsWith("/") ? path : `/${path}`,
+						fileData.data,
+						fileData.mimeType,
+					);
+				}
 			}
 		}
 	}
 
+	async writeSingle({ data, path, mimeType }: StorageEndpointWriteOptions): Promise<void> {
+		const response = new Response(
+			// cast required for bun's incomplete BodyInit types, this is valid according to web standard Response
+			data as ArrayBuffer,
+		);
+		const serialised = await response.arrayBuffer();
+		this.#writeSingleSync(path, serialised, mimeType);
+	}
+
+	#writeSingleSync(
+		path: string,
+		data: SynchronousBinaryContent,
+		mimeType: string | undefined,
+	): void {
+		validatePath(path);
+		const binaryData = serialize(data);
+
+		// TODO: Use proper hash function for ETag when hash helpers are available
+		const etag = `${binaryData.length}`;
+
+		this.#files.set(path, {
+			data: binaryData,
+			mimeType: mimeType,
+			etag,
+		});
+	}
+
 	async readSingle(path: string): Promise<Response> {
+		validatePath(path);
 		const file = this.#files.get(path);
 		if (!file) {
 			return new Response(null, { status: 404, statusText: "Not Found" });
@@ -91,87 +124,47 @@ export class MemoryDriver implements StorageEndpoint {
 		return new Response(file.data, {
 			status: 200,
 			headers: {
-				"Content-Type": file.mimeType,
+				"Content-Type": file.mimeType ?? "application/octet-stream",
 				"Content-Length": file.data.length.toString(),
 				ETag: file.etag,
 			},
 		});
 	}
 
-	async writeSingle(options: StorageEndpointWriteOptions): Promise<void> {
-		// Convert data to Uint8Array
-		let data: Uint8Array;
-
-		if (typeof options.data === "string") {
-			data = new TextEncoder().encode(options.data);
-		} else if (options.data instanceof Blob) {
-			const buffer = await options.data.arrayBuffer();
-			data = new Uint8Array(buffer);
-		} else if (options.data instanceof ArrayBuffer) {
-			data = new Uint8Array(options.data);
-		} else if (ArrayBuffer.isView(options.data)) {
-			data = new Uint8Array(options.data.buffer, options.data.byteOffset, options.data.byteLength);
-		} else if (options.data instanceof ReadableStream) {
-			// Read the stream
-			const reader = options.data.getReader();
-			const chunks: Uint8Array[] = [];
-			// biome-ignore lint/suspicious/noAssignInExpressions: standard stream reading pattern
-			for (let result; !(result = await reader.read()).done; ) {
-				if (result.value instanceof Uint8Array) {
-					chunks.push(result.value);
-				}
-			}
-			// Combine chunks
-			const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-			data = new Uint8Array(totalLength);
-			let offset = 0;
-			for (const chunk of chunks) {
-				data.set(chunk, offset);
-				offset += chunk.length;
-			}
-		} else {
-			throw new Error(`Unsupported data type: ${typeof options.data}`);
-		}
-
-		// TODO: Use proper hash function for ETag when hash helpers are available
-		const etag = `"${data.length}-${Date.now()}"`;
-
-		this.#files.set(options.path, {
-			data,
-			mimeType: options.mimeType,
-			etag,
-		});
-	}
-
-	async getInfoSingle(path: string): Promise<StorageFileInfo | null> {
+	async getInfoSingle(path: string): Promise<StorageEndpointFileInfo | null> {
+		validatePath(path);
 		const file = this.#files.get(path);
 		if (!file) {
 			return null;
 		}
 
 		return {
-			size: file.data.length,
-			mimeType: file.mimeType,
+			contentLength: file.data.length,
+			mimeType: file.mimeType ?? "application/octet-stream",
 			etag: file.etag,
 		};
 	}
 
-	async getTemporaryDownloadUrl(
+	async getSignedDownloadUrl(
 		path: string,
 		_expires: Date,
-		downloadFileName?: string | undefined,
+		downloadFileName?: string,
 	): Promise<string> {
+		validatePath(path);
 		// Return fake URL for memory driver
 		const params = downloadFileName ? `?download=${encodeURIComponent(downloadFileName)}` : "";
 		return `memory://${path}${params}`;
 	}
 
 	async getTemporaryUploadUrl(path: string, _expires: Date): Promise<string> {
+		validatePath(path);
 		// Return fake URL for memory driver
 		return `memory://${path}?upload=true`;
 	}
 
 	async copy(source: string, destination: string): Promise<void> {
+		validatePath(source);
+		validatePath(destination);
 		const file = this.#files.get(source);
 		if (!file) {
 			throw new Error(`Source file not found: ${source}`);
@@ -186,6 +179,8 @@ export class MemoryDriver implements StorageEndpoint {
 	}
 
 	async move(source: string, destination: string): Promise<void> {
+		validatePath(source);
+		validatePath(destination);
 		const file = this.#files.get(source);
 		if (!file) {
 			throw new Error(`Source file not found: ${source}`);
@@ -196,10 +191,12 @@ export class MemoryDriver implements StorageEndpoint {
 	}
 
 	async existsSingle(path: string): Promise<boolean> {
+		validatePath(path);
 		return this.#files.has(path);
 	}
 
 	async existsAnyUnderPrefix(prefix: string): Promise<boolean> {
+		validatePath(prefix);
 		for (const path of this.#files.keys()) {
 			if (path.startsWith(prefix)) {
 				return true;
@@ -209,6 +206,7 @@ export class MemoryDriver implements StorageEndpoint {
 	}
 
 	async listFiles(prefix: string, recursive: boolean): Promise<string[]> {
+		validatePath(prefix);
 		const files: string[] = [];
 
 		for (const path of this.#files.keys()) {
@@ -233,6 +231,7 @@ export class MemoryDriver implements StorageEndpoint {
 	}
 
 	async listDirectories(prefix: string, recursive: boolean): Promise<string[]> {
+		validatePath(prefix);
 		const directories = new Set<string>();
 
 		for (const path of this.#files.keys()) {
@@ -266,10 +265,12 @@ export class MemoryDriver implements StorageEndpoint {
 	}
 
 	async deleteSingle(path: string): Promise<void> {
+		validatePath(path);
 		this.#files.delete(path);
 	}
 
 	async deleteAllUnderPrefix(prefix: string): Promise<void> {
+		validatePath(prefix);
 		const toDelete: string[] = [];
 
 		for (const path of this.#files.keys()) {
@@ -290,10 +291,32 @@ export class MemoryDriver implements StorageEndpoint {
  * @example
  * const storage = new StorageImpl({
  *   disks: {
- *     temp: memoryDriver({})
+ *     temp: memoryStorage({})
  *   }
  * });
  */
-export function memoryDriver(config: MemoryDriverConfig = {}): StorageEndpoint {
-	return new MemoryDriver(config);
+export function memoryStorage(config: MemoryStorageDriverConfig = {}): StorageEndpoint {
+	return new MemoryStorageDriver(config);
 }
+
+const validatePath = (path: string): void => {
+	if (!path.startsWith("/")) {
+		throw new Error(`Paths must start with a slash: ${path}`);
+	}
+};
+
+const serialize = (data: SynchronousBinaryContent): Uint8Array => {
+	if (typeof data === "string") {
+		return new TextEncoder().encode(data);
+	}
+
+	if (data instanceof ArrayBuffer) {
+		return new Uint8Array(data);
+	}
+
+	if (data instanceof URLSearchParams) {
+		return new TextEncoder().encode(data.toString());
+	}
+
+	throw new Error(`Unsupported data type: ${describeType(data)}`);
+};

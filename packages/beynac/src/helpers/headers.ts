@@ -178,7 +178,6 @@ export function parseAttributeHeader(string: string): HeaderValueWithAttributes 
  * RegExp to match non attr-char, *after* encodeURIComponent (i.e. not including "%")
  * @private
  */
-// eslint-disable-next-line no-control-regex
 const ENCODE_URL_ATTR_CHAR_REGEXP = /[\x00-\x20"'()*,/:;<=>?@[\\\]{}\x7f]/g;
 
 /**
@@ -201,7 +200,6 @@ const NON_LATIN1_REGEXP = /[^\x20-\x7e\xa0-\xff]/g;
  * CHAR        = <any US-ASCII character (octets 0 - 127)>
  * @private
  */
-// eslint-disable-next-line no-control-regex
 const QESC_REGEXP = /\\([\u0000-\u007f])/g;
 
 /**
@@ -235,7 +233,6 @@ const QUOTE_REGEXP = /([\\"])/g;
  * @private
  */
 const PARAM_REGEXP =
-	// eslint-disable-next-line no-control-regex
 	/;[\x09\x20]*([!#$%&'*+.0-9A-Z^_`a-z|~-]+)[\x09\x20]*=[\x09\x20]*("(?:[\x20!\x23-\x5b\x5d-\x7e\x80-\xff]|\\[\x20-\x7e])*"|[!#$%&'*+.0-9A-Z^_`a-z|~-]+)[\x09\x20]*/g;
 const TEXT_REGEXP = /^[\x20-\x7e\x80-\xff]+$/;
 const TOKEN_REGEXP = /^[!#$%&'*+.0-9A-Z^_`a-z|~-]+$/;
@@ -277,7 +274,6 @@ const EXT_VALUE_REGEXP =
  * ext-token        = <the characters in token, followed by "*">
  * @private
  */
-// eslint-disable-next-line no-control-regex
 const DISPOSITION_TYPE_REGEXP = /^([!#$%&'*+.0-9A-Z^_`a-z|~-]+)[\x09\x20]*(?:$|;)/;
 
 /**

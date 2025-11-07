@@ -1,0 +1,987 @@
+import { beforeEach, describe, expect, test } from "bun:test";
+import type { StorageEndpoint } from "../../contracts/Storage";
+
+export const defineDriverUnitTests = (driver: () => StorageEndpoint): void => {
+	let endpoint: StorageEndpoint;
+
+	beforeEach(() => {
+		endpoint = driver();
+	});
+
+	describe(`${driver.name} Shared Unit Tests`, () => {
+		// ============================================================
+		// SECTION 1: Configuration Properties
+		// ============================================================
+		describe("Configuration Properties", () => {
+			test("has supportsMimeTypes property", () => {
+				expect(typeof endpoint.supportsMimeTypes).toBe("boolean");
+			});
+
+			test("has invalidNameChars property", () => {
+				expect(typeof endpoint.invalidNameChars).toBe("string");
+			});
+		});
+
+		// ============================================================
+		// SECTION 2: readSingle(path)
+		// ============================================================
+		describe("readSingle", () => {
+			test("returns Response with correct body content", async () => {
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data: "hello world",
+					mimeType: "text/plain",
+				});
+				const response = await endpoint.readSingle("/test.txt");
+				expect(await response.text()).toBe("hello world");
+			});
+
+			test("sets Content-Type header from stored mimeType", async () => {
+				await endpoint.writeSingle({
+					path: "/test.png",
+					data: "fake image",
+					mimeType: "image/png",
+				});
+				const response = await endpoint.readSingle("/test.png");
+				expect(response.headers.get("Content-Type")).toBe("image/png");
+			});
+
+			test("sets Content-Length header correctly", async () => {
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data: "hello",
+					mimeType: "text/plain",
+				});
+				const response = await endpoint.readSingle("/test.txt");
+				expect(response.headers.get("Content-Length")).toBe("5");
+			});
+
+			test("response body is streamable", async () => {
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data: "hello",
+					mimeType: "text/plain",
+				});
+				const response = await endpoint.readSingle("/test.txt");
+				expect(response.body).toBeInstanceOf(ReadableStream);
+			});
+
+			test("returns 404 Response when file doesn't exist", async () => {
+				const response = await endpoint.readSingle("/nonexistent.txt");
+				expect(response.status).toBe(404);
+			});
+
+			test("404 Response doesn't throw", async () => {
+				const response = await endpoint.readSingle("/nonexistent.txt");
+				expect(response.ok).toBe(false);
+			});
+
+			test("handles binary data correctly", async () => {
+				const data = new Uint8Array([1, 2, 3, 4, 5]);
+				await endpoint.writeSingle({
+					path: "/test.bin",
+					data,
+					mimeType: "application/octet-stream",
+				});
+				const response = await endpoint.readSingle("/test.bin");
+				const buffer = await response.arrayBuffer();
+				expect(new Uint8Array(buffer)).toEqual(data);
+			});
+
+			test("handles nested paths", async () => {
+				await endpoint.writeSingle({
+					path: "/dir/subdir/test.txt",
+					data: "nested",
+					mimeType: "text/plain",
+				});
+				const response = await endpoint.readSingle("/dir/subdir/test.txt");
+				expect(await response.text()).toBe("nested");
+			});
+		});
+
+		// ============================================================
+		// SECTION 3: writeSingle(options)
+		// ============================================================
+		describe("writeSingle", () => {
+			test("writes string data", async () => {
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data: "hello",
+					mimeType: "text/plain",
+				});
+				const response = await endpoint.readSingle("/test.txt");
+				expect(await response.text()).toBe("hello");
+			});
+
+			test("writes Blob data", async () => {
+				const blob = new Blob(["hello"]);
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data: blob,
+					mimeType: "text/plain",
+				});
+				const response = await endpoint.readSingle("/test.txt");
+				expect(await response.text()).toBe("hello");
+			});
+
+			test("writes ArrayBuffer data", async () => {
+				const buffer = new ArrayBuffer(8);
+				const view = new Uint8Array(buffer);
+				view.set([1, 2, 3, 4, 5, 6, 7, 8]);
+				await endpoint.writeSingle({
+					path: "/test.bin",
+					data: buffer,
+					mimeType: "application/octet-stream",
+				});
+				const response = await endpoint.readSingle("/test.bin");
+				const result = await response.arrayBuffer();
+				expect(new Uint8Array(result)).toEqual(view);
+			});
+
+			test("writes Uint8Array data", async () => {
+				const data = new Uint8Array([1, 2, 3, 4]);
+				await endpoint.writeSingle({
+					path: "/test.bin",
+					data,
+					mimeType: "application/octet-stream",
+				});
+				const response = await endpoint.readSingle("/test.bin");
+				const result = await response.arrayBuffer();
+				expect(new Uint8Array(result)).toEqual(data);
+			});
+
+			test("writes ReadableStream data", async () => {
+				const stream = new ReadableStream({
+					start(controller) {
+						controller.enqueue(new TextEncoder().encode("hello"));
+						controller.close();
+					},
+				});
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data: stream,
+					mimeType: "text/plain",
+				});
+				const response = await endpoint.readSingle("/test.txt");
+				expect(await response.text()).toBe("hello");
+			});
+
+			test("creates new file", async () => {
+				expect(await endpoint.existsSingle("/new.txt")).toBe(false);
+				await endpoint.writeSingle({
+					path: "/new.txt",
+					data: "content",
+					mimeType: "text/plain",
+				});
+				expect(await endpoint.existsSingle("/new.txt")).toBe(true);
+			});
+
+			test("overwrites existing file", async () => {
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data: "first",
+					mimeType: "text/plain",
+				});
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data: "second",
+					mimeType: "text/plain",
+				});
+				const response = await endpoint.readSingle("/test.txt");
+				expect(await response.text()).toBe("second");
+			});
+
+			test("stores mimeType correctly", async () => {
+				await endpoint.writeSingle({
+					path: "/test.json",
+					data: "{}",
+					mimeType: "application/json",
+				});
+				const info = await endpoint.getInfoSingle("/test.json");
+				expect(info?.mimeType).toBe("application/json");
+			});
+
+			test("handles nested paths", async () => {
+				await endpoint.writeSingle({
+					path: "/a/b/c/test.txt",
+					data: "deep",
+					mimeType: "text/plain",
+				});
+				const response = await endpoint.readSingle("/a/b/c/test.txt");
+				expect(await response.text()).toBe("deep");
+			});
+		});
+
+		// ============================================================
+		// SECTION 4: getInfoSingle(path)
+		// ============================================================
+		describe("getInfoSingle", () => {
+			test("returns object with contentLength, mimeType, etag for existing file", async () => {
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data: "hello",
+					mimeType: "text/plain",
+				});
+				const info = await endpoint.getInfoSingle("/test.txt");
+				expect(info).not.toBeNull();
+				expect(info!.contentLength).toBe(5);
+				expect(info!.mimeType).toBe("text/plain");
+				expect(info!.etag).toBeDefined();
+			});
+
+			test("returns null for non-existent file", async () => {
+				const info = await endpoint.getInfoSingle("/nonexistent.txt");
+				expect(info).toBeNull();
+			});
+
+			test("contentLength matches actual data size", async () => {
+				const data = "hello world";
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data,
+					mimeType: "text/plain",
+				});
+				const info = await endpoint.getInfoSingle("/test.txt");
+				expect(info!.contentLength).toBe(data.length);
+			});
+
+			test("mimeType matches stored value", async () => {
+				await endpoint.writeSingle({
+					path: "/test.json",
+					data: "{}",
+					mimeType: "application/json",
+				});
+				const info = await endpoint.getInfoSingle("/test.json");
+				expect(info!.mimeType).toBe("application/json");
+			});
+
+			test("etag changes when file modified", async () => {
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data: "first",
+					mimeType: "text/plain",
+				});
+				const info1 = await endpoint.getInfoSingle("/test.txt");
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data: "second",
+					mimeType: "text/plain",
+				});
+				const info2 = await endpoint.getInfoSingle("/test.txt");
+				expect(info1!.etag).not.toBe(info2!.etag);
+			});
+
+			test("etag stays same when file unchanged", async () => {
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data: "content",
+					mimeType: "text/plain",
+				});
+				const info1 = await endpoint.getInfoSingle("/test.txt");
+				const info2 = await endpoint.getInfoSingle("/test.txt");
+				expect(info1!.etag).toBe(info2!.etag);
+			});
+
+			test("handles binary data size correctly", async () => {
+				const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+				await endpoint.writeSingle({
+					path: "/test.bin",
+					data,
+					mimeType: "application/octet-stream",
+				});
+				const info = await endpoint.getInfoSingle("/test.bin");
+				expect(info!.contentLength).toBe(8);
+			});
+		});
+
+		// ============================================================
+		// SECTION 5: existsSingle(path)
+		// ============================================================
+		describe("existsSingle", () => {
+			test("returns true for existing file", async () => {
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data: "content",
+					mimeType: "text/plain",
+				});
+				expect(await endpoint.existsSingle("/test.txt")).toBe(true);
+			});
+
+			test("returns false for non-existent file", async () => {
+				expect(await endpoint.existsSingle("/nonexistent.txt")).toBe(false);
+			});
+
+			test("returns false for directory prefix", async () => {
+				await endpoint.writeSingle({
+					path: "/dir/file.txt",
+					data: "content",
+					mimeType: "text/plain",
+				});
+				expect(await endpoint.existsSingle("/dir/")).toBe(false);
+			});
+
+			test("returns false after file is deleted", async () => {
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data: "content",
+					mimeType: "text/plain",
+				});
+				await endpoint.deleteSingle("/test.txt");
+				expect(await endpoint.existsSingle("/test.txt")).toBe(false);
+			});
+		});
+
+		// ============================================================
+		// SECTION 6: deleteSingle(path)
+		// ============================================================
+		describe("deleteSingle", () => {
+			test("deletes existing file", async () => {
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data: "content",
+					mimeType: "text/plain",
+				});
+				await endpoint.deleteSingle("/test.txt");
+				expect(await endpoint.existsSingle("/test.txt")).toBe(false);
+			});
+
+			test("doesn't throw when file doesn't exist", async () => {
+				await endpoint.deleteSingle("/nonexistent.txt");
+			});
+
+			test("file no longer exists after deletion", async () => {
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data: "content",
+					mimeType: "text/plain",
+				});
+				await endpoint.deleteSingle("/test.txt");
+				const response = await endpoint.readSingle("/test.txt");
+				expect(response.status).toBe(404);
+			});
+
+			test("is idempotent", async () => {
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data: "content",
+					mimeType: "text/plain",
+				});
+				await endpoint.deleteSingle("/test.txt");
+				await endpoint.deleteSingle("/test.txt");
+				await endpoint.deleteSingle("/test.txt");
+			});
+
+			test("handles nested paths", async () => {
+				await endpoint.writeSingle({
+					path: "/a/b/c/test.txt",
+					data: "content",
+					mimeType: "text/plain",
+				});
+				await endpoint.deleteSingle("/a/b/c/test.txt");
+				expect(await endpoint.existsSingle("/a/b/c/test.txt")).toBe(false);
+			});
+		});
+
+		// ============================================================
+		// SECTION 7: copy(source, destination)
+		// ============================================================
+		describe("copy", () => {
+			test("copies file content correctly", async () => {
+				await endpoint.writeSingle({
+					path: "/source.txt",
+					data: "hello",
+					mimeType: "text/plain",
+				});
+				await endpoint.copy("/source.txt", "/dest.txt");
+				const response = await endpoint.readSingle("/dest.txt");
+				expect(await response.text()).toBe("hello");
+			});
+
+			test("copies mimeType", async () => {
+				await endpoint.writeSingle({
+					path: "/source.json",
+					data: "{}",
+					mimeType: "application/json",
+				});
+				await endpoint.copy("/source.json", "/dest.json");
+				const info = await endpoint.getInfoSingle("/dest.json");
+				expect(info!.mimeType).toBe("application/json");
+			});
+
+			test("overwrites destination if exists", async () => {
+				await endpoint.writeSingle({
+					path: "/source.txt",
+					data: "new",
+					mimeType: "text/plain",
+				});
+				await endpoint.writeSingle({
+					path: "/dest.txt",
+					data: "old",
+					mimeType: "text/plain",
+				});
+				await endpoint.copy("/source.txt", "/dest.txt");
+				const response = await endpoint.readSingle("/dest.txt");
+				expect(await response.text()).toBe("new");
+			});
+
+			test("throws when source doesn't exist", async () => {
+				expect(endpoint.copy("/nonexistent.txt", "/dest.txt")).rejects.toThrow(
+					"Source file not found: /nonexistent.txt",
+				);
+			});
+
+			test("source still exists after copy", async () => {
+				await endpoint.writeSingle({
+					path: "/source.txt",
+					data: "content",
+					mimeType: "text/plain",
+				});
+				await endpoint.copy("/source.txt", "/dest.txt");
+				expect(await endpoint.existsSingle("/source.txt")).toBe(true);
+			});
+
+			test("handles binary data", async () => {
+				const data = new Uint8Array([1, 2, 3, 4]);
+				await endpoint.writeSingle({
+					path: "/source.bin",
+					data,
+					mimeType: "application/octet-stream",
+				});
+				await endpoint.copy("/source.bin", "/dest.bin");
+				const response = await endpoint.readSingle("/dest.bin");
+				const result = await response.arrayBuffer();
+				expect(new Uint8Array(result)).toEqual(data);
+			});
+
+			test("handles nested paths", async () => {
+				await endpoint.writeSingle({
+					path: "/dir1/source.txt",
+					data: "content",
+					mimeType: "text/plain",
+				});
+				await endpoint.copy("/dir1/source.txt", "/dir2/dest.txt");
+				expect(await endpoint.existsSingle("/dir2/dest.txt")).toBe(true);
+			});
+		});
+
+		// ============================================================
+		// SECTION 8: move(source, destination)
+		// ============================================================
+		describe("move", () => {
+			test("moves file content correctly", async () => {
+				await endpoint.writeSingle({
+					path: "/source.txt",
+					data: "hello",
+					mimeType: "text/plain",
+				});
+				await endpoint.move("/source.txt", "/dest.txt");
+				const response = await endpoint.readSingle("/dest.txt");
+				expect(await response.text()).toBe("hello");
+			});
+
+			test("moves mimeType", async () => {
+				await endpoint.writeSingle({
+					path: "/source.json",
+					data: "{}",
+					mimeType: "application/json",
+				});
+				await endpoint.move("/source.json", "/dest.json");
+				const info = await endpoint.getInfoSingle("/dest.json");
+				expect(info!.mimeType).toBe("application/json");
+			});
+
+			test("overwrites destination if exists", async () => {
+				await endpoint.writeSingle({
+					path: "/source.txt",
+					data: "new",
+					mimeType: "text/plain",
+				});
+				await endpoint.writeSingle({
+					path: "/dest.txt",
+					data: "old",
+					mimeType: "text/plain",
+				});
+				await endpoint.move("/source.txt", "/dest.txt");
+				const response = await endpoint.readSingle("/dest.txt");
+				expect(await response.text()).toBe("new");
+			});
+
+			test("throws when source doesn't exist", async () => {
+				expect(endpoint.move("/nonexistent.txt", "/dest.txt")).rejects.toThrow(
+					"Source file not found: /nonexistent.txt",
+				);
+			});
+
+			test("source no longer exists after move", async () => {
+				await endpoint.writeSingle({
+					path: "/source.txt",
+					data: "content",
+					mimeType: "text/plain",
+				});
+				await endpoint.move("/source.txt", "/dest.txt");
+				expect(await endpoint.existsSingle("/source.txt")).toBe(false);
+			});
+
+			test("handles binary data", async () => {
+				const data = new Uint8Array([1, 2, 3, 4]);
+				await endpoint.writeSingle({
+					path: "/source.bin",
+					data,
+					mimeType: "application/octet-stream",
+				});
+				await endpoint.move("/source.bin", "/dest.bin");
+				const response = await endpoint.readSingle("/dest.bin");
+				const result = await response.arrayBuffer();
+				expect(new Uint8Array(result)).toEqual(data);
+			});
+
+			test("handles nested paths", async () => {
+				await endpoint.writeSingle({
+					path: "/dir1/source.txt",
+					data: "content",
+					mimeType: "text/plain",
+				});
+				await endpoint.move("/dir1/source.txt", "/dir2/dest.txt");
+				expect(await endpoint.existsSingle("/dir2/dest.txt")).toBe(true);
+				expect(await endpoint.existsSingle("/dir1/source.txt")).toBe(false);
+			});
+		});
+
+		// ============================================================
+		// SECTION 9: getSignedDownloadUrl(path, expires, downloadFileName?)
+		// ============================================================
+		describe("getSignedDownloadUrl", () => {
+			test("generates valid URL", async () => {
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data: "content",
+					mimeType: "text/plain",
+				});
+				const expires = new Date(Date.now() + 3600000);
+				const url = await endpoint.getSignedDownloadUrl("/test.txt", expires);
+				expect(typeof url).toBe("string");
+				expect(url.length).toBeGreaterThan(0);
+			});
+
+			test("accepts Date expiry", async () => {
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data: "content",
+					mimeType: "text/plain",
+				});
+				const expires = new Date(Date.now() + 3600000);
+				const url = await endpoint.getSignedDownloadUrl("/test.txt", expires);
+				expect(url).toBeDefined();
+			});
+
+			test("handles downloadFileName parameter", async () => {
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data: "content",
+					mimeType: "text/plain",
+				});
+				const expires = new Date(Date.now() + 3600000);
+				const url = await endpoint.getSignedDownloadUrl("/test.txt", expires, "/custom.txt");
+				expect(url).toBeDefined();
+			});
+
+			test("handles far future expiry", async () => {
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data: "content",
+					mimeType: "text/plain",
+				});
+				const expires = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000);
+				const url = await endpoint.getSignedDownloadUrl("/test.txt", expires);
+				expect(url).toBeDefined();
+			});
+		});
+
+		// ============================================================
+		// SECTION 10: getTemporaryUploadUrl(path, expires)
+		// ============================================================
+		describe("getTemporaryUploadUrl", () => {
+			test("generates valid URL", async () => {
+				const expires = new Date(Date.now() + 3600000);
+				const url = await endpoint.getTemporaryUploadUrl("/test.txt", expires);
+				expect(typeof url).toBe("string");
+				expect(url.length).toBeGreaterThan(0);
+			});
+
+			test("accepts Date expiry", async () => {
+				const expires = new Date(Date.now() + 3600000);
+				const url = await endpoint.getTemporaryUploadUrl("/test.txt", expires);
+				expect(url).toBeDefined();
+			});
+
+			test("works for non-existent paths", async () => {
+				const expires = new Date(Date.now() + 3600000);
+				const url = await endpoint.getTemporaryUploadUrl("/new-file.txt", expires);
+				expect(url).toBeDefined();
+			});
+
+			test("handles nested paths", async () => {
+				const expires = new Date(Date.now() + 3600000);
+				const url = await endpoint.getTemporaryUploadUrl("/dir/subdir/test.txt", expires);
+				expect(url).toBeDefined();
+			});
+
+			test("handles far future expiry", async () => {
+				const expires = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000);
+				const url = await endpoint.getTemporaryUploadUrl("/test.txt", expires);
+				expect(url).toBeDefined();
+			});
+		});
+
+		// ============================================================
+		// SECTION 11: existsAnyUnderPrefix(prefix)
+		// ============================================================
+		describe("existsAnyUnderPrefix", () => {
+			test("returns true when files exist under prefix", async () => {
+				await endpoint.writeSingle({
+					path: "/dir/file.txt",
+					data: "content",
+					mimeType: "text/plain",
+				});
+				expect(await endpoint.existsAnyUnderPrefix("/dir/")).toBe(true);
+			});
+
+			test("returns false when no files under prefix", async () => {
+				expect(await endpoint.existsAnyUnderPrefix("/empty/")).toBe(false);
+			});
+
+			test("returns false for non-existent prefix", async () => {
+				expect(await endpoint.existsAnyUnderPrefix("/nonexistent/")).toBe(false);
+			});
+
+			test("handles empty prefix (root)", async () => {
+				await endpoint.writeSingle({
+					path: "/test.txt",
+					data: "content",
+					mimeType: "text/plain",
+				});
+				expect(await endpoint.existsAnyUnderPrefix("/")).toBe(true);
+			});
+
+			test("handles nested prefixes", async () => {
+				await endpoint.writeSingle({
+					path: "/a/b/c/file.txt",
+					data: "content",
+					mimeType: "text/plain",
+				});
+				expect(await endpoint.existsAnyUnderPrefix("/a/")).toBe(true);
+				expect(await endpoint.existsAnyUnderPrefix("/a/b/")).toBe(true);
+				expect(await endpoint.existsAnyUnderPrefix("/a/b/c/")).toBe(true);
+			});
+
+			test("returns false after all files deleted", async () => {
+				await endpoint.writeSingle({
+					path: "/dir/file.txt",
+					data: "content",
+					mimeType: "text/plain",
+				});
+				await endpoint.deleteAllUnderPrefix("/dir/");
+				expect(await endpoint.existsAnyUnderPrefix("/dir/")).toBe(false);
+			});
+		});
+
+		// ============================================================
+		// SECTION 12: listFiles(prefix, recursive)
+		// ============================================================
+		describe("listFiles", () => {
+			test("lists immediate children when recursive=false", async () => {
+				await endpoint.writeSingle({
+					path: "/dir/file1.txt",
+					data: "1",
+					mimeType: "text/plain",
+				});
+				await endpoint.writeSingle({
+					path: "/dir/file2.txt",
+					data: "2",
+					mimeType: "text/plain",
+				});
+				await endpoint.writeSingle({
+					path: "/dir/sub/file3.txt",
+					data: "3",
+					mimeType: "text/plain",
+				});
+				const files = await endpoint.listFiles("/dir/", false);
+				expect(files).toEqual(["/dir/file1.txt", "/dir/file2.txt"]);
+			});
+
+			test("returns empty array for non-existent prefix", async () => {
+				const files = await endpoint.listFiles("/nonexistent/", false);
+				expect(files).toEqual([]);
+			});
+
+			test("returns empty array for empty directory", async () => {
+				const files = await endpoint.listFiles("/empty/", false);
+				expect(files).toEqual([]);
+			});
+
+			test("returns sorted results", async () => {
+				await endpoint.writeSingle({
+					path: "/dir/c.txt",
+					data: "1",
+					mimeType: "text/plain",
+				});
+				await endpoint.writeSingle({
+					path: "/dir/a.txt",
+					data: "2",
+					mimeType: "text/plain",
+				});
+				await endpoint.writeSingle({
+					path: "/dir/b.txt",
+					data: "3",
+					mimeType: "text/plain",
+				});
+				const files = await endpoint.listFiles("/dir/", false);
+				expect(files).toEqual(["/dir/a.txt", "/dir/b.txt", "/dir/c.txt"]);
+			});
+
+			test("handles empty prefix (root)", async () => {
+				await endpoint.writeSingle({
+					path: "/file1.txt",
+					data: "1",
+					mimeType: "text/plain",
+				});
+				await endpoint.writeSingle({
+					path: "/dir/file2.txt",
+					data: "2",
+					mimeType: "text/plain",
+				});
+				const files = await endpoint.listFiles("/", false);
+				expect(files).toEqual(["/file1.txt"]);
+			});
+
+			test("recursive includes all levels", async () => {
+				await endpoint.writeSingle({
+					path: "/a/b/c/d/file.txt",
+					data: "1",
+					mimeType: "text/plain",
+				});
+				const files = await endpoint.listFiles("/a/", true);
+				expect(files).toEqual(["/a/b/c/d/file.txt"]);
+			});
+
+			test("returns sorted results recursively", async () => {
+				// Insert in non-alphabetical order: file1, file2, file3
+				// But expect alphabetical order: file1, deep/file3, file2
+				await endpoint.writeSingle({
+					path: "/dir/file1.txt",
+					data: "1",
+					mimeType: "text/plain",
+				});
+				await endpoint.writeSingle({
+					path: "/dir/sub/file2.txt",
+					data: "2",
+					mimeType: "text/plain",
+				});
+				await endpoint.writeSingle({
+					path: "/dir/sub/deep/file3.txt",
+					data: "3",
+					mimeType: "text/plain",
+				});
+				const files = await endpoint.listFiles("/dir/", true);
+				expect(files).toEqual(["/dir/file1.txt", "/dir/sub/deep/file3.txt", "/dir/sub/file2.txt"]);
+			});
+		});
+
+		// ============================================================
+		// SECTION 13: listDirectories(prefix, recursive)
+		// ============================================================
+		describe("listDirectories", () => {
+			test("lists immediate child directories when recursive=false", async () => {
+				await endpoint.writeSingle({
+					path: "/dir/sub1/file.txt",
+					data: "1",
+					mimeType: "text/plain",
+				});
+				await endpoint.writeSingle({
+					path: "/dir/sub2/file.txt",
+					data: "2",
+					mimeType: "text/plain",
+				});
+				await endpoint.writeSingle({
+					path: "/dir/sub1/deep/file.txt",
+					data: "3",
+					mimeType: "text/plain",
+				});
+				const dirs = await endpoint.listDirectories("/dir/", false);
+				expect(dirs).toEqual(["/dir/sub1/", "/dir/sub2/"]);
+			});
+
+			test("lists all subdirectories when recursive=true", async () => {
+				await endpoint.writeSingle({
+					path: "/dir/a/file.txt",
+					data: "1",
+					mimeType: "text/plain",
+				});
+				await endpoint.writeSingle({
+					path: "/dir/a/b/file.txt",
+					data: "2",
+					mimeType: "text/plain",
+				});
+				await endpoint.writeSingle({
+					path: "/dir/a/b/c/file.txt",
+					data: "3",
+					mimeType: "text/plain",
+				});
+				const dirs = await endpoint.listDirectories("/dir/", true);
+				expect(dirs).toEqual(["/dir/a/", "/dir/a/b/", "/dir/a/b/c/"]);
+			});
+
+			test("returns empty array for non-existent prefix", async () => {
+				const dirs = await endpoint.listDirectories("/nonexistent/", false);
+				expect(dirs).toEqual([]);
+			});
+
+			test("returns empty array when no subdirectories", async () => {
+				await endpoint.writeSingle({
+					path: "/dir/file.txt",
+					data: "1",
+					mimeType: "text/plain",
+				});
+				const dirs = await endpoint.listDirectories("/dir/", false);
+				expect(dirs).toEqual([]);
+			});
+
+			test("all paths end with slash", async () => {
+				await endpoint.writeSingle({
+					path: "/dir/sub/file.txt",
+					data: "1",
+					mimeType: "text/plain",
+				});
+				const dirs = await endpoint.listDirectories("/dir/", false);
+				for (const dir of dirs) {
+					expect(dir.endsWith("/")).toBe(true);
+				}
+			});
+
+			test("returns sorted results", async () => {
+				await endpoint.writeSingle({
+					path: "/dir/c/file.txt",
+					data: "1",
+					mimeType: "text/plain",
+				});
+				await endpoint.writeSingle({
+					path: "/dir/a/file.txt",
+					data: "2",
+					mimeType: "text/plain",
+				});
+				await endpoint.writeSingle({
+					path: "/dir/b/file.txt",
+					data: "3",
+					mimeType: "text/plain",
+				});
+				const dirs = await endpoint.listDirectories("/dir/", false);
+				expect(dirs).toEqual(["/dir/a/", "/dir/b/", "/dir/c/"]);
+			});
+
+			test("handles empty prefix (root)", async () => {
+				await endpoint.writeSingle({
+					path: "/dir1/file.txt",
+					data: "1",
+					mimeType: "text/plain",
+				});
+				await endpoint.writeSingle({
+					path: "/dir2/file.txt",
+					data: "2",
+					mimeType: "text/plain",
+				});
+				const dirs = await endpoint.listDirectories("/", false);
+				expect(dirs).toEqual(["/dir1/", "/dir2/"]);
+			});
+
+			test("recursive includes all levels", async () => {
+				await endpoint.writeSingle({
+					path: "/a/b/c/d/file.txt",
+					data: "1",
+					mimeType: "text/plain",
+				});
+				const dirs = await endpoint.listDirectories("/a/", true);
+				expect(dirs).toEqual(["/a/b/", "/a/b/c/", "/a/b/c/d/"]);
+			});
+		});
+
+		// ============================================================
+		// SECTION 14: deleteAllUnderPrefix(prefix)
+		// ============================================================
+		describe("deleteAllUnderPrefix", () => {
+			test("deletes all files under prefix recursively", async () => {
+				await endpoint.writeSingle({
+					path: "/dir/file1.txt",
+					data: "1",
+					mimeType: "text/plain",
+				});
+				await endpoint.writeSingle({
+					path: "/dir/sub/file2.txt",
+					data: "2",
+					mimeType: "text/plain",
+				});
+				await endpoint.writeSingle({
+					path: "/dir/sub/deep/file3.txt",
+					data: "3",
+					mimeType: "text/plain",
+				});
+				await endpoint.deleteAllUnderPrefix("/dir/");
+				expect(await endpoint.listFiles("/dir/", true)).toEqual([]);
+			});
+
+			test("doesn't throw when no files exist", async () => {
+				await endpoint.deleteAllUnderPrefix("/empty/");
+			});
+
+			test("handles empty prefix (deletes all)", async () => {
+				await endpoint.writeSingle({
+					path: "/file1.txt",
+					data: "1",
+					mimeType: "text/plain",
+				});
+				await endpoint.writeSingle({
+					path: "/dir/file2.txt",
+					data: "2",
+					mimeType: "text/plain",
+				});
+				await endpoint.deleteAllUnderPrefix("/");
+				expect(await endpoint.listFiles("/", true)).toEqual([]);
+			});
+
+			test("doesn't affect files outside prefix", async () => {
+				await endpoint.writeSingle({
+					path: "/dir1/file.txt",
+					data: "1",
+					mimeType: "text/plain",
+				});
+				await endpoint.writeSingle({
+					path: "/dir2/file.txt",
+					data: "2",
+					mimeType: "text/plain",
+				});
+				await endpoint.deleteAllUnderPrefix("/dir1/");
+				expect(await endpoint.existsSingle("/dir2/file.txt")).toBe(true);
+			});
+
+			test("is idempotent", async () => {
+				await endpoint.writeSingle({
+					path: "/dir/file.txt",
+					data: "1",
+					mimeType: "text/plain",
+				});
+				await endpoint.deleteAllUnderPrefix("/dir/");
+				await endpoint.deleteAllUnderPrefix("/dir/");
+				await endpoint.deleteAllUnderPrefix("/dir/");
+			});
+
+			test("existsAnyUnderPrefix returns false after delete", async () => {
+				await endpoint.writeSingle({
+					path: "/dir/file.txt",
+					data: "1",
+					mimeType: "text/plain",
+				});
+				await endpoint.deleteAllUnderPrefix("/dir/");
+				expect(await endpoint.existsAnyUnderPrefix("/dir/")).toBe(false);
+			});
+		});
+	});
+};

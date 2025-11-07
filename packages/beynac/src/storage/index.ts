@@ -1,8 +1,7 @@
-export type { MemoryDriverConfig } from "./drivers/memory/MemoryDriver";
+export type { MemoryStorageDriverConfig } from "./drivers/memory/MemoryStorageDriver";
 // Drivers
-export { MemoryDriver, memoryDriver } from "./drivers/memory/MemoryDriver";
+export { MemoryStorageDriver, memoryStorage } from "./drivers/memory/MemoryStorageDriver";
 // Helpers
-export { createFileName, mimeTypeFromFileName } from "./helpers/file-names";
 export type { StorageConfig } from "./StorageConfig";
 export { StorageDirectoryImpl } from "./StorageDirectoryImpl";
 export { StorageDiskImpl } from "./StorageDiskImpl";

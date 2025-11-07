@@ -1,3 +1,6 @@
+import { basename, extname } from "node:path";
+import { regExpEscape } from "../utils";
+
 /**
  * MIME type and file name handling for storage operations.
  * Based on Chrome's primary and secondary MIME type mappings.
@@ -166,70 +169,39 @@ export function mimeTypeFromFileName(filename: string): string {
 	return extensionToMimeCombined.get(extension) ?? "application/octet-stream";
 }
 
-/**
- * Create a valid filename for storage, handling MIME types, sanitization, and random ID generation.
- *
- * Behavior:
- * - If suggestedName is null/undefined, generates a random 20-character alphanumeric ID
- * - If !supportsMimeTypes and the file extension doesn't match the primary MIME type list,
- *   appends/replaces the extension with the correct one
- * - Replaces invalid characters (as defined by invalidCharacterRegex) with underscores
- * - Throws an error if the sanitized name is empty
- *
- * @param suggestedName - Desired filename (can be null/undefined)
- * @param mimeType - MIME type of the file
- * @param supportsMimeTypes - Whether the storage backend supports MIME types natively
- * @param invalidCharacterRegex - RegExp matching invalid characters for the storage backend
- * @returns Valid filename for storage
- *
- * @example
- * createFileName("test.txt", "text/plain", true, /[]/) // "test.txt"
- * createFileName("test.txt", "image/png", false, /[]/) // "test.png"
- * createFileName("test<>file.txt", "text/plain", true, /[<>]/g) // "test__file.txt"
- * createFileName(null, "image/png", false, /[]/) // "aBcDeFgHiJkLmNoPqRsT.png"
- */
 export function createFileName(
 	suggestedName: string | null | undefined,
 	mimeType: string,
 	supportsMimeTypes: boolean,
-	invalidCharacterRegex: RegExp,
 ): string {
-	// Generate random ID if no name provided
-	let name = suggestedName ?? generateRandomId();
+	let name = basename(suggestedName?.trim() || generateRandomId());
 
-	// Strip MIME type parameters and normalize
-	const cleanMimeType = mimeType.split(";")[0]!.trim().toLowerCase();
+	const cleanMimeType = mimeType.split(";")[0].trim().toLowerCase();
 
 	// Handle extension enforcement for backends that don't support MIME types
 	if (!supportsMimeTypes) {
 		const expectedExtension = mimeToExtensionPrimary.get(cleanMimeType);
 		if (expectedExtension) {
-			const lastDotIndex = name.lastIndexOf(".");
-			const hasExtension = lastDotIndex !== -1;
+			const extension = extname(name);
 
-			if (hasExtension) {
-				const currentExtension = name.slice(lastDotIndex + 1).toLowerCase();
-				const currentMime = extensionToMimeCombined.get(currentExtension);
+			if (extension) {
+				const currentMime = extensionToMimeCombined.get(extension);
 
-				// Replace extension if it doesn't match the MIME type
 				if (currentMime !== cleanMimeType) {
-					const baseName = name.slice(0, lastDotIndex);
-					name = `${baseName}.${expectedExtension}`;
+					name = `${name}.${expectedExtension}`;
 				}
 			} else {
-				// No extension, add the correct one
 				name = `${name}.${expectedExtension}`;
 			}
 		}
 	}
 
-	// Sanitize invalid characters
-	const sanitized = name.replace(invalidCharacterRegex, "_");
+	return name;
+}
 
-	// Ensure we didn't end up with an empty name
-	if (!sanitized || sanitized.trim().length === 0) {
-		throw new Error("Filename is empty after sanitization");
-	}
-
-	return sanitized;
+export function sanitiseName(name: string, invalidChars: string): string {
+	invalidChars += "/";
+	const regex = new RegExp(`[${regExpEscape(invalidChars)}]+`, "g");
+	const replacement = invalidChars.includes("_") ? "" : "_";
+	return name.replace(regex, replacement);
 }

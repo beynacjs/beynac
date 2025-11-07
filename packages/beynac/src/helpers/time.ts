@@ -1,4 +1,44 @@
 /**
+ * Internal variable to hold mocked current time for testing.
+ * When set, getCurrentTime() returns this value instead of Date.now().
+ */
+let mockedCurrentTime: Date | null = null;
+
+/**
+ * Get the current time, respecting mocked time if set.
+ * Used internally by duration functions.
+ */
+function getCurrentTime(): number {
+	return mockedCurrentTime?.getTime() ?? Date.now();
+}
+
+/**
+ * Mock the current time for testing purposes.
+ * Affects all duration calculations that use the current time.
+ *
+ * @param date - The date to use as "now"
+ * @example
+ * mockCurrentTime(new Date("2025-01-01T12:00:00Z"));
+ * durationStringToDate("1h"); // Returns 2025-01-01T13:00:00Z
+ */
+export function mockCurrentTime(date: Date): void {
+	mockedCurrentTime = new Date(date);
+}
+
+/**
+ * Reset time mocking, returning to using the actual current time.
+ *
+ * @example
+ * mockCurrentTime(new Date("2025-01-01"));
+ * // ... tests ...
+ * resetTimeMocks();
+ * durationStringToDate("1h"); // Returns actual time + 1 hour
+ */
+export function resetTimeMocks(): void {
+	mockedCurrentTime = null;
+}
+
+/**
  * Parse a duration string into milliseconds
  *
  * Supports duration strings with units:
@@ -102,7 +142,7 @@ export function durationStringToDate(
 	}
 
 	const ms = durationStringToMs(duration);
-	const baseTime = options?.relativeTo?.getTime() ?? Date.now();
+	const baseTime = options?.relativeTo?.getTime() ?? getCurrentTime();
 	const multiplier = options?.inPast ? -1 : 1;
 	return new Date(baseTime + ms * multiplier);
 }

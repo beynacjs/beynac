@@ -4,28 +4,31 @@ import type {
 	StorageEndpoint,
 	StorageFile,
 	StorageFileInfo,
-	StoragePutPayload,
+	StorageFilePutPayload,
 	StoragePutResponse,
 	UploadUrlOptions,
 } from "../contracts/Storage";
 import { durationStringToDate } from "../helpers/time";
-import { createFileName, mimeTypeFromFileName } from "./helpers/file-names";
-import { getNameFromFile, getNameFromRequest } from "./helpers/MetadataExtractor";
+import { BaseClass } from "../utils";
+import { mimeTypeFromFileName } from "./file-names";
 
 /**
  * Implementation of the StorageFile interface
  */
-export class StorageFileImpl implements StorageFile {
+export class StorageFileImpl extends BaseClass implements StorageFile {
 	readonly type = "file" as const;
-	readonly disk: StorageDisk;
 	readonly path: string;
+	readonly disk: StorageDisk;
 	readonly #endpoint: StorageEndpoint;
 
 	constructor(disk: StorageDisk, endpoint: StorageEndpoint, path: string) {
+		super();
 		this.disk = disk;
+		this.path = path;
 		this.#endpoint = endpoint;
-		// Ensure path doesn't end with slash
-		this.path = path.endsWith("/") ? path.slice(0, -1) : path;
+		if (path !== "" && !path.startsWith("/")) {
+			throw new Error(`Paths must start with a slash: ${path}`);
+		}
 	}
 
 	async delete(): Promise<void> {
@@ -60,62 +63,50 @@ export class StorageFileImpl implements StorageFile {
 	}
 
 	async info(): Promise<StorageFileInfo | null> {
-		return await this.#endpoint.getInfoSingle(this.path);
+		const endpointInfo = await this.#endpoint.getInfoSingle(this.path);
+		if (!endpointInfo) return null;
+		return {
+			etag: endpointInfo.etag,
+			size: endpointInfo.contentLength,
+			mimeType: endpointInfo.mimeType ?? "application/octet-stream",
+		};
 	}
 
-	async url(options?: DownloadUrlOptions | undefined): Promise<string> {
-		// Default expiry to far future if not provided
-		const expires = options?.expires
-			? durationStringToDate(options.expires)
-			: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000); // 100 years
-
-		return await this.#endpoint.getTemporaryDownloadUrl(this.path, expires, options?.downloadAs);
+	async url(options?: DownloadUrlOptions): Promise<string> {
+		return await this.#endpoint.getSignedDownloadUrl(
+			this.path,
+			durationStringToDate(options?.expires ?? "100y"),
+			options?.downloadAs,
+		);
 	}
 
-	async put(payload: StoragePutPayload | File | Request): Promise<StoragePutResponse> {
+	async put(payload: StorageFilePutPayload | File | Request): Promise<StoragePutResponse> {
 		// Extract metadata from payload
-		let data: StoragePutPayload["data"];
+		let data: StorageFilePutPayload["data"];
 		let mimeType: string;
-		let suggestedName: string | undefined;
 
 		if (payload instanceof File) {
 			data = payload;
 			mimeType = payload.type || "application/octet-stream";
-			suggestedName = getNameFromFile(payload);
 		} else if (payload instanceof Request) {
-			data = payload.body as StoragePutPayload["data"];
+			data = payload.body as StorageFilePutPayload["data"];
 			mimeType = payload.headers.get("Content-Type") || "application/octet-stream";
-			suggestedName = getNameFromRequest(payload);
 		} else {
 			data = payload.data;
 			mimeType = payload.mimeType;
-			suggestedName = payload.suggestedName;
 		}
 
-		// Create the invalid character regex from the endpoint's invalidFilenameChars
-		const invalidChars = this.#endpoint.invalidFilenameChars;
-		const invalidCharRegex =
-			invalidChars.length > 0 ? new RegExp(`[${invalidChars}]`, "g") : /(?!)/;
+		// Use the file's existing path
+		const actualPath = this.path;
 
-		// Create a valid filename
-		const actualName = createFileName(
-			suggestedName,
-			mimeType,
-			this.#endpoint.supportsMimeTypes,
-			invalidCharRegex,
-		);
-
-		// Determine the actual path
-		// If this.path ends with /, it's a directory - use actualName as the file name
-		// Otherwise, this.path is the full path to use
-		const actualPath = this.path.endsWith("/") ? `${this.path}${actualName}` : this.path;
+		// Extract the filename from the path
+		const actualName = actualPath.split("/").pop() || actualPath;
 
 		// Write the file
 		await this.#endpoint.writeSingle({
 			path: actualPath,
 			data,
 			mimeType,
-			suggestedName: actualName,
 		});
 
 		return {
@@ -147,22 +138,21 @@ export class StorageFileImpl implements StorageFile {
 			throw new Error(`Source file not found: ${this.path}`);
 		}
 
-		// Get the file name from this file's path
-		const fileName = this.path.split("/").pop() || this.path;
-
+		// Don't pass suggestedName - destination.path is already the full path
 		return await destination.put({
-			data: response.body as StoragePutPayload["data"],
+			data: response.body as StorageFilePutPayload["data"],
 			mimeType: info.mimeType,
-			suggestedName: fileName,
 		});
 	}
 
-	async uploadUrl(options?: UploadUrlOptions | undefined): Promise<string> {
-		// Default expiry to far future if not provided
-		const expires = options?.expires
-			? durationStringToDate(options.expires)
-			: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000); // 100 years
+	async uploadUrl(options?: UploadUrlOptions): Promise<string> {
+		return await this.#endpoint.getTemporaryUploadUrl(
+			this.path,
+			durationStringToDate(options?.expires ?? "100y"),
+		);
+	}
 
-		return await this.#endpoint.getTemporaryUploadUrl(this.path, expires);
+	protected override getToStringExtra(): string | undefined {
+		return `${this.#endpoint.name}:/${this.path}`;
 	}
 }

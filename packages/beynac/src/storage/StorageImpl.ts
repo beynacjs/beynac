@@ -1,37 +1,29 @@
 import type {
 	Storage,
-	StorageDirectory,
+	StorageDirectoryOperations,
 	StorageDisk,
 	StorageEndpoint,
-	StorageFile,
 } from "../contracts/Storage";
-import { MemoryDriver } from "./drivers/memory/MemoryDriver";
+import { DelegatesToDirectory } from "./DelegatesToDirectory";
+import { MemoryStorageDriver } from "./drivers/memory/MemoryStorageDriver";
 import type { StorageConfig } from "./StorageConfig";
 import { StorageDiskImpl } from "./StorageDiskImpl";
 
-/**
- * Implementation of the Storage interface
- */
-export class StorageImpl implements Storage {
+let anonDiskId = 0;
+
+export class StorageImpl extends DelegatesToDirectory implements Storage {
 	#disks: Map<string, StorageDisk> = new Map();
 	#defaultDiskName: string;
+	#originalEndpoints: Map<string, StorageEndpoint> = new Map();
 
-	constructor(config: StorageConfig) {
-		if (Object.keys(config.disks).length === 0) {
-			throw new Error("At least one disk must be configured");
-		}
-
-		// Register all disks
-		for (const [name, diskConfig] of Object.entries(config.disks)) {
+	constructor(config: StorageConfig = {}) {
+		super();
+		for (const [name, diskConfig] of Object.entries(config.disks ?? {})) {
+			this.#originalEndpoints.set(name, diskConfig);
 			this.#register(name, diskConfig);
 		}
 
-		// Set default disk
-		this.#defaultDiskName = config.defaultDisk ?? Object.keys(config.disks)[0]!;
-
-		if (!this.#disks.has(this.#defaultDiskName)) {
-			throw new Error(`Default disk "${this.#defaultDiskName}" not found`);
-		}
+		this.#defaultDiskName = config.defaultDisk ?? "local";
 	}
 
 	#register(name: string, endpoint: StorageEndpoint): void {
@@ -39,60 +31,41 @@ export class StorageImpl implements Storage {
 		this.#disks.set(name, disk);
 	}
 
-	disk(name?: string | undefined): StorageDisk {
-		const diskName = name ?? this.#defaultDiskName;
-		const disk = this.#disks.get(diskName);
+	disk(name?: string): StorageDisk {
+		if (name == null) {
+			if (!this.#defaultDiskName) {
+				throw new Error(
+					"disk() normally returns the default disk, but no default disk is configured",
+				);
+			}
+			name = this.#defaultDiskName;
+		}
+		const disk = this.#disks.get(name);
 
 		if (!disk) {
-			throw new Error(`Disk "${diskName}" not found`);
+			throw new Error(`Disk "${name}" not found`);
 		}
 
 		return disk;
 	}
 
-	build(endpoint: StorageEndpoint): StorageDisk {
-		// Generate a unique name for the one-off disk
-		const name = `__built_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-		return new StorageDiskImpl(name, endpoint);
+	build(endpoint: StorageEndpoint, name?: string): StorageDisk {
+		return new StorageDiskImpl(name ?? `anonymous${++anonDiskId}`, endpoint);
 	}
 
 	mock(diskName: string): void {
 		// Replace the disk with a memory driver
-		const memoryEndpoint = new MemoryDriver({});
+		const memoryEndpoint = new MemoryStorageDriver({});
 		this.#register(diskName, memoryEndpoint);
 	}
 
-	// StorageDirectoryOperations delegation to default disk
-
-	async exists(): Promise<boolean> {
-		return await this.disk().exists();
+	resetMocks(): void {
+		for (const [name, endpoint] of this.#originalEndpoints) {
+			this.#register(name, endpoint);
+		}
 	}
 
-	async files(): Promise<StorageFile[]> {
-		return await this.disk().files();
-	}
-
-	async allFiles(): Promise<StorageFile[]> {
-		return await this.disk().allFiles();
-	}
-
-	async directories(): Promise<StorageDirectory[]> {
-		return await this.disk().directories();
-	}
-
-	async allDirectories(): Promise<StorageDirectory[]> {
-		return await this.disk().allDirectories();
-	}
-
-	async deleteAll(): Promise<void> {
-		return await this.disk().deleteAll();
-	}
-
-	directory(path: string): StorageDirectory {
-		return this.disk().directory(path);
-	}
-
-	file(path: string): StorageFile {
-		return this.disk().file(path);
+	protected override getDirectoryForDelegation(): StorageDirectoryOperations {
+		return this.disk();
 	}
 }

@@ -1,3 +1,5 @@
+import { regExpEscape } from "../../utils";
+
 export type Replacer = (input: string) => string;
 
 /**
@@ -13,9 +15,7 @@ export const keyValueReplacer = (replacements: Record<string, string>): Replacer
 	const keys = Object.keys(replacements);
 	// Sort by length descending to match longer keys first (e.g., "ъе" before "ъ")
 	keys.sort((a, b) => b.length - a.length);
-	// @ts-expect-error - Bun runtime supports RegExp.escape but TypeScript types don't include it yet
-	const escape = RegExp.escape;
-	const escapedKeys = keys.map((key) => escape(key));
+	const escapedKeys = keys.map((key) => regExpEscape(key));
 	const keyRegex = new RegExp(escapedKeys.join("|"), "g");
 	return (str: string) => str.replace(keyRegex, (match) => replacements[match] ?? "");
 };

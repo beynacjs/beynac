@@ -5,13 +5,15 @@
     "typescript/no-base-to-string": "off",
     "typescript/no-for-in-array": "error",
     "typescript/no-explicit-any": "error",
-    "no-eval": "off"
+    "no-eval": "off",
+    "eslint/no-control-regex": "off"
   },
   "overrides": [
     {
       "files": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.test.mts"],
       "rules": {
-        "typescript/no-explicit-any": "off"
+        "typescript/no-explicit-any": "off",
+        "typescript/unbound-method": "off"
       }
     }
   ]

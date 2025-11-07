@@ -191,3 +191,33 @@ export function extendsClass<T>(
 
 	return false;
 }
+
+/**
+ * Base class that provides a toString() implementation.
+ * Subclasses can override getToStringExtra() to add additional information.
+ *
+ * @example
+ * class MyClass extends BaseClass {
+ *     protected override getToStringExtra(): string | undefined {
+ *         return "extra info";
+ *     }
+ * }
+ * // toString() returns "[MyClass extra info]"
+ */
+export abstract class BaseClass {
+	toString(): string {
+		const extra = this.getToStringExtra();
+		if (extra) {
+			return `[${this.constructor.name} ${extra}]`;
+		}
+		return `[${this.constructor.name}]`;
+	}
+
+	protected getToStringExtra(): string | undefined {
+		return undefined;
+	}
+}
+
+export const regExpEscape = (str: string): string =>
+	// @ts-expect-error - Bun runtime supports RegExp.escape but TypeScript types don't include it yet
+	RegExp.escape(str);
