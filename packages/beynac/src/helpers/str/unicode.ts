@@ -14,7 +14,7 @@ import { unicodeReplacements } from "./replacements";
  * withoutMarks('का') // 'क' (Devanagari vowel sign removed)
  */
 export function withoutMarks(value: string): string {
-	// NFKD normalization decomposes characters (including ligatures)
+	// NFKD normalisation decomposes characters (including ligatures)
 	// and separates base characters from combining marks
 	return value.normalize("NFKD").replace(/\p{M}/gu, "");
 }

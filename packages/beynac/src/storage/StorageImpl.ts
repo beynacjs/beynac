@@ -8,6 +8,7 @@ import { DelegatesToDirectory } from "./DelegatesToDirectory";
 import { MemoryStorageDriver } from "./drivers/memory/MemoryStorageDriver";
 import type { StorageConfig } from "./StorageConfig";
 import { StorageDiskImpl } from "./StorageDiskImpl";
+import { DiskNotFoundError } from "./storage-errors";
 
 let anonDiskId = 0;
 
@@ -33,17 +34,12 @@ export class StorageImpl extends DelegatesToDirectory implements Storage {
 
 	disk(name?: string): StorageDisk {
 		if (name == null) {
-			if (!this.#defaultDiskName) {
-				throw new Error(
-					"disk() normally returns the default disk, but no default disk is configured",
-				);
-			}
 			name = this.#defaultDiskName;
 		}
 		const disk = this.#disks.get(name);
 
 		if (!disk) {
-			throw new Error(`Disk "${name}" not found`);
+			throw new DiskNotFoundError(name);
 		}
 
 		return disk;
@@ -53,10 +49,10 @@ export class StorageImpl extends DelegatesToDirectory implements Storage {
 		return new StorageDiskImpl(name ?? `anonymous${++anonDiskId}`, endpoint);
 	}
 
-	mock(diskName: string): void {
-		// Replace the disk with a memory driver
-		const memoryEndpoint = new MemoryStorageDriver({});
-		this.#register(diskName, memoryEndpoint);
+	mock(diskName: string, endpoint?: StorageEndpoint): void {
+		// Replace the disk with provided endpoint or a default memory driver
+		const mockEndpoint = endpoint ?? new MemoryStorageDriver({});
+		this.#register(diskName, mockEndpoint);
 	}
 
 	resetMocks(): void {

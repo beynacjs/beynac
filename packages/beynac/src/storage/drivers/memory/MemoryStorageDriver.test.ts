@@ -1,6 +1,4 @@
-import { defineDriverIntegrationTests } from "../driver-integration.shared.test";
-import { defineDriverUnitTests } from "../driver-unit-tests.shared.test";
+import { driverSharedTests } from "../driver-shared.test";
 import { memoryStorage } from "./MemoryStorageDriver";
 
-defineDriverUnitTests(memoryStorage);
-defineDriverIntegrationTests(memoryStorage);
+driverSharedTests(memoryStorage);

@@ -1,9 +1,9 @@
 export { formatPhc, type PHCFields, parsePhc } from "./phc";
 export {
-	hashScrypt,
-	hashScryptSync,
-	hashSha256,
 	type ScryptOptions,
+	scrypt,
+	scryptSync,
 	verifyScrypt,
 	verifyScryptSync,
 } from "./scrypt";
+export { sha256 } from "./sha";

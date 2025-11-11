@@ -12,10 +12,12 @@ import { StorageDirectoryImpl } from "./StorageDirectoryImpl";
 export class StorageDiskImpl extends DelegatesToDirectory implements StorageDisk {
 	readonly name: string;
 	readonly #rootDirectory: StorageDirectoryImpl;
+	readonly #endpoint: StorageEndpoint;
 
 	constructor(name: string, endpoint: StorageEndpoint) {
 		super();
 		this.name = name;
+		this.#endpoint = endpoint;
 		this.#rootDirectory = new StorageDirectoryImpl(this, endpoint, "/");
 	}
 
@@ -24,6 +26,6 @@ export class StorageDiskImpl extends DelegatesToDirectory implements StorageDisk
 	}
 
 	protected override getToStringExtra(): string | undefined {
-		return this.name;
+		return this.#endpoint.name + "://" + this.name;
 	}
 }

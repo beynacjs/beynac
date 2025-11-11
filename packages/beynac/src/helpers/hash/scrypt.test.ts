@@ -1,52 +1,52 @@
 import { describe, expect, test } from "bun:test";
-import { hashScrypt, hashScryptSync, hashSha256, verifyScrypt, verifyScryptSync } from "./scrypt";
+import { scrypt, scryptSync, verifyScrypt, verifyScryptSync } from "./scrypt";
 
-describe(hashScrypt, () => {
+describe(scrypt, () => {
 	test("creates a valid PHC-formatted scrypt hash", async () => {
-		const hash = await hashScrypt("password123");
+		const hash = await scrypt("password123");
 		expect(hash).toMatch(/^\$scrypt\$ln=\d+,r=\d+,p=\d+\$.+\$.+$/);
 	});
 
 	test("produces different hashes for same password", async () => {
-		const hash1 = await hashScrypt("password123");
-		const hash2 = await hashScrypt("password123");
+		const hash1 = await scrypt("password123");
+		const hash2 = await scrypt("password123");
 		expect(hash1).not.toBe(hash2);
 	});
 
 	test("accepts custom parameters", async () => {
-		const hash = await hashScrypt("password123", { N: 1024, r: 4, p: 2 });
+		const hash = await scrypt("password123", { N: 1024, r: 4, p: 2 });
 		expect(hash).toContain("ln=10,r=4,p=2"); // 2^10 = 1024
 	});
 });
 
-describe(hashScryptSync, () => {
+describe(scryptSync, () => {
 	test("creates a valid PHC-formatted scrypt hash", () => {
-		const hash = hashScryptSync("password123");
+		const hash = scryptSync("password123");
 		expect(hash).toMatch(/^\$scrypt\$ln=\d+,r=\d+,p=\d+\$.+\$.+$/);
 	});
 
 	test("produces different hashes for same password", () => {
-		const hash1 = hashScryptSync("password123");
-		const hash2 = hashScryptSync("password123");
+		const hash1 = scryptSync("password123");
+		const hash2 = scryptSync("password123");
 		expect(hash1).not.toBe(hash2);
 	});
 });
 
 describe(verifyScrypt, () => {
 	test("verifies correct password", async () => {
-		const hash = await hashScrypt("password123");
+		const hash = await scrypt("password123");
 		const result = await verifyScrypt("password123", hash);
 		expect(result).toBe(true);
 	});
 
 	test("rejects incorrect password", async () => {
-		const hash = await hashScrypt("password123");
+		const hash = await scrypt("password123");
 		const result = await verifyScrypt("wrongpassword", hash);
 		expect(result).toBe(false);
 	});
 
 	test("handles unicode passwords", async () => {
-		const hash = await hashScrypt("пароль🔒");
+		const hash = await scrypt("пароль🔒");
 		const result = await verifyScrypt("пароль🔒", hash);
 		expect(result).toBe(true);
 	});
@@ -75,13 +75,13 @@ describe(verifyScrypt, () => {
 
 describe(verifyScryptSync, () => {
 	test("verifies correct password", () => {
-		const hash = hashScryptSync("password123");
+		const hash = scryptSync("password123");
 		const result = verifyScryptSync("password123", hash);
 		expect(result).toBe(true);
 	});
 
 	test("rejects incorrect password", () => {
-		const hash = hashScryptSync("password123");
+		const hash = scryptSync("password123");
 		const result = verifyScryptSync("wrongpassword", hash);
 		expect(result).toBe(false);
 	});
@@ -105,29 +105,5 @@ describe(verifyScryptSync, () => {
 		expect(() => verifyScryptSync("password", invalidHash)).toThrow(
 			"Invalid scrypt hash: p parameter must be a number",
 		);
-	});
-});
-
-describe(hashSha256, () => {
-	test("hashes string input", async () => {
-		const hash = await hashSha256("test");
-		expect(hash).toBe("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
-	});
-
-	test("hashes Uint8Array input", async () => {
-		const data = new TextEncoder().encode("test");
-		const hash = await hashSha256(data);
-		expect(hash).toBe("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
-	});
-
-	test("produces consistent hashes for same input", async () => {
-		const hash1 = await hashSha256("test");
-		const hash2 = await hashSha256("test");
-		expect(hash1).toBe(hash2);
-	});
-
-	test("handles empty string", async () => {
-		const hash = await hashSha256("");
-		expect(hash).toBe("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
 	});
 });

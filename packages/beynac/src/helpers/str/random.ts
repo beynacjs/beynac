@@ -1,6 +1,6 @@
 import { webcrypto as crypto } from "node:crypto";
 
-const DEFAULT_ALPHABET = "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
+const DEFAULT_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 const POOL_SIZE = 2048;
 let pool: Buffer | undefined;
@@ -40,9 +40,9 @@ export function random(length: number, alphabet: string = DEFAULT_ALPHABET): str
 
 /**
  * Generate an ID using URL-safe characters (letters, numbers, underscore and
- * dash). The default length is 21 which gives comparable entropy to a UUID
+ * dash). The default length is 22 which gives comparable entropy to a UUID
  */
-export function randomId(length = 21): string {
+export function randomId(length = 22): string {
 	return random(length);
 }
 

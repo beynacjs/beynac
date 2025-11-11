@@ -1,4 +1,9 @@
-import { createHash, randomBytes, scrypt, scryptSync, timingSafeEqual } from "node:crypto";
+import {
+	scrypt as nodeScrypt,
+	scryptSync as nodeScryptSync,
+	randomBytes,
+	timingSafeEqual,
+} from "node:crypto";
 import { formatPhc, parsePhc } from "./phc";
 
 /**
@@ -25,7 +30,7 @@ const DEFAULT_SCRYPT_OPTIONS = {
 /**
  * Asynchronously hash a password using scrypt
  */
-export async function hashScrypt(password: string, options?: ScryptOptions): Promise<string> {
+export async function scrypt(password: string, options?: ScryptOptions): Promise<string> {
 	const N: number = typeof options?.N === "number" ? options.N : DEFAULT_SCRYPT_OPTIONS.N;
 	const r: number = typeof options?.r === "number" ? options.r : DEFAULT_SCRYPT_OPTIONS.r;
 	const p: number = typeof options?.p === "number" ? options.p : DEFAULT_SCRYPT_OPTIONS.p;
@@ -34,7 +39,7 @@ export async function hashScrypt(password: string, options?: ScryptOptions): Pro
 	const salt = randomBytes(16);
 
 	return new Promise((resolve, reject) => {
-		scrypt(password, salt, keyLen, { N, r, p }, (err, derivedKey) => {
+		nodeScrypt(password, salt, keyLen, { N, r, p }, (err, derivedKey) => {
 			if (err) {
 				reject(err);
 			} else {
@@ -54,14 +59,14 @@ export async function hashScrypt(password: string, options?: ScryptOptions): Pro
 /**
  * Synchronously hash a password using scrypt
  */
-export function hashScryptSync(password: string, options?: ScryptOptions): string {
+export function scryptSync(password: string, options?: ScryptOptions): string {
 	const N: number = typeof options?.N === "number" ? options.N : DEFAULT_SCRYPT_OPTIONS.N;
 	const r: number = typeof options?.r === "number" ? options.r : DEFAULT_SCRYPT_OPTIONS.r;
 	const p: number = typeof options?.p === "number" ? options.p : DEFAULT_SCRYPT_OPTIONS.p;
 	const keyLen: number =
 		typeof options?.keyLen === "number" ? options.keyLen : DEFAULT_SCRYPT_OPTIONS.keyLen;
 	const salt = randomBytes(16);
-	const derivedKey = scryptSync(password, salt, keyLen, { N, r, p });
+	const derivedKey = nodeScryptSync(password, salt, keyLen, { N, r, p });
 	return formatPhc({
 		id: "scrypt",
 		params: { ln: Math.log2(N), r, p },
@@ -99,7 +104,7 @@ export async function verifyScrypt(password: string, hash: string): Promise<bool
 	const N = 2 ** ln;
 
 	return new Promise((resolve, reject) => {
-		scrypt(password, phc.salt as Buffer, phc.hash!.length, { N, r, p }, (err, testKey) => {
+		nodeScrypt(password, phc.salt as Buffer, phc.hash!.length, { N, r, p }, (err, testKey) => {
 			if (err) {
 				reject(err);
 			} else {
@@ -137,17 +142,6 @@ export function verifyScryptSync(password: string, hash: string): boolean {
 
 	const N = 2 ** ln;
 
-	const testKey = scryptSync(password, phc.salt, phc.hash.length, { N, r, p });
+	const testKey = nodeScryptSync(password, phc.salt, phc.hash.length, { N, r, p });
 	return timingSafeEqual(phc.hash, testKey);
-}
-
-/**
- * Hash data using SHA-256
- * @param data - String or Uint8Array to hash
- * @returns Promise resolving to lowercase hex-encoded hash
- */
-export async function hashSha256(data: string | Uint8Array): Promise<string> {
-	const hash = createHash("sha256");
-	hash.update(data);
-	return hash.digest("hex");
 }

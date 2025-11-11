@@ -9,12 +9,12 @@ describe(getPrototypeChain, () => {
 	class C extends B {}
 
 	test("work with instance", () => {
-		const chain = Array.from(getPrototypeChain(new C()));
+		const chain = getPrototypeChain(new C());
 		expect(chain).toEqual([C, B, A, Object]);
 	});
 
 	test("work with classes", () => {
-		const chain = Array.from(getPrototypeChain(C));
+		const chain = getPrototypeChain(C);
 		expect(chain).toEqual([C, B, A, Object]);
 	});
 });

@@ -23,7 +23,7 @@ export interface Storage extends StorageDirectoryOperations {
 	build(endpoint: StorageEndpoint, name?: string): StorageDisk;
 
 	/**
-	 * Replace a disk with one backed by a tempory directory that will be
+	 * Replace a disk with one backed by a temporary directory that will be
 	 * cleaned up when the process exits.
 	 */
 	mock(diskName: string): void;
@@ -56,7 +56,7 @@ export interface StorageEntryCommon {
 	readonly path: string;
 }
 
-interface CommonUrlOptions {
+interface SignUrlOptions {
 	/**
 	 * Generate a signed URL with expiration on drivers that support it (s3).
 	 * Other drivers will ignore this option - if the file is public, the URL
@@ -72,7 +72,7 @@ interface CommonUrlOptions {
 	expires?: string | Date | undefined;
 }
 
-export interface DownloadUrlOptions extends CommonUrlOptions {
+interface DownloadUrlOptions {
 	/**
 	 * Set the download file name on drivers that support it (s3). Other
 	 * drivers will ignore the option.
@@ -82,13 +82,15 @@ export interface DownloadUrlOptions extends CommonUrlOptions {
 	downloadAs?: string | undefined;
 }
 
-export interface UploadUrlOptions extends CommonUrlOptions {}
-
 export interface StorageFileInfo {
 	size: number;
 	mimeType: string;
 	etag: string;
 }
+
+export type StorageFileUrlOptions = DownloadUrlOptions;
+export type StorageFileSignedUrlOptions = SignUrlOptions & DownloadUrlOptions;
+export type StorageFileUploadUrlOptions = SignUrlOptions;
 
 export interface StorageFile extends StorageEntryCommon {
 	readonly type: "file";
@@ -108,16 +110,15 @@ export interface StorageFile extends StorageEntryCommon {
 	exists(): Promise<boolean>;
 
 	/**
-	 * Fetch this file and return a web-standard Response object.
+	 * Fetch this file and on success return a web-standard Response object.
 	 *
 	 * All drivers will set the Content-Type and Content-Length headers on
 	 * the response. Drivers may set other headers.
 	 *
-	 * NOTE: unlike the fetch() API, if this method checks to see if a
-	 * response is sucessful before returning it. In the event that the
-	 * response fails, an error will be thrown.
+	 * Unlike the fetch() API, this method will only return a response on
+	 * success. On failure, an appropriate kind of error will be thrown, e.g.
+	 * NotFoundError or PermissionsError.
 	 */
-	// TEST: epected headers set
 	fetch(): Promise<Response>;
 
 	/**
@@ -126,11 +127,28 @@ export interface StorageFile extends StorageEntryCommon {
 	info(): Promise<StorageFileInfo | null>;
 
 	/**
-	 * Generate a URL to access this file publicly.
+	 * Get the URL at which this file can be accessed.
+	 *
+	 * This will be a regular unsigned URL and so relies on the file being publicly accessible.
+	 *
+	 * @param [options.downloadAs] - The suggested filename for the file, for s3. Storage drivers that do not support suggested download names will ignore this option.
 	 */
-	// TEST: expires accepts string patterns
-	// TEST: expires accepts Date
 	url(options?: DownloadUrlOptions): Promise<string>;
+
+	/**
+	 * Generate a signed URL to allow access to this file.
+	 *
+	 * @param [options.downloadAs] - The suggested filename for the file, for s3. Storage drivers that do not support suggested download names will ignore this option.
+	 * @param [options.expires] - A Date defining expiry time, or string in the format "1h" or "5d4h" representing a duration into the future
+	 */
+	signedUrl(options?: DownloadUrlOptions & SignUrlOptions): Promise<string>;
+
+	/**
+	 * Generate a URL that clients can POST data to to upload file content.
+	 *
+	 * @param [options.expires] - A Date defining expiry time, or string in the format "1h" or "5d4h" representing a duration into the future
+	 */
+	uploadUrl(options?: SignUrlOptions): Promise<string>;
 
 	/**
 	 * Upload data to the file. If the file does not exist, it will be
@@ -138,7 +156,7 @@ export interface StorageFile extends StorageEntryCommon {
 	 *
 	 * The file already has a name (its path), so this method does not
 	 * accept a suggestedName. To upload a file with a suggested name that
-	 * may be sanitized, use directory.putFile() instead.
+	 * may be sanitised, use directory.putFile() instead.
 	 *
 	 * @param payload.data - a source of binary data, any BodyInit value that can be passed to a web fetch request is supported: string, Blob, ArrayBuffer, ArrayBufferView (including UInt8Array), FormData, URLSearchParams, ReadableStream and File
 	 * @param payload.mimeType - a valid mime type e.g. "image/png".
@@ -146,26 +164,25 @@ export interface StorageFile extends StorageEntryCommon {
 	 * If you pass a File or Request object, the mimeType will be obtained
 	 * from the Content-Type header.
 	 */
-	// TEST: header and content type inference
-	put(payload: StorageFilePutPayload | File | Request): Promise<StoragePutResponse>;
+	put(payload: StorageFilePutPayload | File | Request): Promise<void>;
 
 	/**
 	 * Copy the file to another location.
 	 *
 	 * If the destination is on the same disk, the copy is performed efficiently using
-	 * the endpoint's copy() method. Otherwise, the file is fetched and then written
+	 * the driver's copy() method. Otherwise, the file is fetched and then written
 	 * to the destination.
-	 *
-	 * @throws Error if the source file does not exist
 	 */
-	copyTo(destination: StorageFile): Promise<StoragePutResponse>;
+	copyTo(destination: StorageFile): Promise<void>;
 
 	/**
-	 * Generate a URL to access this file publicly.
+	 * Move the file to another location.
+	 *
+	 * If the destination is on the same disk, the move is performed efficiently using
+	 * the driver's move() method. Otherwise, the file is copied to the destination
+	 * and then deleted from the source.
 	 */
-	// TEST: expires accepts string patterns
-	// TEST: expires accepts Date
-	uploadUrl(options?: UploadUrlOptions): Promise<string>;
+	moveTo(destination: StorageFile): Promise<void>;
 }
 
 export type StorageData =
@@ -182,21 +199,13 @@ export interface StorageFilePutPayload {
 	mimeType: string;
 }
 
-export interface StoragePutResponse {
-	/**
-	 * The name that the file was saved with. Storage providers that do not
-	 * support MIME types, like the file system driver, need to ensure that the
-	 * MIME type matches the extension. If it was necessary to change the
-	 * extension, the actual name will reflect that. It is necessary to use the
-	 * actual name to
-	 */
-	actualName: string;
-	actualPath: string;
-}
-
 export interface StorageDirectory extends StorageEntryCommon, StorageDirectoryOperations {
 	readonly type: "directory";
 }
+
+type FileSanitiseOptions = {
+	onInvalid?: "convert" | "throw";
+};
 
 export interface StorageDirectoryOperations {
 	/**
@@ -241,39 +250,42 @@ export interface StorageDirectoryOperations {
 	/**
 	 * Return a directory reference by resolving a path relative to this directory.
 	 *
-	 * Path normalization:
-	 * - Leading slash is stripped (paths are relative)
-	 * - Trailing slash is added if missing
-	 * - "/" or "" returns this directory
-	 * - Path segments are sanitized based on endpoint's invalidNameChars
+	 * By default, handles invalid filenames by generating a unique valid
+	 * filename. This can cause surprising results if you write files using
+	 * this API then try to read them using a different system. For example,
+	 * if you try to save a file called "test:file" to a filesystem that
+	 * doesn't support colons, the file will be saved as
+	 * "test_file-3c5b0673" (3c5b0673 is a hash of the original name).
+	 *
+	 * @param [options.onInvalid] - "convert" to generate valid file names (the default), or "error" to throw an error
 	 *
 	 * @path a directory name e.g. "pokemon" or path e.g. "pokemon/pikachu/images"
 	 */
-	// TEST: "/" or "" returns the same directory
-	// TEST: "a/b/c" creates nested directories with "/" preserved
-	directory(path: string): StorageDirectory;
+	directory(path: string, options?: FileSanitiseOptions): StorageDirectory;
 
 	/**
 	 * Return a file reference by resolving a path relative to this directory.
 	 *
-	 * Path normalization:
-	 * - Leading slash is stripped (paths are relative)
-	 * - Trailing slash is stripped
-	 * - Filename is sanitized based on endpoint's invalidNameChars
-	 * - "/" in filename is replaced with "_" (if "/" is invalid)
+	 * Slashes in the filename are interpreted as directory names, so
+	 * "foo/bar.txt" returns a file in the "foo" subdirectory.
+	 *
+	 * By default, handles invalid filenames by generating a unique valid
+	 * filename. This can cause surprising results if you write files using
+	 * this API then try to read them using a different system. For example,
+	 * if you try to save a file called "test:file" to a filesystem that
+	 * doesn't support colons, the file will be saved as
+	 * "test_file-3c5b0673" (3c5b0673 is a hash of the original name).
+	 *
+	 * @param [options.onInvalid] - "convert" to generate valid file names (the default), or "error" to throw an error
 	 *
 	 * @path a filename e.g. "image.png"
 	 */
-	// TEST: "a/b/c" has slashes replaced with "_" (if "/" is invalid)
-	file(path: string): StorageFile;
+	file(path: string, options?: FileSanitiseOptions): StorageFile;
 
 	/**
-	 * Upload a file to this directory with a suggested name.
-	 *
-	 * The actual filename may be different from the suggested name due to:
-	 * - Invalid character sanitization (endpoint-specific)
-	 * - Extension changes (for endpoints that don't support MIME types)
-	 * - Random ID generation (if no suggestedName provided)
+	 * Upload a file to this directory. The name may be changed to match the
+	 * rules of the storage disk, removing invalid characters and adding a
+	 * valid extension if required
 	 *
 	 * @param payload.data - a source of binary data
 	 * @param payload.mimeType - a valid mime type e.g. "image/png"
@@ -313,7 +325,7 @@ export interface StorageEndpoint {
 	name: string;
 
 	/**
-	 * Read a file, returning the web-standaed response e.g. from the fetch() call used to make the request
+	 * Read a file, returning the web-standard response e.g. from the fetch() call used to make the request
 	 */
 	readSingle(path: string): Promise<Response>;
 
@@ -338,6 +350,11 @@ export interface StorageEndpoint {
 	 * Get information about a file.
 	 */
 	getInfoSingle(path: string): Promise<StorageEndpointFileInfo | null>;
+
+	/**
+	 * Get an unsigned URL that will work to download this file if it is public.
+	 */
+	getPublicDownloadUrl(path: string, downloadFileName?: string): Promise<string>;
 
 	/**
 	 * Get a temporary download URL for a path.

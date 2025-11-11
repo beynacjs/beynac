@@ -133,16 +133,16 @@ export type AnyConstructor<T = unknown> = abstract new (...args: never[]) => T;
 export type NoArgConstructor<T = unknown> = abstract new () => T;
 
 /**
- * Generator function that walks up the prototype chain from an instance or constructor.
- * Yields each constructor in the chain from most specific to least specific,
+ * Walks up the prototype chain from an instance or constructor.
+ * Returns an array of each constructor in the chain from most specific to least specific,
  * including Object.
  *
  * @param instanceOrClass - Either an instance of a class or a constructor function
- * @yields Constructor functions in the prototype chain
+ * @returns Array of constructor functions in the prototype chain
  */
-export function* getPrototypeChain(
-	instanceOrClass: object | AnyConstructor,
-): Generator<AnyConstructor> {
+export function getPrototypeChain(instanceOrClass: object | AnyConstructor): AnyConstructor[] {
+	const result: AnyConstructor[] = [];
+
 	// Start with the appropriate prototype based on input type
 	let prototype: unknown =
 		typeof instanceOrClass === "function"
@@ -153,44 +153,21 @@ export function* getPrototypeChain(
 	while (prototype) {
 		const constructor = (prototype as { constructor: AnyConstructor }).constructor;
 		if (typeof constructor === "function") {
-			yield constructor;
+			result.push(constructor);
 		}
 		if (prototype === Object.prototype) {
 			break;
 		}
 		prototype = Object.getPrototypeOf(prototype);
 	}
+
+	return result;
 }
 
 export const plural = (word: string): string => word + "s";
 
 export const pluralCount = (count: number, word: string): string =>
 	count + " " + (count === 1 ? word : plural(word));
-
-/**
- * Check if a value is a class that extends a given base class.
- *
- * @param value - The value to check
- * @param baseClass - The base class to check against
- * @returns True if value is a class extending baseClass
- */
-export function extendsClass<T>(
-	value: unknown,
-	baseClass: AnyConstructor<T>,
-): value is NoArgConstructor<T> {
-	if (typeof value !== "function") {
-		return false;
-	}
-
-	// Check if value is in the prototype chain
-	for (const proto of getPrototypeChain(value)) {
-		if (proto === baseClass) {
-			return true;
-		}
-	}
-
-	return false;
-}
 
 /**
  * Base class that provides a toString() implementation.

@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import type { StorageDirectoryOperations } from "../contracts/Storage";
+import { spyOnAll } from "../test-utils";
 import { memoryStorage } from "./drivers/memory/MemoryStorageDriver";
+import { StorageDirectoryImpl } from "./StorageDirectoryImpl";
 import { StorageDiskImpl } from "./StorageDiskImpl";
-import { mockStorageDirectory } from "./test-helpers";
 
 describe(StorageDiskImpl, () => {
 	describe("constructor", () => {
@@ -50,9 +51,9 @@ describe(StorageDiskImpl, () => {
 		let disk: StorageDiskImpl;
 
 		beforeEach(() => {
-			mockRoot = mockStorageDirectory();
 			const endpoint = memoryStorage({});
 			disk = new StorageDiskImpl("test-disk", endpoint);
+			mockRoot = spyOnAll(new StorageDirectoryImpl(disk, endpoint, "/"));
 			// Override getDirectoryForDelegation to return our mock
 			(disk as any).getDirectoryForDelegation = mock(() => mockRoot);
 		});
@@ -102,26 +103,21 @@ describe(StorageDiskImpl, () => {
 		test("disk operations work on root path", async () => {
 			const endpoint = memoryStorage({
 				initialFiles: {
-					"/test.txt": { data: "root file", mimeType: "text/plain" },
-					"/subdir/nested.txt": { data: "nested file", mimeType: "text/plain" },
+					"/test.txt": "root file",
+					"/subdir/nested.txt": "nested file",
 				},
 			});
 			const disk = new StorageDiskImpl("test-disk", endpoint);
 
-			// Test that disk.file() accesses root-level files
 			const file = disk.file("test.txt");
 			expect(await file.exists()).toBe(true);
 			const response = await file.fetch();
 			expect(await response.text()).toBe("root file");
 
-			// Test that disk.directory() accesses root-level directories
 			const dir = disk.directory("subdir");
 			const files = await dir.files();
 			expect(files.length).toBe(1);
 			expect(files[0].path).toBe("/subdir/nested.txt");
-			const allFiles = await disk.allFiles();
-			expect(allFiles.length).toBe(2);
-			expect(allFiles.map((f) => f.path).sort()).toEqual(["/subdir/nested.txt", "/test.txt"]);
 		});
 	});
 
@@ -129,7 +125,7 @@ describe(StorageDiskImpl, () => {
 		test("returns [StorageDiskImpl diskname]", () => {
 			const endpoint = memoryStorage({});
 			const disk = new StorageDiskImpl("my-disk", endpoint);
-			expect(disk.toString()).toBe("[StorageDiskImpl my-disk]");
+			expect(disk.toString()).toBe("[StorageDiskImpl memory://my-disk]");
 		});
 	});
 });

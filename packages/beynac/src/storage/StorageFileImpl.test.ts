@@ -1,303 +1,433 @@
-import { describe, expect, mock, test } from "bun:test";
-import type { StorageEndpointFileInfo } from "../contracts/Storage";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import type { StorageEndpoint } from "../contracts/Storage";
+import { mockCurrentTime, resetTimeMocks } from "../helpers/time";
+import { expectErrorWithProperties, spyOnAll } from "../test-utils";
 import { memoryStorage } from "./drivers/memory/MemoryStorageDriver";
 import { StorageDiskImpl } from "./StorageDiskImpl";
 import { StorageFileImpl } from "./StorageFileImpl";
-import { mockStorageEndpoint } from "./test-helpers";
+import { InvalidPathError, NotFoundError } from "./storage-errors";
 
 describe(StorageFileImpl, () => {
-	const endpoint = memoryStorage({});
-	const disk = new StorageDiskImpl("test", endpoint);
+	let endpoint: StorageEndpoint;
+	let disk: StorageDiskImpl;
+
+	beforeEach(() => {
+		mockCurrentTime(new Date("2025-01-01T00:00:00Z"));
+		endpoint = memoryStorage({});
+		disk = new StorageDiskImpl("test", endpoint);
+	});
+
+	afterEach(() => {
+		resetTimeMocks();
+	});
 
 	describe("constructor", () => {
-		test("stores path as-is without normalization", () => {
-			const disk = new StorageDiskImpl("test", endpoint);
+		test("stores path", () => {
 			const file = new StorageFileImpl(disk, endpoint, "/path/to/file.txt");
 			expect(file.path).toBe("/path/to/file.txt");
 		});
 
-		test("accepts path with trailing slash as-is", () => {
-			expect(new StorageFileImpl(disk, endpoint, "/path/to/file.txt/").path).toBe(
-				"/path/to/file.txt/",
-			);
-		});
+		test("throws when path does not start with a slash", () => {
+			expect(() => new StorageFileImpl(disk, endpoint, "")).toThrowError(InvalidPathError);
+			expect(() => new StorageFileImpl(disk, endpoint, "foo.txt")).toThrowError(InvalidPathError);
 
-		test("handles empty path", () => {
-			const disk = new StorageDiskImpl("test", endpoint);
-			const file = new StorageFileImpl(disk, endpoint, "");
-			expect(file.path).toBe("");
+			expectErrorWithProperties(
+				() => new StorageFileImpl(disk, endpoint, "foo.txt"),
+				InvalidPathError,
+				{
+					path: "foo.txt",
+					reason: "must start with a slash",
+				},
+			);
 		});
 	});
 
 	describe("delete()", () => {
-		test("delegates to endpoint.deleteSingle with correct path", async () => {
-			const mockEndpoint = mockStorageEndpoint();
-			const file = new StorageFileImpl(disk, mockEndpoint, "/test.txt");
+		test("deletes file from storage", async () => {
+			const file = disk.file("test.txt");
+			await file.put({ data: "content", mimeType: "text/plain" });
+			expect(await file.exists()).toBe(true);
 			await file.delete();
-			expect(mockEndpoint.deleteSingle).toHaveBeenCalledWith("/test.txt");
+			expect(await file.exists()).toBe(false);
 		});
 	});
 
 	describe("exists()", () => {
-		test("delegates to endpoint.existsSingle and returns result", async () => {
-			const mockEndpoint = mockStorageEndpoint();
-			mockEndpoint.existsSingle = mock(async () => true);
-			const file = new StorageFileImpl(disk, mockEndpoint, "/test.txt");
-			const result = await file.exists();
-			expect(result).toBe(true);
-			expect(mockEndpoint.existsSingle).toHaveBeenCalledWith("/test.txt");
+		test("returns false when file doesn't exist", async () => {
+			const file = disk.file("test.txt");
+			expect(await file.exists()).toBe(false);
+		});
+
+		test("returns true when file exists", async () => {
+			const file = disk.file("test.txt");
+			await file.put({ data: "content", mimeType: "text/plain" });
+			expect(await file.exists()).toBe(true);
 		});
 	});
 
 	describe("fetch()", () => {
-		test("delegates to endpoint.readSingle and returns response", async () => {
-			const mockResponse = new Response("content", { status: 200 });
-			const mockEndpoint = mockStorageEndpoint();
-			mockEndpoint.readSingle = mock(async () => mockResponse);
-			const file = new StorageFileImpl(disk, mockEndpoint, "/test.txt");
-			const result = await file.fetch();
-			expect(result).toBe(mockResponse);
-			expect(mockEndpoint.readSingle).toHaveBeenCalledWith("/test.txt");
+		test("returns file content", async () => {
+			const file = disk.file("test.txt");
+			await file.put({ data: "content", mimeType: "text/plain" });
+			const response = await file.fetch();
+			expect(await response.text()).toBe("content");
 		});
 
-		test("throws when response is not ok", async () => {
-			const mockResponse = new Response("error", { status: 404 });
-			const mockEndpoint = mockStorageEndpoint();
-			mockEndpoint.readSingle = mock(async () => mockResponse);
-			const file = new StorageFileImpl(disk, mockEndpoint, "/test.txt");
-			expect(file.fetch()).rejects.toThrow("Failed to fetch file");
-		});
-	});
+		test("throws when file doesn't exist", async () => {
+			const file = disk.file("nonexistent.txt");
+			expect(file.fetch()).rejects.toThrow(NotFoundError);
 
-	describe("info()", () => {
-		test("delegates to endpoint.getInfoSingle and transforms result", async () => {
-			const mockEndpoint = mockStorageEndpoint();
-			mockEndpoint.getInfoSingle = mock(async () => ({
-				etag: "abc123",
-				contentLength: 100,
-				mimeType: "text/plain",
-			}));
-			const file = new StorageFileImpl(disk, mockEndpoint, "/test.txt");
-			const result = await file.info();
-			expect(result).toEqual({
-				etag: "abc123",
-				size: 100,
-				mimeType: "text/plain",
+			await expectErrorWithProperties(() => file.fetch(), NotFoundError, {
+				path: "/nonexistent.txt",
 			});
-			expect(mockEndpoint.getInfoSingle).toHaveBeenCalledWith("/test.txt");
 		});
 
-		test("returns null when endpoint returns null", async () => {
-			const mockEndpoint = mockStorageEndpoint();
-			const file = new StorageFileImpl(disk, mockEndpoint, "/test.txt");
-			const result = await file.info();
-			expect(result).toBeNull();
-		});
-	});
-
-	describe("url()", () => {
-		test("delegates to endpoint.getSignedDownloadUrl with default expiry", async () => {
-			const mockEndpoint = mockStorageEndpoint();
-			mockEndpoint.getSignedDownloadUrl = mock(async () => "https://example.com/file");
-			const file = new StorageFileImpl(disk, mockEndpoint, "/test.txt");
-			const result = await file.url();
-			expect(result).toBe("https://example.com/file");
-			expect(mockEndpoint.getSignedDownloadUrl).toHaveBeenCalledWith(
-				"/test.txt",
-				expect.any(Date),
-				undefined,
-			);
-		});
-
-		test("passes downloadAs option to endpoint", async () => {
-			const mockEndpoint = mockStorageEndpoint();
-			mockEndpoint.getSignedDownloadUrl = mock(async () => "https://example.com/file");
-			const file = new StorageFileImpl(disk, mockEndpoint, "/test.txt");
-			await file.url({ downloadAs: "custom.txt" });
-			expect(mockEndpoint.getSignedDownloadUrl).toHaveBeenCalledWith(
-				expect.anything(),
-				expect.any(Date),
-				"custom.txt",
-			);
-		});
-	});
-
-	describe("uploadUrl()", () => {
-		test("delegates to endpoint.getTemporaryUploadUrl with default expiry", async () => {
-			const mockEndpoint = mockStorageEndpoint();
-			mockEndpoint.getTemporaryUploadUrl = mock(async () => "https://example.com/upload");
-			const file = new StorageFileImpl(disk, mockEndpoint, "/test.txt");
-			const result = await file.uploadUrl();
-			expect(result).toBe("https://example.com/upload");
-			expect(mockEndpoint.getTemporaryUploadUrl).toHaveBeenCalled();
-		});
-
-		test("accepts string expiry pattern", async () => {
-			const mockEndpoint = mockStorageEndpoint();
-			mockEndpoint.getTemporaryUploadUrl = mock(async () => "https://example.com/upload");
-			const file = new StorageFileImpl(disk, mockEndpoint, "/test.txt");
-			await file.uploadUrl({ expires: "1h" });
-			expect(mockEndpoint.getTemporaryUploadUrl).toHaveBeenCalledWith(
-				expect.anything(),
-				expect.any(Date),
-			);
-		});
-
-		test("accepts Date expiry", async () => {
-			const mockEndpoint = mockStorageEndpoint();
-			mockEndpoint.getTemporaryUploadUrl = mock(async () => "https://example.com/upload");
-			const expiryDate = new Date(Date.now() + 3600000);
-			const file = new StorageFileImpl(disk, mockEndpoint, "/test.txt");
-			await file.uploadUrl({ expires: expiryDate });
-			expect(mockEndpoint.getTemporaryUploadUrl).toHaveBeenCalledWith(
-				expect.anything(),
-				expiryDate,
-			);
-		});
-	});
-
-	describe("fetch() MIME type inference", () => {
-		test("infers MIME type from extension when supportsMimeTypes is false", async () => {
-			const mockResponse = new Response("content", {
-				status: 200,
-				headers: { "Content-Length": "7" },
+		test("infers missing MIME type from extension when supportsMimeTypes is false", async () => {
+			const noMimeEndpoint = memoryStorage({
+				supportsMimeTypes: false,
+				initialFiles: {
+					"test.png": { data: "content", mimeType: undefined },
+				},
 			});
-			const mockEndpoint = mockStorageEndpoint();
-			mockEndpoint.supportsMimeTypes = false;
-			mockEndpoint.readSingle = mock(async () => mockResponse);
-			const file = new StorageFileImpl(disk, mockEndpoint, "/test.png");
+			const noMimeDisk = new StorageDiskImpl("test", noMimeEndpoint);
+			const file = noMimeDisk.file("test.png");
 			const result = await file.fetch();
 			expect(result.headers.get("Content-Type")).toBe("image/png");
 		});
 
-		test("preserves original Content-Type when supportsMimeTypes is true", async () => {
-			const mockResponse = new Response("content", {
-				status: 200,
-				headers: { "Content-Type": "custom/type" },
+		test("overrides present MIME type from extension when supportsMimeTypes is false", async () => {
+			const noMimeEndpoint = memoryStorage({
+				supportsMimeTypes: false,
+				initialFiles: {
+					"test.png": { data: "content", mimeType: "image/jpeg" },
+				},
 			});
-			const mockEndpoint = mockStorageEndpoint();
-			mockEndpoint.readSingle = mock(async () => mockResponse);
-			const file = new StorageFileImpl(disk, mockEndpoint, "/test.txt");
+			const noMimeDisk = new StorageDiskImpl("test", noMimeEndpoint);
+			const file = noMimeDisk.file("test.png");
+			const result = await file.fetch();
+			expect(result.headers.get("Content-Type")).toBe("image/png");
+		});
+
+		test("infers missing MIME type from extension when supportsMimeTypes is true", async () => {
+			const noMimeEndpoint = memoryStorage({
+				supportsMimeTypes: true,
+				initialFiles: {
+					"test.png": { data: "content", mimeType: undefined },
+				},
+			});
+			const noMimeDisk = new StorageDiskImpl("test", noMimeEndpoint);
+			const file = noMimeDisk.file("test.png");
+			const result = await file.fetch();
+			expect(result.headers.get("Content-Type")).toBe("image/png");
+		});
+
+		test("does not override present MIME type from extension when supportsMimeTypes is true", async () => {
+			const noMimeEndpoint = memoryStorage({
+				supportsMimeTypes: true,
+				initialFiles: {
+					"test.png": { data: "content", mimeType: "image/jpeg" },
+				},
+			});
+			const noMimeDisk = new StorageDiskImpl("test", noMimeEndpoint);
+			const file = noMimeDisk.file("test.png");
+			const result = await file.fetch();
+			expect(result.headers.get("Content-Type")).toBe("image/jpeg");
+		});
+
+		test("preserves original Content-Type when supportsMimeTypes is true", async () => {
+			const file = disk.file("test.txt");
+			await file.put({ data: "content", mimeType: "custom/type" });
 			const result = await file.fetch();
 			expect(result.headers.get("Content-Type")).toBe("custom/type");
 		});
 	});
 
-	describe("info() mimeType defaults", () => {
-		test("defaults mimeType to application/octet-stream when null", async () => {
-			const mockEndpoint = mockStorageEndpoint();
-			mockEndpoint.getInfoSingle = mock(
-				async (): Promise<StorageEndpointFileInfo | null> => ({
-					etag: "abc",
-					contentLength: 100,
-				}),
-			);
-			const file = new StorageFileImpl(disk, mockEndpoint, "/test.bin");
+	describe("info()", () => {
+		test("returns file info when file exists", async () => {
+			const file = disk.file("test.txt");
+			await file.put({ data: "content", mimeType: "text/plain" });
 			const result = await file.info();
-			expect(result?.mimeType).toBe("application/octet-stream");
+			expect(result).toMatchObject({
+				size: 7,
+				mimeType: "text/plain",
+			});
+			expect(result?.etag).toBeDefined();
+		});
+
+		test("returns null when file doesn't exist", async () => {
+			const file = disk.file("nonexistent.txt");
+			const result = await file.info();
+			expect(result).toBeNull();
+		});
+
+		test("if endpoint throws FileNotFound we convert to null", async () => {
+			const file = disk.file("nonexistent.txt");
+			spyOn(endpoint, "getInfoSingle").mockImplementation(async () => {
+				throw new NotFoundError("nonexistent.txt");
+			});
+			const result = await file.info();
+			expect(result).toBeNull();
+		});
+
+		test("handles missing mime type", async () => {
+			const endpoint = memoryStorage({
+				supportsMimeTypes: false,
+				initialFiles: {
+					"test.png": { data: "content", mimeType: undefined },
+				},
+			});
+			const disk = new StorageDiskImpl("test", endpoint);
+			const result = await disk.file("test.bin").info();
+			expect(result?.mimeType).toBeUndefined();
 		});
 	});
 
-	describe("put() with File object", () => {
-		test("extracts mimeType from File and uses file path", async () => {
-			const mockEndpoint = mockStorageEndpoint();
-			const file = new StorageFileImpl(disk, mockEndpoint, "/dir/document.pdf");
-			const fileObj = new File(["/content"], "document.pdf", { type: "application/pdf" });
-			const result = await file.put(fileObj);
-			expect(result.actualName).toBe("document.pdf");
-			expect(result.actualPath).toBe("/dir/document.pdf");
-			expect(mockEndpoint.writeSingle).toHaveBeenCalledWith(
-				expect.objectContaining({
-					mimeType: "application/pdf",
-				}),
+	describe("url()", () => {
+		test("returns URL with path and 100y expiration", async () => {
+			const file = disk.file("test.txt");
+			const result = await file.url();
+			expect(result).toBe("memory:///test.txt?expires=2124-12-08T00:00:00.000Z");
+		});
+
+		test("passes downloadAs option", async () => {
+			const file = disk.file("test.txt");
+			const result = await file.url({ downloadAs: "custom.txt" });
+			expect(result).toBe(
+				"memory:///test.txt?download=custom.txt&expires=2124-12-08T00:00:00.000Z",
 			);
+		});
+	});
+
+	describe("signedUrl()", () => {
+		test("defaults to 100y expiration", async () => {
+			const file = disk.file("test.txt");
+			const result = await file.signedUrl();
+			expect(result).toBe("memory:///test.txt?expires=2124-12-08T00:00:00.000Z");
+		});
+
+		test("accepts custom expires duration string", async () => {
+			const file = disk.file("test.txt");
+			const result = await file.signedUrl({ expires: "1h" });
+			expect(result).toBe("memory:///test.txt?expires=2025-01-01T01:00:00.000Z");
+		});
+
+		test("accepts custom expires Date", async () => {
+			const file = disk.file("test.txt");
+			const customDate = new Date("2025-06-15T12:30:00Z");
+			const result = await file.signedUrl({ expires: customDate });
+			expect(result).toBe("memory:///test.txt?expires=2025-06-15T12:30:00.000Z");
+		});
+
+		test("passes downloadAs option", async () => {
+			const file = disk.file("test.txt");
+			const result = await file.signedUrl({ downloadAs: "custom.txt" });
+			expect(result).toBe(
+				"memory:///test.txt?download=custom.txt&expires=2124-12-08T00:00:00.000Z",
+			);
+		});
+	});
+
+	describe("uploadUrl()", () => {
+		test("by default returns upload URL with 100y expiration", async () => {
+			const file = disk.file("test.txt");
+			const result = await file.uploadUrl();
+			expect(result).toBe("memory:///test.txt?upload=true&expires=2124-12-08T00:00:00.000Z");
+		});
+
+		test("accepts custom expires duration string", async () => {
+			const file = disk.file("test.txt");
+			const result = await file.uploadUrl({ expires: "1h" });
+			expect(result).toBe("memory:///test.txt?upload=true&expires=2025-01-01T01:00:00.000Z");
+		});
+
+		test("accepts custom expires Date", async () => {
+			const file = disk.file("test.txt");
+			const customDate = new Date("2025-06-15T12:30:00Z");
+			const result = await file.uploadUrl({ expires: customDate });
+			expect(result).toBe("memory:///test.txt?upload=true&expires=2025-06-15T12:30:00.000Z");
+		});
+	});
+
+	describe("put()", () => {
+		test("works with explicit data and mimetype", async () => {
+			const file = disk.file("dir/document.pdf");
+			await file.put({ data: "content", mimeType: "application/pdf" });
+			const response = await file.fetch();
+			expect(response.headers.get("content-type")).toBe("application/pdf");
+			expect(await response.text()).toBe("content");
+		});
+
+		test("extracts mimeType from File and uses file path", async () => {
+			const file = disk.file("dir/document.pdf");
+			const fileObj = new File(["content"], "document.pdf", { type: "application/pdf" });
+			await file.put(fileObj);
+			const info = await file.info();
+			expect(info?.mimeType).toBe("application/pdf");
 		});
 
 		test("defaults to application/octet-stream when File has no type", async () => {
-			const mockEndpoint = mockStorageEndpoint();
-			const file = new StorageFileImpl(disk, mockEndpoint, "/dir/unknown.dat");
-			const fileObj = new File(["/content"], "unknown.dat", { type: "" });
+			const file = disk.file("dir/unknown.dat");
+			const fileObj = new File(["content"], "unknown.dat", { type: "" });
 			await file.put(fileObj);
-			expect(mockEndpoint.writeSingle).toHaveBeenCalledWith(
-				expect.objectContaining({
-					mimeType: "application/octet-stream",
-				}),
-			);
+			const info = await file.info();
+			expect(info?.mimeType).toBe("application/octet-stream");
 		});
-	});
 
-	describe("put() with Request object", () => {
-		test("defaults to application/octet-stream when no Content-Type", async () => {
-			const mockEndpoint = mockStorageEndpoint();
-			const file = new StorageFileImpl(disk, mockEndpoint, "/uploads/file.dat");
+		test("extracts Content-Type from Request", async () => {
+			const file = disk.file("uploads/document.pdf");
+			const request = new Request("http://example.com", {
+				method: "POST",
+				body: "data",
+				headers: {
+					"Content-Type": "application/pdf",
+				},
+			});
+			await file.put(request);
+			const info = await file.info();
+			expect(info?.mimeType).toBe("application/pdf");
+		});
+
+		test("defaults to application/octet-stream when Request has no Content-Type", async () => {
+			const file = disk.file("uploads/file.dat");
 			const request = new Request("http://example.com", {
 				method: "POST",
 				body: "data",
 			});
 			await file.put(request);
-			expect(mockEndpoint.writeSingle).toHaveBeenCalledWith(
-				expect.objectContaining({
-					mimeType: "application/octet-stream",
-				}),
-			);
-		});
-	});
-
-	describe("put() path logic", () => {
-		test("uses file's path", async () => {
-			const mockEndpoint = mockStorageEndpoint();
-			const file = new StorageFileImpl(disk, mockEndpoint, "/uploads/file.txt");
-			await file.put({ data: "content", mimeType: "text/plain" });
-			expect(mockEndpoint.writeSingle).toHaveBeenCalledWith(
-				expect.objectContaining({
-					path: "/uploads/file.txt",
-				}),
-			);
-		});
-
-		test("returns actualName and actualPath", async () => {
-			const mockEndpoint = mockStorageEndpoint();
-			const file = new StorageFileImpl(disk, mockEndpoint, "/dir/document.pdf");
-			const result = await file.put({ data: "content", mimeType: "application/pdf" });
-			expect(result.actualName).toBe("document.pdf");
-			expect(result.actualPath).toBe("/dir/document.pdf");
+			const info = await file.info();
+			expect(info?.mimeType).toBe("application/octet-stream");
 		});
 	});
 
 	describe("copyTo()", () => {
-		test("uses endpoint.copy() for same disk", async () => {
-			const mockEndpoint = mockStorageEndpoint();
-			const sameDisk = new StorageDiskImpl("test", mockEndpoint);
-			const source = new StorageFileImpl(sameDisk, mockEndpoint, "/source.txt");
-			const dest = new StorageFileImpl(sameDisk, mockEndpoint, "/dest.txt");
-			const result = await source.copyTo(dest);
-			expect(mockEndpoint.copy).toHaveBeenCalledWith("/source.txt", "/dest.txt");
-			expect(result.actualPath).toBe("/dest.txt");
-			expect(result.actualName).toBe("dest.txt");
-		});
-
-		test("uses fetch+put for different disk", async () => {
-			const endpoint1 = memoryStorage({});
-			const endpoint2 = memoryStorage({});
-			const disk1 = new StorageDiskImpl("disk1", endpoint1);
-			const disk2 = new StorageDiskImpl("disk2", endpoint2);
-			const source = disk1.file("source.txt");
+		test("copies file on same disk", async () => {
+			const source = disk.file("source.txt");
 			await source.put({ data: "hello", mimeType: "text/plain" });
-			const dest = disk2.file("dest.txt");
+			const dest = disk.file("dest.txt");
+			spyOnAll(endpoint);
 			await source.copyTo(dest);
+			expect(endpoint.readSingle).not.toHaveBeenCalled();
+			expect(endpoint.copy).toHaveBeenCalledWith("/source.txt", "/dest.txt");
 			expect(await dest.exists()).toBe(true);
 			const response = await dest.fetch();
 			expect(await response.text()).toBe("hello");
 		});
 
-		test("throws when source file doesn't exist", async () => {
-			const endpoint1 = memoryStorage({});
+		test("copies file to different disk", async () => {
 			const endpoint2 = memoryStorage({});
-			const disk1 = new StorageDiskImpl("disk1", endpoint1);
 			const disk2 = new StorageDiskImpl("disk2", endpoint2);
-			const source = disk1.file("nonexistent.txt");
+			const source = disk.file("source.txt");
+			await source.put({ data: "hello", mimeType: "text/plain" });
 			const dest = disk2.file("dest.txt");
-			expect(source.copyTo(dest)).rejects.toThrow("Failed to fetch file");
+			spyOnAll(endpoint);
+			spyOnAll(endpoint2);
+			await source.copyTo(dest);
+			expect(endpoint.readSingle).toHaveBeenCalledWith("/source.txt");
+			expect(endpoint.copy).not.toHaveBeenCalled();
+			expect(endpoint2.writeSingle).toHaveBeenCalledWith({
+				// we should use ReadableStream to stream data from one endpoint to another
+				data: expect.any(ReadableStream),
+				mimeType: "text/plain",
+				path: "/dest.txt",
+			});
+			expect(endpoint2.copy).not.toHaveBeenCalled();
+			expect(await dest.exists()).toBe(true);
+			const response = await dest.fetch();
+			expect(await response.text()).toBe("hello");
+		});
+
+		test("throws when source file doesn't exist on same-disk transfer", async () => {
+			const source = disk.file("nonexistent.txt");
+			const dest = disk.file("dest.txt");
+			// Same-disk copy uses endpoint.copy() which may throw various errors
+			// These get wrapped in StorageFailureError by withStorageErrors()
+			expect(source.copyTo(dest)).rejects.toThrow();
+		});
+
+		test("throws when source file doesn't exist on cross-disk transfer", async () => {
+			const endpoint2 = memoryStorage({});
+			const disk2 = new StorageDiskImpl("disk2", endpoint2);
+			const source = disk.file("nonexistent.txt");
+			const dest = disk2.file("dest.txt");
+			expect(source.copyTo(dest)).rejects.toThrow(NotFoundError);
+
+			await expectErrorWithProperties(() => source.copyTo(dest), NotFoundError, {
+				path: "/nonexistent.txt",
+			});
+		});
+	});
+
+	describe("moveTo()", () => {
+		test("moves file on same disk", async () => {
+			const source = disk.file("source.txt");
+			await source.put({ data: "hello", mimeType: "text/plain" });
+			const dest = disk.file("dest.txt");
+			spyOnAll(endpoint);
+			await source.moveTo(dest);
+			expect(endpoint.move).toHaveBeenCalledWith("/source.txt", "/dest.txt");
+			expect(endpoint.copy).not.toHaveBeenCalled();
+			expect(endpoint.readSingle).not.toHaveBeenCalled();
+			expect(await dest.exists()).toBe(true);
+			const response = await dest.fetch();
+			expect(await response.text()).toBe("hello");
+			expect(await source.exists()).toBe(false);
+		});
+
+		test("moves file to different disk", async () => {
+			const endpoint2 = memoryStorage({});
+			const disk2 = new StorageDiskImpl("disk2", endpoint2);
+			const source = disk.file("source.txt");
+			await source.put({ data: "hello", mimeType: "text/plain" });
+			const dest = disk2.file("dest.txt");
+			spyOnAll(endpoint);
+			spyOnAll(endpoint2);
+			await source.moveTo(dest);
+			expect(endpoint.move).not.toHaveBeenCalled();
+			expect(endpoint.copy).not.toHaveBeenCalled();
+			expect(endpoint.readSingle).toHaveBeenCalledWith("/source.txt");
+			expect(endpoint2.writeSingle).toHaveBeenCalledWith({
+				// should use streaming
+				data: expect.any(ReadableStream),
+				mimeType: "text/plain",
+				path: "/dest.txt",
+			});
+			expect(endpoint.deleteSingle).toHaveBeenCalledWith("/source.txt");
+			const response = await dest.fetch();
+			expect(await response.text()).toBe("hello");
+			expect(response.headers.get("content-type")).toBe("text/plain");
+			expect(await source.exists()).toBe(false);
+		});
+
+		test("throws when source file doesn't exist on same-disk move", async () => {
+			const source = disk.file("nonexistent.txt");
+			const dest = disk.file("dest.txt");
+			spyOn(endpoint, "move").mockImplementation(async () => {
+				throw new Error("Source file not found: /nonexistent.txt");
+			});
+			expect(source.moveTo(dest)).rejects.toThrow("Source file not found");
+		});
+
+		test("throws when source file doesn't exist on cross-disk move", async () => {
+			const endpoint2 = memoryStorage({});
+			const disk2 = new StorageDiskImpl("disk2", endpoint2);
+			const source = disk.file("nonexistent.txt");
+			const dest = disk2.file("dest.txt");
+			expect(source.moveTo(dest)).rejects.toThrow(NotFoundError);
+		});
+
+		test("does not delete source if cross-disk copy fails", async () => {
+			const endpoint2 = memoryStorage({});
+			const disk2 = new StorageDiskImpl("disk2", endpoint2);
+			const source = disk.file("source.txt");
+			await source.put({ data: "hello", mimeType: "text/plain" });
+			const dest = disk2.file("dest.txt");
+			spyOn(endpoint2, "writeSingle").mockImplementation(async () => {
+				throw new Error("Write failed");
+			});
+			spyOn(endpoint, "deleteSingle");
+			expect(source.moveTo(dest)).rejects.toThrow("Write failed");
+			expect(endpoint.deleteSingle).not.toHaveBeenCalled();
+			expect(await source.exists()).toBe(true);
 		});
 	});
 

@@ -10,6 +10,8 @@ import { parseAttributeHeader } from "../helpers/headers";
 import { BaseClass } from "../utils";
 import { createFileName, sanitiseName } from "./file-names";
 import { StorageFileImpl } from "./StorageFileImpl";
+import { InvalidPathError } from "./storage-errors";
+import { storageOperation } from "./storage-operation";
 
 /**
  * Implementation of the StorageDirectory interface
@@ -24,14 +26,16 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 		super();
 		this.disk = disk;
 		this.#endpoint = endpoint;
-		if (!path.startsWith("/")) {
-			throw new Error(`Paths must start with a slash: ${path}`);
+		if (!path.startsWith("/") || !path.endsWith("/")) {
+			throw new InvalidPathError(path, "directory paths must start and end with a slash");
 		}
-		this.path = path.endsWith("/") ? path : `${path}/`;
+		this.path = path;
 	}
 
 	async exists(): Promise<boolean> {
-		return await this.#endpoint.existsAnyUnderPrefix(this.path);
+		return await storageOperation("check directory existence", () =>
+			this.#endpoint.existsAnyUnderPrefix(this.path),
+		);
 	}
 
 	async files(): Promise<StorageFile[]> {
@@ -43,7 +47,9 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 	}
 
 	async #files(all: boolean): Promise<StorageFile[]> {
-		const filePaths = await this.#endpoint.listFiles(this.path, all);
+		const filePaths = await storageOperation("list files", () =>
+			this.#endpoint.listFiles(this.path, all),
+		);
 		return filePaths.map((filePath) => new StorageFileImpl(this.disk, this.#endpoint, filePath));
 	}
 
@@ -56,38 +62,54 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 	}
 
 	async #directories(all: boolean): Promise<StorageDirectory[]> {
-		const dirPaths = await this.#endpoint.listDirectories(this.path, all);
+		const dirPaths = await storageOperation("list directories", () =>
+			this.#endpoint.listDirectories(this.path, all),
+		);
 		return dirPaths.map((dirPath) => new StorageDirectoryImpl(this.disk, this.#endpoint, dirPath));
 	}
 
 	async deleteAll(): Promise<void> {
-		await this.#endpoint.deleteAllUnderPrefix(this.path);
+		await storageOperation("delete directory contents", () =>
+			this.#endpoint.deleteAllUnderPrefix(this.path),
+		);
 	}
 
-	directory(path: string): StorageDirectory {
-		const parts = this.#splitAndSanitisePath(path);
+	directory(path: string, options?: { onInvalid?: "convert" | "throw" }): StorageDirectory {
+		const parts = this.#splitAndSanitisePath(path, options?.onInvalid);
 		if (parts.length === 0) {
 			return this;
 		}
-		const cleanPath = parts.join("/") + "/";
-		return new StorageDirectoryImpl(this.disk, this.#endpoint, join(this.path, cleanPath));
+		const cleanPath = parts.join("/");
+		let fullPath = join(this.path, cleanPath);
+		if (!fullPath.endsWith("/")) {
+			fullPath += "/";
+		}
+		return new StorageDirectoryImpl(this.disk, this.#endpoint, fullPath);
 	}
 
-	file(path: string): StorageFile {
-		const parts = this.#splitAndSanitisePath(path);
+	file(path: string, options?: { onInvalid?: "convert" | "throw" }): StorageFile {
+		const parts = this.#splitAndSanitisePath(path, options?.onInvalid);
 		if (parts.length === 0) {
-			throw new Error(`Invalid file name "${path}"`);
+			throw new InvalidPathError(path, "file name cannot be empty");
 		}
 		const cleanPath = parts.join("/");
 		return new StorageFileImpl(this.disk, this.#endpoint, join(this.path, cleanPath));
 	}
 
-	#splitAndSanitisePath(path: string): string[] {
-		return path
+	#splitAndSanitisePath(path: string, onInvalid: "convert" | "throw" = "convert"): string[] {
+		const segments = path
 			.replaceAll(/^\/+|\/$/g, "")
 			.split(/\/+/g)
-			.filter(Boolean)
-			.map((segment) => sanitiseName(segment, this.#endpoint.invalidNameChars));
+			.filter(Boolean);
+
+		return segments.map((segment) => {
+			const sanitisedName = sanitiseName(segment, this.#endpoint.invalidNameChars);
+			if (onInvalid === "throw" && sanitisedName !== segment) {
+				const fullPath = join(this.path, path);
+				throw InvalidPathError.forInvalidCharacters(fullPath, this.#endpoint);
+			}
+			return sanitisedName;
+		});
 	}
 
 	async putFile(
@@ -131,10 +153,12 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 		);
 
 		if (data != null) {
-			await file.put({
-				data,
-				mimeType,
-			});
+			await storageOperation("put file", () =>
+				file.put({
+					data,
+					mimeType,
+				}),
+			);
 		}
 
 		return file;
