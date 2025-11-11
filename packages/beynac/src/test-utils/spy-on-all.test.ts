@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { spyOnAll } from "./mocks";
+import { spyOnAll } from "./spy-on-all";
 
 describe(spyOnAll, () => {
 	test("spies on all methods of an object including prototype methods", () => {

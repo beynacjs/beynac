@@ -4,6 +4,7 @@ import {
 	randomBytes,
 	timingSafeEqual,
 } from "node:crypto";
+import { mockable } from "../../testing/mocks";
 import { formatPhc, parsePhc } from "./phc";
 
 /**
@@ -14,7 +15,7 @@ export interface ScryptOptions {
 	N?: number | undefined;
 	/** Block size parameter (default: 8) */
 	r?: number | undefined;
-	/** Parallelization parameter (default: 1) */
+	/** Parallelisation parameter (default: 1) */
 	p?: number | undefined;
 	/** Length of derived key in bytes (default: 32) */
 	keyLen?: number | undefined;
@@ -29,8 +30,13 @@ const DEFAULT_SCRYPT_OPTIONS = {
 
 /**
  * Asynchronously hash a password using scrypt
+ *
+ * @return a hashed password in PHC format
  */
-export async function scrypt(password: string, options?: ScryptOptions): Promise<string> {
+export const scrypt = mockable(async function scrypt(
+	password: string | Uint8Array,
+	options?: ScryptOptions,
+): Promise<string> {
 	const N: number = typeof options?.N === "number" ? options.N : DEFAULT_SCRYPT_OPTIONS.N;
 	const r: number = typeof options?.r === "number" ? options.r : DEFAULT_SCRYPT_OPTIONS.r;
 	const p: number = typeof options?.p === "number" ? options.p : DEFAULT_SCRYPT_OPTIONS.p;
@@ -54,12 +60,17 @@ export async function scrypt(password: string, options?: ScryptOptions): Promise
 			}
 		});
 	});
-}
+});
 
 /**
  * Synchronously hash a password using scrypt
+ *
+ * @return a hashed password in PHC format
  */
-export function scryptSync(password: string, options?: ScryptOptions): string {
+export const scryptSync = mockable(function scryptSync(
+	password: string | Uint8Array,
+	options?: ScryptOptions,
+): string {
 	const N: number = typeof options?.N === "number" ? options.N : DEFAULT_SCRYPT_OPTIONS.N;
 	const r: number = typeof options?.r === "number" ? options.r : DEFAULT_SCRYPT_OPTIONS.r;
 	const p: number = typeof options?.p === "number" ? options.p : DEFAULT_SCRYPT_OPTIONS.p;
@@ -73,12 +84,15 @@ export function scryptSync(password: string, options?: ScryptOptions): string {
 		salt,
 		hash: derivedKey,
 	});
-}
+});
 
 /**
  * Asynchronously verify a password against a scrypt hash
  */
-export async function verifyScrypt(password: string, hash: string): Promise<boolean> {
+export const verifyScrypt = mockable(async function verifyScrypt(
+	password: string | Uint8Array,
+	hash: string,
+): Promise<boolean> {
 	const phc = parsePhc(hash);
 
 	if (phc.id !== "scrypt") {
@@ -112,12 +126,15 @@ export async function verifyScrypt(password: string, hash: string): Promise<bool
 			}
 		});
 	});
-}
+});
 
 /**
  * Synchronously verify a password against a scrypt hash
  */
-export function verifyScryptSync(password: string, hash: string): boolean {
+export const verifyScryptSync = mockable(function verifyScryptSync(
+	password: string | Uint8Array,
+	hash: string,
+): boolean {
 	const phc = parsePhc(hash);
 
 	if (phc.id !== "scrypt") {
@@ -144,4 +161,4 @@ export function verifyScryptSync(password: string, hash: string): boolean {
 
 	const testKey = nodeScryptSync(password, phc.salt, phc.hash.length, { N, r, p });
 	return timingSafeEqual(phc.hash, testKey);
-}
+});
