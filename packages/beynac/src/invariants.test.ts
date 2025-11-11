@@ -1,8 +1,9 @@
-import { describe, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { BeynacError } from "./error";
 import { BeynacEvent } from "./event";
+import { isMockable } from "./testing/mocks";
 import { BaseClass, getPrototypeChain } from "./utils";
 
 function findTypeScriptFiles(dir: string): string[] {
@@ -35,64 +36,76 @@ const tsFiles = findTypeScriptFiles(srcDir).filter((filePath) => !filePath.inclu
 type FileExports = {
 	filePath: string;
 	relativePath: string;
-	exports: [string, unknown][];
+	classExports: [string, unknown][];
+	functionExports: [string, unknown][];
 };
 
 const fileExports: FileExports[] = await Promise.all(
 	tsFiles.map(async (filePath): Promise<FileExports> => {
 		const relativePath = filePath.substring(srcDir.length + 1);
-		try {
-			const moduleExports = await import(filePath);
-			const exportEntries = Object.entries(moduleExports).filter(
+		const moduleExports = await import(filePath);
+		return {
+			filePath,
+			relativePath,
+			classExports: Object.entries(moduleExports).filter(
 				([, exportValue]) =>
 					typeof exportValue === "function" && exportValue.toString().startsWith("class "),
-			);
-			return { filePath, relativePath, exports: exportEntries };
-		} catch {
-			// Skip files that can't be imported
-			return { filePath, relativePath, exports: [] };
-		}
+			),
+			functionExports: Object.entries(moduleExports).filter(
+				([, exportValue]) =>
+					typeof exportValue === "function" && !exportValue.toString().startsWith("class "),
+			),
+		};
 	}),
 );
 
-describe.each(fileExports)("$relativePath invariants", ({ exports }) => {
-	if (exports.length === 0) {
-		test("has no exported classes", () => {
-			// Empty test for files with no classes
+describe.each(fileExports)("$relativePath invariants", ({ classExports, functionExports }) => {
+	if (classExports.length === 0 && functionExports.length === 0) {
+		test("has no exported classes or functions", () => {
+			// Empty test for files with no classes or functions
 		});
 		return;
 	}
 
-	test.each(exports)("class %s base", (exportName, exportValue) => {
-		// Get the prototype chain
-		const chain = getPrototypeChain(exportValue as object);
+	if (classExports.length > 0) {
+		test.each(classExports)("class %s base", (exportName, exportValue) => {
+			// Get the prototype chain
+			const chain = getPrototypeChain(exportValue as object);
 
-		// Check if BaseClass, BeynacError, or BeynacEvent is in the chain
-		const extendsBaseClass = chain.includes(BaseClass);
-		const extendsBeynacError = chain.includes(BeynacError);
-		const extendsBeynacEvent = chain.includes(BeynacEvent);
+			// Check if BaseClass, BeynacError, or BeynacEvent is in the chain
+			const extendsBaseClass = chain.includes(BaseClass);
+			const extendsBeynacError = chain.includes(BeynacError);
+			const extendsBeynacEvent = chain.includes(BeynacEvent);
 
-		const endsWithError = exportName.endsWith("Error");
-		const endsWithEvent = exportName.endsWith("Event");
+			const endsWithError = exportName.endsWith("Error");
+			const endsWithEvent = exportName.endsWith("Event");
 
-		if (endsWithError && !extendsBeynacError) {
-			throw new Error(`${exportName} ends with "Error" but does not extend BeynacError`);
-		}
+			if (endsWithError && !extendsBeynacError) {
+				throw new Error(`${exportName} ends with "Error" but does not extend BeynacError`);
+			}
 
-		if (extendsBeynacError && !endsWithError) {
-			throw new Error(`${exportName} extends BeynacError but does not end with "Error"`);
-		}
+			if (extendsBeynacError && !endsWithError) {
+				throw new Error(`${exportName} extends BeynacError but does not end with "Error"`);
+			}
 
-		if (endsWithEvent && !extendsBeynacEvent) {
-			throw new Error(`${exportName} ends with "Event" but does not extend BeynacEvent`);
-		}
+			if (endsWithEvent && !extendsBeynacEvent) {
+				throw new Error(`${exportName} ends with "Event" but does not extend BeynacEvent`);
+			}
 
-		if (extendsBeynacEvent && !endsWithEvent) {
-			throw new Error(`${exportName} extends BeynacEvent but does not end with "Event"`);
-		}
+			if (extendsBeynacEvent && !endsWithEvent) {
+				throw new Error(`${exportName} extends BeynacEvent but does not end with "Event"`);
+			}
 
-		if (!extendsBaseClass && !extendsBeynacError && !extendsBeynacEvent) {
-			throw new Error(`${exportName} should extend BaseClass, BeynacError, or BeynacEvent`);
-		}
+			if (!extendsBaseClass && !extendsBeynacError && !extendsBeynacEvent) {
+				throw new Error(`${exportName} should extend BaseClass, BeynacError, or BeynacEvent`);
+			}
+		});
+	}
+
+	const mockableFunctions = functionExports.filter(([, fn]) => isMockable(fn));
+
+	test.each(mockableFunctions)("mockable function %s has name", (_, exportValue) => {
+		const fn = exportValue as Function;
+		expect(fn.name).toBeTruthy();
 	});
 });

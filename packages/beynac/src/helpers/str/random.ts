@@ -1,4 +1,5 @@
 import { webcrypto as crypto } from "node:crypto";
+import { mockable } from "../../testing/mocks";
 
 const DEFAULT_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
@@ -12,7 +13,10 @@ let poolOffset = 0;
  * @param length The length of the string to generate.
  * @param alphabet A string containing characters to use. Defaults to letters, numbers, underscore and hyphen.
  */
-export function random(length: number, alphabet: string = DEFAULT_ALPHABET): string {
+export const random: (length: number, alphabet?: string) => string = mockable(function random(
+	length,
+	alphabet = DEFAULT_ALPHABET,
+): string {
 	if (!length) return "";
 
 	// Hat-tip nanoid for this line below
@@ -36,22 +40,26 @@ export function random(length: number, alphabet: string = DEFAULT_ALPHABET): str
 		id += alphabet[byte & mask] ?? "";
 	}
 	return id;
-}
+});
 
 /**
  * Generate an ID using URL-safe characters (letters, numbers, underscore and
  * dash). The default length is 22 which gives comparable entropy to a UUID
  */
-export function randomId(length = 22): string {
+export const randomId: (length?: number) => string = mockable(function randomId(
+	length = 22,
+): string {
 	return random(length);
-}
+});
 
 /**
  * Generate a random hex string with the given length
  */
-export function randomHex(length: number): string {
+export const randomHex: (length: number) => string = mockable(function randomHex(
+	length: number,
+): string {
 	return random(length, "0123456789abcdef");
-}
+});
 
 export interface PasswordOptions {
 	length?: number;
@@ -71,7 +79,9 @@ export interface PasswordOptions {
  * password() // 'aB3$xY9!mK2#pL8@qR5%nS7'
  * password({ length: 16, letters: true, numbers: true, symbols: false })
  */
-export function password(options: PasswordOptions = {}): string {
+export const password: (options?: PasswordOptions) => string = mockable(function password(
+	options: PasswordOptions = {},
+): string {
 	const { length = 32, letters = true, numbers = true, symbols = true, spaces = false } = options;
 
 	const charSets: string[] = [];
@@ -110,7 +120,7 @@ export function password(options: PasswordOptions = {}): string {
 	}
 
 	return password;
-}
+});
 
 // Crockford Base32 alphabet (no I, L, O, U to avoid confusion)
 const ULID_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
@@ -128,7 +138,9 @@ const ULID_REGEX = /^[0123456789ABCDEFGHJKMNPQRSTVWXYZ]{26}$/;
  * ulid() // '01ARZ3NDEKTSV4RRFFQ69G5FAV'
  * ulid(new Date('2024-01-01')) // '01HN3XJQRE...'
  */
-export function ulid(time: Date | number = Date.now()): string {
+export const ulid: (time?: Date | number) => string = mockable(function ulid(
+	time: Date | number = Date.now(),
+): string {
 	if (time instanceof Date) {
 		time = time.getTime();
 	}
@@ -145,7 +157,7 @@ export function ulid(time: Date | number = Date.now()): string {
 	const randomStr = random(ULID_RANDOM_LENGTH, ULID_ALPHABET);
 
 	return timeStr + randomStr;
-}
+});
 
 /**
  * Validate if a string is a valid ULID
@@ -169,9 +181,9 @@ export function isUlid(value: string): boolean {
  * @example
  * uuidV4() // '550e8400-e29b-41d4-a716-446655440000'
  */
-export function uuidV4(): string {
+export const uuidV4: () => string = mockable(function uuidV4(): string {
 	return crypto.randomUUID();
-}
+});
 
 /**
  * Generate a UUID v7, which includes a timestamp and a random component.
@@ -186,7 +198,9 @@ export function uuidV4(): string {
  * @example
  * uuid() // '018e5e0d-7a7d-7890-b123-456789abcdef'
  */
-export function uuid(time?: Date | number): string {
+export const uuid: (time?: Date | number) => string = mockable(function uuid(
+	time?: Date | number,
+): string {
 	const timestamp = time instanceof Date ? time.getTime() : (time ?? Date.now());
 
 	// UUID v7 format: unix_ts_ms (48 bits) + ver (4 bits) + rand_a (12 bits) +
@@ -220,7 +234,7 @@ export function uuid(time?: Date | number): string {
 		"-" +
 		bytes.slice(10).toHex()
 	);
-}
+});
 
 /**
  * Validate if a string is a valid UUID

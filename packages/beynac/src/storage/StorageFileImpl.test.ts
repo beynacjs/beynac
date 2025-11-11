@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import type { StorageEndpoint } from "../contracts/Storage";
-import { mockCurrentTime, resetTimeMocks } from "../helpers/time";
+import { mockCurrentTime, resetMockTime } from "../helpers/time";
 import { expectErrorWithProperties, spyOnAll } from "../test-utils";
 import { memoryStorage } from "./drivers/memory/MemoryStorageDriver";
 import { StorageDiskImpl } from "./StorageDiskImpl";
@@ -18,7 +18,7 @@ describe(StorageFileImpl, () => {
 	});
 
 	afterEach(() => {
-		resetTimeMocks();
+		resetMockTime();
 	});
 
 	describe("constructor", () => {
