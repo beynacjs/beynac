@@ -8,7 +8,33 @@ export const arrayWrapOptional = <T>(value: T | T[] | null | undefined): T[] =>
 export const describeType = (value: unknown): string =>
 	value == null ? String(value) : typeof value;
 
-abstract class MultiMap<K, V> {
+/**
+ * Base class that provides a toString() implementation.
+ * Subclasses can override getToStringExtra() to add additional information.
+ *
+ * @example
+ * class MyClass extends BaseClass {
+ *     protected override getToStringExtra(): string | undefined {
+ *         return "extra info";
+ *     }
+ * }
+ * // toString() returns "[MyClass extra info]"
+ */
+export abstract class BaseClass {
+	toString(): string {
+		const extra = this.getToStringExtra();
+		if (extra) {
+			return `[${this.constructor.name} ${extra}]`;
+		}
+		return `[${this.constructor.name}]`;
+	}
+
+	protected getToStringExtra(): string | undefined {
+		return undefined;
+	}
+}
+
+abstract class MultiMap<K, V> extends BaseClass {
 	abstract add(key: K, value: V): void;
 
 	addAll(keys: K | K[], values: V | V[]): void {
@@ -168,32 +194,6 @@ export const plural = (word: string): string => word + "s";
 
 export const pluralCount = (count: number, word: string): string =>
 	count + " " + (count === 1 ? word : plural(word));
-
-/**
- * Base class that provides a toString() implementation.
- * Subclasses can override getToStringExtra() to add additional information.
- *
- * @example
- * class MyClass extends BaseClass {
- *     protected override getToStringExtra(): string | undefined {
- *         return "extra info";
- *     }
- * }
- * // toString() returns "[MyClass extra info]"
- */
-export abstract class BaseClass {
-	toString(): string {
-		const extra = this.getToStringExtra();
-		if (extra) {
-			return `[${this.constructor.name} ${extra}]`;
-		}
-		return `[${this.constructor.name}]`;
-	}
-
-	protected getToStringExtra(): string | undefined {
-		return undefined;
-	}
-}
 
 export const regExpEscape = (str: string): string =>
 	// @ts-expect-error - Bun runtime supports RegExp.escape but TypeScript types don't include it yet

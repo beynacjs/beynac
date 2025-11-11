@@ -4,7 +4,7 @@ import { ContainerImpl } from "../container/ContainerImpl";
 import { createTypeToken } from "../container/container-key";
 import { Configuration, Container } from "../contracts";
 import { BaseListener, Dispatcher } from "../contracts/Dispatcher";
-import { RequestHandled } from "../events";
+import { RequestHandledEvent } from "../events";
 import { createTestApplication, MockController, mockMiddleware } from "../test-utils";
 import {
 	BaseController,
@@ -769,14 +769,14 @@ describe("status pages", () => {
 	});
 });
 
-test("RequestHandled event allows listeners to access responses", async () => {
+test("RequestHandledEvent allows listeners to access responses", async () => {
 	let capturedContext: ControllerContext | undefined;
 	let capturedStatus: number | undefined;
 	let capturedHeaders: Headers | undefined;
 	let capturedBody: Promise<string> | undefined;
 
 	class TestListener extends BaseListener {
-		handle(event: RequestHandled) {
+		handle(event: RequestHandledEvent) {
 			capturedContext = event.context;
 			capturedStatus = event.responseStatus;
 			capturedHeaders = event.responseHeaders;
@@ -787,7 +787,7 @@ test("RequestHandled event allows listeners to access responses", async () => {
 		}
 	}
 
-	container.get(Dispatcher).addListener(RequestHandled, TestListener);
+	container.get(Dispatcher).addListener(RequestHandledEvent, TestListener);
 
 	router.register(
 		get("/test/{id}", (ctx) => {

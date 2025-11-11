@@ -1,6 +1,6 @@
 export class BeynacError extends Error {
 	constructor(message: string) {
 		super(message);
-		this.name = "BeynacError";
+		this.name = this.constructor.name;
 	}
 }

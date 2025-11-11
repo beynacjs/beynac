@@ -1,4 +1,4 @@
-import { NoArgConstructor } from "../utils";
+import { BaseClass, NoArgConstructor } from "../utils";
 import type { JSX } from "../view/public-types";
 
 export type FunctionController = (ctx: ControllerContext) => ControllerReturn;
@@ -73,7 +73,7 @@ export interface ControllerContext {
 /**
  * Base class for controllers.
  */
-export abstract class BaseController implements IClassControllerInstance {
+export abstract class BaseController extends BaseClass implements IClassControllerInstance {
 	static readonly isClassController = true;
 
 	/**

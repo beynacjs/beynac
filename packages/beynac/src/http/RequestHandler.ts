@@ -1,6 +1,7 @@
 import { inject } from "../container/inject";
 import { Configuration, Container, Dispatcher, RequestLocals, ViewRenderer } from "../contracts";
 import { resolveEnvironmentChoice } from "../contracts/Configuration";
+import { BaseClass } from "../utils";
 import { isJsxElement, type JSX } from "../view/public-types";
 import { AbortException, abortExceptionKey } from "./abort";
 import {
@@ -10,7 +11,7 @@ import {
 	type ControllerReturn,
 	isClassController,
 } from "./Controller";
-import { RequestHandled } from "./http-events";
+import { RequestHandledEvent } from "./http-events";
 import { throwOnMissingPropertyAccess } from "./params-access-checker";
 import {
 	CurrentControllerContext,
@@ -19,7 +20,7 @@ import {
 	type RouteWithParams,
 } from "./router-types";
 
-export class RequestHandler {
+export class RequestHandler extends BaseClass {
 	#throwOnInvalidParam: boolean;
 	#streamResponses: boolean;
 
@@ -29,6 +30,7 @@ export class RequestHandler {
 		private dispatcher: Dispatcher = inject(Dispatcher),
 		config: Configuration = inject(Configuration),
 	) {
+		super();
 		const isDevelopment = !!config.development;
 		this.#throwOnInvalidParam = resolveEnvironmentChoice(
 			config.throwOnInvalidParamAccess,
@@ -97,8 +99,8 @@ export class RequestHandler {
 			const response = await pipeline(ctx);
 
 			this.dispatcher.dispatchIfHasListeners(
-				RequestHandled,
-				() => new RequestHandled(ctx, response.status, response.headers, response),
+				RequestHandledEvent,
+				() => new RequestHandledEvent(ctx, response.status, response.headers, response),
 			);
 
 			const abortException = locals.get(abortExceptionKey);

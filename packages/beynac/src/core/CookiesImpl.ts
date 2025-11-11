@@ -1,12 +1,15 @@
 import { inject } from "../container/inject";
 import type { Cookies } from "../contracts/Cookies";
 import { type CookieAttributes, IntegrationContext } from "../contracts/IntegrationContext";
+import { BaseClass } from "../utils";
 
-export class CookiesImpl implements Cookies {
+export class CookiesImpl extends BaseClass implements Cookies {
 	#keys: string[] | undefined;
 	#entries: [string, string][] | undefined;
 
-	constructor(private requestContext: IntegrationContext = inject(IntegrationContext)) {}
+	constructor(private requestContext: IntegrationContext = inject(IntegrationContext)) {
+		super();
+	}
 
 	get size(): number {
 		return this.#getKeys().length;

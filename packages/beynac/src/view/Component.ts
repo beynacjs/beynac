@@ -1,4 +1,5 @@
 import { createKey, Key } from "../keys";
+import { BaseClass } from "../utils";
 import type { Context, JSX, Props } from "./public-types";
 
 /**
@@ -53,12 +54,16 @@ interface IClassComponentInstance<P = Props> {
  *   }
  * }
  */
-export abstract class BaseComponent<P = Props> implements IClassComponentInstance<P> {
+export abstract class BaseComponent<P = Props>
+	extends BaseClass
+	implements IClassComponentInstance<P>
+{
 	static readonly isClassComponent = true;
 
 	props: P;
 
 	constructor(props: P) {
+		super();
 		this.props = props;
 	}
 

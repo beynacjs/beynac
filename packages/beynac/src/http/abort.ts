@@ -1,25 +1,28 @@
 import { ContainerImpl } from "../container/ContainerImpl";
 import { RequestLocals } from "../contracts";
 import { createKey, Key } from "../keys";
+import { BaseClass } from "../utils";
 import { redirectStatus } from "./redirect";
 
 /**
  * Exception thrown to abort request handling and return an HTTP response.
  * Caught by the router and the wrapped response is returned.
  *
- * This exception extends Error to integrate properly with error handling,
- * but the router catches it and returns the response instead of treating
- * it as an error.
+ * This is not an error - it's used for control flow to exit early from
+ * request handlers and return a specific response.
  */
-export class AbortException extends Error {
-	override readonly cause?: Error | undefined;
+export class AbortException extends BaseClass implements Error {
+	readonly cause?: Error | undefined;
 	readonly response: Response;
+	readonly message: string;
+	readonly name: string;
 
 	constructor(response: Response, cause?: Error) {
-		super("Request aborted");
-		this.name = "AbortException";
+		super();
 		this.response = response;
 		this.cause = cause;
+		this.message = cause?.message ?? "Request aborted";
+		this.name = this.constructor.name;
 	}
 
 	/**

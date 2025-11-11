@@ -5,6 +5,7 @@ import {
 	type AnyConstructor,
 	ArrayMultiMap,
 	arrayWrap,
+	BaseClass,
 	getPrototypeChain,
 	type NoArgConstructor,
 	SetMultiMap,
@@ -92,7 +93,7 @@ export type TypeCallback<T> = (type: KeyOrClass<T>, container: Container) => voi
  *
  * See {@link Container} for full documentation.
  */
-export class ContainerImpl implements Container {
+export class ContainerImpl extends BaseClass implements Container {
 	#bindings = new Map<KeyOrClass, Binding>();
 	#buildStack: Set<KeyOrClass> = new Set();
 	#tags = new SetMultiMap<KeyOrClass, KeyOrClass>();
@@ -102,6 +103,7 @@ export class ContainerImpl implements Container {
 	#resolvingCallbacks = new ArrayMultiMap<KeyOrClass, InstanceCallback<unknown>>();
 
 	constructor() {
+		super();
 		this.singletonInstance(Container, this);
 	}
 

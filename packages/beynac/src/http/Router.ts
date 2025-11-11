@@ -1,5 +1,6 @@
 import { inject } from "../container/inject";
 import { Configuration } from "../contracts";
+import { BaseClass } from "../utils";
 import { DEFAULT_MIDDLEWARE_PRIORITY } from "./default-middleware-priority";
 import type { MiddlewareReference } from "./Middleware";
 import { MiddlewarePriorityBuilder } from "./MiddlewarePriorityBuilder";
@@ -12,13 +13,14 @@ import type {
 	RouteWithParams,
 } from "./router-types";
 
-export class Router {
+export class Router extends BaseClass {
 	#matcher: MatcherContext<{ route: RouteDefinition }>;
 	#middlewarePriority: MiddlewareReference[];
 	#sortedMiddlewareSets = new WeakSet();
 	#config: Configuration;
 
 	constructor(config: Configuration = inject(Configuration)) {
+		super();
 		this.#config = config;
 		this.#matcher = createMatcher<{ route: RouteDefinition }>();
 		this.#middlewarePriority = this.#resolveMiddlewarePriority();

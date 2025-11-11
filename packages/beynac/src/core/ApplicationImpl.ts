@@ -10,6 +10,7 @@ import { DevModeWatchService } from "../development/DevModeWatchService";
 import { BeynacError } from "../error";
 import { group, Router, RouteUrlGenerator } from "../http";
 import { RequestHandler } from "../http/RequestHandler";
+import { BaseClass } from "../utils";
 import { ViewRendererImpl } from "../view/ViewRendererImpl";
 import { CookiesImpl } from "./CookiesImpl";
 import { DispatcherImpl } from "./DispatcherImpl";
@@ -18,6 +19,7 @@ import { KeepAliveImpl } from "./KeepAliveImpl";
 import { RequestLocalsImpl } from "./RequestLocalsImpl";
 
 export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
+	extends BaseClass
 	implements Application<RouteParams>
 {
 	readonly container: Container;
@@ -26,6 +28,7 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 	#urlGenerator?: RouteUrlGenerator;
 
 	constructor(config: Configuration<RouteParams> = {}) {
+		super();
 		this.container = new ContainerImpl();
 		this.#config = config;
 		if (config.appUrl?.overrideHost?.includes("/")) {

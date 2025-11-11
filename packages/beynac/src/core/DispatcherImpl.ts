@@ -2,16 +2,17 @@ import { inject } from "../container";
 import { Container } from "../contracts/Container";
 import type { Dispatcher, EventListener } from "../contracts/Dispatcher";
 import { isClassListener } from "../contracts/Dispatcher";
-import { AnyConstructor, getPrototypeChain, SetMultiMap } from "../utils";
+import { AnyConstructor, BaseClass, getPrototypeChain, SetMultiMap } from "../utils";
 
 type AnyEventListener = EventListener<object>;
 
-export class DispatcherImpl implements Dispatcher {
+export class DispatcherImpl extends BaseClass implements Dispatcher {
 	#listeners = new SetMultiMap<AnyConstructor, AnyEventListener>();
 
 	#container: Container;
 
 	constructor(container: Container = inject(Container)) {
+		super();
 		this.#container = container;
 	}
 

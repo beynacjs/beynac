@@ -1,10 +1,11 @@
 import type { RequestLocals } from "../contracts";
 import type { Key } from "../keys";
+import { BaseClass } from "../utils";
 
 /**
  * Implementation of RequestLocals for request-scoped storage
  */
-export class RequestLocalsImpl implements RequestLocals {
+export class RequestLocalsImpl extends BaseClass implements RequestLocals {
 	#storage = new Map<Key, unknown>();
 
 	get<T>(key: Key<T>): T {

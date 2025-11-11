@@ -1,10 +1,11 @@
 import { STATUS_CODES } from "node:http";
 import { StorageEndpoint } from "../contracts/Storage";
+import { BeynacError } from "../error";
 
 /**
  * Base class for all storage-related errors
  */
-export abstract class StorageError extends Error {
+export abstract class StorageError extends BeynacError {
 	/**
 	 * The underlying error that caused this storage error, if any.
 	 */
@@ -13,8 +14,6 @@ export abstract class StorageError extends Error {
 	constructor(message: string, cause?: Error) {
 		super(message);
 		this.cause = cause;
-		this.name = this.constructor.name;
-		Error.captureStackTrace(this, this.constructor);
 	}
 }
 

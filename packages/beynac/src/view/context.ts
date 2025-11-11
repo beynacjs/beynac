@@ -1,12 +1,14 @@
 import { type Key } from "../keys";
+import { BaseClass } from "../utils";
 import type { Context } from "./public-types";
 
-export class ContextImpl implements Context {
+export class ContextImpl extends BaseClass implements Context {
 	private localValues: Map<Key, unknown> = new Map();
 	private parent: ContextImpl | null;
 	private modified = false;
 
 	constructor(parent?: ContextImpl) {
+		super();
 		this.parent = parent ?? null;
 	}
 

@@ -1,7 +1,8 @@
 import { inject } from "../container/inject";
 import { Container } from "../contracts/Container";
 import type { RenderResponseOptions, ViewRenderer } from "../contracts/ViewRenderer";
-import { withoutUndefinedValues } from "../utils";
+import { BeynacError } from "../error";
+import { BaseClass, withoutUndefinedValues } from "../utils";
 import { type Component, ComponentInstantiator, isClassComponent } from "./Component";
 import { type ClassAttributeValue, classAttribute } from "./class-attribute";
 import { ContextImpl } from "./context";
@@ -36,7 +37,7 @@ type ErrorKind =
  * Error thrown during rendering when an error occurs during content expansion or rendering.
  * Includes a component stack trace for debugging.
  */
-export class RenderingError extends Error {
+export class RenderingError extends BeynacError {
 	readonly errorKind: ErrorKind;
 	readonly componentStack: string[];
 
@@ -58,7 +59,6 @@ export class RenderingError extends Error {
 			: `Rendering error: ${errorDetail}`;
 
 		super(message);
-		this.name = "RenderingError";
 		this.errorKind = errorKind;
 		this.componentStack = stackArray;
 		this.cause = cause;
@@ -130,8 +130,10 @@ function isReactElement(value: unknown): boolean {
 	);
 }
 
-export class ViewRendererImpl implements ViewRenderer {
-	constructor(private container: Container = inject(Container)) {}
+export class ViewRendererImpl extends BaseClass implements ViewRenderer {
+	constructor(private container: Container = inject(Container)) {
+		super();
+	}
 
 	async render(content: JSXNode, options?: RenderOptions): Promise<string> {
 		let result = "";

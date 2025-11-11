@@ -1,11 +1,14 @@
 import { inject } from "../container/inject";
 import { IntegrationContext } from "../contracts";
 import type { Headers } from "../contracts/Headers";
+import { BaseClass } from "../utils";
 
-export class HeadersImpl implements Headers {
+export class HeadersImpl extends BaseClass implements Headers {
 	#keys: string[] | undefined;
 
-	constructor(private context: IntegrationContext = inject(IntegrationContext)) {}
+	constructor(private context: IntegrationContext = inject(IntegrationContext)) {
+		super();
+	}
 
 	get size(): number {
 		return this.#getKeys().length;

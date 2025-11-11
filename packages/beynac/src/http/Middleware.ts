@@ -1,4 +1,4 @@
-import type { NoArgConstructor } from "../utils";
+import { BaseClass, type NoArgConstructor } from "../utils";
 import type { ControllerContext } from "./Controller";
 
 export type MiddlewareNext = (ctx: ControllerContext) => Response | Promise<Response>;
@@ -20,7 +20,7 @@ export type ClassMiddleware = NoArgConstructor<IClassMiddlewareInstance> & {
  * Base class for middleware that processes HTTP requests.
  * Middleware can modify requests, short-circuit responses, or pass through to the next handler.
  */
-export abstract class BaseMiddleware implements IClassMiddlewareInstance {
+export abstract class BaseMiddleware extends BaseClass implements IClassMiddlewareInstance {
 	static readonly isClassMiddleware = true;
 
 	/**

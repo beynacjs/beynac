@@ -1,7 +1,7 @@
 import { type FSWatcher, watch } from "node:fs";
 import { inject } from "../container/inject";
 import { Configuration } from "../contracts/Configuration";
-import { pluralCount } from "../utils";
+import { BaseClass, pluralCount } from "../utils";
 import { DevModeAutoRefreshMiddleware } from "./DevModeAutoRefreshMiddleware";
 
 declare global {
@@ -9,7 +9,7 @@ declare global {
 	var __beynacWatchService: DevModeWatchService | undefined;
 }
 
-export class DevModeWatchService {
+export class DevModeWatchService extends BaseClass {
 	#started = false;
 	#destroyed = false;
 	#filesChanged: string[] = [];
@@ -19,7 +19,9 @@ export class DevModeWatchService {
 	constructor(
 		private config: Configuration = inject(Configuration),
 		private middleware: DevModeAutoRefreshMiddleware = inject(DevModeAutoRefreshMiddleware),
-	) {}
+	) {
+		super();
+	}
 
 	start(): void {
 		if (this.#started || this.#destroyed) return;

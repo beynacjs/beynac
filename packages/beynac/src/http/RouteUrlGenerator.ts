@@ -5,11 +5,11 @@ import { Configuration } from "../contracts/Configuration";
 import { Container } from "../contracts/Container";
 import { IntegrationContext } from "../contracts/IntegrationContext";
 import { HeadersImpl } from "../core/HeadersImpl";
-import { arrayWrapOptional } from "../utils";
+import { arrayWrapOptional, BaseClass } from "../utils";
 import { type RouteDefinition, type Routes } from "./router-types";
 import { replaceRouteParams } from "./syntax";
 
-export class RouteUrlGenerator {
+export class RouteUrlGenerator extends BaseClass {
 	#namedRoutes = new Map<string, RouteDefinition>();
 	#container: Container;
 	#config: Configuration;
@@ -18,6 +18,7 @@ export class RouteUrlGenerator {
 		container: Container = inject(Container),
 		config: Configuration = inject(Configuration),
 	) {
+		super();
 		this.#container = container;
 		this.#config = config;
 	}

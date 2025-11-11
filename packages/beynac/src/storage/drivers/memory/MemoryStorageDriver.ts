@@ -4,7 +4,7 @@ import type {
 	StorageEndpointWriteOptions,
 } from "../../../contracts/Storage";
 import * as hash from "../../../helpers/hash";
-import { describeType, withoutUndefinedValues } from "../../../utils";
+import { BaseClass, describeType, withoutUndefinedValues } from "../../../utils";
 import { NotFoundError } from "../../storage-errors";
 
 type SynchronousBinaryContent = string | ArrayBuffer | ArrayBufferView;
@@ -69,7 +69,7 @@ interface MemoryFile {
 /**
  * In-memory storage driver for testing and temporary storage
  */
-export class MemoryStorageDriver implements StorageEndpoint {
+export class MemoryStorageDriver extends BaseClass implements StorageEndpoint {
 	readonly #files: Map<string, MemoryFile> = new Map();
 
 	readonly name: string;
@@ -77,6 +77,7 @@ export class MemoryStorageDriver implements StorageEndpoint {
 	readonly invalidNameChars: string;
 
 	constructor(config: MemoryStorageDriverConfig) {
+		super();
 		this.name = config.name ?? "memory";
 		const supportsMimeTypes = config.supportsMimeTypes ?? true;
 		this.supportsMimeTypes = supportsMimeTypes;

@@ -1,6 +1,6 @@
 import type { TypeToken } from "../container/container-key";
 import { createTypeToken } from "../container/container-key";
-import { AnyConstructor, NoArgConstructor } from "../utils";
+import { AnyConstructor, BaseClass, NoArgConstructor } from "../utils";
 
 export type FunctionListener<T extends object> = (event: T) => void;
 
@@ -34,7 +34,7 @@ export type ClassListener<T extends object> = NoArgConstructor<IClassListenerIns
  *
  * dispatcher.addListener(UserRegistered, UserRegisteredListener);
  */
-export abstract class BaseListener implements IClassListenerInstance<object> {
+export abstract class BaseListener extends BaseClass implements IClassListenerInstance<object> {
 	static readonly isClassListener = true;
 
 	abstract handle(event: object): void;

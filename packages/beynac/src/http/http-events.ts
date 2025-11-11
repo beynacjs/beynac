@@ -1,6 +1,7 @@
+import { BeynacEvent } from "../event";
 import type { ControllerContext } from "./Controller";
 
-export class RequestHandled {
+export class RequestHandledEvent extends BeynacEvent {
 	readonly #response: Response;
 
 	constructor(
@@ -9,6 +10,7 @@ export class RequestHandled {
 		public readonly responseHeaders: Headers,
 		response: Response,
 	) {
+		super();
 		this.#response = response;
 	}
 
