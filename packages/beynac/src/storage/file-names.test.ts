@@ -1,5 +1,12 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
+import { sha256 } from "../helpers/hash/sha";
+import * as str from "../helpers/str";
+import { mock, resetAllMocks } from "../testing/mocks";
 import { createFileName, mimeTypeFromFileName, sanitiseName } from "./file-names";
+
+afterEach(() => {
+	resetAllMocks();
+});
 
 describe(mimeTypeFromFileName, () => {
 	test("returns correct MIME type for extensions", () => {
@@ -58,10 +65,10 @@ describe(createFileName, () => {
 	});
 
 	test("generates random ID when suggestedName is not provided", () => {
-		const allCapsName = /^[A-Z0-9]{20}\.txt$/;
-		expect(createFileName(null, "text/plain", true)).toMatch(allCapsName);
-		expect(createFileName(undefined, "text/plain", true)).toMatch(allCapsName);
-		expect(createFileName("", "text/plain", true)).toMatch(allCapsName);
+		mock(str.random, () => "ABCD1234EFGH5678IJKL");
+		expect(createFileName(null, "text/plain", true)).toBe("ABCD1234EFGH5678IJKL.txt");
+		expect(createFileName(undefined, "text/plain", true)).toBe("ABCD1234EFGH5678IJKL.txt");
+		expect(createFileName("", "text/plain", true)).toBe("ABCD1234EFGH5678IJKL.txt");
 	});
 
 	test("random IDs are different each time", () => {
@@ -84,9 +91,10 @@ describe(sanitiseName, () => {
 	});
 
 	test("replaces invalid characters with underscore and adds hash", () => {
-		expect(sanitiseName("my<file>.txt", "<>")).toMatch(/^my_file_-[0-9a-f]+\.txt$/);
-		expect(sanitiseName("test:file", ":")).toMatch(/^test_file-[0-9a-f]+$/);
-		expect(sanitiseName("a/b/c", "/")).toMatch(/^a_b_c-[0-9a-f]+$/);
+		mock(sha256, () => "abcd1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab");
+		expect(sanitiseName("my<file>.txt", "<>")).toBe("my_file_-abcd1234.txt");
+		expect(sanitiseName("test:file", ":")).toBe("test_file-abcd1234");
+		expect(sanitiseName("a/b/c", "/")).toBe("a_b_c-abcd1234");
 	});
 
 	test("filenames that only differ by invalid characters preserve uniqueness", () => {
@@ -95,27 +103,29 @@ describe(sanitiseName, () => {
 	});
 
 	test("replaces multiple invalid characters collapsing consecutive to single underscore", () => {
-		expect(sanitiseName("my<file>:test.txt", "<>:")).toMatch(/^my_file_test-[0-9a-f]+\.txt$/);
-		expect(sanitiseName("<<>>>", "<>")).toMatch(/^_-[0-9a-f]+$/);
+		mock(sha256, () => "1234abcd567890abcdef1234567890abcdef1234567890abcdef1234567890ab");
+		expect(sanitiseName("my<file>:test.txt", "<>:")).toBe("my_file_test-1234abcd.txt");
+		expect(sanitiseName("<<>>>", "<>")).toBe("_-1234abcd");
 	});
 
 	test("handles special regex characters in invalidChars", () => {
-		expect(sanitiseName("test[file].txt", "[]")).toMatch(/^test_file_-[0-9a-f]+\.txt$/);
-		expect(sanitiseName("test\\file", "\\")).toMatch(/^test_file-[0-9a-f]+$/);
-		expect(sanitiseName("test^file", "^")).toMatch(/^test_file-[0-9a-f]+$/);
-		expect(sanitiseName("test-file", "-")).toMatch(/^test_file-[0-9a-f]+$/);
+		mock(sha256, () => "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210");
+		expect(sanitiseName("test[file].txt", "[]")).toBe("test_file_-fedcba98.txt");
+		expect(sanitiseName("test\\file", "\\")).toBe("test_file-fedcba98");
+		expect(sanitiseName("test^file", "^")).toBe("test_file-fedcba98");
+		expect(sanitiseName("test-file", "-")).toBe("test_file-fedcba98");
 	});
 
 	test("handles Windows invalid chars collapsing consecutive", () => {
+		mock(sha256, () => "9999aaaa8888bbbb7777cccc6666dddd5555eeee4444ffff3333aaaa2222bbbb");
 		const windowsInvalid = '<>:"/\\|?*';
-		expect(sanitiseName('my<file>:"test".txt', windowsInvalid)).toMatch(
-			/^my_file_test_-[0-9a-f]+\.txt$/,
-		);
+		expect(sanitiseName('my<file>:"test".txt', windowsInvalid)).toBe("my_file_test_-9999aaaa.txt");
 	});
 
 	test("works on single names (no path handling)", () => {
 		// Slashes are treated as invalid chars if specified
 		expect(sanitiseName("file.txt", "/")).toBe("file.txt");
-		expect(sanitiseName("path/to/file.txt", "/")).toMatch(/^path_to_file-[0-9a-f]+\.txt$/);
+		mock(sha256, () => "5555cccc4444dddd3333eeee2222ffff1111aaaa0000bbbb9999cccc8888dddd");
+		expect(sanitiseName("path/to/file.txt", "/")).toBe("path_to_file-5555cccc.txt");
 	});
 });
