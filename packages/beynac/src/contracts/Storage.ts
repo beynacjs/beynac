@@ -207,6 +207,14 @@ type FileSanitiseOptions = {
 	onInvalid?: "convert" | "throw";
 };
 
+export type StorageFileListOptions = {
+	/**
+	 * Whether to list files recursively. If false, only immediate children
+	 * will be returned.
+	 */
+	recursive?: boolean;
+};
+
 export interface StorageDirectoryOperations {
 	/**
 	 * Check if there are any files with this directory's prefix.
@@ -220,24 +228,44 @@ export interface StorageDirectoryOperations {
 	exists(): Promise<boolean>;
 
 	/**
-	 * List files that are direct children of this directory.
+	 * List direct child files and directories in alphabetical order.
 	 */
-	files(): Promise<StorageFile[]>;
+	list(): Promise<Array<StorageFile | StorageDirectory>>;
 
 	/**
-	 * List all files within this directory, recursively.
+	 * List direct child files and directories in alphabetical order.
+	 *
+	 * Stream results to avoid buffering the whole list in memory.
 	 */
-	allFiles(): Promise<StorageFile[]>;
+	listStreaming(): AsyncGenerator<StorageFile | StorageDirectory, void>;
 
 	/**
-	 * List directories that are direct children of this directory.
+	 * List child files in alphabetical order. By default, only direct children are returned.
+	 *
+	 * @param [options.recursive] - if true, include files in subdirectories in the results
 	 */
-	directories(): Promise<StorageDirectory[]>;
+	files(options?: { recursive?: boolean }): Promise<Array<StorageFile>>;
 
 	/**
-	 * List all directories within this directory, recursively.
+	 * List child files in alphabetical order. By default, only direct children are returned.
+	 *
+	 * Stream results to avoid buffering the whole list in memory.
+	 *
+	 * @param [options.recursive] - if true, include files in subdirectories in the results
 	 */
-	allDirectories(): Promise<StorageDirectory[]>;
+	filesStreaming(options?: { recursive?: boolean }): AsyncGenerator<StorageFile, void>;
+
+	/**
+	 * List direct child directories in alphabetical order.
+	 */
+	directories(): Promise<Array<StorageDirectory>>;
+
+	/**
+	 * List direct child directories in alphabetical order.
+	 *
+	 * Stream results to avoid buffering the whole list in memory.
+	 */
+	directoriesStreaming(): AsyncGenerator<StorageDirectory, void>;
 
 	/**
 	 * Delete all files within this directory, recursively.
@@ -320,7 +348,7 @@ export interface StorageEndpointFileInfo {
  */
 export interface StorageEndpoint {
 	/**
-	 * Name of this endpoint for identification purposes (e.g. "memory", "s3", "local")
+	 * Name of this endpoint for identification purposes (e.g. "memory", "s3", "filesystem")
 	 */
 	name: string;
 
@@ -387,18 +415,29 @@ export interface StorageEndpoint {
 	existsAnyUnderPrefix(prefix: string): Promise<boolean>;
 
 	/**
-	 * List all files under a prefix. The prefix will be a directory name
-	 * ending with a forward slash. The prefix does not have to exist, in
-	 * this case, the result will be an empty string.
+	 * List all files and directories that are immediately under a prefix. In
+	 * filesystem terms the immediate file and directory children.
+	 *
+	 * The prefix will be a directory name ending with a forward slash. The
+	 * prefix does not have to exist, in which case, there will be no results.
+	 *
+	 * The returned generator should yield paths relative to the prefix, in
+	 * alphabetical order. Directory entries should end with a slash, file
+	 * entries should not.
 	 */
-	listFiles(prefix: string, recursive: boolean): Promise<string[]>;
+	listEntries(prefix: string): AsyncGenerator<string, void>;
 
 	/**
-	 * List all directories under a prefix. The prefix will be a directory name
-	 * ending with a forward slash. The prefix does not have to exist, in
-	 * this case, the result will be an empty string.
+	 * List all files under a prefix. In filesystem terms, this is a recursive
+	 * search for files within directory tree starting at this directory.
+	 *
+	 * The prefix will be a directory name ending with a forward slash. The
+	 * prefix does not have to exist, in which case, there will be no results.
+	 *
+	 * The returned generator should yield paths relative to the prefix, in
+	 * alphabetical order.
 	 */
-	listDirectories(prefix: string, recursive: boolean): Promise<string[]>;
+	listFilesRecursive(prefix: string): AsyncGenerator<string, void>;
 
 	/**
 	 * Delete a single file.

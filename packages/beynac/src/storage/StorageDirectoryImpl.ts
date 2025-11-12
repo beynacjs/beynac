@@ -8,19 +8,17 @@ import type {
 	StorageFilePutPayload,
 } from "../contracts/Storage";
 import { parseAttributeHeader } from "../helpers/headers";
-import { BaseClass } from "../utils";
+import { asyncGeneratorToArray, BaseClass } from "../utils";
 import { createFileName, sanitiseName } from "./file-names";
 import { StorageFileImpl } from "./StorageFileImpl";
 import { InvalidPathError } from "./storage-errors";
 import {
 	DirectoryDeletedEvent,
 	DirectoryDeletingEvent,
-	DirectoryDirectoriesListedEvent,
 	DirectoryExistenceCheckedEvent,
 	DirectoryExistenceCheckingEvent,
-	DirectoryFilesListedEvent,
-	DirectoryListingDirectoriesEvent,
-	DirectoryListingFilesEvent,
+	DirectoryListedEvent,
+	DirectoryListingEvent,
 } from "./storage-events";
 import { storageOperation } from "./storage-operation";
 
@@ -55,57 +53,83 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 		);
 	}
 
-	async files(): Promise<StorageFile[]> {
-		return this.#files(false);
+	async list(): Promise<Array<StorageFile | StorageDirectory>> {
+		return asyncGeneratorToArray(this.listStreaming());
 	}
 
-	async allFiles(): Promise<StorageFile[]> {
-		return this.#files(true);
+	async *listStreaming(): AsyncGenerator<StorageFile | StorageDirectory, void> {
+		const startEvent = new DirectoryListingEvent(this.disk, this.path, "all", false);
+		this.#dispatcher.dispatch(startEvent);
+
+		let entryCount = 0;
+		for await (const path of this.#endpoint.listEntries(this.path)) {
+			entryCount++;
+			yield this.#createEntry(path);
+		}
+
+		this.#dispatcher.dispatch(new DirectoryListedEvent(startEvent, entryCount));
 	}
 
-	async #files(all: boolean): Promise<StorageFile[]> {
-		const filePaths = await storageOperation(
-			"directory:files-list",
-			() => this.#endpoint.listFiles(this.path, all),
-			() => new DirectoryListingFilesEvent(this.disk, this.path, all),
-			(start, paths) => {
-				const files = paths.map(
-					(filePath) => new StorageFileImpl(this.disk, this.#endpoint, filePath, this.#dispatcher),
-				);
-				return new DirectoryFilesListedEvent(start, files);
-			},
-			this.#dispatcher,
-		);
-
-		const files = filePaths.map(
-			(filePath) => new StorageFileImpl(this.disk, this.#endpoint, filePath, this.#dispatcher),
-		);
-
-		return files;
+	#createEntry(relativePath: string): StorageFile | StorageDirectory {
+		// Convert relative path to absolute path
+		const absolutePath = `${this.path}${relativePath}`;
+		if (relativePath.endsWith("/")) {
+			return new StorageDirectoryImpl(this.disk, this.#endpoint, absolutePath, this.#dispatcher);
+		}
+		return new StorageFileImpl(this.disk, this.#endpoint, absolutePath, this.#dispatcher);
 	}
 
-	async directories(): Promise<StorageDirectory[]> {
-		return this.#directories(false);
+	async files(options?: { recursive?: boolean }): Promise<Array<StorageFile>> {
+		return asyncGeneratorToArray(this.filesStreaming(options));
 	}
 
-	async allDirectories(): Promise<StorageDirectory[]> {
-		return this.#directories(true);
+	async *filesStreaming(options?: { recursive?: boolean }): AsyncGenerator<StorageFile, void> {
+		const recursive = options?.recursive ?? false;
+		const startEvent = new DirectoryListingEvent(this.disk, this.path, "files", recursive);
+		this.#dispatcher.dispatch(startEvent);
+
+		let entryCount = 0;
+		if (recursive) {
+			// Use recursive listing
+			for await (const path of this.#endpoint.listFilesRecursive(this.path)) {
+				entryCount++;
+				const entry = this.#createEntry(path);
+				if (entry instanceof StorageFileImpl) {
+					yield entry;
+				}
+			}
+		} else {
+			// Use immediate listing, filter to files only
+			for await (const path of this.#endpoint.listEntries(this.path)) {
+				const entry = this.#createEntry(path);
+				if (entry instanceof StorageFileImpl) {
+					entryCount++;
+					yield entry;
+				}
+			}
+		}
+
+		this.#dispatcher.dispatch(new DirectoryListedEvent(startEvent, entryCount));
 	}
 
-	async #directories(all: boolean): Promise<StorageDirectory[]> {
-		return await storageOperation(
-			"directory:directories-list",
-			async () => {
-				const paths = await this.#endpoint.listDirectories(this.path, all);
-				const directories = paths.map(
-					(path) => new StorageDirectoryImpl(this.disk, this.#endpoint, path, this.#dispatcher),
-				);
-				return directories;
-			},
-			() => new DirectoryListingDirectoriesEvent(this.disk, this.path, all),
-			(start, directories) => new DirectoryDirectoriesListedEvent(start, directories),
-			this.#dispatcher,
-		);
+	async directories(): Promise<Array<StorageDirectory>> {
+		return asyncGeneratorToArray(this.directoriesStreaming());
+	}
+
+	async *directoriesStreaming(): AsyncGenerator<StorageDirectory, void> {
+		const startEvent = new DirectoryListingEvent(this.disk, this.path, "directories", false);
+		this.#dispatcher.dispatch(startEvent);
+
+		let entryCount = 0;
+		for await (const path of this.#endpoint.listEntries(this.path)) {
+			const entry = this.#createEntry(path);
+			if (entry instanceof StorageDirectoryImpl) {
+				entryCount++;
+				yield entry;
+			}
+		}
+
+		this.#dispatcher.dispatch(new DirectoryListedEvent(startEvent, entryCount));
 	}
 
 	async deleteAll(): Promise<void> {

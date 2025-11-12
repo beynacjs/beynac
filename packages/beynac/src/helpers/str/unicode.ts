@@ -97,18 +97,8 @@ export function withoutComplexChars(
 }
 
 export interface SlugOptions {
-	/** Character to use as word separator (default: '-' */
 	separator?: string;
-
-	/**
-	 * Character replacements (default: { '@': 'at', '&': 'and', '%': 'percent', '+': 'plus' })
-	 * - Record<string, string>: Custom replacements (replaces default entirely)
-	 * - true: Use default dictionary
-	 * - false: Disable replacements
-	 */
 	replacements?: Record<string, string> | boolean;
-
-	/** Convert to lowercase (default: true) */
 	lowercase?: boolean;
 }
 
@@ -118,13 +108,12 @@ export interface SlugOptions {
  * Applies Unicode normalisation (transliterate → withoutMarks → withoutComplexChars) to convert
  * all characters to ASCII, then creates a URL-safe slug with only unreserved characters.
  *
- * @param title - String to convert to slug
- * @param options.separator - Separator character (default: "-")
- * @param options.replacements - Character replacements (default: { '@': 'at', '&': 'and', '%': 'percent', '+': 'plus' })
+ * @param [options.separator] - Separator character (default: "-")
+ * @param [options.replacements] - Character replacements (default: { '@': 'at', '&': 'and', '%': 'percent', '+': 'plus' })
  *   - Record<string, string>: Custom replacements (replaces default entirely)
  *   - true: Use default dictionary
  *   - false: Disable replacements
- * @param options.lowercase - Convert to lowercase (default: true)
+ * @param [options.lowercase] - Convert to lowercase (default: true)
  *
  * @example
  * slug('Größe café') // 'groesse-cafe'

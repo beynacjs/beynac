@@ -219,22 +219,10 @@ export class MemoryStorageDriver extends BaseClass implements StorageEndpoint {
 		return false;
 	}
 
-	async listFiles(prefix: string, recursive: boolean): Promise<string[]> {
+	async *listEntries(prefix: string): AsyncGenerator<string, void> {
 		validatePath(prefix, true);
 
-		let files = Array.from(this.#files.keys()).filter((path) => path.startsWith(prefix));
-
-		if (!recursive) {
-			files = files.filter((path) => !path.slice(prefix.length).includes("/"));
-		}
-
-		return files.sort();
-	}
-
-	async listDirectories(prefix: string, recursive: boolean): Promise<string[]> {
-		validatePath(prefix, true);
-
-		const directories = new Set<string>();
+		const entries = new Set<string>();
 
 		for (const path of this.#files.keys()) {
 			if (!path.startsWith(prefix)) {
@@ -242,28 +230,32 @@ export class MemoryStorageDriver extends BaseClass implements StorageEndpoint {
 			}
 
 			const relativePath = path.slice(prefix.length);
-			const parts = relativePath.split("/").filter((p) => p !== "");
+			const slashIndex = relativePath.indexOf("/");
 
-			if (parts.length === 0) {
-				continue;
-			}
-
-			if (recursive) {
-				// Add all parent directories
-				let currentPath = prefix;
-				for (let i = 0; i < parts.length - 1; i++) {
-					currentPath += `${parts[i]}/`;
-					directories.add(currentPath);
-				}
+			if (slashIndex === -1) {
+				entries.add(relativePath);
 			} else {
-				// Only add immediate child directories
-				if (parts.length > 1) {
-					directories.add(`${prefix}${parts[0]}/`);
-				}
+				const firstSegment = relativePath.slice(0, slashIndex);
+				entries.add(`${firstSegment}/`);
 			}
 		}
 
-		return Array.from(directories).sort();
+		for (const entry of Array.from(entries).sort()) {
+			yield entry;
+		}
+	}
+
+	async *listFilesRecursive(prefix: string): AsyncGenerator<string, void> {
+		validatePath(prefix, true);
+
+		const files = Array.from(this.#files.keys())
+			.filter((path) => path.startsWith(prefix))
+			.map((path) => path.slice(prefix.length))
+			.sort();
+
+		for (const file of files) {
+			yield file;
+		}
 	}
 
 	async deleteSingle(path: string): Promise<void> {

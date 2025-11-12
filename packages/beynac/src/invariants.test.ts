@@ -136,11 +136,13 @@ describe.each(fileExports)(
 
 		const bannedCommentMarker = /\}[ \t]*\/\*\*/;
 		if (bannedCommentMarker.test(fileContent)) {
-			const location = fileContent.search(bannedCommentMarker);
-			const line = fileContent.slice(0, location).split("\n").length;
-			throw new Error(
-				`File ${filePath} contains a doc comment after a block without newlines. Use a single-line comment instead.\n\n\tLocation: ${filePath}:${line}`,
-			);
+			test("file should not contain badly formatted block comments", () => {
+				const location = fileContent.search(bannedCommentMarker);
+				const line = fileContent.slice(0, location).split("\n").length;
+				throw new Error(
+					`File ${filePath} contains a doc comment after a block without newlines. Use a single-line comment instead.\n\n\tLocation: ${filePath}:${line}`,
+				);
+			});
 		}
 	},
 );

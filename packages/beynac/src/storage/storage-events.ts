@@ -1,10 +1,4 @@
-import type {
-	StorageDirectory,
-	StorageDisk,
-	StorageFile,
-	StorageFileInfo,
-	StorageFilePutPayload,
-} from "../contracts/Storage";
+import type { StorageDisk, StorageFileInfo, StorageFilePutPayload } from "../contracts/Storage";
 import { BeynacEvent } from "../event";
 import type { StorageError } from "./storage-errors";
 
@@ -21,8 +15,7 @@ export type StorageOperationType =
 	| "file:copy"
 	| "file:move"
 	| "directory:existence-check"
-	| "directory:files-list"
-	| "directory:directories-list"
+	| "directory:list"
 	| "directory:delete";
 
 /**
@@ -315,55 +308,32 @@ export class DirectoryExistenceCheckedEvent extends StorageOperationCompletedEve
 	}
 }
 
-export class DirectoryListingFilesEvent extends StorageOperationStartingEvent {
-	public readonly type = "directory:files-list" as const;
+export class DirectoryListingEvent extends StorageOperationStartingEvent {
+	public readonly type = "directory:list" as const;
 	constructor(
 		disk: StorageDisk,
 		path: string,
+		public readonly list: "files" | "directories" | "all",
 		public readonly recursive: boolean,
 	) {
 		super(disk, path);
 	}
 }
 
-export class DirectoryFilesListedEvent extends StorageOperationCompletedEvent {
-	public readonly type = "directory:files-list" as const;
-	readonly #startEvent: DirectoryListingFilesEvent;
+export class DirectoryListedEvent extends StorageOperationCompletedEvent {
+	public readonly type = "directory:list" as const;
+	readonly #startEvent: DirectoryListingEvent;
 
 	constructor(
-		startEvent: DirectoryListingFilesEvent,
-		public readonly files: StorageFile[],
+		startEvent: DirectoryListingEvent,
+		public readonly entryCount: number,
 	) {
 		super(startEvent);
 		this.#startEvent = startEvent;
 	}
 
-	get recursive(): boolean {
-		return this.#startEvent.recursive;
-	}
-}
-
-export class DirectoryListingDirectoriesEvent extends StorageOperationStartingEvent {
-	public readonly type = "directory:directories-list" as const;
-	constructor(
-		disk: StorageDisk,
-		path: string,
-		public readonly recursive: boolean,
-	) {
-		super(disk, path);
-	}
-}
-
-export class DirectoryDirectoriesListedEvent extends StorageOperationCompletedEvent {
-	public readonly type = "directory:directories-list" as const;
-	readonly #startEvent: DirectoryListingDirectoriesEvent;
-
-	constructor(
-		startEvent: DirectoryListingDirectoriesEvent,
-		public readonly directories: StorageDirectory[],
-	) {
-		super(startEvent);
-		this.#startEvent = startEvent;
+	get list(): "files" | "directories" | "all" {
+		return this.#startEvent.list;
 	}
 
 	get recursive(): boolean {

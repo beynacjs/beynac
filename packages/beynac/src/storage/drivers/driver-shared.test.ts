@@ -1,6 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import type { StorageDisk, StorageEndpoint } from "../../contracts/Storage";
 import { expectErrorWithProperties, mockDispatcher } from "../../test-utils";
+import { asyncGeneratorToArray } from "../../utils";
 import { StorageImpl } from "../StorageImpl";
 import { NotFoundError } from "../storage-errors";
 import { memoryStorage } from "./memory/MemoryStorageDriver";
@@ -22,10 +23,12 @@ export const driverSharedTests = (driver: () => StorageEndpoint): void => {
 				// Shared init for all read-only tests for performance
 				let storage: StorageImpl;
 				let disk: StorageDisk;
+				let endpoint: StorageEndpoint;
 				beforeAll(async () => {
+					endpoint = driver();
 					storage = new StorageImpl(
 						{
-							disks: { test: driver() },
+							disks: { test: endpoint },
 							defaultDisk: "test",
 						},
 						mockDispatcher(),
@@ -135,13 +138,27 @@ export const driverSharedTests = (driver: () => StorageEndpoint): void => {
 					expect(await disk.directory("/empty/").exists()).toBe(false);
 				});
 
-				test("directory.files()", async () => {
+				test("directory.list()", async () => {
+					const entries = await disk.directory("/dir/").list();
+					expect(entries.map((e) => e.path)).toEqual([
+						"/dir/htmlFile",
+						"/dir/nested/",
+						"/dir/textFile",
+					]);
+				});
+
+				test("directory.files() - immediate only", async () => {
 					const files = await disk.directory("/dir/").files();
 					expect(files.map((f) => f.path)).toEqual(["/dir/htmlFile", "/dir/textFile"]);
 				});
 
-				test("directory.allFiles()", async () => {
-					const files = await disk.directory("/dir/").allFiles();
+				test("directory.files({ recursive: false })", async () => {
+					const files = await disk.directory("/dir/").files({ recursive: false });
+					expect(files.map((f) => f.path)).toEqual(["/dir/htmlFile", "/dir/textFile"]);
+				});
+
+				test("directory.files({ recursive: true })", async () => {
+					const files = await disk.directory("/dir/").files({ recursive: true });
 					expect(files.map((f) => f.path)).toEqual([
 						"/dir/htmlFile",
 						"/dir/nested/deep/file4.txt",
@@ -155,9 +172,63 @@ export const driverSharedTests = (driver: () => StorageEndpoint): void => {
 					expect(dirs.map((d) => d.path)).toEqual(["/dir/nested/"]);
 				});
 
-				test("directory.allDirectories()", async () => {
-					const dirs = await disk.directory("/dir/").allDirectories();
-					expect(dirs.map((d) => d.path)).toEqual(["/dir/nested/", "/dir/nested/deep/"]);
+				test("endpoint.listEntries() returns relative paths for /dir/", async () => {
+					const entries = await asyncGeneratorToArray(endpoint.listEntries("/dir/"));
+					expect(entries).toEqual(["htmlFile", "nested/", "textFile"]);
+				});
+
+				test("endpoint.listEntries() returns relative paths for root /", async () => {
+					const entries = await asyncGeneratorToArray(endpoint.listEntries("/"));
+					expect(entries).toEqual(["dir/", "existing.txt"]);
+				});
+
+				test("endpoint.listEntries() returns relative paths for /dir/nested/", async () => {
+					const entries = await asyncGeneratorToArray(endpoint.listEntries("/dir/nested/"));
+					expect(entries).toEqual(["deep/", "file3.txt"]);
+				});
+
+				test("endpoint.listFilesRecursive() returns relative paths for /dir/", async () => {
+					// Shared data: /dir/textFile, /dir/htmlFile, /dir/nested/file3.txt, /dir/nested/deep/file4.txt
+					const files = await asyncGeneratorToArray(endpoint.listFilesRecursive("/dir/"));
+
+					expect(files).toEqual([
+						"htmlFile",
+						"nested/deep/file4.txt",
+						"nested/file3.txt",
+						"textFile",
+					]);
+				});
+
+				test("endpoint.listFilesRecursive() returns relative paths for root /", async () => {
+					// Shared data: all files
+					const files = await asyncGeneratorToArray(endpoint.listFilesRecursive("/"));
+
+					expect(files).toEqual([
+						"dir/htmlFile",
+						"dir/nested/deep/file4.txt",
+						"dir/nested/file3.txt",
+						"dir/textFile",
+						"existing.txt",
+					]);
+				});
+
+				test("endpoint.listFilesRecursive() returns relative paths for /dir/nested/", async () => {
+					// Shared data: /dir/nested/file3.txt, /dir/nested/deep/file4.txt
+					const files = await asyncGeneratorToArray(endpoint.listFilesRecursive("/dir/nested/"));
+
+					expect(files).toEqual(["deep/file4.txt", "file3.txt"]);
+				});
+
+				test("endpoint.listEntries() returns empty for non-existent prefix", async () => {
+					const entries = await asyncGeneratorToArray(endpoint.listEntries("/nonexistent/"));
+
+					expect(entries).toEqual([]);
+				});
+
+				test("endpoint.listFilesRecursive() returns empty for non-existent prefix", async () => {
+					const files = await asyncGeneratorToArray(endpoint.listFilesRecursive("/nonexistent/"));
+
+					expect(files).toEqual([]);
 				});
 			});
 
@@ -335,7 +406,8 @@ export const driverSharedTests = (driver: () => StorageEndpoint): void => {
 					await dir.deleteAll();
 					expect(await dir.exists()).toBe(false);
 
-					expect((await disk.allFiles()).map((file) => file.path)).toEqual([
+					const remainingFiles = await disk.files({ recursive: true });
+					expect(remainingFiles.map((file) => file.path)).toEqual([
 						"/otherdir/sibling.txt",
 						"/rootfile.txt",
 					]);

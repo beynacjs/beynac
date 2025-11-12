@@ -197,14 +197,29 @@ describe(StorageImpl, () => {
 			expect(mockDisk.exists).toHaveBeenCalled();
 		});
 
+		test("storage.list() delegates to default disk", async () => {
+			await storage.list();
+			expect(mockDisk.list).toHaveBeenCalled();
+		});
+
+		test("storage.listStreaming() delegates to default disk", () => {
+			storage.listStreaming();
+			expect(mockDisk.listStreaming).toHaveBeenCalled();
+		});
+
 		test("storage.files() delegates to default disk", async () => {
 			await storage.files();
 			expect(mockDisk.files).toHaveBeenCalled();
 		});
 
-		test("storage.allFiles() delegates to default disk", async () => {
-			await storage.allFiles();
-			expect(mockDisk.allFiles).toHaveBeenCalled();
+		test("storage.files(options) delegates to default disk with options", async () => {
+			await storage.files({ recursive: true });
+			expect(mockDisk.files).toHaveBeenCalledWith({ recursive: true });
+		});
+
+		test("storage.filesStreaming() delegates to default disk", () => {
+			storage.filesStreaming();
+			expect(mockDisk.filesStreaming).toHaveBeenCalled();
 		});
 
 		test("storage.directories() delegates to default disk", async () => {
@@ -212,9 +227,9 @@ describe(StorageImpl, () => {
 			expect(mockDisk.directories).toHaveBeenCalled();
 		});
 
-		test("storage.allDirectories() delegates to default disk", async () => {
-			await storage.allDirectories();
-			expect(mockDisk.allDirectories).toHaveBeenCalled();
+		test("storage.directoriesStreaming() delegates to default disk", () => {
+			storage.directoriesStreaming();
+			expect(mockDisk.directoriesStreaming).toHaveBeenCalled();
 		});
 
 		test("storage.deleteAll() delegates to default disk", async () => {

@@ -71,14 +71,29 @@ describe(StorageDiskImpl, () => {
 			expect(mockRoot.exists).toHaveBeenCalled();
 		});
 
+		test("disk.list() delegates to root directory", async () => {
+			await disk.list();
+			expect(mockRoot.list).toHaveBeenCalled();
+		});
+
+		test("disk.listStreaming() delegates to root directory", () => {
+			disk.listStreaming();
+			expect(mockRoot.listStreaming).toHaveBeenCalled();
+		});
+
 		test("disk.files() delegates to root directory", async () => {
 			await disk.files();
 			expect(mockRoot.files).toHaveBeenCalled();
 		});
 
-		test("disk.allFiles() delegates to root directory", async () => {
-			await disk.allFiles();
-			expect(mockRoot.allFiles).toHaveBeenCalled();
+		test("disk.files(options) delegates to root directory with options", async () => {
+			await disk.files({ recursive: true });
+			expect(mockRoot.files).toHaveBeenCalledWith({ recursive: true });
+		});
+
+		test("disk.filesStreaming() delegates to root directory", () => {
+			disk.filesStreaming();
+			expect(mockRoot.filesStreaming).toHaveBeenCalled();
 		});
 
 		test("disk.directories() delegates to root directory", async () => {
@@ -86,9 +101,9 @@ describe(StorageDiskImpl, () => {
 			expect(mockRoot.directories).toHaveBeenCalled();
 		});
 
-		test("disk.allDirectories() delegates to root directory", async () => {
-			await disk.allDirectories();
-			expect(mockRoot.allDirectories).toHaveBeenCalled();
+		test("disk.directoriesStreaming() delegates to root directory", () => {
+			disk.directoriesStreaming();
+			expect(mockRoot.directoriesStreaming).toHaveBeenCalled();
 		});
 
 		test("disk.deleteAll() delegates to root directory", async () => {
