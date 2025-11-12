@@ -1,52 +1,98 @@
-import { keyValueReplacer, Replacer } from "./misc";
-import { unicodeReplacements } from "./replacements";
-
-/**
- * Remove unicode combining marks and ligatures from a string
+import { compileMultiReplace, multiReplace, Replacer } from "./misc";
+import { unicodeReplacements } from "./replacements"; /**
+ * Remove unicode combining marks and ligatures from a string.
+ *
+ * This function handles accents and diacritics, but - unlike transliterate() -
+ * does not go as far as language-aware replacements converting German ß to ss
  *
  * @param value - String to process
- * @returns String with combining marks removed
+ * @param options.allowLatin1 - If true, preserve ISO-8859-1 characters like é
  *
  * @example
  * withoutMarks('Crème Brûlée') // 'Creme Brulee'
  * withoutMarks('café') // 'cafe'
- * withoutMarks('ﬁle') // 'file' (ligature decomposed)
- * withoutMarks('का') // 'क' (Devanagari vowel sign removed)
+ * withoutMarks('café', { allowLatin1: true }) // 'café' (é preserved as Latin1)
  */
-export function withoutMarks(value: string): string {
-	// NFKD normalisation decomposes characters (including ligatures)
-	// and separates base characters from combining marks
-	return value.normalize("NFKD").replace(/\p{M}/gu, "");
+export function withoutMarks(value: string, options?: { allowLatin1?: boolean }): string {
+	if (!options?.allowLatin1) {
+		return value.normalize("NFKD").replace(/\p{M}/gu, "");
+	}
+
+	// Preserve ISO-8859-1 characters, decompose only non-Latin1 sequences
+	const result = value.normalize("NFC");
+	return result
+		.replace(/[^\x20-\x7e\xa0-\xff]+/gu, (match) => {
+			// Only decompose non-Latin1 sequences
+			return match.normalize("NFKD").replace(/\p{M}/gu, "");
+		})
+		.normalize("NFC"); // Re-compose (mainly for Hangul)
 }
 
 /**
- * Transliterate Unicode characters to their ASCII equivalents using a built-in database of multi-character expansions
+ * Transliterate Unicode characters to their ASCII equivalents
+ *
+ * Use this when you need to convert text to the most sane representation that can be expressed in ASCII
  *
  * @param value - String to transliterate
- * @returns Transliterated string with multi-character ASCII replacements
+ * @param options.allowLatin1 - If true, preserve ISO-8859-1 characters like é
+ * @returns Transliterated string with multi-character ASCII replacements and marks removed
  *
  * @example
- * transliterate('Größe') // 'Groesse' (ß→ss, ö→oe)
- * transliterate('æther') // 'aether'
+ * transliterate('Größe') // 'Groesse' (ß→ss, ö→oe, then marks removed)
+ * transliterate('æther') // 'aether' (æ→ae)
  * transliterate('💯') // '100'
  * transliterate('€50') // 'E50'
- * transliterate('подъезд') // 'podyezd' (multi-character sequence ъе→ye)
+ * transliterate('подъезд') // 'podyezd' (Cyrillic→Latin)
+ * transliterate('café') // 'cafe' (é→e)
+ * transliterate('café', { allowLatin1: true }) // 'café' (é preserved as Latin1)
  */
-export function transliterate(value: string): string {
-	unicodeReplacer ??= keyValueReplacer(unicodeReplacements);
+export function transliterate(value: string, options?: { allowLatin1?: boolean }): string {
+	unicodeReplacer ??= compileMultiReplace(unicodeReplacements);
 	let result = unicodeReplacer(value);
-	// Normalize all Unicode dash punctuation (en-dash, em-dash, etc.) to regular hyphens
 	result = result.replaceAll(/\p{Dash_Punctuation}/gu, "-");
+	result = withoutMarks(result, options);
 	return result;
 }
 let unicodeReplacer: Replacer | undefined;
+
+/**
+ * Remove or replace non-ASCII characters from a string.
+ *
+ * See transliterate or withoutMarks if you'd instead like to replace unicode
+ * characters with ASCII equivalents
+ *
+ * @param value - String to process
+ * @param options.allowLatin1 - If true, preserve ISO-8859-1 characters (0xA0-0xFF like é, ñ, ü)
+ * @param options.replacement - String to replace invalid characters with (default: "")
+ * @returns String with non-ASCII characters removed or replaced
+ *
+ * @example
+ * withoutUnicode('café') // 'caf' (é removed)
+ * withoutUnicode('café', { allowLatin1: true }) // 'café' (é preserved)
+ * withoutUnicode('北京', { replacement: '?' }) // '??' (CJK replaced)
+ */
+export function withoutUnicode(
+	value: string,
+	options?: {
+		allowLatin1?: boolean;
+		replacement?: string;
+	},
+): string {
+	const { allowLatin1 = false, replacement = "" } = options || {};
+
+	const pattern = allowLatin1
+		? /[^\x20-\x7e\xa0-\xff]/g // Keep ASCII printable + Latin1 extended
+		: /[^\x20-\x7e]/g; // Keep only ASCII printable
+
+	return value.replace(pattern, replacement);
+}
 
 export interface SlugOptions {
 	/** Character to use as word separator (default: '-' */
 	separator?: string;
 
 	/**
-	 * Character replacements (default: { '@': 'at', '&': 'and', '%': 'percent' })
+	 * Character replacements (default: { '@': 'at', '&': 'and', '%': 'percent', '+': 'plus' })
 	 * - Record<string, string>: Custom replacements (replaces default entirely)
 	 * - true: Use default dictionary
 	 * - false: Disable replacements
@@ -55,34 +101,21 @@ export interface SlugOptions {
 
 	/** Convert to lowercase (default: true) */
 	lowercase?: boolean;
-
-	/** Apply unicode transliteration (default: true) */
-	transliterate?: boolean;
-
-	/** Remove unicode combining marks (default: true) */
-	withoutMarks?: boolean;
-
-	/**
-	 * Which characters to keep (default: 'urlsafe')
-	 * - 'urlsafe': Keep only unreserved URL characters (A-Z, a-z, 0-9, -, _, ., ~)
-	 * - 'ascii': Keep all ASCII characters (0x00-0x7F) including ! * ( ) etc
-	 * - 'all': Keep all characters including non-ASCII Unicode
-	 */
-	keep?: "urlsafe" | "ascii" | "all";
 }
 
 /**
  * Generate a URL-friendly slug from a string
  *
+ * Applies Unicode normalisation (transliterate → withoutMarks → withoutUnicode) to convert
+ * all characters to ASCII, then creates a URL-safe slug with only unreserved characters.
+ *
  * @param title - String to convert to slug
  * @param options.separator - Separator character (default: "-")
- * @param options.replacements - Replace the default character replacements (default: { '@': 'at', '&': 'and', '%': 'percent', '+': 'plus' })
- * Note: Setting this replaces the default replacements entirely.
- * Include '@', '&', and '%' if you want to keep them.
+ * @param options.replacements - Character replacements (default: { '@': 'at', '&': 'and', '%': 'percent', '+': 'plus' })
+ *   - Record<string, string>: Custom replacements (replaces default entirely)
+ *   - true: Use default dictionary
+ *   - false: Disable replacements
  * @param options.lowercase - Convert to lowercase (default: true)
- * @param options.transliterate (default true) - apply `str.transliterate()` to convert e.g. 'ß' to 'ss'. If false, the special characters will be omitted or kept depending on the `keep` option.
- * @param options.withoutMarks (default true) - apply `str.withoutMarks()` to convert e.g. 'ä' to 'a'. If false, the special characters will be omitted or kept depending on the `keep` option.
- * @param options.keep (default 'urlsafe') - Which characters to keep in the slug. 'urlsafe' keeps only unreserved URL characters (A-Z, a-z, 0-9, -, _, ., ~), 'ascii' keeps all ASCII characters including ! * ( ), 'all' keeps everything including non-ASCII Unicode.
  *
  * @example
  * slug('Größe café') // 'groesse-cafe'
@@ -92,46 +125,23 @@ export interface SlugOptions {
  * slug('100%') // '100-percent'
  * slug('hello world', { separator: '_' }) // 'hello_world'
  * slug('100%', { replacements: { '%': 'pct' } }) // '100-pct'
- * slug('Größe', { transliterate: false }) // 'groe' (withoutMarks decomposes ö→o, ß removed by keep:'urlsafe')
- * slug('Größe', { transliterate: false, keep: 'all' }) // 'große' (withoutMarks decomposes ö→o, keeps ß)
- * slug('Größe', { withoutMarks: false }) // 'groesse' (transliterate converts ö→oe and ß→ss)
- * slug('café!', { keep: 'urlsafe' }) // 'cafe' (! is not URL-safe, removed)
- * slug('café!', { keep: 'ascii', replacements: false }) // 'cafe!' (! is ASCII, kept)
- * slug('café!', { keep: 'all', transliterate: false, withoutMarks: false }) // 'café!' (everything kept)
+ * slug('café!', { replacements: false }) // 'cafe' (! removed, no replacements)
  * slug('Hello', { lowercase: false }) // 'Hello'
  */
 export function slug(title: string, options: SlugOptions = {}): string {
-	const {
-		separator = "-",
-		replacements = true,
-		lowercase = true,
-		transliterate: shouldTransliterate = true,
-		withoutMarks: shouldRemoveMarks = true,
-		keep = "urlsafe",
-	} = options;
+	const { separator = "-", replacements = true, lowercase = true } = options;
 
 	let result = title;
 
-	if (shouldTransliterate) {
-		result = transliterate(result);
+	if (replacements !== false) {
+		result = multiReplace(
+			result,
+			replacements === true ? { "@": "at", "&": "and", "%": "percent", "+": "plus" } : replacements,
+		);
 	}
 
-	if (shouldRemoveMarks) {
-		result = withoutMarks(result);
-	}
-
-	const replacementsDict =
-		replacements === false
-			? {}
-			: replacements === true
-				? { "@": "at", "&": "and", "%": "percent", "+": "plus" }
-				: replacements;
-
-	for (const [key, value] of Object.entries(replacementsDict)) {
-		result = result.replaceAll(key, ` ${value} `);
-	}
-
-	// Step 4: Convert to lowercase
+	result = transliterate(title);
+	result = withoutUnicode(result);
 	if (lowercase) {
 		result = result.toLowerCase();
 	}
@@ -142,17 +152,9 @@ export function slug(title: string, options: SlugOptions = {}): string {
 	// Replace inter-word marks with space, these typically separate words/phrases
 	result = result.replace(/[—–;/\\|:]/g, " ");
 
-	// Keep only allowed characters based on mode
-	if (keep === "urlsafe") {
-		// Keep only unreserved URL characters: A-Z a-z 0-9 - _ . ~ and whitespace
-		// RFC 3986: unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
-		result = result.replace(/[^a-z0-9\-_.~\s]/gi, "");
-	} else if (keep === "ascii") {
-		// Keep all ASCII characters (0x00-0x7F) and whitespace
-		// Preserves URL reserved characters like ! * ' ( ) ; : @ & = + $ , / ? # [ ]
-		result = result.replace(/[^\x00-\x7F]/g, "");
-	}
-	// else keep === 'all': keep everything
+	// Keep only unreserved URL characters: A-Z a-z 0-9 - _ . ~ and whitespace
+	// RFC 3986: unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
+	result = result.replace(/[^a-z0-9\-_.~\s]/gi, "");
 
 	result = result.trim().replace(/\s+/g, separator);
 

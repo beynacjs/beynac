@@ -19,26 +19,26 @@ describe(contentDisposition, () => {
 				'attachment; filename="the \\"plans\\" (1µ).pdf"',
 			],
 
-			// Unicode
+			// Unicode - now uses transliteration (€→E, планы→plany)
 			[
 				"Unicode Cyrillic",
 				"планы.pdf",
-				"attachment; filename=\"?????.pdf\"; filename*=UTF-8''%D0%BF%D0%BB%D0%B0%D0%BD%D1%8B.pdf",
+				"attachment; filename=\"plany.pdf\"; filename*=UTF-8''%D0%BF%D0%BB%D0%B0%D0%BD%D1%8B.pdf",
 			],
 			[
 				"Unicode mixed",
 				"£ and € rates.pdf",
-				"attachment; filename=\"£ and ? rates.pdf\"; filename*=UTF-8''%C2%A3%20and%20%E2%82%AC%20rates.pdf",
+				"attachment; filename=\"£ and E rates.pdf\"; filename*=UTF-8''%C2%A3%20and%20%E2%82%AC%20rates.pdf",
 			],
 			[
 				"Unicode euro",
 				"€ rates.pdf",
-				"attachment; filename=\"? rates.pdf\"; filename*=UTF-8''%E2%82%AC%20rates.pdf",
+				"attachment; filename=\"E rates.pdf\"; filename*=UTF-8''%E2%82%AC%20rates.pdf",
 			],
 			[
 				"Unicode special chars",
 				"€'*%().pdf",
-				"attachment; filename=\"?'*%().pdf\"; filename*=UTF-8''%E2%82%AC%27%2A%25%28%29.pdf",
+				"attachment; filename=\"E'*%().pdf\"; filename*=UTF-8''%E2%82%AC%27%2A%25%28%29.pdf",
 			],
 
 			// Hex escapes
@@ -50,7 +50,7 @@ describe(contentDisposition, () => {
 			[
 				"hex escape with Unicode",
 				"€%20£.pdf",
-				"attachment; filename=\"?%20£.pdf\"; filename*=UTF-8''%E2%82%AC%2520%C2%A3.pdf",
+				"attachment; filename=\"E%20£.pdf\"; filename*=UTF-8''%E2%82%AC%2520%C2%A3.pdf",
 			],
 		])("%s: %s", (_, input, expected) => {
 			expect(contentDisposition(input)).toBe(expected);
@@ -72,7 +72,7 @@ describe(contentDisposition, () => {
 
 		test("should default to true", () => {
 			expect(contentDisposition("€ rates.pdf")).toBe(
-				"attachment; filename=\"? rates.pdf\"; filename*=UTF-8''%E2%82%AC%20rates.pdf",
+				"attachment; filename=\"E rates.pdf\"; filename*=UTF-8''%E2%82%AC%20rates.pdf",
 			);
 		});
 
@@ -93,7 +93,7 @@ describe(contentDisposition, () => {
 				"fallback=true generates fallback",
 				"£ and € rates.pdf",
 				true,
-				"attachment; filename=\"£ and ? rates.pdf\"; filename*=UTF-8''%C2%A3%20and%20%E2%82%AC%20rates.pdf",
+				"attachment; filename=\"£ and E rates.pdf\"; filename*=UTF-8''%C2%A3%20and%20%E2%82%AC%20rates.pdf",
 			],
 			["fallback=true keeps ISO-8859-1", "£ rates.pdf", true, 'attachment; filename="£ rates.pdf"'],
 		])("%s: %s", (_, input, fallback, expected) => {

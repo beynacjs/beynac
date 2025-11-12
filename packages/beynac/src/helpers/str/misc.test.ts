@@ -1,35 +1,35 @@
 import { describe, expect, test } from "bun:test";
-import { keyValueReplacer } from "./misc";
+import { compileMultiReplace } from "./misc";
 
-describe(keyValueReplacer, () => {
+describe(compileMultiReplace, () => {
 	test("replaces single characters", () => {
-		const replacer = keyValueReplacer({ a: "1", b: "2" });
+		const replacer = compileMultiReplace({ a: "1", b: "2" });
 		expect(replacer("a + b")).toBe("1 + 2");
 	});
 
 	test("replaces multi-character keys", () => {
-		const replacer = keyValueReplacer({ ъе: "ye", ый: "iy" });
+		const replacer = compileMultiReplace({ ъе: "ye", ый: "iy" });
 		expect(replacer("подъезд")).toBe("подyeзд");
 		expect(replacer("белый")).toBe("белiy");
 	});
 
 	test("prioritizes longer keys first", () => {
 		// Should match "abc" before "ab" or "a"
-		const replacer = keyValueReplacer({ a: "1", ab: "2", abc: "3" });
+		const replacer = compileMultiReplace({ a: "1", ab: "2", abc: "3" });
 		expect(replacer("abc")).toBe("3");
 		expect(replacer("ab")).toBe("2");
 		expect(replacer("a")).toBe("1");
 	});
 
 	test("handles regex special characters in keys", () => {
-		const replacer = keyValueReplacer({ "*": "star", "+": "plus", ".": "dot" });
+		const replacer = compileMultiReplace({ "*": "star", "+": "plus", ".": "dot" });
 		expect(replacer("2 * 3")).toBe("2 star 3");
 		expect(replacer("1 + 2")).toBe("1 plus 2");
 		expect(replacer("x.y")).toBe("xdoty");
 	});
 
 	test("handles all regex metacharacters", () => {
-		const replacer = keyValueReplacer({
+		const replacer = compileMultiReplace({
 			"*": "star",
 			"+": "plus",
 			"?": "question",
@@ -52,33 +52,33 @@ describe(keyValueReplacer, () => {
 
 	test("handles emoji with regex special characters", () => {
 		// *️⃣ contains * which is a regex special character
-		const replacer = keyValueReplacer({ "*️⃣": "star-emoji", "💯": "100" });
+		const replacer = compileMultiReplace({ "*️⃣": "star-emoji", "💯": "100" });
 		expect(replacer("*️⃣ 💯")).toBe("star-emoji 100");
 	});
 
 	test("handles empty object", () => {
-		const replacer = keyValueReplacer({});
+		const replacer = compileMultiReplace({});
 		expect(replacer("hello world")).toBe("hello world");
 	});
 
 	test("handles empty string", () => {
-		const replacer = keyValueReplacer({ a: "1" });
+		const replacer = compileMultiReplace({ a: "1" });
 		expect(replacer("")).toBe("");
 	});
 
 	test("replaces all occurrences", () => {
-		const replacer = keyValueReplacer({ a: "1" });
+		const replacer = compileMultiReplace({ a: "1" });
 		expect(replacer("a a a")).toBe("1 1 1");
 	});
 
 	test("preserves characters not in replacement map", () => {
-		const replacer = keyValueReplacer({ a: "1" });
+		const replacer = compileMultiReplace({ a: "1" });
 		expect(replacer("a b c")).toBe("1 b c");
 	});
 
 	test("handles overlapping multi-character sequences correctly", () => {
 		// Russian: "ъе" should match before "ъ" or "е"
-		const replacer = keyValueReplacer({ ъ: "x", е: "e", ъе: "ye" });
+		const replacer = compileMultiReplace({ ъ: "x", е: "e", ъе: "ye" });
 		expect(replacer("подъезд")).toBe("подyeзд"); // ъе→ye
 		expect(replacer("объект")).toBe("обyeкт"); // ъе→ye (the word contains ъе)
 		expect(replacer("объём")).toBe("обxём"); // ъ→x (followed by ё not е)

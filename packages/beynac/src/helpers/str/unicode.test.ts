@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { slug, transliterate, withoutMarks } from "./unicode";
+import { slug, transliterate, withoutMarks, withoutUnicode } from "./unicode";
 
 describe(withoutMarks, () => {
 	test("removes accents from French text", () => {
@@ -34,6 +34,87 @@ describe(withoutMarks, () => {
 		// Devanagari vowel sign AA (U+093E) is Spacing_Mark (Mc), not in \p{Diacritic}
 		expect(withoutMarks("का")).toBe("क");
 	});
+
+	test("preserves Latin-1 characters when allowLatin1 is true", () => {
+		expect(withoutMarks("café", { allowLatin1: true })).toBe("café");
+		expect(withoutMarks("Crème Brûlée", { allowLatin1: true })).toBe("Crème Brûlée");
+	});
+
+	test("decomposes non-Latin1 sequences when allowLatin1 is true", () => {
+		// Devanagari vowel signs (outside Latin-1) are decomposed
+		expect(withoutMarks("का", { allowLatin1: true })).toBe("क");
+		// Vietnamese precomposed characters (Latin Extended-A) are outside Latin-1 and get decomposed
+		expect(withoutMarks("ế", { allowLatin1: true })).toBe("e"); // U+1EBF is outside Latin-1
+	});
+
+	test("edge cases with allowLatin1: surrogate pairs and mixed content", () => {
+		// Emojis (surrogate pairs, U+1F600+) - should be preserved
+		expect(withoutMarks("café💯test", { allowLatin1: true })).toBe("café💯test");
+		// Variation selectors (U+FE0F) are combining marks and get removed
+		expect(withoutMarks("❤️", { allowLatin1: true })).toBe("❤"); // ❤️ (with variation selector) → ❤ (without)
+
+		// Mixed Latin-1 + CJK
+		expect(withoutMarks("café北京", { allowLatin1: true })).toBe("café北京");
+
+		// Boundary testing: characters right at Latin-1 edge
+		// ÿ (U+00FF, Latin-1) preserved, Ā (U+0100, Latin Extended-A) decomposed to A
+		expect(withoutMarks("\u00FF\u0100", { allowLatin1: true })).toBe("\u00FFA"); // ÿĀ → ÿA
+
+		// Multiple non-Latin1 sequences with Latin-1 in between
+		expect(withoutMarks("café北京résumé日本", { allowLatin1: true })).toBe("café北京résumé日本");
+
+		// Combining marks on non-Latin1 base characters
+		expect(withoutMarks("北\u0301京", { allowLatin1: true })).toBe("北京"); // 北 + combining acute accent
+
+		// Zero-width characters and invisible marks
+		expect(withoutMarks("test\u200Bcafé\u200B", { allowLatin1: true })).toBe(
+			"test\u200Bcafé\u200B",
+		); // zero-width space
+
+		// Hangul (precomposed and will re-compose after NFC)
+		expect(withoutMarks("한글", { allowLatin1: true })).toBe("한글");
+
+		// Mathematical alphanumerics (outside BMP initially, but NFKD decomposes them)
+		expect(withoutMarks("𝐇𝐞𝐥𝐥𝐨", { allowLatin1: true })).toBe("Hello"); // U+1D407 etc. → H e l l o via NFKD
+	});
+});
+
+describe(withoutUnicode, () => {
+	test("removes non-ASCII characters", () => {
+		expect(withoutUnicode("café")).toBe("caf");
+		expect(withoutUnicode("北京")).toBe("");
+		expect(withoutUnicode("Hello❤️World")).toBe("HelloWorld");
+	});
+
+	test("preserves ASCII printable characters", () => {
+		expect(withoutUnicode("hello world 123!")).toBe("hello world 123!");
+	});
+
+	test("removes control characters", () => {
+		expect(withoutUnicode("\x00\x1Ftext")).toBe("text");
+		expect(withoutUnicode("hello\nworld")).toBe("helloworld");
+	});
+
+	test("preserves Latin-1 when allowLatin1 is true", () => {
+		expect(withoutUnicode("café", { allowLatin1: true })).toBe("café");
+		expect(withoutUnicode("Crème Brûlée", { allowLatin1: true })).toBe("Crème Brûlée");
+	});
+
+	test("removes non-Latin1 when allowLatin1 is true", () => {
+		expect(withoutUnicode("北京café", { allowLatin1: true })).toBe("café");
+		expect(withoutUnicode("Hello❤️World", { allowLatin1: true })).toBe("HelloWorld");
+	});
+
+	test("uses replacement string", () => {
+		expect(withoutUnicode("café", { replacement: "?" })).toBe("caf?");
+		expect(withoutUnicode("北京", { replacement: "?" })).toBe("??");
+		// Note: Some emojis are multiple code points (e.g., ❤️ = heart + variation selector)
+		expect(withoutUnicode("Hello❤World", { replacement: " " })).toBe("Hello World");
+	});
+
+	test("handles empty string", () => {
+		expect(withoutUnicode("")).toBe("");
+	});
 });
 
 describe(transliterate, () => {
@@ -48,6 +129,7 @@ describe(transliterate, () => {
 	test("imported", () => {
 		expect(transliterate("Я люблю единорогов")).toBe("Ya lyublyu edinorogov");
 		expect(transliterate("'أنا أحب حيدات'")).toBe("'ana ahb hydat'");
+		// Vietnamese diacritics are now handled by transliterate (which includes withoutMarks)
 		expect(transliterate("tôi yêu những chú kỳ lân")).toBe("toi yeu nhung chu ky lan");
 		expect(transliterate("En–dashes and em—dashes are normalized")).toBe(
 			"En-dashes and em-dashes are normalized",
@@ -83,6 +165,7 @@ describe(transliterate, () => {
 	});
 
 	test("converts Nordic characters", () => {
+		// Ø and Å are handled by withoutMarks via NFKD normalization (now included in transliterate)
 		expect(transliterate("Ø")).toBe("O");
 		expect(transliterate("Å")).toBe("A");
 	});
@@ -112,6 +195,22 @@ describe(transliterate, () => {
 		expect(transliterate("مَ‎")).toBe("ma"); // م + َ‎ (fatha with LTR mark)
 		expect(transliterate("مِ‎")).toBe("mi"); // م + ِ‎ (kasra with LTR mark)
 	});
+
+	test("allowLatin1 option preserves Latin-1 characters", () => {
+		// Without allowLatin1, combining marks are removed
+		expect(transliterate("café")).toBe("cafe");
+		expect(transliterate("Crème Brûlée")).toBe("Creme Brulee");
+
+		// With allowLatin1, Latin-1 characters are preserved (U+00A0-U+00FF)
+		expect(transliterate("café", { allowLatin1: true })).toBe("café");
+		expect(transliterate("Crème Brûlée", { allowLatin1: true })).toBe("Crème Brûlée");
+
+		// Vietnamese ô (U+00F4) and ê (U+00EA) are IN Latin-1 range, so preserved with allowLatin1
+		expect(transliterate("tôi yêu", { allowLatin1: true })).toBe("tôi yêu");
+
+		// But characters outside Latin-1 are still decomposed (e.g., ế = U+1EBF)
+		expect(transliterate("ế", { allowLatin1: true })).toBe("e");
+	});
 });
 
 describe(slug, () => {
@@ -128,9 +227,10 @@ describe(slug, () => {
 		expect(slug("  hello world  ")).toBe("hello-world");
 	});
 
-	test("normalizes various whitespace types", () => {
-		expect(slug("hello\nworld")).toBe("hello-world");
-		expect(slug("hello\tworld")).toBe("hello-world");
+	test("handles text with control characters removed", () => {
+		// withoutUnicode removes control characters like \n and \t (outside ASCII printable 0x20-0x7E)
+		expect(slug("hello\nworld")).toBe("helloworld");
+		expect(slug("hello\tworld")).toBe("helloworld");
 	});
 
 	test("runs of spaces become single separator", () => {
@@ -166,77 +266,18 @@ describe(slug, () => {
 		expect(slug("foo-bar", { separator: "_" })).toBe("foo-bar"); // hyphen is URL-safe, preserved
 	});
 
-	// Options: transliterate
-	test("options.transliterate control", () => {
-		// Without transliterate, ö is decomposed by withoutMarks to o+diaeresis, then diaeresis removed
-		// ß is removed by forceAscii
-		expect(slug("Größe", { transliterate: false })).toBe("groe");
-		// With transliterate, ö→oe and ß→ss happen
-		expect(slug("Größe", { transliterate: true })).toBe("groesse");
-	});
-
-	// Options: withoutMarks
-	test("options.withoutMarks control", () => {
-		// withoutMarks removes combining marks via NFKD normalization
-		// Need transliterate:false to prevent é being converted to e via replacement table
-		expect(slug("café", { transliterate: false, withoutMarks: false, keep: "all" })).toBe("café");
-		expect(slug("café", { transliterate: false, withoutMarks: true, keep: "all" })).toBe("cafe");
-		// With keep:'urlsafe', non-ASCII gets removed anyway
-		expect(slug("café", { transliterate: false, withoutMarks: false, keep: "urlsafe" })).toBe(
-			"caf",
-		);
-		expect(slug("café", { transliterate: false, withoutMarks: true, keep: "urlsafe" })).toBe(
-			"cafe",
-		);
-	});
-
-	// Options: keep
-	test("keep: 'urlsafe' removes URL reserved characters", () => {
+	// Character handling (slug always applies full pipeline)
+	test("removes URL reserved characters", () => {
 		expect(slug("hello! world?")).toBe("hello-world");
 		expect(slug("foo*bar")).toBe("foobar");
 		expect(slug("path/to/file")).toBe("path-to-file");
 	});
 
-	test("keep: 'urlsafe' keeps unreserved URL characters", () => {
+	test("keeps unreserved URL characters", () => {
 		expect(slug("hello-world")).toBe("hello-world");
 		expect(slug("foo_bar")).toBe("foo_bar");
 		expect(slug("test.file")).toBe("test.file");
 		expect(slug("hello~world")).toBe("hello~world");
-	});
-
-	test("keep: 'urlsafe' removes non-ASCII", () => {
-		expect(slug("café", { transliterate: false, withoutMarks: false })).toBe("caf");
-	});
-
-	test("keep: 'ascii' keeps ASCII special characters", () => {
-		expect(slug("hello!world", { keep: "ascii", replacements: false })).toBe("hello!world");
-		expect(slug("foo*bar", { keep: "ascii", replacements: false })).toBe("foo*bar");
-		expect(slug("test(123)", { keep: "ascii", replacements: false })).toBe("test(123)");
-	});
-
-	test("keep: 'ascii' removes non-ASCII characters", () => {
-		expect(slug("café", { keep: "ascii", transliterate: false, withoutMarks: false })).toBe("caf");
-		expect(
-			slug("Größe", {
-				keep: "ascii",
-				transliterate: false,
-				withoutMarks: false,
-				lowercase: false,
-			}),
-		).toBe("Gre");
-	});
-
-	test("keep: 'all' keeps all characters including non-ASCII", () => {
-		expect(slug("café!", { keep: "all", transliterate: false, withoutMarks: false })).toBe("café!");
-		expect(slug("Größe*test", { keep: "all", transliterate: false, withoutMarks: false })).toBe(
-			"größe*test",
-		);
-		expect(slug("hello world", { keep: "all" })).toBe("hello-world"); // spaces still become separator
-	});
-
-	test("keep: 'all' with transliteration still works", () => {
-		expect(slug("café!", { keep: "all" })).toBe("cafe!");
-		expect(slug("Größe", { keep: "all" })).toBe("groesse");
 	});
 
 	// Options: lowercase
@@ -292,12 +333,7 @@ describe(slug, () => {
 		expect(slug("100%")).toBe("100-percent");
 		expect(slug("hello world", { separator: "_" })).toBe("hello_world");
 		expect(slug("100%", { replacements: { "%": "pct" } })).toBe("100-pct");
-		expect(slug("Größe", { transliterate: false })).toBe("groe");
-		expect(slug("Größe", { transliterate: false, keep: "all" })).toBe("große");
-		expect(slug("Größe", { withoutMarks: false })).toBe("groesse");
-		expect(slug("café!", { keep: "urlsafe" })).toBe("cafe");
-		expect(slug("café!", { keep: "ascii", replacements: false })).toBe("cafe!");
-		expect(slug("café!", { keep: "all", transliterate: false, withoutMarks: false })).toBe("café!");
+		expect(slug("café!", { replacements: false })).toBe("cafe");
 		expect(slug("Hello", { lowercase: false })).toBe("Hello");
 	});
 

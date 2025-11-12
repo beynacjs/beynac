@@ -8,14 +8,27 @@ export type Replacer = (input: string) => string;
  * Compiles the keys into a regular expression, which for large dictionaries is more efficient than using multiple replace calls.
  *
  * @example
- * const replacer = keyValueReplacer({ a: "1", b: "2" });
- * console.log(replacer("a + b")); // Output: "1 + 2"
+ * const replace = compileMultiReplace({ a: "1", b: "2" });
+ * console.log(replace("a + b")); // Output: "1 + 2"
  */
-export const keyValueReplacer = (replacements: Record<string, string>): Replacer => {
+export const compileMultiReplace = (replacements: Record<string, string>): Replacer => {
 	const keys = Object.keys(replacements);
 	// Sort by length descending to match longer keys first (e.g., "ъе" before "ъ")
 	keys.sort((a, b) => b.length - a.length);
 	const escapedKeys = keys.map((key) => regExpEscape(key));
 	const keyRegex = new RegExp(escapedKeys.join("|"), "g");
 	return (str: string) => str.replace(keyRegex, (match) => replacements[match] ?? "");
+};
+
+/**
+ * Replaces keys with their corresponding values in a string.
+ *
+ * If you'll be doing a replacement with the same dictionary multiple times it
+ * is more efficient to use {@link compileMultiReplace}
+ *
+ * @example
+ * multiReplace("a + b", { a: "1", b: "2" });  // Output: "1 + 2"
+ */
+export const multiReplace = (input: string, replacements: Record<string, string>): string => {
+	return compileMultiReplace(replacements)(input);
 };

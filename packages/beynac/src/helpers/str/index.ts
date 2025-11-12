@@ -1,3 +1,4 @@
+export { compileMultiReplace } from "./misc";
 export {
 	isUlid,
 	isUuid,
@@ -10,4 +11,4 @@ export {
 	uuid,
 	uuidV4,
 } from "./random";
-export { slug, transliterate, withoutMarks } from "./unicode";
+export { slug, transliterate, withoutMarks, withoutUnicode } from "./unicode";

@@ -1,4 +1,7 @@
 import { basename } from "node:path";
+import { transliterate, withoutUnicode } from "./str";
+
+const NON_LATIN1_REGEXP = /[^\x20-\x7e\xa0-\xff]/g;
 
 export interface HeaderValueWithAttributes {
 	/**
@@ -186,12 +189,6 @@ const ENCODE_URL_ATTR_CHAR_REGEXP = /[\x00-\x20"'()*,/:;<=>?@[\\\]{}\x7f]/g;
  */
 const HEX_ESCAPE_REGEXP = /%[0-9A-Fa-f]{2}/;
 const HEX_ESCAPE_REPLACE_REGEXP = /%([0-9A-Fa-f]{2})/g;
-
-/**
- * RegExp to match non-latin1 characters.
- * @private
- */
-const NON_LATIN1_REGEXP = /[^\x20-\x7e\xa0-\xff]/g;
 
 /**
  * RegExp to match quoted-pair in RFC 2616
@@ -469,7 +466,9 @@ function decodefield(str: string): string {
 
 	switch (charset) {
 		case "iso-8859-1":
-			value = getlatin1(binary);
+			// For parsing, decode as Latin-1 and sanitize control characters (0x00-0x1F, 0x7F-0x9F)
+			// but do NOT transliterate (ä stays as ä, not ae)
+			value = binary.replace(/[\x00-\x1f\x7f-\x9f]/g, "?");
 			break;
 		case "utf-8":
 		case "utf8":
@@ -485,13 +484,18 @@ function decodefield(str: string): string {
 /**
  * Get ISO-8859-1 version of string.
  *
+ * Applies transliteration and mark removal for better fallbacks (café→café not caf?),
+ * then replaces any remaining non-Latin1 characters with "?".
+ *
  * @param {string} val
  * @return {string}
  * @private
  */
 function getlatin1(val: string): string {
-	// simple Unicode -> ISO-8859-1 transformation
-	return String(val).replace(NON_LATIN1_REGEXP, "?");
+	// transliterate now includes withoutMarks with allowLatin1 option
+	let result = transliterate(val, { allowLatin1: true });
+	result = withoutUnicode(result, { allowLatin1: true, replacement: "?" });
+	return result;
 }
 
 /**
