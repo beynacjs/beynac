@@ -1,11 +1,27 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import type { StorageEndpoint } from "../contracts/Storage";
-import { expectErrorWithProperties } from "../test-utils";
+import { ContainerImpl } from "../container/ContainerImpl";
+import type { Dispatcher } from "../contracts/Dispatcher";
+import type { StorageDirectory, StorageEndpoint } from "../contracts/Storage";
+import { DispatcherImpl } from "../core/DispatcherImpl";
+import { expectErrorWithProperties, mockDispatcher } from "../test-utils";
 import { memoryStorage } from "./drivers/memory/MemoryStorageDriver";
 import { StorageDirectoryImpl } from "./StorageDirectoryImpl";
 import { StorageDiskImpl } from "./StorageDiskImpl";
 import { StorageFileImpl } from "./StorageFileImpl";
 import { InvalidPathError } from "./storage-errors";
+import {
+	DirectoryDeletedEvent,
+	DirectoryDeletingEvent,
+	DirectoryDirectoriesListedEvent,
+	DirectoryExistenceCheckedEvent,
+	DirectoryExistenceCheckingEvent,
+	DirectoryFilesListedEvent,
+	DirectoryListingDirectoriesEvent,
+	DirectoryListingFilesEvent,
+	FileWritingEvent,
+	FileWrittenEvent,
+} from "./storage-events";
+import { mockCurrentTime } from "../testing";
 
 function getPaths(items: Array<{ path: string }>): string[] {
 	return items.map((item) => item.path);
@@ -14,6 +30,7 @@ function getPaths(items: Array<{ path: string }>): string[] {
 describe(StorageDirectoryImpl, () => {
 	let endpoint: StorageEndpoint;
 	let disk: StorageDiskImpl;
+	let dispatcher: Dispatcher;
 
 	beforeEach(() => {
 		endpoint = memoryStorage({
@@ -26,46 +43,41 @@ describe(StorageDirectoryImpl, () => {
 				"/subdir/a/b/deep.txt": "deep",
 			},
 		});
-		disk = new StorageDiskImpl("test", endpoint);
+		dispatcher = new DispatcherImpl(new ContainerImpl());
+		disk = new StorageDiskImpl("test", endpoint, dispatcher);
 	});
+
+	const create = (path: string, ep = endpoint): StorageDirectory => {
+		return new StorageDirectoryImpl(disk, ep, path, mockDispatcher());
+	};
 
 	describe("constructor", () => {
 		test("stores disk and path", () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/path/to/dir/");
+			const dir = create("/path/to/dir/");
 			expect(dir.disk).toBe(disk);
 			expect(dir.path).toBe("/path/to/dir/");
 		});
 
 		test("throws when trailing slash is missing", () => {
-			expect(() => new StorageDirectoryImpl(disk, endpoint, "/path/to/dir")).toThrow(
-				InvalidPathError,
-			);
-
-			expectErrorWithProperties(
-				() => new StorageDirectoryImpl(disk, endpoint, "/path/to/dir"),
-				InvalidPathError,
-				{
-					path: "/path/to/dir",
-					reason: "directory paths must start and end with a slash",
-				},
-			);
+			expectErrorWithProperties(() => create("/path/to/dir"), InvalidPathError, {
+				path: "/path/to/dir",
+				reason: "directory paths must start and end with a slash",
+			});
 		});
 
 		test("throws when leading slash is missing", () => {
-			expect(() => new StorageDirectoryImpl(disk, endpoint, "path/to/dir/")).toThrow(
-				InvalidPathError,
-			);
+			expect(() => create("path/to/dir/")).toThrow(InvalidPathError);
 		});
 
 		test('root path "/" is valid', () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/");
+			const dir = create("/");
 			expect(dir.path).toBe("/");
 		});
 	});
 
 	describe("exists()", () => {
 		test("returns true when directory contains files", async () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/subdir/");
+			const dir = create("/subdir/");
 			const result = await dir.exists();
 			expect(result).toBe(true);
 		});
@@ -73,14 +85,14 @@ describe(StorageDirectoryImpl, () => {
 
 	describe("files()", () => {
 		test("returns files directly in directory", async () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/subdir/");
+			const dir = create("/subdir/");
 			expect(getPaths(await dir.files())).toEqual(["/subdir/file1.txt", "/subdir/file2.txt"]);
 		});
 	});
 
 	describe("allFiles()", () => {
 		test("returns all files recursively", async () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/subdir/");
+			const dir = create("/subdir/");
 			expect(getPaths(await dir.allFiles())).toEqual([
 				"/subdir/a/b/deep.txt",
 				"/subdir/a/file.txt",
@@ -94,14 +106,14 @@ describe(StorageDirectoryImpl, () => {
 
 	describe("directories()", () => {
 		test("returns direct subdirectories", async () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/subdir/");
+			const dir = create("/subdir/");
 			expect(getPaths(await dir.directories())).toEqual(["/subdir/a/", "/subdir/b/"]);
 		});
 	});
 
 	describe("allDirectories()", () => {
 		test("returns all subdirectories recursively", async () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/subdir/");
+			const dir = create("/subdir/");
 			expect(getPaths(await dir.allDirectories())).toEqual([
 				"/subdir/a/",
 				"/subdir/a/b/",
@@ -112,7 +124,7 @@ describe(StorageDirectoryImpl, () => {
 
 	describe("deleteAll()", () => {
 		test("deletes all files under prefix", async () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/subdir/");
+			const dir = create("/subdir/");
 			await dir.deleteAll();
 			expect(await dir.exists()).toBe(false);
 		});
@@ -120,43 +132,43 @@ describe(StorageDirectoryImpl, () => {
 
 	describe("directory()", () => {
 		test("creates nested directory with joined path", () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/parent/");
+			const dir = create("/parent/");
 			const subdir = dir.directory("child");
 			expect(subdir.path).toBe("/parent/child/");
 		});
 
 		test("removes leading slash from child path", () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/parent/");
+			const dir = create("/parent/");
 			const subdir = dir.directory("/child");
 			expect(subdir.path).toBe("/parent/child/");
 		});
 
 		test("adds trailing slash if missing", () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/parent/");
+			const dir = create("/parent/");
 			const subdir = dir.directory("child");
 			expect(subdir.path).toEndWith("/");
 		});
 
 		test("creates nested directories from slash-separated path", () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/parent/");
+			const dir = create("/parent/");
 			const subdir = dir.directory("a/b/c");
 			expect(subdir.path).toBe("/parent/a/b/c/");
 		});
 
 		test("from root directory creates correct path with leading slash", () => {
-			const root = new StorageDirectoryImpl(disk, endpoint, "/");
+			const root = create("/");
 			const dir = root.directory("subdir");
 			expect(dir.path).toBe("/subdir/");
 		});
 
 		test('returns same directory when passed "/"', () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/parent/");
+			const dir = create("/parent/");
 			const same = dir.directory("/");
 			expect(same).toBe(dir);
 		});
 
 		test('returns same directory when passed "" or "/"', () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/parent/");
+			const dir = create("/parent/");
 			expect(dir.directory("")).toBe(dir);
 			expect(dir.directory("/")).toBe(dir);
 		});
@@ -165,7 +177,7 @@ describe(StorageDirectoryImpl, () => {
 			const sanitisingEndpoint = memoryStorage({
 				invalidNameChars: "<>",
 			});
-			const dir = new StorageDirectoryImpl(disk, sanitisingEndpoint, "/parent/");
+			const dir = create("/parent/", sanitisingEndpoint);
 			const subdir = dir.directory("a<<b/c>>d");
 			expect(subdir.path).toBe("/parent/a_b-1821dbf7/c_d-b01a45d3/");
 		});
@@ -174,7 +186,7 @@ describe(StorageDirectoryImpl, () => {
 			const sanitisingEndpoint = memoryStorage({
 				invalidNameChars: "<>",
 			});
-			const dir = new StorageDirectoryImpl(disk, sanitisingEndpoint, "/parent/");
+			const dir = create("/parent/", sanitisingEndpoint);
 
 			// Default behavior (no options)
 			const subdir1 = dir.directory("a<<b");
@@ -189,7 +201,7 @@ describe(StorageDirectoryImpl, () => {
 			const sanitisingEndpoint = memoryStorage({
 				invalidNameChars: "<>",
 			});
-			const dir = new StorageDirectoryImpl(disk, sanitisingEndpoint, "/parent/");
+			const dir = create("/parent/", sanitisingEndpoint);
 
 			expect(() => dir.directory("a<<b", { onInvalid: "throw" })).toThrow(InvalidPathError);
 
@@ -206,26 +218,26 @@ describe(StorageDirectoryImpl, () => {
 
 	describe("file()", () => {
 		test("creates file with joined path", () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/parent/");
+			const dir = create("/parent/");
 			const file = dir.file("test.txt");
 			expect(file.path).toBe("/parent/test.txt");
 			expect(file).toBeInstanceOf(StorageFileImpl);
 		});
 
 		test("removes leading slash from file path", () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/parent/");
+			const dir = create("/parent/");
 			const file = dir.file("/test.txt");
 			expect(file.path).toBe("/parent/test.txt");
 		});
 
 		test("removes trailing slash from file path", () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/parent/");
+			const dir = create("/parent/");
 			const file = dir.file("test.txt/");
 			expect(file.path).toBe("/parent/test.txt");
 		});
 
 		test("throws when filename is empty", () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/parent/");
+			const dir = create("/parent/");
 			expectErrorWithProperties(() => dir.file(""), InvalidPathError, {
 				path: "",
 				reason: "file name cannot be empty",
@@ -233,7 +245,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("from root directory creates correct path with leading slash", () => {
-			const root = new StorageDirectoryImpl(disk, endpoint, "/");
+			const root = create("/");
 			const file = root.file("test.txt");
 			expect(file.path).toBe("/test.txt");
 		});
@@ -242,7 +254,7 @@ describe(StorageDirectoryImpl, () => {
 			const sanitisingEndpoint = memoryStorage({
 				invalidNameChars: "<>:",
 			});
-			const dir = new StorageDirectoryImpl(disk, sanitisingEndpoint, "/parent/");
+			const dir = create("/parent/", sanitisingEndpoint);
 			const file = dir.file("my<<file>>:test.txt");
 			expect(file.path).toBe("/parent/my_file_test-cdcb6c02.txt");
 		});
@@ -251,7 +263,7 @@ describe(StorageDirectoryImpl, () => {
 			const sanitisingEndpoint = memoryStorage({
 				invalidNameChars: "<>:",
 			});
-			const dir = new StorageDirectoryImpl(disk, sanitisingEndpoint, "/parent/");
+			const dir = create("/parent/", sanitisingEndpoint);
 
 			// Default behavior (no options)
 			const file1 = dir.file("my<<file>>:test.txt");
@@ -266,7 +278,7 @@ describe(StorageDirectoryImpl, () => {
 			const sanitisingEndpoint = memoryStorage({
 				invalidNameChars: "<>:",
 			});
-			const dir = new StorageDirectoryImpl(disk, sanitisingEndpoint, "/parent/");
+			const dir = create("/parent/", sanitisingEndpoint);
 
 			expect(() => dir.file("my<<file>>:test.txt", { onInvalid: "throw" })).toThrow(
 				InvalidPathError,
@@ -277,7 +289,7 @@ describe(StorageDirectoryImpl, () => {
 			const sanitisingEndpoint = memoryStorage({
 				invalidNameChars: "/",
 			});
-			const dir = new StorageDirectoryImpl(disk, sanitisingEndpoint, "/parent/");
+			const dir = create("/parent/", sanitisingEndpoint);
 			const file = dir.file("a/b/c");
 			expect(file.path).toBe("/parent/a/b/c");
 		});
@@ -285,7 +297,7 @@ describe(StorageDirectoryImpl, () => {
 
 	describe("putFile()", () => {
 		test("creates file from File object and extracts name and mime type", async () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/uploads/");
+			const dir = create("/uploads/");
 			const fileObj = new File(["content"], "document", {
 				type: "text/html; charset=utf-8",
 			});
@@ -299,7 +311,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("creates file from Request object and extracts metadata from headers", async () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/uploads/");
+			const dir = create("/uploads/");
 			const request = new Request("http://example.com", {
 				method: "POST",
 				body: "content",
@@ -317,7 +329,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("trims whitespace from File object name", async () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/uploads/");
+			const dir = create("/uploads/");
 			const fileObj = new File(["content"], "  document.txt  ", {
 				type: "text/plain",
 			});
@@ -327,7 +339,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("trims whitespace from Request X-File-Name header", async () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/uploads/");
+			const dir = create("/uploads/");
 			const request = new Request("http://example.com", {
 				method: "POST",
 				body: "content",
@@ -342,7 +354,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("takes basename when File name contains slashes", async () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/uploads/");
+			const dir = create("/uploads/");
 			const fileObj = new File(["content"], "../../etc/passwd", {
 				type: "text/plain",
 			});
@@ -352,7 +364,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("takes basename when Request X-File-Name contains slashes", async () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/uploads/");
+			const dir = create("/uploads/");
 			const request = new Request("http://example.com", {
 				method: "POST",
 				body: "content",
@@ -367,7 +379,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("uses Content-Disposition filename when X-File-Name is not present", async () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/uploads/");
+			const dir = create("/uploads/");
 			const request = new Request("http://example.com", {
 				method: "POST",
 				body: "content",
@@ -382,7 +394,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("trims whitespace from Content-Disposition filename", async () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/uploads/");
+			const dir = create("/uploads/");
 			const request = new Request("http://example.com", {
 				method: "POST",
 				body: "content",
@@ -397,7 +409,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("generates random filename when no suggestedName provided", async () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/uploads/");
+			const dir = create("/uploads/");
 			const file = await dir.putFile({
 				data: "content",
 				mimeType: "text/plain",
@@ -408,7 +420,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("uses suggestedName from payload when provided", async () => {
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/uploads/");
+			const dir = create("/uploads/");
 			const file = await dir.putFile({
 				data: "content",
 				mimeType: "text/plain",
@@ -422,9 +434,90 @@ describe(StorageDirectoryImpl, () => {
 	describe("toString()", () => {
 		test("returns [StorageDirectoryImpl endpoint://path]", () => {
 			const endpoint = memoryStorage({ name: "test-endpoint" });
-			const disk = new StorageDiskImpl("test", endpoint);
-			const dir = new StorageDirectoryImpl(disk, endpoint, "/path/to/dir/");
+			const dir = create("/path/to/dir/", endpoint);
 			expect(dir.toString()).toBe("[StorageDirectoryImpl test-endpoint://path/to/dir/]");
+		});
+	});
+
+	describe("events", () => {
+		let eventDisk: StorageDiskImpl;
+		let eventDispatcher: ReturnType<typeof mockDispatcher>;
+
+		beforeEach(() => {
+			mockCurrentTime();
+			eventDispatcher = mockDispatcher();
+			eventDisk = new StorageDiskImpl("event-test", endpoint, eventDispatcher);
+		});
+
+		test("exists() dispatches directory:existence-check events once", async () => {
+			const dir = eventDisk.directory("subdir");
+
+			const exists = await dir.exists();
+
+			const startEvent = new DirectoryExistenceCheckingEvent(eventDisk, "/subdir/");
+			const endEvent = new DirectoryExistenceCheckedEvent(startEvent, exists);
+			eventDispatcher.expectEvents([startEvent, endEvent]);
+		});
+
+		test("files() dispatches directory:files-list events once", async () => {
+			const dir = eventDisk.directory("subdir");
+
+			const files = await dir.files();
+
+			const startEvent = new DirectoryListingFilesEvent(eventDisk, "/subdir/", false);
+			const endEvent = new DirectoryFilesListedEvent(startEvent, files);
+			eventDispatcher.expectEvents([startEvent, endEvent]);
+		});
+
+		test("allFiles() dispatches directory:files-list events once", async () => {
+			const dir = eventDisk.directory("subdir");
+
+			const files = await dir.allFiles();
+
+			const startEvent = new DirectoryListingFilesEvent(eventDisk, "/subdir/", true);
+			const endEvent = new DirectoryFilesListedEvent(startEvent, files);
+			eventDispatcher.expectEvents([startEvent, endEvent]);
+		});
+
+		test("directories() dispatches directory:directories-list events once", async () => {
+			const dir = eventDisk.directory("subdir");
+
+			const directories = await dir.directories();
+
+			const startEvent = new DirectoryListingDirectoriesEvent(eventDisk, "/subdir/", false);
+			const endEvent = new DirectoryDirectoriesListedEvent(startEvent, directories);
+			eventDispatcher.expectEvents([startEvent, endEvent]);
+		});
+
+		test("allDirectories() dispatches directory:directories-list events once", async () => {
+			const dir = eventDisk.directory("subdir");
+
+			const directories = await dir.allDirectories();
+
+			const startEvent = new DirectoryListingDirectoriesEvent(eventDisk, "/subdir/", true);
+			const endEvent = new DirectoryDirectoriesListedEvent(startEvent, directories);
+			eventDispatcher.expectEvents([startEvent, endEvent]);
+		});
+
+		test("deleteAll() dispatches directory:delete events once", async () => {
+			const dir = eventDisk.directory("subdir");
+
+			await dir.deleteAll();
+
+			const startEvent = new DirectoryDeletingEvent(eventDisk, "/subdir/");
+			const endEvent = new DirectoryDeletedEvent(startEvent);
+			eventDispatcher.expectEvents([startEvent, endEvent]);
+		});
+
+		test("putFile() dispatches file:write events only", async () => {
+			const dir = eventDisk.directory("uploads");
+
+			const data = "content";
+			await dir.putFile({ data, mimeType: "text/plain", suggestedName: "test.txt" });
+
+			const startEvent = new FileWritingEvent(eventDisk, "/uploads/test.txt", data, "text/plain");
+			const endEvent = new FileWrittenEvent(startEvent);
+			eventDispatcher.expectEvents([startEvent, endEvent]);
 		});
 	});
 });

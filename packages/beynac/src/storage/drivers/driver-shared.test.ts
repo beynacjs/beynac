@@ -1,6 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import type { StorageDisk, StorageEndpoint } from "../../contracts/Storage";
-import { expectErrorWithProperties } from "../../test-utils";
+import { expectErrorWithProperties, mockDispatcher } from "../../test-utils";
 import { StorageImpl } from "../StorageImpl";
 import { NotFoundError } from "../storage-errors";
 import { memoryStorage } from "./memory/MemoryStorageDriver";
@@ -23,10 +23,13 @@ export const driverSharedTests = (driver: () => StorageEndpoint): void => {
 				let storage: StorageImpl;
 				let disk: StorageDisk;
 				beforeAll(async () => {
-					storage = new StorageImpl({
-						disks: { test: driver() },
-						defaultDisk: "test",
-					});
+					storage = new StorageImpl(
+						{
+							disks: { test: driver() },
+							defaultDisk: "test",
+						},
+						mockDispatcher(),
+					);
 					disk = storage.disk();
 					const files = [
 						["/existing.txt", "content", "text/plain"],
@@ -162,10 +165,13 @@ export const driverSharedTests = (driver: () => StorageEndpoint): void => {
 				let storage: StorageImpl;
 				let disk: StorageDisk;
 				beforeEach(async () => {
-					storage = new StorageImpl({
-						disks: { test: driver() },
-						defaultDisk: "test",
-					});
+					storage = new StorageImpl(
+						{
+							disks: { test: driver() },
+							defaultDisk: "test",
+						},
+						mockDispatcher(),
+					);
 					disk = storage.disk();
 				});
 

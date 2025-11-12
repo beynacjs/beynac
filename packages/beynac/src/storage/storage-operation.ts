@@ -1,3 +1,4 @@
+import type { Dispatcher } from "../contracts/Dispatcher";
 import {
 	NotFoundError,
 	PermissionsError,
@@ -5,8 +6,20 @@ import {
 	StorageHttpError,
 	StorageUnknownError,
 } from "./storage-errors";
+import {
+	StorageOperationCompletedEvent,
+	StorageOperationFailedEvent,
+	type StorageOperationStartingEvent,
+	type StorageOperationType,
+} from "./storage-events";
 
-export function storageOperation<T>(operation: string, fn: () => T): T {
+export async function storageOperation<TResult, TStartEvent extends StorageOperationStartingEvent>(
+	operationType: StorageOperationType,
+	fn: () => Promise<TResult>,
+	beforeEvent: () => TStartEvent,
+	afterEvent: (startEvent: TStartEvent, result: TResult) => StorageOperationCompletedEvent,
+	dispatcher: Dispatcher,
+): Promise<TResult> {
 	const toStorageError = (error: unknown): StorageError => {
 		if (error instanceof StorageHttpError) {
 			const status = error.statusCode;
@@ -22,20 +35,28 @@ export function storageOperation<T>(operation: string, fn: () => T): T {
 			return error;
 		}
 		if (error instanceof Error) {
-			return new StorageUnknownError(operation, error);
+			return new StorageUnknownError(operationType, error);
 		}
-		return new StorageUnknownError(operation, new Error(String(error)));
+		return new StorageUnknownError(operationType, new Error(String(error)));
 	};
 
+	const startEvent = beforeEvent();
+
+	if (startEvent.type !== operationType) {
+		throw new Error(
+			`Event type mismatch: expected "${operationType}" but event has type "${startEvent.type}"`,
+		);
+	}
+
+	dispatcher.dispatch(startEvent);
+
 	try {
-		const result = fn();
-		if (result instanceof Promise) {
-			return result.catch((error) => {
-				throw toStorageError(error);
-			}) as T;
-		}
+		const result = await fn();
+		dispatcher.dispatch(afterEvent(startEvent, result));
 		return result;
 	} catch (error) {
-		throw toStorageError(error);
+		const storageError = toStorageError(error);
+		dispatcher.dispatch(new StorageOperationFailedEvent(startEvent, storageError));
+		throw storageError;
 	}
 }

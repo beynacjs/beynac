@@ -6,14 +6,21 @@
     "typescript/no-for-in-array": "error",
     "typescript/no-explicit-any": "error",
     "no-eval": "off",
-    "eslint/no-control-regex": "off"
+    "eslint/no-control-regex": "off",
+    "eslint/no-restricted-imports": ["error", {
+      "patterns": [{
+        "group": ["bun", "bun:*"],
+        "message": "Direct imports from 'bun' or 'bun:*' are only allowed in test files. Use 'node:' equivalents where possible."
+      }]
+    }]
   },
   "overrides": [
     {
-      "files": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.test.mts"],
+      "files": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.test.mts", "src/test-utils/**"],
       "rules": {
         "typescript/no-explicit-any": "off",
-        "typescript/unbound-method": "off"
+        "typescript/unbound-method": "off",
+        "eslint/no-restricted-imports": "off"
       }
     }
   ]

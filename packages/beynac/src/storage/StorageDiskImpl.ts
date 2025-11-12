@@ -1,3 +1,4 @@
+import type { Dispatcher } from "../contracts/Dispatcher";
 import type {
 	StorageDirectoryOperations,
 	StorageDisk,
@@ -14,11 +15,11 @@ export class StorageDiskImpl extends DelegatesToDirectory implements StorageDisk
 	readonly #rootDirectory: StorageDirectoryImpl;
 	readonly #endpoint: StorageEndpoint;
 
-	constructor(name: string, endpoint: StorageEndpoint) {
+	constructor(name: string, endpoint: StorageEndpoint, dispatcher: Dispatcher) {
 		super();
 		this.name = name;
 		this.#endpoint = endpoint;
-		this.#rootDirectory = new StorageDirectoryImpl(this, endpoint, "/");
+		this.#rootDirectory = new StorageDirectoryImpl(this, endpoint, "/", dispatcher);
 	}
 
 	protected override getDirectoryForDelegation(): StorageDirectoryOperations {

@@ -1,15 +1,23 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import type { StorageDirectoryOperations } from "../contracts/Storage";
-import { spyOnAll } from "../test-utils";
+import type {
+	StorageDirectoryOperations,
+	StorageDisk,
+	StorageEndpoint,
+} from "../contracts/Storage";
+import { mockDispatcher, spyOnAll } from "../test-utils";
 import { memoryStorage } from "./drivers/memory/MemoryStorageDriver";
 import { StorageDirectoryImpl } from "./StorageDirectoryImpl";
 import { StorageDiskImpl } from "./StorageDiskImpl";
 
 describe(StorageDiskImpl, () => {
+	const create = (name: string, ep: StorageEndpoint): StorageDisk => {
+		return new StorageDiskImpl(name, ep, mockDispatcher());
+	};
+
 	describe("constructor", () => {
 		test("stores name and endpoint correctly", () => {
 			const endpoint = memoryStorage({});
-			const disk = new StorageDiskImpl("test-disk", endpoint);
+			const disk = create("test-disk", endpoint);
 			expect(disk.name).toBe("test-disk");
 		});
 	});
@@ -17,14 +25,14 @@ describe(StorageDiskImpl, () => {
 	describe("file()", () => {
 		test("creates StorageFileImpl with correct params and leading slash", () => {
 			const endpoint = memoryStorage({});
-			const disk = new StorageDiskImpl("test-disk", endpoint);
+			const disk = create("test-disk", endpoint);
 			const file = disk.file("path/to/file.txt");
 			expect(file.path).toBe("/path/to/file.txt");
 		});
 
 		test("normalises file path and adds leading slash", () => {
 			const endpoint = memoryStorage({});
-			const disk = new StorageDiskImpl("test-disk", endpoint);
+			const disk = create("test-disk", endpoint);
 			const file = disk.file("path/to/file.txt/");
 			expect(file.path).toBe("/path/to/file.txt");
 		});
@@ -33,14 +41,14 @@ describe(StorageDiskImpl, () => {
 	describe("directory()", () => {
 		test("creates StorageDirectoryImpl with correct params and leading slash", () => {
 			const endpoint = memoryStorage({});
-			const disk = new StorageDiskImpl("test-disk", endpoint);
+			const disk = create("test-disk", endpoint);
 			const dir = disk.directory("path/to/dir");
 			expect(dir.path).toBe("/path/to/dir/");
 		});
 
 		test("normalises directory path with leading and trailing slash", () => {
 			const endpoint = memoryStorage({});
-			const disk = new StorageDiskImpl("test-disk", endpoint);
+			const disk = create("test-disk", endpoint);
 			const dir = disk.directory("path/to/dir");
 			expect(dir.path).toBe("/path/to/dir/");
 		});
@@ -52,8 +60,8 @@ describe(StorageDiskImpl, () => {
 
 		beforeEach(() => {
 			const endpoint = memoryStorage({});
-			disk = new StorageDiskImpl("test-disk", endpoint);
-			mockRoot = spyOnAll(new StorageDirectoryImpl(disk, endpoint, "/"));
+			disk = new StorageDiskImpl("test-disk", endpoint, mockDispatcher());
+			mockRoot = spyOnAll(new StorageDirectoryImpl(disk, endpoint, "/", mockDispatcher()));
 			// Override getDirectoryForDelegation to return our mock
 			(disk as any).getDirectoryForDelegation = mock(() => mockRoot);
 		});
@@ -107,7 +115,7 @@ describe(StorageDiskImpl, () => {
 					"/subdir/nested.txt": "nested file",
 				},
 			});
-			const disk = new StorageDiskImpl("test-disk", endpoint);
+			const disk = create("test-disk", endpoint);
 
 			const file = disk.file("test.txt");
 			expect(await file.exists()).toBe(true);
@@ -124,7 +132,7 @@ describe(StorageDiskImpl, () => {
 	describe("toString()", () => {
 		test("returns [StorageDiskImpl diskname]", () => {
 			const endpoint = memoryStorage({});
-			const disk = new StorageDiskImpl("my-disk", endpoint);
+			const disk = create("my-disk", endpoint);
 			expect(disk.toString()).toBe("[StorageDiskImpl memory://my-disk]");
 		});
 	});

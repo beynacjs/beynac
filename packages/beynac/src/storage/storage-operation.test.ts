@@ -1,22 +1,52 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
+import type { StorageDisk } from "../contracts/Storage";
+import { mockDispatcher } from "../test-utils";
+import { mockCurrentTime, resetMockTime } from "../testing";
 import { InvalidPathError, StorageUnknownError } from "./storage-errors";
+import {
+	FileDeletedEvent,
+	FileDeletingEvent,
+	FileReadingEvent,
+	FileWritingEvent,
+	FileWrittenEvent,
+} from "./storage-events";
 import { storageOperation } from "./storage-operation";
 
 describe(storageOperation, () => {
-	test("returns result when function succeeds", () => {
-		const result = storageOperation("test operation", () => {
-			return "success";
-		});
-		expect(result).toBe("success");
+	afterEach(() => {
+		resetMockTime();
 	});
 
-	test("preserves StorageError instances unchanged", () => {
+	test("returns result when async function succeeds", async () => {
+		const mockDisk: StorageDisk = { name: "test-disk" } as StorageDisk;
+		const dispatcher = mockDispatcher();
+
+		const result = await storageOperation(
+			"file:read",
+			async () => "async success",
+			() => new FileReadingEvent(mockDisk, "/test.txt"),
+			(start) => new FileDeletedEvent(start),
+			dispatcher,
+		);
+
+		expect(result).toBe("async success");
+	});
+
+	test("preserves StorageError instances unchanged", async () => {
+		const mockDisk: StorageDisk = { name: "test-disk" } as StorageDisk;
+		const dispatcher = mockDispatcher();
 		const originalError = new InvalidPathError("/bad", "test reason");
 
 		try {
-			storageOperation("test operation", () => {
-				throw originalError;
-			});
+			await storageOperation(
+				"file:delete",
+				async () => {
+					throw originalError;
+				},
+				() => new FileDeletingEvent(mockDisk, "/test.txt"),
+				(start) => new FileDeletedEvent(start),
+				dispatcher,
+			);
 			throw new Error("Should have thrown");
 		} catch (error) {
 			expect(error).toBe(originalError);
@@ -24,54 +54,121 @@ describe(storageOperation, () => {
 		}
 	});
 
-	test("wraps non-StorageError Error in StorageFailureError", () => {
+	test("wraps non-StorageError Error in StorageUnknownError", async () => {
+		const mockDisk: StorageDisk = { name: "test-disk" } as StorageDisk;
+		const dispatcher = mockDispatcher();
 		const originalError = new Error("Something went wrong");
 
 		try {
-			storageOperation("write file", () => {
-				throw originalError;
-			});
+			await storageOperation(
+				"file:write",
+				async () => {
+					throw originalError;
+				},
+				() => new FileWritingEvent(mockDisk, "/test.txt", "test data", "text/plain"),
+				(start) => new FileWrittenEvent(start),
+				dispatcher,
+			);
 			throw new Error("Should have thrown");
 		} catch (error) {
 			expect(error).toBeInstanceOf(StorageUnknownError);
 			const storageError = error as StorageUnknownError;
-			expect(storageError.operation).toBe("write file");
+			expect(storageError.operation).toBe("file:write");
 			expect(storageError.cause).toBe(originalError);
 		}
 	});
 
-	test("wraps non-Error throws in StorageFailureError", () => {
+	test("wraps non-Error throws in StorageUnknownError", async () => {
+		const mockDisk: StorageDisk = { name: "test-disk" } as StorageDisk;
+		const dispatcher = mockDispatcher();
+
 		try {
-			storageOperation("test operation", () => {
-				throw "string error";
-			});
+			await storageOperation(
+				"file:delete",
+				async () => {
+					throw "string error";
+				},
+				() => new FileDeletingEvent(mockDisk, "/test.txt"),
+				(start) => new FileDeletedEvent(start),
+				dispatcher,
+			);
 			throw new Error("Should have thrown");
 		} catch (error) {
 			expect(error).toBeInstanceOf(StorageUnknownError);
 			const storageError = error as StorageUnknownError;
-			expect(storageError.operation).toBe("test operation");
+			expect(storageError.operation).toBe("file:delete");
 			expect(storageError.cause).toBeInstanceOf(Error);
 			expect(storageError.cause?.message).toBe("string error");
 		}
 	});
 
-	test("returns result when async function succeeds", async () => {
-		const result = await storageOperation("test operation", async () => {
-			return "async success";
-		});
-		expect(result).toBe("async success");
-	});
-
 	test("handles promise rejections", async () => {
+		const mockDisk: StorageDisk = { name: "test-disk" } as StorageDisk;
+		const dispatcher = mockDispatcher();
 		const originalError = new Error("Rejected");
 
 		try {
-			await storageOperation("async operation", () => Promise.reject(originalError));
+			await storageOperation(
+				"file:read",
+				() => Promise.reject(originalError),
+				() => new FileReadingEvent(mockDisk, "/test.txt"),
+				(start) => new FileDeletedEvent(start),
+				dispatcher,
+			);
 			throw new Error("Should have thrown");
 		} catch (error) {
 			expect(error).toBeInstanceOf(StorageUnknownError);
-			expect((error as StorageUnknownError).operation).toBe("async operation");
+			expect((error as StorageUnknownError).operation).toBe("file:read");
 			expect((error as StorageUnknownError).cause).toBe(originalError);
 		}
+	});
+
+	test("throws error when event type does not match operation type", async () => {
+		const mockDisk: StorageDisk = { name: "test-disk" } as StorageDisk;
+		const dispatcher = mockDispatcher();
+
+		try {
+			await storageOperation(
+				"file:delete",
+				async () => "success",
+				() => new FileReadingEvent(mockDisk, "/test.txt"), // Wrong event type
+				(start) => new FileDeletedEvent(start),
+				dispatcher,
+			);
+			throw new Error("Should have thrown");
+		} catch (error) {
+			expect(error).toBeInstanceOf(Error);
+			expect((error as Error).message).toContain("Event type mismatch");
+			expect((error as Error).message).toContain("file:delete");
+			expect((error as Error).message).toContain("file:read");
+		}
+	});
+
+	test("calculates timeTakenMs correctly", async () => {
+		const mockDisk: StorageDisk = { name: "test-disk" } as StorageDisk;
+		const dispatcher = mockDispatcher();
+
+		// Mock time to control timestamps
+		mockCurrentTime(2000);
+
+		let completedEvent: FileDeletedEvent | undefined;
+
+		await storageOperation(
+			"file:delete",
+			async () => {
+				// Advance time by 250ms during operation
+				mockCurrentTime(2250);
+				return "success";
+			},
+			() => new FileDeletingEvent(mockDisk, "/test.txt"),
+			(start) => {
+				completedEvent = new FileDeletedEvent(start);
+				return completedEvent;
+			},
+			dispatcher,
+		);
+
+		expect(completedEvent).toBeDefined();
+		expect(completedEvent!.timeTakenMs).toBe(250);
 	});
 });

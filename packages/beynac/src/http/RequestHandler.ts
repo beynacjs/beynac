@@ -100,7 +100,7 @@ export class RequestHandler extends BaseClass {
 
 			this.dispatcher.dispatchIfHasListeners(
 				RequestHandledEvent,
-				() => new RequestHandledEvent(ctx, response.status, response.headers, response),
+				() => new RequestHandledEvent(ctx, response),
 			);
 
 			const abortException = locals.get(abortExceptionKey);

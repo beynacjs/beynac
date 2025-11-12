@@ -1,21 +1,48 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import type { StorageEndpoint } from "../contracts/Storage";
+import { ContainerImpl } from "../container/ContainerImpl";
+import type { Dispatcher } from "../contracts/Dispatcher";
+import type { StorageEndpoint, StorageFile } from "../contracts/Storage";
+import { DispatcherImpl } from "../core/DispatcherImpl";
 import { mockCurrentTime, resetMockTime } from "../helpers/time";
-import { expectErrorWithProperties, spyOnAll } from "../test-utils";
+import { expectErrorWithProperties, mockDispatcher, spyOnAll } from "../test-utils";
 import { memoryStorage } from "./drivers/memory/MemoryStorageDriver";
 import { StorageDiskImpl } from "./StorageDiskImpl";
 import { StorageFileImpl } from "./StorageFileImpl";
 import { InvalidPathError, NotFoundError } from "./storage-errors";
+import {
+	FileCopiedEvent,
+	FileCopyingEvent,
+	FileDeletedEvent,
+	FileDeletingEvent,
+	FileExistenceCheckedEvent,
+	FileExistenceCheckingEvent,
+	FileInfoRetrievedEvent,
+	FileInfoRetrievingEvent,
+	FileMovedEvent,
+	FileMovingEvent,
+	FileReadEvent,
+	FileReadingEvent,
+	FileUrlGeneratedEvent,
+	FileUrlGeneratingEvent,
+	FileWritingEvent,
+	FileWrittenEvent,
+} from "./storage-events";
 
 describe(StorageFileImpl, () => {
 	let endpoint: StorageEndpoint;
 	let disk: StorageDiskImpl;
+	let dispatcher: Dispatcher;
 
 	beforeEach(() => {
 		mockCurrentTime(new Date("2025-01-01T00:00:00Z"));
 		endpoint = memoryStorage({});
-		disk = new StorageDiskImpl("test", endpoint);
+		dispatcher = new DispatcherImpl(new ContainerImpl());
+		disk = new StorageDiskImpl("test", endpoint, dispatcher);
 	});
+
+	const create = (path: string, ep = endpoint): StorageFile => {
+		return new StorageFileImpl(disk, ep, path, mockDispatcher());
+	};
 
 	afterEach(() => {
 		resetMockTime();
@@ -23,22 +50,18 @@ describe(StorageFileImpl, () => {
 
 	describe("constructor", () => {
 		test("stores path", () => {
-			const file = new StorageFileImpl(disk, endpoint, "/path/to/file.txt");
+			const file = create("/path/to/file.txt");
 			expect(file.path).toBe("/path/to/file.txt");
 		});
 
 		test("throws when path does not start with a slash", () => {
-			expect(() => new StorageFileImpl(disk, endpoint, "")).toThrowError(InvalidPathError);
-			expect(() => new StorageFileImpl(disk, endpoint, "foo.txt")).toThrowError(InvalidPathError);
+			expect(() => create("")).toThrowError(InvalidPathError);
+			expect(() => create("foo.txt")).toThrowError(InvalidPathError);
 
-			expectErrorWithProperties(
-				() => new StorageFileImpl(disk, endpoint, "foo.txt"),
-				InvalidPathError,
-				{
-					path: "foo.txt",
-					reason: "must start with a slash",
-				},
-			);
+			expectErrorWithProperties(() => create("foo.txt"), InvalidPathError, {
+				path: "foo.txt",
+				reason: "must start with a slash",
+			});
 		});
 	});
 
@@ -89,7 +112,7 @@ describe(StorageFileImpl, () => {
 					"test.png": { data: "content", mimeType: undefined },
 				},
 			});
-			const noMimeDisk = new StorageDiskImpl("test", noMimeEndpoint);
+			const noMimeDisk = new StorageDiskImpl("test", noMimeEndpoint, mockDispatcher());
 			const file = noMimeDisk.file("test.png");
 			const result = await file.fetch();
 			expect(result.headers.get("Content-Type")).toBe("image/png");
@@ -102,7 +125,7 @@ describe(StorageFileImpl, () => {
 					"test.png": { data: "content", mimeType: "image/jpeg" },
 				},
 			});
-			const noMimeDisk = new StorageDiskImpl("test", noMimeEndpoint);
+			const noMimeDisk = new StorageDiskImpl("test", noMimeEndpoint, mockDispatcher());
 			const file = noMimeDisk.file("test.png");
 			const result = await file.fetch();
 			expect(result.headers.get("Content-Type")).toBe("image/png");
@@ -115,7 +138,7 @@ describe(StorageFileImpl, () => {
 					"test.png": { data: "content", mimeType: undefined },
 				},
 			});
-			const noMimeDisk = new StorageDiskImpl("test", noMimeEndpoint);
+			const noMimeDisk = new StorageDiskImpl("test", noMimeEndpoint, mockDispatcher());
 			const file = noMimeDisk.file("test.png");
 			const result = await file.fetch();
 			expect(result.headers.get("Content-Type")).toBe("image/png");
@@ -128,7 +151,7 @@ describe(StorageFileImpl, () => {
 					"test.png": { data: "content", mimeType: "image/jpeg" },
 				},
 			});
-			const noMimeDisk = new StorageDiskImpl("test", noMimeEndpoint);
+			const noMimeDisk = new StorageDiskImpl("test", noMimeEndpoint, mockDispatcher());
 			const file = noMimeDisk.file("test.png");
 			const result = await file.fetch();
 			expect(result.headers.get("Content-Type")).toBe("image/jpeg");
@@ -176,7 +199,7 @@ describe(StorageFileImpl, () => {
 					"test.png": { data: "content", mimeType: undefined },
 				},
 			});
-			const disk = new StorageDiskImpl("test", endpoint);
+			const disk = new StorageDiskImpl("test", endpoint, mockDispatcher());
 			const result = await disk.file("test.bin").info();
 			expect(result?.mimeType).toBeUndefined();
 		});
@@ -315,7 +338,7 @@ describe(StorageFileImpl, () => {
 
 		test("copies file to different disk", async () => {
 			const endpoint2 = memoryStorage({});
-			const disk2 = new StorageDiskImpl("disk2", endpoint2);
+			const disk2 = new StorageDiskImpl("disk2", endpoint2, mockDispatcher());
 			const source = disk.file("source.txt");
 			await source.put({ data: "hello", mimeType: "text/plain" });
 			const dest = disk2.file("dest.txt");
@@ -346,7 +369,7 @@ describe(StorageFileImpl, () => {
 
 		test("throws when source file doesn't exist on cross-disk transfer", async () => {
 			const endpoint2 = memoryStorage({});
-			const disk2 = new StorageDiskImpl("disk2", endpoint2);
+			const disk2 = new StorageDiskImpl("disk2", endpoint2, mockDispatcher());
 			const source = disk.file("nonexistent.txt");
 			const dest = disk2.file("dest.txt");
 			expect(source.copyTo(dest)).rejects.toThrow(NotFoundError);
@@ -375,7 +398,7 @@ describe(StorageFileImpl, () => {
 
 		test("moves file to different disk", async () => {
 			const endpoint2 = memoryStorage({});
-			const disk2 = new StorageDiskImpl("disk2", endpoint2);
+			const disk2 = new StorageDiskImpl("disk2", endpoint2, mockDispatcher());
 			const source = disk.file("source.txt");
 			await source.put({ data: "hello", mimeType: "text/plain" });
 			const dest = disk2.file("dest.txt");
@@ -409,7 +432,7 @@ describe(StorageFileImpl, () => {
 
 		test("throws when source file doesn't exist on cross-disk move", async () => {
 			const endpoint2 = memoryStorage({});
-			const disk2 = new StorageDiskImpl("disk2", endpoint2);
+			const disk2 = new StorageDiskImpl("disk2", endpoint2, mockDispatcher());
 			const source = disk.file("nonexistent.txt");
 			const dest = disk2.file("dest.txt");
 			expect(source.moveTo(dest)).rejects.toThrow(NotFoundError);
@@ -417,7 +440,7 @@ describe(StorageFileImpl, () => {
 
 		test("does not delete source if cross-disk copy fails", async () => {
 			const endpoint2 = memoryStorage({});
-			const disk2 = new StorageDiskImpl("disk2", endpoint2);
+			const disk2 = new StorageDiskImpl("disk2", endpoint2, mockDispatcher());
 			const source = disk.file("source.txt");
 			await source.put({ data: "hello", mimeType: "text/plain" });
 			const dest = disk2.file("dest.txt");
@@ -434,9 +457,138 @@ describe(StorageFileImpl, () => {
 	describe("toString()", () => {
 		test("returns [StorageFileImpl endpoint://path]", () => {
 			const endpoint = memoryStorage({ name: "test-endpoint" });
-			const disk = new StorageDiskImpl("test", endpoint);
-			const file = new StorageFileImpl(disk, endpoint, "/path/to/file.txt");
+			const file = create("/path/to/file.txt", endpoint);
 			expect(file.toString()).toBe("[StorageFileImpl test-endpoint://path/to/file.txt]");
+		});
+	});
+
+	describe("events", () => {
+		let eventDisk: StorageDiskImpl;
+		let eventDispatcher: ReturnType<typeof mockDispatcher>;
+
+		beforeEach(() => {
+			mockCurrentTime();
+			eventDispatcher = mockDispatcher();
+			eventDisk = new StorageDiskImpl("event-test", endpoint, eventDispatcher);
+		});
+
+		test("delete() dispatches file:delete events once", async () => {
+			const file = eventDisk.file("test.txt");
+			await file.put({ data: "content", mimeType: "text/plain" });
+			eventDispatcher.clear();
+
+			await file.delete();
+
+			const startEvent = new FileDeletingEvent(eventDisk, "/test.txt");
+			const endEvent = new FileDeletedEvent(startEvent);
+			eventDispatcher.expectEvents([startEvent, endEvent]);
+		});
+
+		test("exists() dispatches file:existence-check events once", async () => {
+			const file = eventDisk.file("test.txt");
+
+			await file.exists();
+
+			const startEvent = new FileExistenceCheckingEvent(eventDisk, "/test.txt");
+			const endEvent = new FileExistenceCheckedEvent(startEvent, false);
+			eventDispatcher.expectEvents([startEvent, endEvent]);
+		});
+
+		test("fetch() dispatches file:fetch events once", async () => {
+			const file = eventDisk.file("test.txt");
+			await file.put({ data: "content", mimeType: "text/plain" });
+			eventDispatcher.clear();
+
+			const response = await file.fetch();
+
+			const startEvent = new FileReadingEvent(eventDisk, "/test.txt");
+			const endEvent = new FileReadEvent(startEvent, response);
+			eventDispatcher.expectEvents([startEvent, endEvent]);
+		});
+
+		test("info() dispatches file:info-retrieve events once", async () => {
+			const file = eventDisk.file("test.txt");
+			await file.put({ data: "content", mimeType: "text/plain" });
+			eventDispatcher.clear();
+
+			const info = await file.info();
+
+			const startEvent = new FileInfoRetrievingEvent(eventDisk, "/test.txt");
+			const endEvent = new FileInfoRetrievedEvent(startEvent, info);
+			eventDispatcher.expectEvents([startEvent, endEvent]);
+		});
+
+		test("url() dispatches file:url-generate events once", async () => {
+			const file = eventDisk.file("test.txt");
+
+			const url = await file.url();
+
+			const startEvent = new FileUrlGeneratingEvent(eventDisk, "/test.txt", "url", {
+				expires: "100y",
+			});
+			const endEvent = new FileUrlGeneratedEvent(startEvent, url);
+			eventDispatcher.expectEvents([startEvent, endEvent]);
+		});
+
+		test("signedUrl() dispatches file:url-generate events once", async () => {
+			const file = eventDisk.file("test.txt");
+
+			const url = await file.signedUrl();
+
+			const startEvent = new FileUrlGeneratingEvent(eventDisk, "/test.txt", "signed", {
+				expires: "100y",
+			});
+			const endEvent = new FileUrlGeneratedEvent(startEvent, url);
+			eventDispatcher.expectEvents([startEvent, endEvent]);
+		});
+
+		test("uploadUrl() dispatches file:url-generate events once", async () => {
+			const file = eventDisk.file("test.txt");
+
+			const url = await file.uploadUrl();
+
+			const startEvent = new FileUrlGeneratingEvent(eventDisk, "/test.txt", "upload", {
+				expires: "100y",
+			});
+			const endEvent = new FileUrlGeneratedEvent(startEvent, url);
+			eventDispatcher.expectEvents([startEvent, endEvent]);
+		});
+
+		test("put() dispatches file:write events once", async () => {
+			const file = eventDisk.file("test.txt");
+
+			const data = "content";
+			await file.put({ data, mimeType: "text/plain" });
+
+			const startEvent = new FileWritingEvent(eventDisk, "/test.txt", data, "text/plain");
+			const endEvent = new FileWrittenEvent(startEvent);
+			eventDispatcher.expectEvents([startEvent, endEvent]);
+		});
+
+		test("copyTo() same disk dispatches file:copy events once", async () => {
+			const source = eventDisk.file("source.txt");
+			await source.put({ data: "hello", mimeType: "text/plain" });
+			eventDispatcher.clear();
+
+			const dest = eventDisk.file("dest.txt");
+			await source.copyTo(dest);
+
+			const startEvent = new FileCopyingEvent(eventDisk, "/source.txt", "event-test", "/dest.txt");
+			const endEvent = new FileCopiedEvent(startEvent);
+			eventDispatcher.expectEvents([startEvent, endEvent]);
+		});
+
+		test("moveTo() same disk dispatches file:move events once", async () => {
+			const source = eventDisk.file("source.txt");
+			await source.put({ data: "hello", mimeType: "text/plain" });
+			eventDispatcher.clear();
+
+			const dest = eventDisk.file("dest.txt");
+			await source.moveTo(dest);
+
+			const startEvent = new FileMovingEvent(eventDisk, "/source.txt", "event-test", "/dest.txt");
+			const endEvent = new FileMovedEvent(startEvent);
+			eventDispatcher.expectEvents([startEvent, endEvent]);
 		});
 	});
 });

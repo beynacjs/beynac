@@ -3,7 +3,7 @@ export { AbortException, abort } from "./abort";
 export {
 	BaseController,
 	type ClassController,
-	type Controller as ControllerReference,
+	type Controller,
 	type ControllerContext,
 	type ControllerReturn,
 	type FunctionController,

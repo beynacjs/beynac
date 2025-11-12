@@ -1,3 +1,4 @@
+import type { Dispatcher } from "../contracts/Dispatcher";
 import type {
 	Storage,
 	StorageDirectoryOperations,
@@ -16,9 +17,11 @@ export class StorageImpl extends DelegatesToDirectory implements Storage {
 	#disks: Map<string, StorageDisk> = new Map();
 	#defaultDiskName: string;
 	#originalEndpoints: Map<string, StorageEndpoint> = new Map();
+	#dispatcher: Dispatcher;
 
-	constructor(config: StorageConfig = {}) {
+	constructor(config: StorageConfig, dispatcher: Dispatcher) {
 		super();
+		this.#dispatcher = dispatcher;
 		for (const [name, diskConfig] of Object.entries(config.disks ?? {})) {
 			this.#originalEndpoints.set(name, diskConfig);
 			this.#register(name, diskConfig);
@@ -28,7 +31,7 @@ export class StorageImpl extends DelegatesToDirectory implements Storage {
 	}
 
 	#register(name: string, endpoint: StorageEndpoint): void {
-		const disk = new StorageDiskImpl(name, endpoint);
+		const disk = new StorageDiskImpl(name, endpoint, this.#dispatcher);
 		this.#disks.set(name, disk);
 	}
 
@@ -46,7 +49,7 @@ export class StorageImpl extends DelegatesToDirectory implements Storage {
 	}
 
 	build(endpoint: StorageEndpoint, name?: string): StorageDisk {
-		return new StorageDiskImpl(name ?? `anonymous${++anonDiskId}`, endpoint);
+		return new StorageDiskImpl(name ?? `anonymous${++anonDiskId}`, endpoint, this.#dispatcher);
 	}
 
 	mock(diskName: string, endpoint?: StorageEndpoint): void {

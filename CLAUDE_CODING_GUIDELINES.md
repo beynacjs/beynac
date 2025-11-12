@@ -39,6 +39,19 @@ These guidelines must be followed when writing code for the Beynac project. Afte
         - ✅ CORRECT: `{ optional?: string | undefined }`
         - ❌ WRONG: `{ optional?: string }`
 
+- **Avoid dynamic imports with static names**
+    - ✅ CORRECT: `import fsPromises from "node:fs/promises";`
+    - ❌ WRONG: `await import("node:fs/promises")`
+
+- **Do not rename exports in barrel files**
+    - ✅ CORRECT: `export { foo } from "./foo";`
+    - ❌ WRONG: `export { foo as bar } from "./foo";`
+    - If you discover a renamed export, consider the imported name to be correct, remove the renaming then update any dependent code to the correct name.
+
+- **Do not export files from outside the folder in barrel files**
+    - ❌ WRONG: `export { foo } from "../foo";`
+    - This cannot be fixed automatically if you discover a violation, leave it in the code and ask what to do.
+
 - **Avoid British/American ambiguity in public API**: avoid exporting values and public members that are spelled differently in British and American English
     - ✅ CORRECT: `export const cleanString = () => ...`
     - ❌ WRONG: `export const sanitiseString = () => ...` OR `const sanitizeString = () => ...`

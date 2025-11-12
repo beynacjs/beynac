@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import type { Dispatcher } from "../contracts/Dispatcher";
 import type {
 	StorageDirectory,
 	StorageDisk,
@@ -11,6 +12,16 @@ import { BaseClass } from "../utils";
 import { createFileName, sanitiseName } from "./file-names";
 import { StorageFileImpl } from "./StorageFileImpl";
 import { InvalidPathError } from "./storage-errors";
+import {
+	DirectoryDeletedEvent,
+	DirectoryDeletingEvent,
+	DirectoryDirectoriesListedEvent,
+	DirectoryExistenceCheckedEvent,
+	DirectoryExistenceCheckingEvent,
+	DirectoryFilesListedEvent,
+	DirectoryListingDirectoriesEvent,
+	DirectoryListingFilesEvent,
+} from "./storage-events";
 import { storageOperation } from "./storage-operation";
 
 /**
@@ -21,11 +32,13 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 	readonly disk: StorageDisk;
 	readonly path: string;
 	readonly #endpoint: StorageEndpoint;
+	readonly #dispatcher: Dispatcher;
 
-	constructor(disk: StorageDisk, endpoint: StorageEndpoint, path: string) {
+	constructor(disk: StorageDisk, endpoint: StorageEndpoint, path: string, dispatcher: Dispatcher) {
 		super();
 		this.disk = disk;
 		this.#endpoint = endpoint;
+		this.#dispatcher = dispatcher;
 		if (!path.startsWith("/") || !path.endsWith("/")) {
 			throw new InvalidPathError(path, "directory paths must start and end with a slash");
 		}
@@ -33,8 +46,12 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 	}
 
 	async exists(): Promise<boolean> {
-		return await storageOperation("check directory existence", () =>
-			this.#endpoint.existsAnyUnderPrefix(this.path),
+		return await storageOperation(
+			"directory:existence-check",
+			() => this.#endpoint.existsAnyUnderPrefix(this.path),
+			() => new DirectoryExistenceCheckingEvent(this.disk, this.path),
+			(start, exists) => new DirectoryExistenceCheckedEvent(start, exists),
+			this.#dispatcher,
 		);
 	}
 
@@ -47,10 +64,24 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 	}
 
 	async #files(all: boolean): Promise<StorageFile[]> {
-		const filePaths = await storageOperation("list files", () =>
-			this.#endpoint.listFiles(this.path, all),
+		const filePaths = await storageOperation(
+			"directory:files-list",
+			() => this.#endpoint.listFiles(this.path, all),
+			() => new DirectoryListingFilesEvent(this.disk, this.path, all),
+			(start, paths) => {
+				const files = paths.map(
+					(filePath) => new StorageFileImpl(this.disk, this.#endpoint, filePath, this.#dispatcher),
+				);
+				return new DirectoryFilesListedEvent(start, files);
+			},
+			this.#dispatcher,
 		);
-		return filePaths.map((filePath) => new StorageFileImpl(this.disk, this.#endpoint, filePath));
+
+		const files = filePaths.map(
+			(filePath) => new StorageFileImpl(this.disk, this.#endpoint, filePath, this.#dispatcher),
+		);
+
+		return files;
 	}
 
 	async directories(): Promise<StorageDirectory[]> {
@@ -62,15 +93,28 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 	}
 
 	async #directories(all: boolean): Promise<StorageDirectory[]> {
-		const dirPaths = await storageOperation("list directories", () =>
-			this.#endpoint.listDirectories(this.path, all),
+		return await storageOperation(
+			"directory:directories-list",
+			async () => {
+				const paths = await this.#endpoint.listDirectories(this.path, all);
+				const directories = paths.map(
+					(path) => new StorageDirectoryImpl(this.disk, this.#endpoint, path, this.#dispatcher),
+				);
+				return directories;
+			},
+			() => new DirectoryListingDirectoriesEvent(this.disk, this.path, all),
+			(start, directories) => new DirectoryDirectoriesListedEvent(start, directories),
+			this.#dispatcher,
 		);
-		return dirPaths.map((dirPath) => new StorageDirectoryImpl(this.disk, this.#endpoint, dirPath));
 	}
 
 	async deleteAll(): Promise<void> {
-		await storageOperation("delete directory contents", () =>
-			this.#endpoint.deleteAllUnderPrefix(this.path),
+		await storageOperation(
+			"directory:delete",
+			() => this.#endpoint.deleteAllUnderPrefix(this.path),
+			() => new DirectoryDeletingEvent(this.disk, this.path),
+			(start) => new DirectoryDeletedEvent(start),
+			this.#dispatcher,
 		);
 	}
 
@@ -84,7 +128,7 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 		if (!fullPath.endsWith("/")) {
 			fullPath += "/";
 		}
-		return new StorageDirectoryImpl(this.disk, this.#endpoint, fullPath);
+		return new StorageDirectoryImpl(this.disk, this.#endpoint, fullPath, this.#dispatcher);
 	}
 
 	file(path: string, options?: { onInvalid?: "convert" | "throw" }): StorageFile {
@@ -93,7 +137,12 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 			throw new InvalidPathError(path, "file name cannot be empty");
 		}
 		const cleanPath = parts.join("/");
-		return new StorageFileImpl(this.disk, this.#endpoint, join(this.path, cleanPath));
+		return new StorageFileImpl(
+			this.disk,
+			this.#endpoint,
+			join(this.path, cleanPath),
+			this.#dispatcher,
+		);
 	}
 
 	#splitAndSanitisePath(path: string, onInvalid: "convert" | "throw" = "convert"): string[] {
@@ -153,12 +202,10 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 		);
 
 		if (data != null) {
-			await storageOperation("put file", () =>
-				file.put({
-					data,
-					mimeType,
-				}),
-			);
+			await file.put({
+				data,
+				mimeType,
+			});
 		}
 
 		return file;

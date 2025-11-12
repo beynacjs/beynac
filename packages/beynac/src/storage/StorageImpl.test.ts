@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import type { StorageDisk } from "../contracts/Storage";
-import { expectErrorWithProperties, spyOnAll } from "../test-utils";
+import { expectErrorWithProperties, mockDispatcher, spyOnAll } from "../test-utils";
 import { memoryStorage } from "./drivers/memory/MemoryStorageDriver";
 import { StorageDiskImpl } from "./StorageDiskImpl";
 import { StorageImpl } from "./StorageImpl";
@@ -10,27 +10,36 @@ describe(StorageImpl, () => {
 	let storage: StorageImpl;
 
 	beforeEach(() => {
-		storage = new StorageImpl({
-			disks: { local: memoryStorage({}) },
-		});
+		storage = new StorageImpl(
+			{
+				disks: { local: memoryStorage({}) },
+			},
+			mockDispatcher(),
+		);
 	});
 
 	describe("disk()", () => {
 		test("returns default disk when name omitted", () => {
-			storage = new StorageImpl({
-				disks: { local: memoryStorage({}) },
-				defaultDisk: "local",
-			});
+			storage = new StorageImpl(
+				{
+					disks: { local: memoryStorage({}) },
+					defaultDisk: "local",
+				},
+				mockDispatcher(),
+			);
 			expect(storage.disk().name).toBe("local");
 		});
 
 		test("returns named disk when name provided", () => {
-			storage = new StorageImpl({
-				disks: {
-					first: memoryStorage({}),
-					second: memoryStorage({}),
+			storage = new StorageImpl(
+				{
+					disks: {
+						first: memoryStorage({}),
+						second: memoryStorage({}),
+					},
 				},
-			});
+				mockDispatcher(),
+			);
 			expect(storage.disk("second").name).toBe("second");
 		});
 
@@ -41,10 +50,13 @@ describe(StorageImpl, () => {
 		});
 
 		test("throws when default disk doesn't exist", () => {
-			const storageWithoutDefault = new StorageImpl({
-				disks: { other: memoryStorage({}) },
-				// No defaultDisk configured, falls back to "local" which doesn't exist
-			});
+			const storageWithoutDefault = new StorageImpl(
+				{
+					disks: { other: memoryStorage({}) },
+					// No defaultDisk configured, falls back to "local" which doesn't exist
+				},
+				mockDispatcher(),
+			);
 			expectErrorWithProperties(() => storageWithoutDefault.disk(), DiskNotFoundError, {
 				diskName: "local",
 			});
@@ -78,15 +90,18 @@ describe(StorageImpl, () => {
 
 	describe("mock()", () => {
 		test("replaces existing disk", async () => {
-			const storage = new StorageImpl({
-				disks: {
-					test: memoryStorage({
-						initialFiles: {
-							"/old.txt": "old data",
-						},
-					}),
+			const storage = new StorageImpl(
+				{
+					disks: {
+						test: memoryStorage({
+							initialFiles: {
+								"/old.txt": "old data",
+							},
+						}),
+					},
 				},
-			});
+				mockDispatcher(),
+			);
 
 			// Verify old file exists
 			expect(await storage.disk("test").file("old.txt").exists()).toBe(true);
@@ -99,9 +114,12 @@ describe(StorageImpl, () => {
 		});
 
 		test("accepts custom endpoint", async () => {
-			const storage = new StorageImpl({
-				disks: { test: memoryStorage({}) },
-			});
+			const storage = new StorageImpl(
+				{
+					disks: { test: memoryStorage({}) },
+				},
+				mockDispatcher(),
+			);
 
 			storage.mock(
 				"test",
@@ -118,20 +136,23 @@ describe(StorageImpl, () => {
 
 	describe("resetMocks()", () => {
 		test("restores multiple mocked disks", async () => {
-			const storage = new StorageImpl({
-				disks: {
-					disk1: memoryStorage({
-						initialFiles: {
-							"/file1.txt": "data1",
-						},
-					}),
-					disk2: memoryStorage({
-						initialFiles: {
-							"/file2.txt": "data2",
-						},
-					}),
+			const storage = new StorageImpl(
+				{
+					disks: {
+						disk1: memoryStorage({
+							initialFiles: {
+								"/file1.txt": "data1",
+							},
+						}),
+						disk2: memoryStorage({
+							initialFiles: {
+								"/file2.txt": "data2",
+							},
+						}),
+					},
 				},
-			});
+				mockDispatcher(),
+			);
 
 			storage.mock("disk1");
 			// mock disk2 twice
@@ -158,13 +179,16 @@ describe(StorageImpl, () => {
 		beforeEach(() => {
 			// Create a mock disk with mocked directory operations
 			const endpoint = memoryStorage({});
-			mockDisk = spyOnAll(new StorageDiskImpl("mock-disk", endpoint));
+			mockDisk = spyOnAll(new StorageDiskImpl("mock-disk", endpoint, mockDispatcher()));
 
 			// Create storage and override disk() to return our mock
-			storage = new StorageImpl({
-				disks: { local: memoryStorage({}) },
-				defaultDisk: "local",
-			});
+			storage = new StorageImpl(
+				{
+					disks: { local: memoryStorage({}) },
+					defaultDisk: "local",
+				},
+				mockDispatcher(),
+			);
 			storage.disk = mock(() => mockDisk);
 		});
 

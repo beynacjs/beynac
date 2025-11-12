@@ -24,7 +24,7 @@ let mockedTime: number | null = null;
  * process.hrtime.bigint(); // Returns mocked time in nanoseconds
  * durationStringToDate("1h"); // Returns 2025-01-01T13:00:00Z
  */
-export function mockCurrentTime(date: Date | number): void {
+export function mockCurrentTime(date: Date | number = new Date("2020-01-01T00:00:00Z")): void {
 	mockedTime = typeof date === "number" ? date : new Date(date).getTime();
 
 	// Save originals and patch on first mock

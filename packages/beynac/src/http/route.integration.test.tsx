@@ -778,8 +778,8 @@ test("RequestHandledEvent allows listeners to access responses", async () => {
 	class TestListener extends BaseListener {
 		handle(event: RequestHandledEvent) {
 			capturedContext = event.context;
-			capturedStatus = event.responseStatus;
-			capturedHeaders = event.responseHeaders;
+			capturedStatus = event.status;
+			capturedHeaders = event.headers;
 
 			// Clone and read response body
 			const clonedResponse = event.cloneResponse();
