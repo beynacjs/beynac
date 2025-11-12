@@ -1,12 +1,14 @@
+import { mapObjectValues } from "../../utils";
 import { compileMultiReplace, multiReplace, Replacer } from "./misc";
-import { unicodeReplacements } from "./replacements"; /**
+import { unicodeReplacements } from "./replacements";
+
+/**
  * Remove unicode combining marks and ligatures from a string.
  *
  * This function handles accents and diacritics, but - unlike transliterate() -
- * does not go as far as language-aware replacements converting German ß to ss
+ * does not go as far as language-aware replacements like German "ß" to "ss"
  *
- * @param value - String to process
- * @param options.allowLatin1 - If true, preserve ISO-8859-1 characters like é
+ * @param [options.allowLatin1] - If true, preserve ISO-8859-1 characters like é
  *
  * @example
  * withoutMarks('Crème Brûlée') // 'Creme Brulee'
@@ -58,33 +60,40 @@ let unicodeReplacer: Replacer | undefined;
 /**
  * Remove or replace non-ASCII characters from a string.
  *
- * See transliterate or withoutMarks if you'd instead like to replace unicode
- * characters with ASCII equivalents
+ * Alternatively, provide `options.target` to specify different characters to remove:
  *
- * @param value - String to process
- * @param options.allowLatin1 - If true, preserve ISO-8859-1 characters (0xA0-0xFF like é, ñ, ü)
+ * - `"ascii"`: Preserve printable ASCII characters (default).
+ * - `"url"`: Preserve url-safe characters - only allow letters, numbers, hyphens, underscores, periods, and tildes.
+ * - `"latin1"`: Preserve printable ISO-8859-1 characters (all ASCII characters, plus 0xA0-0xFF like é, ñ, ü)
+ * - `"identifier"`: Remove non-ASCII characters and replace spaces with underscores.
+ *
+ * @param options.target - "ascii", "url", "latin1", "identifier"
  * @param options.replacement - String to replace invalid characters with (default: "")
- * @returns String with non-ASCII characters removed or replaced
  *
  * @example
- * withoutUnicode('café') // 'caf' (é removed)
- * withoutUnicode('café', { allowLatin1: true }) // 'café' (é preserved)
- * withoutUnicode('北京', { replacement: '?' }) // '??' (CJK replaced)
+ * withoutComplexChars('café') // 'caf' (é removed)
+ * withoutComplexChars('café', { allowLatin1: true }) // 'café' (é preserved)
+ * withoutComplexChars('北京', { replacement: '?' }) // '??' (CJK replaced)
  */
-export function withoutUnicode(
+export function withoutComplexChars(
 	value: string,
 	options?: {
-		allowLatin1?: boolean;
+		target?: "ascii" | "url" | "latin1" | "identifier";
 		replacement?: string;
 	},
 ): string {
-	const { allowLatin1 = false, replacement = "" } = options || {};
+	const { target, replacement = "" } = options || {};
 
-	const pattern = allowLatin1
-		? /[^\x20-\x7e\xa0-\xff]/g // Keep ASCII printable + Latin1 extended
-		: /[^\x20-\x7e]/g; // Keep only ASCII printable
-
-	return value.replace(pattern, replacement);
+	switch (target) {
+		case "url":
+			return value.replace(/[^\w\-.~]/g, replacement);
+		case "latin1":
+			return value.replace(/[^\x20-\x7e\xa0-\xff]/g, replacement);
+		case "identifier":
+			return value.replace(/[^\w]/g, replacement);
+		default:
+			return value.replace(/[^\x20-\x7e]/g, replacement);
+	}
 }
 
 export interface SlugOptions {
@@ -106,7 +115,7 @@ export interface SlugOptions {
 /**
  * Generate a URL-friendly slug from a string
  *
- * Applies Unicode normalisation (transliterate → withoutMarks → withoutUnicode) to convert
+ * Applies Unicode normalisation (transliterate → withoutMarks → withoutComplexChars) to convert
  * all characters to ASCII, then creates a URL-safe slug with only unreserved characters.
  *
  * @param title - String to convert to slug
@@ -129,34 +138,30 @@ export interface SlugOptions {
  * slug('Hello', { lowercase: false }) // 'Hello'
  */
 export function slug(title: string, options: SlugOptions = {}): string {
-	const { separator = "-", replacements = true, lowercase = true } = options;
+	let { separator = "-", replacements = true, lowercase = true } = options;
 
 	let result = title;
 
 	if (replacements !== false) {
-		result = multiReplace(
-			result,
-			replacements === true ? { "@": "at", "&": "and", "%": "percent", "+": "plus" } : replacements,
-		);
+		if (replacements === true) {
+			replacements = { "@": "at", "&": "and", "%": "percent", "+": "plus" };
+		}
+		replacements = mapObjectValues(replacements, (value) => ` ${value} `);
+
+		result = multiReplace(result, replacements);
 	}
 
-	result = transliterate(title);
-	result = withoutUnicode(result);
+	result = transliterate(result);
+	result = withoutComplexChars(result);
 	if (lowercase) {
 		result = result.toLowerCase();
 	}
 
-	// Remove quotes & apostrophes which typically appear within words and shouldn't create word breaks
-	result = result.replace(/['`´]/g, "");
+	result = result
+		// Replace inter-word marks with space, these typically separate words/phrases
+		.replace(/[—–;/\\|:.?!<>]/g, " ")
+		.trim()
+		.replace(/\s+/g, separator);
 
-	// Replace inter-word marks with space, these typically separate words/phrases
-	result = result.replace(/[—–;/\\|:]/g, " ");
-
-	// Keep only unreserved URL characters: A-Z a-z 0-9 - _ . ~ and whitespace
-	// RFC 3986: unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
-	result = result.replace(/[^a-z0-9\-_.~\s]/gi, "");
-
-	result = result.trim().replace(/\s+/g, separator);
-
-	return result;
+	return withoutComplexChars(result, { target: "url" });
 }

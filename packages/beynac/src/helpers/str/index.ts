@@ -11,4 +11,4 @@ export {
 	uuid,
 	uuidV4,
 } from "./random";
-export { slug, transliterate, withoutMarks, withoutUnicode } from "./unicode";
+export { slug, transliterate, withoutComplexChars, withoutMarks } from "./unicode";

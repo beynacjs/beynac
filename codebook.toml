@@ -1,6 +1,18 @@
 dictionaries = ["en_gb"]
 words = [
+    "apa",
     "beynac",
+    "bitmask",
+    "bouche",
+    "crockford",
+    "lexicographically",
     "mockable",
+    "nanoid",
     "phc",
+    "replacer",
+    "shouty",
+    "sortable",
+    "uuid",
+    "ulid",
+    "ulids",
 ]

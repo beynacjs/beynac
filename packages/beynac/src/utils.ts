@@ -198,3 +198,12 @@ export const pluralCount = (count: number, word: string): string =>
 export const regExpEscape = (str: string): string =>
 	// @ts-expect-error - Bun runtime supports RegExp.escape but TypeScript types don't include it yet
 	RegExp.escape(str);
+
+export const mapObjectValues = <K extends string | number | symbol, V, R>(
+	obj: Record<K, V>,
+	callback: (value: V) => R,
+): Record<K, R> => {
+	return Object.fromEntries(
+		Object.entries(obj).map(([key, value]) => [key, callback(value as V)]),
+	) as Record<K, R>;
+};

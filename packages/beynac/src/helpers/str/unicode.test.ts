@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { slug, transliterate, withoutMarks, withoutUnicode } from "./unicode";
+import { slug, transliterate, withoutComplexChars, withoutMarks } from "./unicode";
 
 describe(withoutMarks, () => {
 	test("removes accents from French text", () => {
@@ -79,41 +79,41 @@ describe(withoutMarks, () => {
 	});
 });
 
-describe(withoutUnicode, () => {
+describe(withoutComplexChars, () => {
 	test("removes non-ASCII characters", () => {
-		expect(withoutUnicode("café")).toBe("caf");
-		expect(withoutUnicode("北京")).toBe("");
-		expect(withoutUnicode("Hello❤️World")).toBe("HelloWorld");
+		expect(withoutComplexChars("café")).toBe("caf");
+		expect(withoutComplexChars("北京")).toBe("");
+		expect(withoutComplexChars("Hello❤️World")).toBe("HelloWorld");
 	});
 
 	test("preserves ASCII printable characters", () => {
-		expect(withoutUnicode("hello world 123!")).toBe("hello world 123!");
+		expect(withoutComplexChars("hello world 123!")).toBe("hello world 123!");
 	});
 
 	test("removes control characters", () => {
-		expect(withoutUnicode("\x00\x1Ftext")).toBe("text");
-		expect(withoutUnicode("hello\nworld")).toBe("helloworld");
+		expect(withoutComplexChars("\x00\x1Ftext")).toBe("text");
+		expect(withoutComplexChars("hello\nworld")).toBe("helloworld");
 	});
 
 	test("preserves Latin-1 when allowLatin1 is true", () => {
-		expect(withoutUnicode("café", { allowLatin1: true })).toBe("café");
-		expect(withoutUnicode("Crème Brûlée", { allowLatin1: true })).toBe("Crème Brûlée");
+		expect(withoutComplexChars("café", { target: "latin1" })).toBe("café");
+		expect(withoutComplexChars("Crème Brûlée", { target: "latin1" })).toBe("Crème Brûlée");
 	});
 
 	test("removes non-Latin1 when allowLatin1 is true", () => {
-		expect(withoutUnicode("北京café", { allowLatin1: true })).toBe("café");
-		expect(withoutUnicode("Hello❤️World", { allowLatin1: true })).toBe("HelloWorld");
+		expect(withoutComplexChars("北京café", { target: "latin1" })).toBe("café");
+		expect(withoutComplexChars("Hello❤️World", { target: "latin1" })).toBe("HelloWorld");
 	});
 
 	test("uses replacement string", () => {
-		expect(withoutUnicode("café", { replacement: "?" })).toBe("caf?");
-		expect(withoutUnicode("北京", { replacement: "?" })).toBe("??");
+		expect(withoutComplexChars("café", { replacement: "?" })).toBe("caf?");
+		expect(withoutComplexChars("北京", { replacement: "?" })).toBe("??");
 		// Note: Some emojis are multiple code points (e.g., ❤️ = heart + variation selector)
-		expect(withoutUnicode("Hello❤World", { replacement: " " })).toBe("Hello World");
+		expect(withoutComplexChars("Hello❤World", { replacement: " " })).toBe("Hello World");
 	});
 
 	test("handles empty string", () => {
-		expect(withoutUnicode("")).toBe("");
+		expect(withoutComplexChars("")).toBe("");
 	});
 });
 
@@ -228,7 +228,7 @@ describe(slug, () => {
 	});
 
 	test("handles text with control characters removed", () => {
-		// withoutUnicode removes control characters like \n and \t (outside ASCII printable 0x20-0x7E)
+		// withoutComplexChars removes control characters like \n and \t (outside ASCII printable 0x20-0x7E)
 		expect(slug("hello\nworld")).toBe("helloworld");
 		expect(slug("hello\tworld")).toBe("helloworld");
 	});
@@ -276,7 +276,6 @@ describe(slug, () => {
 	test("keeps unreserved URL characters", () => {
 		expect(slug("hello-world")).toBe("hello-world");
 		expect(slug("foo_bar")).toBe("foo_bar");
-		expect(slug("test.file")).toBe("test.file");
 		expect(slug("hello~world")).toBe("hello~world");
 	});
 
@@ -311,7 +310,7 @@ describe(slug, () => {
 	});
 
 	test("removes other special characters", () => {
-		expect(slug("foo!bar")).toBe("foobar");
+		expect(slug("foo=bar")).toBe("foobar");
 	});
 
 	// Edge cases

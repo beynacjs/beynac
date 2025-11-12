@@ -13,7 +13,7 @@ describe(compileMultiReplace, () => {
 		expect(replacer("белый")).toBe("белiy");
 	});
 
-	test("prioritizes longer keys first", () => {
+	test("prioritises longer keys first", () => {
 		// Should match "abc" before "ab" or "a"
 		const replacer = compileMultiReplace({ a: "1", ab: "2", abc: "3" });
 		expect(replacer("abc")).toBe("3");
@@ -28,7 +28,7 @@ describe(compileMultiReplace, () => {
 		expect(replacer("x.y")).toBe("xdoty");
 	});
 
-	test("handles all regex metacharacters", () => {
+	test("handles all regex meta-characters", () => {
 		const replacer = compileMultiReplace({
 			"*": "star",
 			"+": "plus",

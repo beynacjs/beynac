@@ -136,7 +136,7 @@ const ULID_REGEX = /^[0123456789ABCDEFGHJKMNPQRSTVWXYZ]{26}$/;
  *
  * @example
  * ulid() // '01ARZ3NDEKTSV4RRFFQ69G5FAV'
- * ulid(new Date('2024-01-01')) // '01HN3XJQRE...'
+ * ulid(new Date('2024-01-01')) // '01HN3...'
  */
 export const ulid: (time?: Date | number) => string = mockable(function ulid(
 	time: Date | number = Date.now(),
@@ -188,7 +188,7 @@ export const uuidV4: () => string = mockable(function uuidV4(): string {
 /**
  * Generate a UUID v7, which includes a timestamp and a random component.
  *
- * The time-ordered component ensures that UUIDs sort in the order that they
+ * The time-ordered component ensures that uuids sort in the order that they
  * were created, making them useful for database keys where a default ordering
  * by creation time is desirable.
  *
@@ -203,8 +203,7 @@ export const uuid: (time?: Date | number) => string = mockable(function uuid(
 ): string {
 	const timestamp = time instanceof Date ? time.getTime() : (time ?? Date.now());
 
-	// UUID v7 format: unix_ts_ms (48 bits) + ver (4 bits) + rand_a (12 bits) +
-	//                 var (2 bits) + rand_b (62 bits)
+	// UUID v7 format: unix_ts_ms (48 bits) + version (4 bits) + rand_a (12 bits) + variant (2 bits) + random (62 bits)
 	const bytes = new Uint8Array(16);
 	crypto.getRandomValues(bytes);
 

@@ -13,7 +13,7 @@ export type Replacer = (input: string) => string;
  */
 export const compileMultiReplace = (replacements: Record<string, string>): Replacer => {
 	const keys = Object.keys(replacements);
-	// Sort by length descending to match longer keys first (e.g., "ъе" before "ъ")
+	// Sort by length descending to match longer keys first
 	keys.sort((a, b) => b.length - a.length);
 	const escapedKeys = keys.map((key) => regExpEscape(key));
 	const keyRegex = new RegExp(escapedKeys.join("|"), "g");

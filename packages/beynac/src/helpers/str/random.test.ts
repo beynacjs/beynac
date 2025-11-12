@@ -136,7 +136,7 @@ describe(ulid, () => {
 		expect(u).toMatch(/^[0123456789ABCDEFGHJKMNPQRSTVWXYZ]{26}$/);
 	});
 
-	test("generates time-ordered ULIDs", () => {
+	test("generates time-ordered ulids", () => {
 		const ulid1 = ulid(new Date("2024-01-01"));
 		const ulid2 = ulid(new Date("2024-01-02"));
 		const ulid3 = ulid(new Date("2024-01-03"));
@@ -151,7 +151,7 @@ describe(ulid, () => {
 		expect(dateUlid.slice(0, 10)).toEqual(timeUlid.slice(0, 10));
 	});
 
-	test("generates unique ULIDs for same timestamp", () => {
+	test("generates unique ulids for same timestamp", () => {
 		const timestamp = Date.now();
 		const ulids = new Set<string>();
 		for (let i = 0; i < 1000; i++) {
@@ -206,7 +206,7 @@ describe(uuidV4, () => {
 		expect(isUuid(uuid, 4)).toBeTrue();
 	});
 
-	test("generates unique UUIDs", () => {
+	test("generates unique uuids", () => {
 		const uuids = new Set<string>();
 		for (let i = 0; i < 1000; i++) {
 			const uuid = uuidV4();

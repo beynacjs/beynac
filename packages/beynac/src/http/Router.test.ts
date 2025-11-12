@@ -980,7 +980,7 @@ describe("multi-method routes", () => {
 
 	test("match() accepts non-standard HTTP verbs", () => {
 		// Note: Bun doesn't allow custom HTTP methods in Request constructor
-		// (normalizes to GET/standard methods) but we want to ensure our router
+		// (normalises to GET/standard methods) but we want to ensure our router
 		// supports them on other runtimes that do. Use a Proxy to override the
 		// method property for testing.
 		const baseRequest = new Request("http://example.com/form");

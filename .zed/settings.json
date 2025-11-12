@@ -14,6 +14,11 @@
           "configPath": "packages/beynac/.oxlintrc.json"
         }
       }
+    },
+    "codebook": {
+        "settings": {
+            "ignorePaths": ["**/*.test.ts"]
+        }
     }
   },
   "languages": {

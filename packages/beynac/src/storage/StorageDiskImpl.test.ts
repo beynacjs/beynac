@@ -22,7 +22,7 @@ describe(StorageDiskImpl, () => {
 			expect(file.path).toBe("/path/to/file.txt");
 		});
 
-		test("normalizes file path and adds leading slash", () => {
+		test("normalises file path and adds leading slash", () => {
 			const endpoint = memoryStorage({});
 			const disk = new StorageDiskImpl("test-disk", endpoint);
 			const file = disk.file("path/to/file.txt/");
@@ -38,7 +38,7 @@ describe(StorageDiskImpl, () => {
 			expect(dir.path).toBe("/path/to/dir/");
 		});
 
-		test("normalizes directory path with leading and trailing slash", () => {
+		test("normalises directory path with leading and trailing slash", () => {
 			const endpoint = memoryStorage({});
 			const disk = new StorageDiskImpl("test-disk", endpoint);
 			const dir = disk.directory("path/to/dir");

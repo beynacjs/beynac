@@ -1,6 +1,8 @@
 import type { TypeToken } from "../container/container-key";
 import { createTypeToken } from "../container/container-key";
-import type { Key } from "../keys"; /**
+import type { Key } from "../keys";
+
+/**
  * Type-safe storage for request-scoped data using typed keys
  *
  * RequestLocals provides a Map-like interface for storing and retrieving

@@ -1,5 +1,5 @@
 import { basename } from "node:path";
-import { transliterate, withoutUnicode } from "./str";
+import { transliterate, withoutComplexChars } from "./str";
 
 const NON_LATIN1_REGEXP = /[^\x20-\x7e\xa0-\xff]/g;
 
@@ -109,7 +109,7 @@ export function parseAttributeHeader(string: string): HeaderValueWithAttributes 
 		throw new TypeError("invalid type format");
 	}
 
-	// normalize type
+	// normalise type
 	let index = match[0].length;
 	const headerValue = match[1].toLowerCase();
 
@@ -494,7 +494,7 @@ function decodefield(str: string): string {
 function getlatin1(val: string): string {
 	// transliterate now includes withoutMarks with allowLatin1 option
 	let result = transliterate(val, { allowLatin1: true });
-	result = withoutUnicode(result, { allowLatin1: true, replacement: "?" });
+	result = withoutComplexChars(result, { target: "latin1", replacement: "?" });
 	return result;
 }
 
