@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { IntegrationContext } from "../contracts";
+import type { IntegrationContext } from "../contracts";
 import { ApplicationImpl } from "./ApplicationImpl";
 import { createFacade, setFacadeApplication } from "./facade";
 

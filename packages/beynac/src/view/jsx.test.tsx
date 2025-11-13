@@ -4,7 +4,8 @@ import { ContainerImpl } from "../container";
 import { createTypeToken } from "../container/container-key";
 import { createKey } from "../keys";
 import { render } from "../test-utils";
-import { BaseComponent, Component } from "./Component";
+import type { Component } from "./Component";
+import { BaseComponent } from "./Component";
 import { type Context, isJsxElement, type JSX, type JSXNode, type Props } from "./public-types";
 import { ViewRendererImpl } from "./ViewRendererImpl";
 

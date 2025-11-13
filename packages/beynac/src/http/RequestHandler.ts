@@ -4,8 +4,9 @@ import { resolveEnvironmentChoice } from "../contracts/Configuration";
 import { BaseClass } from "../utils";
 import { isJsxElement, type JSX } from "../view/public-types";
 import { AbortException, abortExceptionKey } from "./abort";
+import type {
+	BaseController} from "./Controller";
 import {
-	BaseController,
 	type Controller,
 	type ControllerContext,
 	type ControllerReturn,

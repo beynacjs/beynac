@@ -3,7 +3,8 @@
 import { describe, expect, mock, test } from "bun:test";
 import { RequestLocalsImpl } from "../core/RequestLocalsImpl";
 import { controllerContext, mockViewRenderer } from "../test-utils";
-import { BaseComponent, FunctionComponent } from "../view";
+import type { FunctionComponent } from "../view";
+import { BaseComponent } from "../view";
 import type { Context } from "../view/public-types";
 import { AbortException } from "./abort";
 import { get } from "./helpers";

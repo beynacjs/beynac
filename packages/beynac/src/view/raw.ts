@@ -1,5 +1,6 @@
 import { BaseClass } from "../utils";
-import { JSXElement, tagAsJsxElement } from "./public-types";
+import type { JSXElement} from "./public-types";
+import { tagAsJsxElement } from "./public-types";
 import { SPECIAL_NODE } from "./special-node";
 
 export class RawContent extends BaseClass {

@@ -1,6 +1,7 @@
 import { ContainerImpl } from "../container/ContainerImpl";
 import { RequestLocals } from "../contracts";
-import { createKey, Key } from "../keys";
+import type { Key } from "../keys";
+import { createKey } from "../keys";
 import { BaseClass } from "../utils";
 import { redirectStatus } from "./redirect";
 

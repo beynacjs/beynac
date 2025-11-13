@@ -6,11 +6,12 @@ import { RequestLocals, ViewRenderer } from "../contracts";
 import { AbortException, abort, abortExceptionKey } from "./abort";
 import type { ControllerContext } from "./Controller";
 import { BaseMiddleware, type MiddlewareNext } from "./Middleware";
+import type {
+	RouteDefinition,
+	StatusPages} from "./router-types";
 import {
 	CurrentRouteDefinition,
-	RouteDefinition,
-	type StatusPageComponent,
-	StatusPages,
+	type StatusPageComponent
 } from "./router-types";
 
 /**

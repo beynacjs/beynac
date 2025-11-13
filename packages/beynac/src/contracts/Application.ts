@@ -2,7 +2,7 @@ import type { TypeToken } from "../container/container-key";
 import { createTypeToken } from "../container/container-key";
 import type { Container } from "../contracts";
 import type { Dispatcher } from "./Dispatcher";
-import { IntegrationContext } from "./IntegrationContext";
+import type { IntegrationContext } from "./IntegrationContext";
 import type { Storage } from "./Storage";
 
 export type QueryParams =

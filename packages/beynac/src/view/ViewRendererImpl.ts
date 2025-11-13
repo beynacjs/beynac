@@ -8,11 +8,12 @@ import { type ClassAttributeValue, classAttribute } from "./class-attribute";
 import { ContextImpl } from "./context";
 import { MarkupStream } from "./markup-stream";
 import { isOnceNode, type OnceKey } from "./once";
+import type {
+	Props} from "./public-types";
 import {
 	type Context,
 	type CSSProperties,
 	type JSXNode,
-	Props,
 	type RenderOptions,
 } from "./public-types";
 import { RawContent } from "./raw";

@@ -1,4 +1,5 @@
-import { BaseClass, NoArgConstructor } from "../utils";
+import type { NoArgConstructor } from "../utils";
+import { BaseClass } from "../utils";
 import type { JSX } from "../view/public-types";
 
 export type FunctionController = (ctx: ControllerContext) => ControllerReturn;

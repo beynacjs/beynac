@@ -7,8 +7,8 @@
  * Copyright (c) Meta Platforms, Inc. and affiliates.
  */
 
-import { ClassAttributeValue } from "./class-attribute";
-import { CSSProperties } from "./public-types";
+import type { ClassAttributeValue } from "./class-attribute";
+import type { CSSProperties } from "./public-types";
 
 type BaseMime =
 	| "audio/aac"

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import * as fsSync from "node:fs";
+import type * as fsSync from "node:fs";
 import { createReadStream } from "node:fs";
 import * as fs from "node:fs/promises";
 import { dirname, join } from "node:path";

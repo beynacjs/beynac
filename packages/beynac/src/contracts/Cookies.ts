@@ -1,6 +1,6 @@
 import type { TypeToken } from "../container/container-key";
 import { createTypeToken } from "../container/container-key";
-import { CookieAttributes } from "./IntegrationContext";
+import type { CookieAttributes } from "./IntegrationContext";
 
 export interface Cookies {
 	/**

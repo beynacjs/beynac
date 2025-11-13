@@ -1,4 +1,5 @@
-import { createKey, Key } from "../keys";
+import type { Key } from "../keys";
+import { createKey } from "../keys";
 import { BaseClass } from "../utils";
 import type { Context, JSX, Props } from "./public-types";
 

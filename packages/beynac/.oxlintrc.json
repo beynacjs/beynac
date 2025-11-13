@@ -5,6 +5,7 @@
     "typescript/no-base-to-string": "off",
     "typescript/no-for-in-array": "error",
     "typescript/no-explicit-any": "error",
+    "typescript/consistent-type-imports": "error",
     "no-eval": "off",
     "eslint/no-control-regex": "off",
     "eslint/no-restricted-imports": ["error", {
@@ -16,7 +17,7 @@
   },
   "overrides": [
     {
-      "files": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.test.mts", "src/test-utils/**"],
+      "files": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.test.mts", "src/test-utils/**", "test-setup.ts"],
       "rules": {
         "typescript/no-explicit-any": "off",
         "typescript/unbound-method": "off",

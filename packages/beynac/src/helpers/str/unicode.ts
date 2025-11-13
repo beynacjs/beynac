@@ -1,5 +1,6 @@
 import { mapObjectValues } from "../../utils";
-import { compileMultiReplace, multiReplace, Replacer } from "./misc";
+import type { Replacer } from "./misc";
+import { compileMultiReplace, multiReplace } from "./misc";
 import { unicodeReplacements } from "./replacements";
 
 /**

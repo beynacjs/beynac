@@ -1,5 +1,6 @@
 import { arrayWrap, BaseClass } from "../utils";
-import { JSXElement, type JSXNode, tagAsJsxElement } from "./public-types";
+import type { JSXElement} from "./public-types";
+import { type JSXNode, tagAsJsxElement } from "./public-types";
 
 /**
  * A MarkupStream represents an HTML/XML element with optional tag, attributes, and children.

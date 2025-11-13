@@ -1,5 +1,5 @@
 import { inject } from "../container/inject";
-import { Headers } from "../contracts";
+import type { Headers } from "../contracts";
 import type { QueryParams } from "../contracts/Application";
 import { Configuration } from "../contracts/Configuration";
 import { Container } from "../contracts/Container";

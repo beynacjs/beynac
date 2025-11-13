@@ -1,6 +1,6 @@
 import { inject } from "../container/inject";
 import { Configuration } from "../contracts/Configuration";
-import { ControllerContext } from "../http/Controller";
+import type { ControllerContext } from "../http/Controller";
 import { BaseMiddleware, type MiddlewareNext } from "../http/Middleware";
 
 export class DevModeAutoRefreshMiddleware extends BaseMiddleware {

@@ -7,14 +7,16 @@ import { BaseListener, Dispatcher } from "../contracts/Dispatcher";
 import { RequestHandledEvent } from "../events";
 import { createTestApplication, MockController, mockMiddleware } from "../test-utils";
 import { abort, any, get, group, post, Router, redirect, StatusPagesMiddleware } from ".";
+import type {
+	ClassController,
+	Controller} from "./Controller";
 import {
 	BaseController,
-	ClassController,
-	Controller,
 	type ControllerContext,
 	type ControllerReturn,
 } from "./Controller";
-import { BaseMiddleware, FunctionMiddleware } from "./Middleware";
+import type { FunctionMiddleware } from "./Middleware";
+import { BaseMiddleware } from "./Middleware";
 import { MiddlewareSet } from "./MiddlewareSet";
 
 let container: Container;

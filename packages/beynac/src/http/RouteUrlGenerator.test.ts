@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { ContainerImpl } from "../container/ContainerImpl";
-import { Container } from "../contracts";
+import type { Container } from "../contracts";
 import { Configuration } from "../contracts/Configuration";
 import { IntegrationContext } from "../contracts/IntegrationContext";
 import { integrationContext, MockController } from "../test-utils";

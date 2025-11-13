@@ -1,5 +1,5 @@
-import { Application } from "./contracts";
-import { Configuration } from "./contracts/Configuration";
+import type { Application } from "./contracts";
+import type { Configuration } from "./contracts/Configuration";
 import { ApplicationImpl } from "./core/ApplicationImpl";
 import { setFacadeApplication } from "./core/facade";
 

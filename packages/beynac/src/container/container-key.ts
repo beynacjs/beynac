@@ -1,4 +1,4 @@
-import { AnyConstructor } from "../utils";
+import type { AnyConstructor } from "../utils";
 
 /**
  * A key that can be bound to a value in the IoC container

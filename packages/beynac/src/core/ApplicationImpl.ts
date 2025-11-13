@@ -1,8 +1,9 @@
 import { ContainerImpl } from "../container/ContainerImpl";
 import { Cookies, Headers, KeepAlive, RequestLocals, Storage, ViewRenderer } from "../contracts";
-import { Application, UrlOptionsNoParams, UrlOptionsWithParams } from "../contracts/Application";
+import type { UrlOptionsNoParams, UrlOptionsWithParams } from "../contracts/Application";
+import { Application } from "../contracts/Application";
 import { Configuration } from "../contracts/Configuration";
-import { Container } from "../contracts/Container";
+import type { Container } from "../contracts/Container";
 import { type Dispatcher, Dispatcher as DispatcherKey } from "../contracts/Dispatcher";
 import { IntegrationContext } from "../contracts/IntegrationContext";
 import { DevModeAutoRefreshMiddleware } from "../development/DevModeAutoRefreshMiddleware";
@@ -96,7 +97,7 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 		return this.container.get(DispatcherKey);
 	}
 
-	get storage(): import("../contracts/Storage").Storage {
+	get storage(): Storage {
 		return this.container.get(Storage);
 	}
 

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, spyOn, test } from "bun:test";
 import type { StorageEndpoint } from "../../../contracts/Storage";
 import { mockDispatcher } from "../../../test-utils";
 import { StorageImpl } from "../../StorageImpl";
-import { SharedTestConfig } from "../driver-shared.test";
+import type { SharedTestConfig } from "../driver-shared.test";
 import { memoryStorage } from "../memory/MemoryStorageDriver";
 import { scopedStorage } from "./ScopedStorageDriver";
 

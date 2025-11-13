@@ -1,7 +1,8 @@
 import type { Dispatcher } from "../contracts/Dispatcher";
 import { NotFoundError, StorageError, StorageUnknownError } from "./storage-errors";
+import type {
+	StorageOperationCompletedEvent} from "./storage-events";
 import {
-	StorageOperationCompletedEvent,
 	StorageOperationFailedEvent,
 	type StorageOperationStartingEvent,
 	type StorageOperationType,
