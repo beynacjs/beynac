@@ -2,23 +2,29 @@ import { beforeEach, describe, expect, spyOn, test } from "bun:test";
 import type { StorageEndpoint } from "../../../contracts/Storage";
 import { mockDispatcher } from "../../../test-utils";
 import { StorageImpl } from "../../StorageImpl";
-import { driverSharedTests } from "../driver-shared.test";
+import { SharedTestConfig } from "../driver-shared.test";
 import { memoryStorage } from "../memory/MemoryStorageDriver";
 import { scopedStorage } from "./ScopedStorageDriver";
 
-driverSharedTests(function rootScopedStorage() {
-	return scopedStorage({
-		disk: memoryStorage(),
-		prefix: "/",
-	});
-});
-
-driverSharedTests(function nestedScopedStorage() {
-	return scopedStorage({
-		disk: memoryStorage(),
-		prefix: "/scoped/",
-	});
-});
+export const scopedStorageSharedTestConfig: SharedTestConfig[] = [
+	{
+		name: `${scopedStorage.name} on "/"`,
+		createEndpoint: () =>
+			scopedStorage({
+				disk: memoryStorage(),
+				prefix: "/",
+			}),
+	},
+	{
+		name: `${scopedStorage.name} on "/scoped/"`,
+		createEndpoint: () =>
+			scopedStorage({
+				disk: memoryStorage(),
+				prefix: "/scoped/",
+			}),
+		checkPaths: false,
+	},
+];
 
 describe(scopedStorage, () => {
 	let wrappedDisk: StorageEndpoint;

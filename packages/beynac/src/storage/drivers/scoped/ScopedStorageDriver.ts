@@ -5,7 +5,6 @@ import type {
 	StorageEndpointWriteOptions,
 } from "../../../contracts/Storage";
 import { BaseClass } from "../../../utils";
-import { NotFoundError } from "../../storage-errors";
 
 export interface ScopedStorageDriverConfig {
 	/**
@@ -56,7 +55,7 @@ export class ScopedStorageDriver extends BaseClass implements StorageEndpoint {
 		return await this.#disk.readSingle(this.#addPrefix(path));
 	}
 
-	async getInfoSingle(path: string): Promise<StorageEndpointFileInfoResult | null> {
+	async getInfoSingle(path: string): Promise<StorageEndpointFileInfoResult> {
 		return await this.#disk.getInfoSingle(this.#addPrefix(path));
 	}
 

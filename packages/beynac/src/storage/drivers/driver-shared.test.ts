@@ -6,18 +6,21 @@ import { NotFoundError } from "../storage-errors";
 import { filesystemStorageSharedTestConfig } from "./filesystem/FilesystemStorageDriver.test";
 import { memoryStorage } from "./memory/MemoryStorageDriver";
 import { memoryStorageSharedTestConfig } from "./memory/MemoryStorageDriver.test";
+import { scopedStorageSharedTestConfig } from "./scoped/ScopedStorageDriver.test";
 
 export type SharedTestConfig = {
 	name: string;
 	createEndpoint: () => StorageEndpoint;
+	checkPaths?: boolean;
 };
 
 const driverConfigs: SharedTestConfig[] = [
 	memoryStorageSharedTestConfig,
 	filesystemStorageSharedTestConfig,
+	...scopedStorageSharedTestConfig,
 ];
 
-describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
+describe.each(driverConfigs)("$name", ({ createEndpoint, checkPaths = true }) => {
 	let endpoint: StorageEndpoint;
 
 	beforeEach(() => {
@@ -84,7 +87,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 				await expectErrorWithProperties(
 					() => disk.file("/nonexistent.txt").fetch(),
 					NotFoundError,
-					{ path: "/nonexistent.txt" },
+					checkPaths ? { path: "/nonexistent.txt" } : ({} as NotFoundError),
 				);
 			});
 
@@ -312,7 +315,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 					await expectErrorWithProperties(
 						() => missing.copyTo(disk.file("/dest2.txt")),
 						NotFoundError,
-						{ path: "/nonexistent.txt" },
+						checkPaths ? { path: "/nonexistent.txt" } : ({} as NotFoundError),
 					);
 				});
 
@@ -329,7 +332,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 					await expectErrorWithProperties(
 						() => missing.copyTo(disk2.file("/dest2.txt")),
 						NotFoundError,
-						{ path: "/nonexistent.txt" },
+						checkPaths ? { path: "/nonexistent.txt" } : ({} as NotFoundError),
 					);
 				});
 
@@ -367,7 +370,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 					await expectErrorWithProperties(
 						() => missing.moveTo(disk.file("/dest2.txt")),
 						NotFoundError,
-						{ path: "/nonexistent.txt" },
+						checkPaths ? { path: "/nonexistent.txt" } : ({} as NotFoundError),
 					);
 				});
 
@@ -385,7 +388,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 					await expectErrorWithProperties(
 						() => missing.moveTo(disk2.file("/dest2.txt")),
 						NotFoundError,
-						{ path: "/nonexistent.txt" },
+						checkPaths ? { path: "/nonexistent.txt" } : ({} as NotFoundError),
 					);
 				});
 

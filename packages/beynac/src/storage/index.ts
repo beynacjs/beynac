@@ -8,7 +8,10 @@ export {
 	type MemoryStorageDriverConfig,
 	memoryStorage,
 } from "./drivers/memory/MemoryStorageDriver";
-export { ScopedStorageDriverConfig, scopedStorage } from "./drivers/scoped/ScopedStorageDriver";
+export {
+	type ScopedStorageDriverConfig,
+	scopedStorage,
+} from "./drivers/scoped/ScopedStorageDriver";
 export { StorageDirectoryImpl } from "./StorageDirectoryImpl";
 export { StorageDiskImpl } from "./StorageDiskImpl";
 export { StorageFileImpl } from "./StorageFileImpl";
