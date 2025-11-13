@@ -8,6 +8,7 @@ import type {
 	StorageDisk,
 	StorageEndpoint,
 } from "../contracts/Storage";
+import { onResetAllMocks } from "../testing/mocks";
 import { DelegatesToDirectory } from "./DelegatesToDirectory";
 import { MemoryStorageDriver } from "./drivers/memory/MemoryStorageDriver";
 import { StorageDiskImpl } from "./StorageDiskImpl";
@@ -63,6 +64,7 @@ export class StorageImpl extends DelegatesToDirectory implements Storage {
 		// Replace the disk with provided endpoint or a default memory driver
 		const mockEndpoint = endpoint ?? new MemoryStorageDriver({});
 		this.#register(diskName, mockEndpoint);
+		onResetAllMocks(() => this.resetMocks());
 	}
 
 	resetMocks(): void {

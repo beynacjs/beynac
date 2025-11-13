@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import type { StorageDisk } from "../contracts/Storage";
 import { expectErrorWithProperties, mockDispatcher, spyOnAll } from "../test-utils";
+import { resetAllMocks } from "../testing/mocks";
 import { memoryStorage } from "./drivers/memory/MemoryStorageDriver";
 import { StorageDiskImpl } from "./StorageDiskImpl";
 import { StorageImpl } from "./StorageImpl";
@@ -169,6 +170,68 @@ describe(StorageImpl, () => {
 			// Both original files should be back
 			expect(await storage.disk("disk1").file("file1.txt").exists()).toBe(true);
 			expect(await storage.disk("disk2").file("file2.txt").exists()).toBe(true);
+		});
+	});
+
+	describe("resetAllMocks() integration", () => {
+		test("resets storage mocks when resetAllMocks is called", async () => {
+			const storage = new StorageImpl(
+				{
+					disks: {
+						local: memoryStorage({
+							initialFiles: {
+								"/original.txt": "original data",
+							},
+						}),
+					},
+				},
+				mockDispatcher(),
+			);
+
+			// Mock the disk
+			storage.mock("local");
+
+			// Verify original file is gone
+			expect(await storage.disk("local").file("original.txt").exists()).toBe(false);
+
+			// Call global reset
+			resetAllMocks();
+
+			// Original file should be back
+			expect(await storage.disk("local").file("original.txt").exists()).toBe(true);
+		});
+
+		test("supports multiple mock and reset cycles", async () => {
+			const storage = new StorageImpl(
+				{
+					disks: {
+						local: memoryStorage({
+							initialFiles: {
+								"/original.txt": "original data",
+							},
+						}),
+					},
+				},
+				mockDispatcher(),
+			);
+
+			// First cycle
+			storage.mock("local");
+			expect(await storage.disk("local").file("original.txt").exists()).toBe(false);
+			resetAllMocks();
+			expect(await storage.disk("local").file("original.txt").exists()).toBe(true);
+
+			// Second cycle
+			storage.mock("local");
+			storage.mock("local");
+			expect(await storage.disk("local").file("original.txt").exists()).toBe(false);
+			resetAllMocks();
+			expect(await storage.disk("local").file("original.txt").exists()).toBe(true);
+
+			// no damage calling it when not required
+			resetAllMocks();
+			resetAllMocks();
+			expect(await storage.disk("local").file("original.txt").exists()).toBe(true);
 		});
 	});
 

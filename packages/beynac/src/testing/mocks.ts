@@ -1,7 +1,7 @@
 const ORIGINAL: unique symbol = Symbol("original");
 const MOCK: unique symbol = Symbol("mock");
 
-const resetCallbacks = new Set<() => void>();
+const resetCallbacks = new Set<WeakRef<() => void>>();
 
 /**
  * Register a callback to be called when resetAllMocks() is invoked
@@ -10,7 +10,7 @@ const resetCallbacks = new Set<() => void>();
  * onResetAllMocks should be called every time a mock value is installed
  */
 export function onResetAllMocks(callback: () => void): void {
-	resetCallbacks.add(callback);
+	resetCallbacks.add(new WeakRef(callback));
 }
 
 type Mockable = Function & { [ORIGINAL]: Function; [MOCK]: Function | null };
@@ -115,8 +115,11 @@ export function resetMock(fn: Function): void {
  * });
  */
 export function resetAllMocks(): void {
-	for (const callback of resetCallbacks) {
-		callback();
+	for (const ref of resetCallbacks) {
+		const callback = ref.deref();
+		if (callback !== undefined) {
+			callback();
+		}
 	}
 	resetCallbacks.clear();
 }

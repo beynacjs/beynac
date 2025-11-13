@@ -139,7 +139,40 @@ describe(resetAllMocks, () => {
 
 		expect(calls).toEqual(["first", "second", "third"]);
 	});
+
+	test("does not prevent garbage collection of callbacks", async () => {
+		// This test verifies that callbacks can be garbage collected
+		let collected = false;
+		const registry = new FinalizationRegistry(() => {
+			collected = true;
+		});
+
+		createAndRegisterCallback(registry);
+
+		// Force garbage collection and wait for finalization
+		Bun.gc(true);
+		const startTime = Date.now();
+		while (!collected) {
+			if (Date.now() - startTime > 1000) {
+				throw new Error(`Callback was not garbage collected after 1 second`);
+			}
+			if (collected) {
+				break;
+			}
+			await new Promise((resolve) => setTimeout(resolve, 1));
+		}
+
+		// If we reach here, the callback was successfully GC'd
+		expect(collected).toBeTrue();
+	});
 });
+
+// Helper function to create and register callback in a separate scope
+function createAndRegisterCallback(registry: FinalizationRegistry<unknown>): void {
+	const callback = () => {};
+	registry.register(callback, undefined);
+	onResetAllMocks(callback);
+}
 
 describe("integration", () => {
 	afterEach(() => {
