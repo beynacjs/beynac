@@ -57,17 +57,20 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 		return asyncGeneratorToArray(this.listStreaming());
 	}
 
-	async *listStreaming(): AsyncGenerator<StorageFile | StorageDirectory, void> {
-		const startEvent = new DirectoryListingEvent(this.disk, this.path, "all", false);
-		this.#dispatcher.dispatch(startEvent);
+	listStreaming(): AsyncGenerator<StorageFile | StorageDirectory, void> {
+		return storageOperation(
+			"directory:list",
+			this.#listStreamingGenerator.bind(this),
+			() => new DirectoryListingEvent(this.disk, this.path, "all", false),
+			(start, count) => new DirectoryListedEvent(start, count),
+			this.#dispatcher,
+		);
+	}
 
-		let entryCount = 0;
+	async *#listStreamingGenerator(): AsyncGenerator<StorageFile | StorageDirectory, void> {
 		for await (const path of this.#endpoint.listEntries(this.path)) {
-			entryCount++;
 			yield this.#createEntry(path);
 		}
-
-		this.#dispatcher.dispatch(new DirectoryListedEvent(startEvent, entryCount));
 	}
 
 	#createEntry(relativePath: string): StorageFile | StorageDirectory {
@@ -83,16 +86,21 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 		return asyncGeneratorToArray(this.filesStreaming(options));
 	}
 
-	async *filesStreaming(options?: { recursive?: boolean }): AsyncGenerator<StorageFile, void> {
+	filesStreaming(options?: { recursive?: boolean }): AsyncGenerator<StorageFile, void> {
 		const recursive = options?.recursive ?? false;
-		const startEvent = new DirectoryListingEvent(this.disk, this.path, "files", recursive);
-		this.#dispatcher.dispatch(startEvent);
+		return storageOperation(
+			"directory:list",
+			this.#filesStreamingGenerator.bind(this, recursive),
+			() => new DirectoryListingEvent(this.disk, this.path, "files", recursive),
+			(start, count) => new DirectoryListedEvent(start, count),
+			this.#dispatcher,
+		);
+	}
 
-		let entryCount = 0;
+	async *#filesStreamingGenerator(recursive: boolean): AsyncGenerator<StorageFile, void> {
 		if (recursive) {
 			// Use recursive listing
 			for await (const path of this.#endpoint.listFilesRecursive(this.path)) {
-				entryCount++;
 				const entry = this.#createEntry(path);
 				if (entry instanceof StorageFileImpl) {
 					yield entry;
@@ -103,33 +111,33 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 			for await (const path of this.#endpoint.listEntries(this.path)) {
 				const entry = this.#createEntry(path);
 				if (entry instanceof StorageFileImpl) {
-					entryCount++;
 					yield entry;
 				}
 			}
 		}
-
-		this.#dispatcher.dispatch(new DirectoryListedEvent(startEvent, entryCount));
 	}
 
 	async directories(): Promise<Array<StorageDirectory>> {
 		return asyncGeneratorToArray(this.directoriesStreaming());
 	}
 
-	async *directoriesStreaming(): AsyncGenerator<StorageDirectory, void> {
-		const startEvent = new DirectoryListingEvent(this.disk, this.path, "directories", false);
-		this.#dispatcher.dispatch(startEvent);
+	directoriesStreaming(): AsyncGenerator<StorageDirectory, void> {
+		return storageOperation(
+			"directory:list",
+			this.#directoriesStreamingGenerator.bind(this),
+			() => new DirectoryListingEvent(this.disk, this.path, "directories", false),
+			(start, count) => new DirectoryListedEvent(start, count),
+			this.#dispatcher,
+		);
+	}
 
-		let entryCount = 0;
+	async *#directoriesStreamingGenerator(): AsyncGenerator<StorageDirectory, void> {
 		for await (const path of this.#endpoint.listEntries(this.path)) {
 			const entry = this.#createEntry(path);
 			if (entry instanceof StorageDirectoryImpl) {
-				entryCount++;
 				yield entry;
 			}
 		}
-
-		this.#dispatcher.dispatch(new DirectoryListedEvent(startEvent, entryCount));
 	}
 
 	async deleteAll(): Promise<void> {

@@ -102,27 +102,6 @@ describe(storageOperation, () => {
 		}
 	});
 
-	test("handles promise rejections", async () => {
-		const mockDisk: StorageDisk = { name: "test-disk" } as StorageDisk;
-		const dispatcher = mockDispatcher();
-		const originalError = new Error("Rejected");
-
-		try {
-			await storageOperation(
-				"file:read",
-				() => Promise.reject(originalError),
-				() => new FileReadingEvent(mockDisk, "/test.txt"),
-				(start) => new FileDeletedEvent(start),
-				dispatcher,
-			);
-			throw new Error("Should have thrown");
-		} catch (error) {
-			expect(error).toBeInstanceOf(StorageUnknownError);
-			expect((error as StorageUnknownError).operation).toBe("file:read");
-			expect((error as StorageUnknownError).cause).toBe(originalError);
-		}
-	});
-
 	test("throws error when event type does not match operation type", async () => {
 		const mockDisk: StorageDisk = { name: "test-disk" } as StorageDisk;
 		const dispatcher = mockDispatcher();
@@ -170,5 +149,37 @@ describe(storageOperation, () => {
 
 		expect(completedEvent).toBeDefined();
 		expect(completedEvent!.timeTakenMs).toBe(250);
+	});
+
+	test("handles async generator that throws", async () => {
+		const mockDisk: StorageDisk = { name: "test-disk" } as StorageDisk;
+		const dispatcher = mockDispatcher();
+		const originalError = new Error("Generator error after yield");
+
+		const generator = storageOperation(
+			"file:delete",
+			async function* () {
+				yield "first";
+				throw originalError;
+			},
+			() => new FileDeletingEvent(mockDisk, "/test.txt"),
+			(start) => new FileDeletedEvent(start),
+			dispatcher,
+		);
+
+		const results: string[] = [];
+		try {
+			for await (const value of generator) {
+				results.push(value);
+			}
+			throw new Error("Should have thrown");
+		} catch (error) {
+			expect(error).toBeInstanceOf(StorageUnknownError);
+			const storageError = error as StorageUnknownError;
+			expect(storageError.operation).toBe("file:delete");
+			expect(storageError.cause).toBe(originalError);
+		}
+
+		expect(results).toEqual(["first"]);
 	});
 });
