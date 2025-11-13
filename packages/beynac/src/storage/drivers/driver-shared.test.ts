@@ -54,15 +54,19 @@ export const driverSharedTests = (driver: () => StorageEndpoint): void => {
 				test("file.fetch()", async () => {
 					// Insert the text file first. We expect it to come out in
 					// alphabetical order, i.e. second, rather than insertion order.
-					const textResponse = await disk.file("/dir/textFile").fetch();
-					expect(await textResponse.text()).toBe("textual-data");
-					expect(textResponse.headers.get("Content-Length")).toBe("12");
-					expect(textResponse.headers.get("Content-Type")).toBe("text/plain");
+					const textFetchResult = await disk.file("/dir/textFile").fetch();
+					expect(await textFetchResult.response.text()).toBe("textual-data");
+					expect(textFetchResult.size).toBe(12);
+					expect(textFetchResult.mimeType).toBe("text/plain");
+					expect(textFetchResult.response.headers.get("Content-Length")).toBe("12");
+					expect(textFetchResult.response.headers.get("Content-Type")).toBe("text/plain");
 
-					const htmlResponse = await disk.file("/dir/htmlFile").fetch();
-					expect(await htmlResponse.text()).toBe("html-data");
-					expect(htmlResponse.headers.get("Content-Length")).toBe("9");
-					expect(htmlResponse.headers.get("Content-Type")).toBe("text/html");
+					const htmlFetchResult = await disk.file("/dir/htmlFile").fetch();
+					expect(await htmlFetchResult.response.text()).toBe("html-data");
+					expect(htmlFetchResult.size).toBe(9);
+					expect(htmlFetchResult.mimeType).toBe("text/html");
+					expect(htmlFetchResult.response.headers.get("Content-Length")).toBe("9");
+					expect(htmlFetchResult.response.headers.get("Content-Type")).toBe("text/html");
 
 					await expectErrorWithProperties(
 						() => disk.file("/nonexistent.txt").fetch(),
@@ -77,6 +81,7 @@ export const driverSharedTests = (driver: () => StorageEndpoint): void => {
 					expect(info).toEqual({
 						size: 7,
 						mimeType: "text/plain",
+						originalMimeType: "text/plain",
 						etag: expect.any(String),
 					});
 
@@ -85,6 +90,7 @@ export const driverSharedTests = (driver: () => StorageEndpoint): void => {
 					expect(htmlInfo).toEqual({
 						size: 9,
 						mimeType: "text/html",
+						originalMimeType: "text/html",
 						etag: expect.any(String),
 					});
 
@@ -255,7 +261,7 @@ export const driverSharedTests = (driver: () => StorageEndpoint): void => {
 
 						// overwrite is OK
 						await file.put({ data: "content2", mimeType: "text/plain" });
-						expect(await (await file.fetch()).text()).toBe("content2");
+						expect(await (await file.fetch()).response.text()).toBe("content2");
 
 						await file.delete();
 						expect(await file.exists()).toBe(false);
@@ -272,7 +278,7 @@ export const driverSharedTests = (driver: () => StorageEndpoint): void => {
 						await file.put({ data, mimeType: "application/octet-stream" });
 						expect(await file.exists()).toBe(true);
 
-						expect(await (await file.fetch()).arrayBuffer()).toEqual(data.buffer);
+						expect(await (await file.fetch()).response.arrayBuffer()).toEqual(data.buffer);
 
 						await file.delete();
 						expect(await file.exists()).toBe(false);
@@ -449,7 +455,8 @@ export const driverSharedTests = (driver: () => StorageEndpoint): void => {
 						data: "hello",
 						mimeType: "text/plain",
 					});
-					let response = await endpoint.readSingle("/test.txt");
+					let result = await endpoint.readSingle("/test.txt");
+					let response = new Response(result.data);
 					expect(await response.text()).toBe("hello");
 
 					// Blob
@@ -459,7 +466,8 @@ export const driverSharedTests = (driver: () => StorageEndpoint): void => {
 						data: blob,
 						mimeType: "text/plain",
 					});
-					response = await endpoint.readSingle("/test2.txt");
+					result = await endpoint.readSingle("/test2.txt");
+					response = new Response(result.data);
 					expect(await response.text()).toBe("hello");
 
 					// ArrayBuffer
@@ -471,9 +479,10 @@ export const driverSharedTests = (driver: () => StorageEndpoint): void => {
 						data: buffer,
 						mimeType: "application/octet-stream",
 					});
-					response = await endpoint.readSingle("/test.bin");
-					let result = await response.arrayBuffer();
-					expect(new Uint8Array(result)).toEqual(view);
+					result = await endpoint.readSingle("/test.bin");
+					response = new Response(result.data);
+					let arrayResult = await response.arrayBuffer();
+					expect(new Uint8Array(arrayResult)).toEqual(view);
 
 					// Uint8Array
 					const data = new Uint8Array([1, 2, 3, 4]);
@@ -482,9 +491,10 @@ export const driverSharedTests = (driver: () => StorageEndpoint): void => {
 						data,
 						mimeType: "application/octet-stream",
 					});
-					response = await endpoint.readSingle("/test2.bin");
-					result = await response.arrayBuffer();
-					expect(new Uint8Array(result)).toEqual(data);
+					result = await endpoint.readSingle("/test2.bin");
+					response = new Response(result.data);
+					arrayResult = await response.arrayBuffer();
+					expect(new Uint8Array(arrayResult)).toEqual(data);
 
 					// ReadableStream
 					const stream = new ReadableStream({
@@ -498,7 +508,8 @@ export const driverSharedTests = (driver: () => StorageEndpoint): void => {
 						data: stream,
 						mimeType: "text/plain",
 					});
-					response = await endpoint.readSingle("/test3.txt");
+					result = await endpoint.readSingle("/test3.txt");
+					response = new Response(result.data);
 					expect(await response.text()).toBe("hello");
 				});
 			});
@@ -528,7 +539,8 @@ export const driverSharedTests = (driver: () => StorageEndpoint): void => {
 						mimeType: "text/plain",
 					});
 					await endpoint.copy("/source.txt", "/dest.txt");
-					const response = await endpoint.readSingle("/dest.txt");
+					const result = await endpoint.readSingle("/dest.txt");
+					const response = new Response(result.data);
 					expect(await response.text()).toBe("new");
 					expect(await endpoint.existsSingle("/source.txt")).toBe(true);
 				});
@@ -557,7 +569,8 @@ export const driverSharedTests = (driver: () => StorageEndpoint): void => {
 						mimeType: "text/plain",
 					});
 					await endpoint.move("/source.txt", "/dest.txt");
-					const response = await endpoint.readSingle("/dest.txt");
+					const result = await endpoint.readSingle("/dest.txt");
+					const response = new Response(result.data);
 					expect(await response.text()).toBe("new");
 					expect(await endpoint.existsSingle("/source.txt")).toBe(false);
 				});

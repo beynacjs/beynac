@@ -134,8 +134,8 @@ describe(StorageDiskImpl, () => {
 
 			const file = disk.file("test.txt");
 			expect(await file.exists()).toBe(true);
-			const response = await file.fetch();
-			expect(await response.text()).toBe("root file");
+			const fetchResult = await file.fetch();
+			expect(await fetchResult.response.text()).toBe("root file");
 
 			const dir = disk.directory("subdir");
 			const files = await dir.files();

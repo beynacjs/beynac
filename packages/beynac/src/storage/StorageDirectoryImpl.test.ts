@@ -365,9 +365,9 @@ describe(StorageDirectoryImpl, () => {
 
 			expect(file.path).toBe("/uploads/document");
 			expect(await file.exists()).toBe(true);
-			const response = await file.fetch();
+			const { response, originalMimeType } = await file.fetch();
 			expect(await response.text()).toBe("content");
-			expect(response.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
+			expect(originalMimeType).toBe("text/html; charset=utf-8");
 		});
 
 		test("creates file from Request object and extracts metadata from headers", async () => {
@@ -383,9 +383,9 @@ describe(StorageDirectoryImpl, () => {
 			const file = await dir.putFile(request);
 
 			expect(file.path).toBe("/uploads/request-file");
-			const response = await file.fetch();
+			const { response, originalMimeType } = await file.fetch();
 			expect(await response.text()).toBe("content");
-			expect(response.headers.get("Content-Type")).toBe("text/html");
+			expect(originalMimeType).toBe("text/html");
 		});
 
 		test("trims whitespace from File object name", async () => {

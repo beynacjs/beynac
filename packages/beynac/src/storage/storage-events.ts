@@ -1,4 +1,4 @@
-import type { StorageDisk, StorageFileInfo, StorageFilePutPayload } from "../contracts/Storage";
+import type { StorageData, StorageDisk, StorageFileInfo } from "../contracts/Storage";
 import { BeynacEvent } from "../event";
 import type { StorageError } from "./storage-errors";
 
@@ -193,8 +193,8 @@ export class FileWritingEvent extends StorageOperationStartingEvent {
 	constructor(
 		disk: StorageDisk,
 		path: string,
-		public readonly data: StorageFilePutPayload["data"],
-		public readonly mimeType: string,
+		public readonly data: StorageData,
+		public readonly mimeType: string | null,
 	) {
 		super(disk, path);
 	}
@@ -210,11 +210,11 @@ export class FileWrittenEvent extends StorageOperationCompletedEvent {
 		this.#startEvent = startEvent;
 	}
 
-	get data(): StorageFilePutPayload["data"] {
+	get data(): StorageData {
 		return this.#startEvent.data;
 	}
 
-	get mimeType(): string {
+	get mimeType(): string | null {
 		return this.#startEvent.mimeType;
 	}
 }

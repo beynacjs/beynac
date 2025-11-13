@@ -90,7 +90,8 @@ const mappings: Array<[string, string[]]> = [
 
 let mimeToExtensions: Map<string, string[]> | undefined;
 
-const getExtensionForMime = (mime: string): string | undefined => {
+const getExtensionForMime = (mime: string | null | undefined): string | undefined => {
+	if (!mime) return undefined;
 	mimeToExtensions ??= new Map(mappings);
 	return mimeToExtensions.get(mime)?.[0];
 };
@@ -114,14 +115,14 @@ const getMimeForExtension = (extension: string): string | undefined => {
 	return extensionToMime.get(extension);
 };
 
-export function mimeTypeFromFileName(nameOrPath: string): string {
+export function mimeTypeFromFileName(nameOrPath: string): string | null {
 	const extension = extname(nameOrPath.toLowerCase());
-	return getMimeForExtension(extension) ?? "application/octet-stream";
+	return getMimeForExtension(extension) ?? null;
 }
 
 export function createFileName(
 	suggestedName: string | null | undefined,
-	mimeType: string,
+	mimeType: string | null,
 	supportsMimeTypes: boolean,
 ): string {
 	let usedRandomId = false;
@@ -132,7 +133,7 @@ export function createFileName(
 		usedRandomId = true;
 	}
 
-	const cleanMimeType = mimeType.split(";")[0].trim().toLowerCase();
+	const cleanMimeType = mimeType?.split(";")[0].trim().toLowerCase();
 
 	if (!supportsMimeTypes || usedRandomId) {
 		const expectedExtension = getExtensionForMime(cleanMimeType);

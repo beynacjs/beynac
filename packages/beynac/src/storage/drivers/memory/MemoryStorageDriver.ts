@@ -1,10 +1,11 @@
 import type {
 	StorageEndpoint,
-	StorageEndpointFileInfo,
+	StorageEndpointFileInfoResult,
+	StorageEndpointFileReadResult,
 	StorageEndpointWriteOptions,
 } from "../../../contracts/Storage";
 import * as hash from "../../../helpers/hash";
-import { BaseClass, describeType, withoutUndefinedValues } from "../../../utils";
+import { BaseClass, describeType } from "../../../utils";
 import { NotFoundError } from "../../storage-errors";
 
 type SynchronousBinaryContent = string | ArrayBuffer | ArrayBufferView;
@@ -125,24 +126,22 @@ export class MemoryStorageDriver extends BaseClass implements StorageEndpoint {
 		});
 	}
 
-	async readSingle(path: string): Promise<Response> {
+	async readSingle(path: string): Promise<StorageEndpointFileReadResult> {
 		validatePath(path);
 		const file = this.#files.get(path);
 		if (!file) {
-			return new Response(null, { status: 404, statusText: "Not Found" });
+			throw new NotFoundError(path);
 		}
 
-		return new Response(file.data, {
-			status: 200,
-			headers: withoutUndefinedValues({
-				"Content-Type": file.mimeType ?? undefined,
-				"Content-Length": file.data.length.toString(),
-				ETag: file.etag,
-			}),
-		});
+		return {
+			contentLength: file.data.length,
+			mimeType: file.mimeType,
+			etag: file.etag,
+			data: file.data,
+		};
 	}
 
-	async getInfoSingle(path: string): Promise<StorageEndpointFileInfo | null> {
+	async getInfoSingle(path: string): Promise<StorageEndpointFileInfoResult | null> {
 		validatePath(path);
 		const file = this.#files.get(path);
 		if (!file) {
@@ -151,7 +150,7 @@ export class MemoryStorageDriver extends BaseClass implements StorageEndpoint {
 
 		return {
 			contentLength: file.data.length,
-			mimeType: file.mimeType ?? "application/octet-stream",
+			mimeType: file.mimeType,
 			etag: file.etag,
 		};
 	}

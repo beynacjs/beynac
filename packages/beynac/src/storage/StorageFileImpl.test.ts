@@ -92,8 +92,13 @@ describe(StorageFileImpl, () => {
 		test("returns file content", async () => {
 			const file = disk.file("test.txt");
 			await file.put({ data: "content", mimeType: "text/plain" });
-			const response = await file.fetch();
-			expect(await response.text()).toBe("content");
+			const fetchResult = await file.fetch();
+			expect(await fetchResult.response.text()).toBe("content");
+			expect(fetchResult.mimeType).toBe("text/plain");
+			expect(fetchResult.originalMimeType).toBe("text/plain");
+			expect(fetchResult.size).toBe(7);
+			expect(fetchResult.etag).toBeDefined();
+			expect(fetchResult.response.headers.get("Content-Type")).toBe("text/plain");
 		});
 
 		test("throws when file doesn't exist", async () => {
@@ -115,20 +120,24 @@ describe(StorageFileImpl, () => {
 			const noMimeDisk = new StorageDiskImpl("test", noMimeEndpoint, mockDispatcher());
 			const file = noMimeDisk.file("test.png");
 			const result = await file.fetch();
-			expect(result.headers.get("Content-Type")).toBe("image/png");
+			expect(result.mimeType).toBe("image/png");
+			expect(result.originalMimeType).toBeNull();
+			expect(result.response.headers.get("Content-Type")).toBe("image/png");
 		});
 
 		test("overrides present MIME type from extension when supportsMimeTypes is false", async () => {
 			const noMimeEndpoint = memoryStorage({
 				supportsMimeTypes: false,
 				initialFiles: {
-					"test.png": { data: "content", mimeType: "image/jpeg" },
+					"test.png": { data: "content", mimeType: null },
 				},
 			});
 			const noMimeDisk = new StorageDiskImpl("test", noMimeEndpoint, mockDispatcher());
 			const file = noMimeDisk.file("test.png");
 			const result = await file.fetch();
-			expect(result.headers.get("Content-Type")).toBe("image/png");
+			expect(result.mimeType).toBe("image/png");
+			expect(result.originalMimeType).toBeNull();
+			expect(result.response.headers.get("Content-Type")).toBe("image/png");
 		});
 
 		test("infers missing MIME type from extension when supportsMimeTypes is true", async () => {
@@ -141,7 +150,9 @@ describe(StorageFileImpl, () => {
 			const noMimeDisk = new StorageDiskImpl("test", noMimeEndpoint, mockDispatcher());
 			const file = noMimeDisk.file("test.png");
 			const result = await file.fetch();
-			expect(result.headers.get("Content-Type")).toBe("image/png");
+			expect(result.mimeType).toBe("image/png");
+			expect(result.originalMimeType).toBeNull();
+			expect(result.response.headers.get("Content-Type")).toBe("image/png");
 		});
 
 		test("does not override present MIME type from extension when supportsMimeTypes is true", async () => {
@@ -154,14 +165,18 @@ describe(StorageFileImpl, () => {
 			const noMimeDisk = new StorageDiskImpl("test", noMimeEndpoint, mockDispatcher());
 			const file = noMimeDisk.file("test.png");
 			const result = await file.fetch();
-			expect(result.headers.get("Content-Type")).toBe("image/jpeg");
+			expect(result.mimeType).toBe("image/jpeg");
+			expect(result.originalMimeType).toBe("image/jpeg");
+			expect(result.response.headers.get("Content-Type")).toBe("image/jpeg");
 		});
 
 		test("preserves original Content-Type when supportsMimeTypes is true", async () => {
 			const file = disk.file("test.txt");
 			await file.put({ data: "content", mimeType: "custom/type" });
 			const result = await file.fetch();
-			expect(result.headers.get("Content-Type")).toBe("custom/type");
+			expect(result.mimeType).toBe("custom/type");
+			expect(result.originalMimeType).toBe("custom/type");
+			expect(result.response.headers.get("Content-Type")).toBe("custom/type");
 		});
 	});
 
@@ -275,9 +290,64 @@ describe(StorageFileImpl, () => {
 		test("works with explicit data and mimetype", async () => {
 			const file = disk.file("dir/document.pdf");
 			await file.put({ data: "content", mimeType: "application/pdf" });
-			const response = await file.fetch();
-			expect(response.headers.get("content-type")).toBe("application/pdf");
-			expect(await response.text()).toBe("content");
+			const fetchResult = await file.fetch();
+			expect(fetchResult.response.headers.get("content-type")).toBe("application/pdf");
+			expect(await fetchResult.response.text()).toBe("content");
+		});
+
+		test("infers mimeType from file path when not provided in object", async () => {
+			const file = disk.file("dir/document.pdf");
+			await file.put({ data: "content" });
+			const info = await file.info();
+			expect(info?.mimeType).toBe("application/pdf");
+		});
+
+		test("accepts direct string data and infers mimeType from path", async () => {
+			const file = disk.file("dir/document.html");
+			await file.put("<!DOCTYPE html><html></html>");
+			const info = await file.info();
+			expect(info?.mimeType).toBe("text/html");
+		});
+
+		test("accepts direct Blob data and infers mimeType from path", async () => {
+			const file = disk.file("images/photo.png");
+			const blob = new Blob(["binary data"]);
+			await file.put(blob);
+			const info = await file.info();
+			expect(info?.mimeType).toBe("image/png");
+		});
+
+		test("accepts direct ArrayBuffer and infers mimeType from path", async () => {
+			const file = disk.file("data/file.json");
+			const buffer = new ArrayBuffer(8);
+			await file.put(buffer);
+			const info = await file.info();
+			expect(info?.mimeType).toBe("application/json");
+		});
+
+		test("accepts direct Uint8Array and infers mimeType from path", async () => {
+			const file = disk.file("data/file.bin");
+			const arr = new Uint8Array([1, 2, 3, 4]);
+			await file.put(arr);
+			const info = await file.info();
+			expect(info?.mimeType).toBe("application/octet-stream");
+			expect(info?.originalMimeType).toBeNull();
+		});
+
+		test("falls back to application/octet-stream for unknown extensions", async () => {
+			const file = disk.file("file.unknownext");
+			await file.put("content");
+			const info = await file.info();
+			expect(info?.mimeType).toBe("application/octet-stream");
+			expect(info?.originalMimeType).toBeNull();
+		});
+
+		test("falls back to application/octet-stream for files without extension", async () => {
+			const file = disk.file("noextension");
+			await file.put({ data: "content" });
+			const info = await file.info();
+			expect(info?.mimeType).toBe("application/octet-stream");
+			expect(info?.originalMimeType).toBeNull();
 		});
 
 		test("extracts mimeType from File and uses file path", async () => {
@@ -288,12 +358,12 @@ describe(StorageFileImpl, () => {
 			expect(info?.mimeType).toBe("application/pdf");
 		});
 
-		test("defaults to application/octet-stream when File has no type", async () => {
-			const file = disk.file("dir/unknown.dat");
-			const fileObj = new File(["content"], "unknown.dat", { type: "" });
+		test("infers from path when File has no type", async () => {
+			const file = disk.file("dir/document.pdf");
+			const fileObj = new File(["content"], "document.pdf", { type: "" });
 			await file.put(fileObj);
 			const info = await file.info();
-			expect(info?.mimeType).toBe("application/octet-stream");
+			expect(info?.mimeType).toBe("application/pdf");
 		});
 
 		test("extracts Content-Type from Request", async () => {
@@ -310,15 +380,15 @@ describe(StorageFileImpl, () => {
 			expect(info?.mimeType).toBe("application/pdf");
 		});
 
-		test("defaults to application/octet-stream when Request has no Content-Type", async () => {
-			const file = disk.file("uploads/file.dat");
+		test("infers from path when Request has no Content-Type", async () => {
+			const file = disk.file("uploads/document.pdf");
 			const request = new Request("http://example.com", {
 				method: "POST",
 				body: "data",
 			});
 			await file.put(request);
 			const info = await file.info();
-			expect(info?.mimeType).toBe("application/octet-stream");
+			expect(info?.mimeType).toBe("application/pdf");
 		});
 	});
 
@@ -332,8 +402,8 @@ describe(StorageFileImpl, () => {
 			expect(endpoint.readSingle).not.toHaveBeenCalled();
 			expect(endpoint.copy).toHaveBeenCalledWith("/source.txt", "/dest.txt");
 			expect(await dest.exists()).toBe(true);
-			const response = await dest.fetch();
-			expect(await response.text()).toBe("hello");
+			const fetchResult = await dest.fetch();
+			expect(await fetchResult.response.text()).toBe("hello");
 		});
 
 		test("copies file to different disk", async () => {
@@ -355,8 +425,8 @@ describe(StorageFileImpl, () => {
 			});
 			expect(endpoint2.copy).not.toHaveBeenCalled();
 			expect(await dest.exists()).toBe(true);
-			const response = await dest.fetch();
-			expect(await response.text()).toBe("hello");
+			const fetchResult = await dest.fetch();
+			expect(await fetchResult.response.text()).toBe("hello");
 		});
 
 		test("throws when source file doesn't exist on same-disk transfer", async () => {
@@ -391,8 +461,8 @@ describe(StorageFileImpl, () => {
 			expect(endpoint.copy).not.toHaveBeenCalled();
 			expect(endpoint.readSingle).not.toHaveBeenCalled();
 			expect(await dest.exists()).toBe(true);
-			const response = await dest.fetch();
-			expect(await response.text()).toBe("hello");
+			const fetchResult = await dest.fetch();
+			expect(await fetchResult.response.text()).toBe("hello");
 			expect(await source.exists()).toBe(false);
 		});
 
@@ -415,9 +485,9 @@ describe(StorageFileImpl, () => {
 				path: "/dest.txt",
 			});
 			expect(endpoint.deleteSingle).toHaveBeenCalledWith("/source.txt");
-			const response = await dest.fetch();
-			expect(await response.text()).toBe("hello");
-			expect(response.headers.get("content-type")).toBe("text/plain");
+			const fetchResult = await dest.fetch();
+			expect(await fetchResult.response.text()).toBe("hello");
+			expect(fetchResult.response.headers.get("content-type")).toBe("text/plain");
 			expect(await source.exists()).toBe(false);
 		});
 
@@ -499,10 +569,10 @@ describe(StorageFileImpl, () => {
 			await file.put({ data: "content", mimeType: "text/plain" });
 			eventDispatcher.clear();
 
-			const response = await file.fetch();
+			const fetchResult = await file.fetch();
 
 			const startEvent = new FileReadingEvent(eventDisk, "/test.txt");
-			const endEvent = new FileReadEvent(startEvent, response);
+			const endEvent = new FileReadEvent(startEvent, fetchResult.response);
 			eventDispatcher.expectEvents([startEvent, endEvent]);
 		});
 

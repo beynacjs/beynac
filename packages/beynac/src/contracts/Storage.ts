@@ -51,11 +51,6 @@ export interface StorageDisk extends StorageDirectoryOperations {
 
 export type StorageEntry = StorageFile | StorageDirectory;
 
-export interface StorageEntryCommon {
-	readonly disk: StorageDisk;
-	readonly path: string;
-}
-
 interface SignUrlOptions {
 	/**
 	 * Generate a signed URL with expiration on drivers that support it (s3).
@@ -82,18 +77,67 @@ interface DownloadUrlOptions {
 	downloadAs?: string | undefined;
 }
 
-export interface StorageFileInfo {
+type StorageFileSizeAndMime = {
+	/**
+	 * The size of the file in bytes.
+	 */
 	size: number;
+
+	/**
+	 * The mime type of the file. If the driver did not provide a mime type, one
+	 * will be inferred from the file extension or it will default to
+	 * "application/octet-stream" for files with no or unknown extension.
+	 */
 	mimeType: string;
+
+	/**
+	 * The mime type reported by the server.
+	 */
+	originalMimeType: string | null;
+};
+
+export interface StorageFileInfo extends StorageFileSizeAndMime {
+	/**
+	 * The file etag if available. S3 provides an eta with fetch responses,
+	 * filesystem drivers do not. If the etag is not available in the fetch()
+	 * response it can be obtained with info()
+	 */
 	etag: string;
+}
+
+export interface StorageFileFetchResult extends StorageFileSizeAndMime {
+	/**
+	 * The file etag if available. S3 provides an etag with fetch responses,
+	 * filesystem drivers do not. If the etag is not available in the fetch()
+	 * response it can be obtained with info()
+	 */
+	etag: string | null;
+
+	/**
+	 * A web-standard Response object like that returned from `fetch()` that can
+	 * be read using methods like response.json(), or response.getReader().
+	 *
+	 * It will have Content-Length and Content-Type and ETag headers set.
+	 */
+	response: Response;
 }
 
 export type StorageFileUrlOptions = DownloadUrlOptions;
 export type StorageFileSignedUrlOptions = SignUrlOptions & DownloadUrlOptions;
 export type StorageFileUploadUrlOptions = SignUrlOptions;
 
-export interface StorageFile extends StorageEntryCommon {
+export interface StorageFile {
 	readonly type: "file";
+
+	/**
+	 * The disk that this file is on - all operations will be performed on this disk
+	 */
+	readonly disk: StorageDisk;
+
+	/**
+	 * The path of this file inside `disk`, beginning with a slash "/"
+	 */
+	readonly path: string;
 
 	/**
 	 * Delete the file, if it exists.
@@ -110,16 +154,14 @@ export interface StorageFile extends StorageEntryCommon {
 	exists(): Promise<boolean>;
 
 	/**
-	 * Fetch this file and on success return a web-standard Response object.
-	 *
-	 * All drivers will set the Content-Type and Content-Length headers on
-	 * the response. Drivers may set other headers.
+	 * Fetch this file and return an object containing metadata and a
+	 * web-standard Response object.
 	 *
 	 * Unlike the fetch() API, this method will only return a response on
 	 * success. On failure, an appropriate kind of error will be thrown, e.g.
 	 * NotFoundError or PermissionsError.
 	 */
-	fetch(): Promise<Response>;
+	fetch(): Promise<StorageFileFetchResult>;
 
 	/**
 	 * Get metadata on this file. Returns null if no file exists.
@@ -158,13 +200,17 @@ export interface StorageFile extends StorageEntryCommon {
 	 * accept a suggestedName. To upload a file with a suggested name that
 	 * may be sanitised, use directory.putFile() instead.
 	 *
-	 * @param payload.data - a source of binary data, any BodyInit value that can be passed to a web fetch request is supported: string, Blob, ArrayBuffer, ArrayBufferView (including UInt8Array), FormData, URLSearchParams, ReadableStream and File
-	 * @param payload.mimeType - a valid mime type e.g. "image/png".
+	 * @param payload - can be one of:
+	 *   - A source of binary data (string, Blob, ArrayBuffer, etc.) - mimeType will be inferred from the file path
+	 *   - An object with { data, mimeType? } - mimeType is optional and will be inferred from file path if not provided
+	 *   - A File object - mimeType will be obtained from the File's type property
+	 *   - A Request object - mimeType will be obtained from the Content-Type header
 	 *
 	 * If you pass a File or Request object, the mimeType will be obtained
-	 * from the Content-Type header.
+	 * from the Content-Type header or File type property. Otherwise, if mimeType
+	 * is not explicitly provided, it will be inferred from the file path extension.
 	 */
-	put(payload: StorageFilePutPayload | File | Request): Promise<void>;
+	put(payload: StorageData | StorageFilePutPayload | File | Request): Promise<void>;
 
 	/**
 	 * Copy the file to another location.
@@ -188,19 +234,41 @@ export interface StorageFile extends StorageEntryCommon {
 export type StorageData =
 	| ReadableStream
 	| Blob
-	| ArrayBufferView
-	| ArrayBuffer
 	| FormData
 	| URLSearchParams
-	| string;
+	| string
+	| ArrayBuffer
+	// Using ArrayBufferView leads to type issues with Bun's types, so list every kind of view here
+	| Int8Array
+	| Uint8Array
+	| Uint8ClampedArray
+	| Int16Array
+	| Uint16Array
+	| Int32Array
+	| Uint32Array
+	| Float32Array
+	| Float64Array
+	| BigInt64Array
+	| BigUint64Array
+	| DataView;
 
 export interface StorageFilePutPayload {
 	data: StorageData;
-	mimeType: string;
+	mimeType?: string | null | undefined;
 }
 
-export interface StorageDirectory extends StorageEntryCommon, StorageDirectoryOperations {
+export interface StorageDirectory extends StorageDirectoryOperations {
 	readonly type: "directory";
+
+	/**
+	 * The disk that this directory is on - all operations will be performed on this disk
+	 */
+	readonly disk: StorageDisk;
+
+	/**
+	 * The path of this directory inside `disk`, beginning and ending with a slash "/"
+	 */
+	readonly path: string;
 }
 
 type FileSanitiseOptions = {
@@ -334,13 +402,20 @@ export interface StorageDirectoryOperations {
 export interface StorageEndpointWriteOptions {
 	path: string;
 	data: StorageData;
-	mimeType: string;
+	mimeType: string | null;
 }
 
-export interface StorageEndpointFileInfo {
+export interface StorageEndpointFileInfoResult {
 	contentLength: number;
-	mimeType?: string;
+	mimeType: string | null;
 	etag: string;
+}
+
+export interface StorageEndpointFileReadResult {
+	contentLength: number;
+	mimeType: string | null;
+	etag: string | null;
+	data: StorageData;
 }
 
 /**
@@ -355,7 +430,7 @@ export interface StorageEndpoint {
 	/**
 	 * Read a file, returning the web-standard response e.g. from the fetch() call used to make the request
 	 */
-	readSingle(path: string): Promise<Response>;
+	readSingle(path: string): Promise<StorageEndpointFileReadResult>;
 
 	/**
 	 * Whether this endpoint supports MIME types. If it does not, then the
@@ -377,7 +452,7 @@ export interface StorageEndpoint {
 	/**
 	 * Get information about a file.
 	 */
-	getInfoSingle(path: string): Promise<StorageEndpointFileInfo | null>;
+	getInfoSingle(path: string): Promise<StorageEndpointFileInfoResult | null>;
 
 	/**
 	 * Get an unsigned URL that will work to download this file if it is public.

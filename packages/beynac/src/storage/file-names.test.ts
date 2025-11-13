@@ -22,11 +22,11 @@ describe(mimeTypeFromFileName, () => {
 		expect(mimeTypeFromFileName("FILE.HTML")).toBe("text/html");
 	});
 
-	test("returns application/octet-stream for unknown or no extensions", () => {
-		expect(mimeTypeFromFileName("file.xyz")).toBe("application/octet-stream");
-		expect(mimeTypeFromFileName("file.unknown")).toBe("application/octet-stream");
-		expect(mimeTypeFromFileName("README")).toBe("application/octet-stream");
-		expect(mimeTypeFromFileName("Makefile")).toBe("application/octet-stream");
+	test("returns null for unknown or no extensions", () => {
+		expect(mimeTypeFromFileName("file.xyz")).toBeNull();
+		expect(mimeTypeFromFileName("file.unknown")).toBeNull();
+		expect(mimeTypeFromFileName("README")).toBeNull();
+		expect(mimeTypeFromFileName("Makefile")).toBeNull();
 	});
 
 	test("extracts extension from full path", () => {

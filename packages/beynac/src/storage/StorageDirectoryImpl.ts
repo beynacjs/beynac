@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import type { Dispatcher } from "../contracts/Dispatcher";
 import type {
+	StorageData,
 	StorageDirectory,
 	StorageDisk,
 	StorageEndpoint,
@@ -9,7 +10,7 @@ import type {
 } from "../contracts/Storage";
 import { parseAttributeHeader } from "../helpers/headers";
 import { asyncGeneratorToArray, BaseClass } from "../utils";
-import { createFileName, sanitiseName } from "./file-names";
+import { createFileName, mimeTypeFromFileName, sanitiseName } from "./file-names";
 import { StorageFileImpl } from "./StorageFileImpl";
 import { InvalidPathError } from "./storage-errors";
 import {
@@ -196,14 +197,13 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 	async putFile(
 		payload: (StorageFilePutPayload & { suggestedName?: string | undefined }) | File | Request,
 	): Promise<StorageFile> {
-		// Extract metadata from payload
-		let data: StorageFilePutPayload["data"] | null | undefined;
+		let data: StorageData | null | undefined;
 		let mimeType: string | null | undefined;
 		let suggestedName: string | null | undefined;
 
 		if (payload instanceof File) {
 			data = payload;
-			mimeType = payload.type || "application/octet-stream";
+			mimeType = payload.type;
 			suggestedName = payload.name?.trim();
 		} else if (payload instanceof Request) {
 			data = payload.body;
@@ -224,7 +224,7 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 			suggestedName = payload.suggestedName;
 		}
 
-		mimeType ??= "application/octet-stream";
+		mimeType ||= mimeTypeFromFileName(suggestedName ?? "");
 
 		const file = this.file(
 			sanitiseName(
@@ -236,7 +236,7 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 		if (data != null) {
 			await file.put({
 				data,
-				mimeType,
+				mimeType: mimeType ?? undefined,
 			});
 		}
 

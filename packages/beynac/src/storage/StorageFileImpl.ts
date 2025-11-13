@@ -1,9 +1,10 @@
 import type { Dispatcher } from "../contracts/Dispatcher";
 import type {
+	StorageData,
 	StorageDisk,
 	StorageEndpoint,
-	StorageEndpointFileInfo,
 	StorageFile,
+	StorageFileFetchResult,
 	StorageFileInfo,
 	StorageFilePutPayload,
 	StorageFileSignedUrlOptions,
@@ -13,7 +14,7 @@ import type {
 import { durationStringToDate } from "../helpers/time";
 import { BaseClass } from "../utils";
 import { mimeTypeFromFileName } from "./file-names";
-import { InvalidPathError, NotFoundError, StorageHttpError } from "./storage-errors";
+import { InvalidPathError, NotFoundError } from "./storage-errors";
 import {
 	FileCopiedEvent,
 	FileCopyingEvent,
@@ -75,68 +76,72 @@ export class StorageFileImpl extends BaseClass implements StorageFile {
 		);
 	}
 
-	async fetch(): Promise<Response> {
-		const response = await storageOperation(
+	async fetch(): Promise<StorageFileFetchResult> {
+		return await storageOperation(
 			"file:read",
-			async () => {
-				const response = await this.#endpoint.readSingle(this.path);
-				// Check and throw HttpError inside storageOperation so it gets caught and converted to correct error type
-				if (!response.ok) {
-					throw new StorageHttpError(this.path, response.status, response.statusText);
+			async (): Promise<StorageFileFetchResult> => {
+				const endpointResult = await this.#endpoint.readSingle(this.path);
+
+				let mimeType = endpointResult.mimeType;
+				if (!mimeType || !this.#endpoint.supportsMimeTypes) {
+					mimeType = mimeTypeFromFileName(this.path) ?? "application/octet-stream";
 				}
-				return response;
+
+				return {
+					size: endpointResult.contentLength,
+					mimeType,
+					originalMimeType: endpointResult.mimeType,
+					etag: endpointResult.etag,
+
+					response: new Response(endpointResult.data, {
+						status: 200,
+						headers: {
+							"Content-Type": mimeType,
+							"Content-Length": endpointResult.contentLength.toString(),
+							...(endpointResult.etag ? { ETag: endpointResult.etag } : {}),
+						},
+					}),
+				};
 			},
 			() => new FileReadingEvent(this.disk, this.path),
-			(start, response) => new FileReadEvent(start, response),
+			(start, result) => new FileReadEvent(start, result.response),
 			this.#dispatcher,
 		);
-
-		if (!response.headers.get("Content-Type") || !this.#endpoint.supportsMimeTypes) {
-			const inferredMimeType = mimeTypeFromFileName(this.path);
-			response.headers.set("Content-Type", inferredMimeType);
-		}
-
-		return response;
 	}
 
 	async info(): Promise<StorageFileInfo | null> {
-		let endpointInfo: StorageEndpointFileInfo | null;
-		try {
-			endpointInfo = await storageOperation(
-				"file:info-retrieve",
-				() => this.#endpoint.getInfoSingle(this.path),
-				() => new FileInfoRetrievingEvent(this.disk, this.path),
-				(start, result) => {
-					if (!result) {
-						return new FileInfoRetrievedEvent(start, null);
+		return await storageOperation(
+			"file:info-retrieve",
+			async (): Promise<StorageFileInfo | null> => {
+				try {
+					const endpointInfo = await this.#endpoint.getInfoSingle(this.path);
+
+					if (!endpointInfo) {
+						return null;
 					}
-					const info: StorageFileInfo = {
-						etag: result.etag,
-						size: result.contentLength,
-						mimeType: result.mimeType ?? "application/octet-stream",
+
+					let mimeType = endpointInfo.mimeType;
+					if (!mimeType || !this.#endpoint.supportsMimeTypes) {
+						mimeType = mimeTypeFromFileName(this.path) ?? "application/octet-stream";
+					}
+
+					return {
+						etag: endpointInfo.etag,
+						size: endpointInfo.contentLength,
+						mimeType,
+						originalMimeType: endpointInfo.mimeType,
 					};
-					return new FileInfoRetrievedEvent(start, info);
-				},
-				this.#dispatcher,
-			);
-		} catch (error) {
-			if (error instanceof NotFoundError) {
-				return null;
-			}
-			throw error;
-		}
-
-		if (!endpointInfo) {
-			return null;
-		}
-
-		const info: StorageFileInfo = {
-			etag: endpointInfo.etag,
-			size: endpointInfo.contentLength,
-			mimeType: endpointInfo.mimeType ?? "application/octet-stream",
-		};
-
-		return info;
+				} catch (error) {
+					if (error instanceof NotFoundError) {
+						return null;
+					}
+					throw error;
+				}
+			},
+			() => new FileInfoRetrievingEvent(this.disk, this.path),
+			(start, result) => new FileInfoRetrievedEvent(start, result),
+			this.#dispatcher,
+		);
 	}
 
 	async url(options?: StorageFileUrlOptions): Promise<string> {
@@ -196,24 +201,27 @@ export class StorageFileImpl extends BaseClass implements StorageFile {
 		);
 	}
 
-	async put(payload: StorageFilePutPayload | File | Request): Promise<void> {
-		// Extract metadata from payload
-		let data: StorageFilePutPayload["data"];
-		let mimeType: string;
+	async put(payload: StorageData | StorageFilePutPayload | File | Request): Promise<void> {
+		let data: StorageData;
+		let mimeType: string | null | undefined;
 
 		if (payload instanceof File) {
 			data = payload;
-			mimeType = payload.type || "application/octet-stream";
+			mimeType = payload.type;
 		} else if (payload instanceof Request) {
 			if (payload.body == null) {
 				return;
 			}
 			data = payload.body;
-			mimeType = payload.headers.get("Content-Type") || "application/octet-stream";
-		} else {
+			mimeType = payload.headers.get("Content-Type");
+		} else if (payload != null && typeof payload === "object" && "data" in payload) {
 			data = payload.data;
 			mimeType = payload.mimeType;
+		} else {
+			data = payload;
 		}
+
+		mimeType ||= mimeTypeFromFileName(this.path);
 
 		await storageOperation(
 			"file:write",
@@ -241,13 +249,11 @@ export class StorageFileImpl extends BaseClass implements StorageFile {
 			return;
 		}
 
-		// For cross-disk copy, use underlying operations which will dispatch their own events
-		const response = await this.fetch();
+		const { response, originalMimeType } = await this.fetch();
 
 		await destination.put({
 			data: response.body ?? new Uint8Array(),
-			// TODO remove this ?? when we implement optional mimeType
-			mimeType: response.headers.get("Content-Type") ?? "application/octet-stream",
+			mimeType: originalMimeType,
 		});
 	}
 
