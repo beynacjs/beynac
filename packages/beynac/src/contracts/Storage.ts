@@ -453,6 +453,10 @@ export interface StorageEndpoint {
 	 *
 	 * Should throw PermissionsError if the user doesn't have permission to
 	 * write the file, or StorageUnknownError in other cases.
+	 *
+	 * @param options.path - the full absolute path of the file to write starting with a slash.
+	 * @param options.data - a source of binary data confirming to the fetch BodyInit interface.
+	 * @param options.mimetype - the file mime type or null if unknown.
 	 */
 	writeSingle(options: StorageEndpointWriteOptions): Promise<void>;
 

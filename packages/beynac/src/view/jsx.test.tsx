@@ -1,9 +1,12 @@
 /** @jsxImportSource ./ */
 import { expect, test } from "bun:test";
+import { ContainerImpl } from "../container";
+import { createTypeToken } from "../container/container-key";
 import { createKey } from "../keys";
 import { render } from "../test-utils";
 import { BaseComponent, Component } from "./Component";
-import type { Context, JSX, JSXNode, Props } from "./public-types";
+import { type Context, isJsxElement, type JSX, type JSXNode, type Props } from "./public-types";
+import { ViewRendererImpl } from "./ViewRendererImpl";
 
 test("renders single element with attributes and text child", async () => {
 	expect(await render(<span id="foo">hello</span>)).toBe('<span id="foo">hello</span>');
@@ -270,10 +273,6 @@ test("renders async class component", async () => {
 });
 
 test("class component with dependency injection", async () => {
-	const { ContainerImpl } = await import("../container/ContainerImpl");
-	const { createTypeToken } = await import("../container/container-key");
-	const { ViewRendererImpl } = await import("./ViewRendererImpl");
-
 	const messageKey = createTypeToken<string>();
 	const container = new ContainerImpl();
 	container.bind(messageKey, { instance: "injected value" });
@@ -501,22 +500,16 @@ test("treats key as a regular ol' prop", async () => {
 });
 
 test("isJsxElement returns true for JSX elements", async () => {
-	const { isJsxElement } = await import("./public-types");
-
 	expect(isJsxElement(<div />)).toBe(true);
 	expect(isJsxElement(<span>hello</span>)).toBe(true);
 	expect(isJsxElement(<>fragment</>)).toBe(true);
 });
 
 test("isJsxElement returns false for null", async () => {
-	const { isJsxElement } = await import("./public-types");
-
 	expect(isJsxElement(null)).toBe(false);
 });
 
 test("isJsxElement returns false for primitives", async () => {
-	const { isJsxElement } = await import("./public-types");
-
 	expect(isJsxElement("string")).toBe(false);
 	expect(isJsxElement(42)).toBe(false);
 	expect(isJsxElement(true)).toBe(false);
@@ -526,23 +519,17 @@ test("isJsxElement returns false for primitives", async () => {
 });
 
 test("isJsxElement returns false for plain objects", async () => {
-	const { isJsxElement } = await import("./public-types");
-
 	expect(isJsxElement({})).toBe(false);
 	expect(isJsxElement({ foo: "bar" })).toBe(false);
 	expect(isJsxElement({ handle: () => {} })).toBe(false);
 });
 
 test("isJsxElement returns false for arrays", async () => {
-	const { isJsxElement } = await import("./public-types");
-
 	expect(isJsxElement([])).toBe(false);
 	expect(isJsxElement([1, 2, 3])).toBe(false);
 });
 
 test("isJsxElement returns false for functions", async () => {
-	const { isJsxElement } = await import("./public-types");
-
 	expect(isJsxElement(() => {})).toBe(false);
 	expect(isJsxElement(function () {})).toBe(false);
 });

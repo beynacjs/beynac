@@ -221,16 +221,10 @@ describe(StorageDirectoryImpl, () => {
 			expect(dir.path).toBe("/subdir/");
 		});
 
-		test('returns same directory when passed "/"', () => {
-			const dir = create("/parent/");
-			const same = dir.directory("/");
-			expect(same).toBe(dir);
-		});
-
 		test('returns same directory when passed "" or "/"', () => {
 			const dir = create("/parent/");
-			expect(dir.directory("")).toBe(dir);
-			expect(dir.directory("/")).toBe(dir);
+			expect(dir.directory("").path).toBe(dir.path);
+			expect(dir.directory("/").path).toBe(dir.path);
 		});
 
 		test("sanitises each path segment individually", () => {
@@ -274,6 +268,66 @@ describe(StorageDirectoryImpl, () => {
 				},
 			);
 		});
+
+		describe("path normalization", () => {
+			test("removes '.' segments from paths", () => {
+				const dir = create("/parent/");
+				expect(dir.directory("./child").path).toBe("/parent/child/");
+				expect(dir.directory("a/./b").path).toBe("/parent/a/b/");
+				expect(dir.directory("./a/./b/./c").path).toBe("/parent/a/b/c/");
+			});
+
+			test("processes '..' segments to go up directories", () => {
+				const dir = create("/parent/child/");
+				expect(dir.directory("..").path).toBe("/parent/");
+				expect(dir.directory("../sibling").path).toBe("/parent/sibling/");
+			});
+
+			test("allows multiple '..' within bounds", () => {
+				const dir = create("/a/b/c/d/");
+				expect(dir.directory("../..").path).toBe("/a/b/");
+				expect(dir.directory("../../other").path).toBe("/a/b/other/");
+			});
+
+			test("normalizes complex paths", () => {
+				const dir = create("/parent/");
+				expect(dir.directory("a/b/../c/./d").path).toBe("/parent/a/c/d/");
+				expect(dir.directory("./a/../b").path).toBe("/parent/b/");
+			});
+
+			test("stops at root with excessive '..' like Unix (no errors)", () => {
+				const dir = create("/parent/child/");
+				// Trying to go above root just results in root
+				expect(dir.directory("../../..").path).toBe("/");
+				expect(dir.directory("../../../..").path).toBe("/");
+				expect(dir.directory("../../../../../../../../..").path).toBe("/");
+			});
+
+			test("stops at root when already at root", () => {
+				const root = create("/");
+				// From root, any amount of .. just stays at root
+				expect(root.directory("..").path).toBe("/");
+				expect(root.directory("../..").path).toBe("/");
+			});
+
+			test("handles complex paths with excessive traversal", () => {
+				const dir = create("/a/b/");
+
+				// These all result in root
+				expect(dir.directory("c/../../..").path).toBe("/");
+				expect(dir.directory("c/../../../..").path).toBe("/");
+				expect(dir.directory("c/../../../../../../../../..").path).toBe("/");
+			});
+
+			test("all '..' segments normalize to root or ancestor", () => {
+				const dir = create("/a/b/c/");
+
+				expect(dir.directory("..").path).toBe("/a/b/");
+				expect(dir.directory("../..").path).toBe("/a/");
+				expect(dir.directory("../../..").path).toBe("/");
+				expect(dir.directory("../../../..").path).toBe("/"); // Excess stops at /
+			});
+		});
 	});
 
 	describe("file()", () => {
@@ -290,16 +344,14 @@ describe(StorageDirectoryImpl, () => {
 			expect(file.path).toBe("/parent/test.txt");
 		});
 
-		test("removes trailing slash from file path", () => {
-			const dir = create("/parent/");
-			const file = dir.file("test.txt/");
-			expect(file.path).toBe("/parent/test.txt");
-		});
-
 		test("throws when filename is empty", () => {
 			const dir = create("/parent/");
 			expectErrorWithProperties(() => dir.file(""), InvalidPathError, {
 				path: "",
+				reason: "file name cannot be empty",
+			});
+			expectErrorWithProperties(() => dir.file("subdir/"), InvalidPathError, {
+				path: "subdir/",
 				reason: "file name cannot be empty",
 			});
 		});
@@ -352,6 +404,39 @@ describe(StorageDirectoryImpl, () => {
 			const dir = create("/parent/", sanitisingEndpoint);
 			const file = dir.file("a/b/c");
 			expect(file.path).toBe("/parent/a/b/c");
+		});
+
+		describe("path normalization", () => {
+			test("removes '.' segments from file paths", () => {
+				const dir = create("/parent/");
+				expect(dir.file("./file.txt").path).toBe("/parent/file.txt");
+				expect(dir.file("subdir/./file.txt").path).toBe("/parent/subdir/file.txt");
+			});
+
+			test("processes '..' segments in file paths", () => {
+				const dir = create("/parent/child/");
+				expect(dir.file("../file.txt").path).toBe("/parent/file.txt");
+				expect(dir.file("../sibling/file.txt").path).toBe("/parent/sibling/file.txt");
+			});
+
+			test("normalizes complex file paths", () => {
+				const dir = create("/parent/");
+				expect(dir.file("a/b/../c/./file.txt").path).toBe("/parent/a/c/file.txt");
+			});
+
+			test("stops at root with excessive '..' like Unix (no errors)", () => {
+				const dir = create("/parent/");
+				// Excessive .. just results in file at root
+				expect(dir.file("../../file.txt").path).toBe("/file.txt");
+				expect(dir.file("../../../file.txt").path).toBe("/file.txt");
+			});
+
+			test("file at root with excessive '..'", () => {
+				const root = create("/");
+				// From root, .. just stays at root
+				expect(root.file("../file.txt").path).toBe("/file.txt");
+				expect(root.file("../../file.txt").path).toBe("/file.txt");
+			});
 		});
 	});
 

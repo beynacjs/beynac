@@ -22,38 +22,6 @@ describe(StorageDiskImpl, () => {
 		});
 	});
 
-	describe("file()", () => {
-		test("creates StorageFileImpl with correct params and leading slash", () => {
-			const endpoint = memoryStorage({});
-			const disk = create("test-disk", endpoint);
-			const file = disk.file("path/to/file.txt");
-			expect(file.path).toBe("/path/to/file.txt");
-		});
-
-		test("normalises file path and adds leading slash", () => {
-			const endpoint = memoryStorage({});
-			const disk = create("test-disk", endpoint);
-			const file = disk.file("path/to/file.txt/");
-			expect(file.path).toBe("/path/to/file.txt");
-		});
-	});
-
-	describe("directory()", () => {
-		test("creates StorageDirectoryImpl with correct params and leading slash", () => {
-			const endpoint = memoryStorage({});
-			const disk = create("test-disk", endpoint);
-			const dir = disk.directory("path/to/dir");
-			expect(dir.path).toBe("/path/to/dir/");
-		});
-
-		test("normalises directory path with leading and trailing slash", () => {
-			const endpoint = memoryStorage({});
-			const disk = create("test-disk", endpoint);
-			const dir = disk.directory("path/to/dir");
-			expect(dir.path).toBe("/path/to/dir/");
-		});
-	});
-
 	describe("directory operations delegation", () => {
 		let mockRoot: StorageDirectoryOperations;
 		let disk: StorageDiskImpl;

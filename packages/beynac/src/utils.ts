@@ -207,11 +207,3 @@ export const mapObjectValues = <K extends string | number | symbol, V, R>(
 		Object.entries(obj).map(([key, value]) => [key, callback(value as V)]),
 	) as Record<K, R>;
 };
-
-export const asyncGeneratorToArray = async <T>(generator: AsyncGenerator<T>): Promise<Array<T>> => {
-	const results: Array<T> = [];
-	for await (const result of generator) {
-		results.push(result);
-	}
-	return results;
-};

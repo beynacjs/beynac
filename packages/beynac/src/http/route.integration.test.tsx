@@ -6,6 +6,7 @@ import { Configuration, Container } from "../contracts";
 import { BaseListener, Dispatcher } from "../contracts/Dispatcher";
 import { RequestHandledEvent } from "../events";
 import { createTestApplication, MockController, mockMiddleware } from "../test-utils";
+import { abort, any, get, group, post, Router, redirect, StatusPagesMiddleware } from ".";
 import {
 	BaseController,
 	ClassController,
@@ -13,7 +14,6 @@ import {
 	type ControllerContext,
 	type ControllerReturn,
 } from "./Controller";
-import { any, get, group, post, Router, redirect } from "./index";
 import { BaseMiddleware, FunctionMiddleware } from "./Middleware";
 import { MiddlewareSet } from "./MiddlewareSet";
 
@@ -633,8 +633,6 @@ describe("status pages", () => {
 	);
 
 	test("renders custom 404 page with correct status", async () => {
-		const { StatusPagesMiddleware } = await import("./index");
-
 		router.register(
 			get("/test", () => new Response("Not Found", { status: 404 }), {
 				middleware: StatusPagesMiddleware,
@@ -650,8 +648,6 @@ describe("status pages", () => {
 	});
 
 	test("AbortException triggers status page", async () => {
-		const { StatusPagesMiddleware, abort } = await import("./index");
-
 		router.register(
 			get(
 				"/test",
@@ -672,8 +668,6 @@ describe("status pages", () => {
 	});
 
 	test("Response with error status triggers status page", async () => {
-		const { StatusPagesMiddleware } = await import("./index");
-
 		router.register(
 			get("/test", () => new Response("Not Found", { status: 404 }), {
 				middleware: StatusPagesMiddleware,
@@ -688,8 +682,6 @@ describe("status pages", () => {
 	});
 
 	test("middleware throws abort triggers status page", async () => {
-		const { StatusPagesMiddleware, abort } = await import("./index");
-
 		class AuthMiddleware extends BaseMiddleware {
 			handle(_ctx: ControllerContext) {
 				return abort.unauthorized("Not authorized");
@@ -738,8 +730,6 @@ describe("status pages", () => {
 	// });
 
 	test("Error thrown in middleware before StatusPagesMiddleware can catch it gets a default plaintext response", async () => {
-		const { abort, StatusPagesMiddleware } = await import("./index");
-
 		class EarlyMiddleware extends BaseMiddleware {
 			handle() {
 				return abort.unauthorized();

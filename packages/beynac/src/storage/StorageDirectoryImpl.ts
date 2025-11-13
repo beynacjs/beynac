@@ -1,3 +1,4 @@
+import * as nodePath from "node:path";
 import type { Dispatcher } from "../contracts/Dispatcher";
 import type {
 	StorageData,
@@ -8,8 +9,8 @@ import type {
 	StorageFilePutPayload,
 } from "../contracts/Storage";
 import { parseAttributeHeader } from "../helpers/headers";
-import { asyncGeneratorToArray, BaseClass } from "../utils";
-import { createFileName, joinSlashPaths, mimeTypeFromFileName, sanitiseName } from "./file-names";
+import { BaseClass } from "../utils";
+import { createFileName, mimeTypeFromFileName, sanitiseName } from "./file-names";
 import { StorageFileImpl } from "./StorageFileImpl";
 import { InvalidPathError } from "./storage-errors";
 import {
@@ -55,7 +56,7 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 	}
 
 	async list(): Promise<Array<StorageFile | StorageDirectory>> {
-		return asyncGeneratorToArray(this.listStreaming());
+		return Array.fromAsync(this.listStreaming());
 	}
 
 	listStreaming(): AsyncGenerator<StorageFile | StorageDirectory, void> {
@@ -85,7 +86,7 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 	}
 
 	async files(options?: { recursive?: boolean }): Promise<Array<StorageFile>> {
-		return asyncGeneratorToArray(this.filesStreaming(options));
+		return Array.fromAsync(this.filesStreaming(options));
 	}
 
 	filesStreaming(options?: { recursive?: boolean }): AsyncGenerator<StorageFile, void> {
@@ -121,7 +122,7 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 	}
 
 	async directories(): Promise<Array<StorageDirectory>> {
-		return asyncGeneratorToArray(this.directoriesStreaming());
+		return Array.fromAsync(this.directoriesStreaming());
 	}
 
 	directoriesStreaming(): AsyncGenerator<StorageDirectory, void> {
@@ -157,41 +158,40 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 
 	directory(path: string, options?: { onInvalid?: "convert" | "throw" }): StorageDirectory {
 		const parts = this.#splitAndSanitisePath(path, options?.onInvalid);
-		if (parts.length === 0) {
+		// Return self if path is empty or only contains empty segments
+		if (parts.every((p) => p === "")) {
 			return this;
 		}
-		const cleanPath = parts.join("/");
-		let fullPath = joinSlashPaths(this.path, cleanPath);
+
+		let fullPath = nodePath.normalize(nodePath.join(this.path, parts.join("/")));
+
 		if (!fullPath.endsWith("/")) {
 			fullPath += "/";
 		}
+
 		return new StorageDirectoryImpl(this.disk, this.#endpoint, fullPath, this.#dispatcher);
 	}
 
 	file(path: string, options?: { onInvalid?: "convert" | "throw" }): StorageFile {
-		const parts = this.#splitAndSanitisePath(path, options?.onInvalid);
-		if (parts.length === 0) {
+		// Check if path ends with slash (indicates directory, not file)
+		if (path.trim().endsWith("/") || path.trim() === "") {
 			throw new InvalidPathError(path, "file name cannot be empty");
 		}
-		const cleanPath = parts.join("/");
-		return new StorageFileImpl(
-			this.disk,
-			this.#endpoint,
-			joinSlashPaths(this.path, cleanPath),
-			this.#dispatcher,
-		);
+
+		const parts = this.#splitAndSanitisePath(path, options?.onInvalid);
+
+		const fullPath = nodePath.normalize(nodePath.join(this.path, parts.join("/")));
+
+		return new StorageFileImpl(this.disk, this.#endpoint, fullPath, this.#dispatcher);
 	}
 
 	#splitAndSanitisePath(path: string, onInvalid: "convert" | "throw" = "convert"): string[] {
-		const segments = path
-			.replaceAll(/^\/+|\/$/g, "")
-			.split(/\/+/g)
-			.filter(Boolean);
+		const segments = path.replaceAll(/^\/+|\/$/g, "").split(/\/+/g);
 
 		return segments.map((segment) => {
 			const sanitisedName = sanitiseName(segment, this.#endpoint.invalidNameChars);
 			if (onInvalid === "throw" && sanitisedName !== segment) {
-				const fullPath = joinSlashPaths(this.path, path);
+				const fullPath = nodePath.join(this.path, path);
 				throw InvalidPathError.forInvalidCharacters(fullPath, this.#endpoint);
 			}
 			return sanitisedName;

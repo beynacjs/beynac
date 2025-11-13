@@ -1,7 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import type { StorageDisk, StorageEndpoint } from "../../contracts/Storage";
 import { expectErrorWithProperties, mockDispatcher } from "../../test-utils";
-import { asyncGeneratorToArray } from "../../utils";
 import { StorageImpl } from "../StorageImpl";
 import { NotFoundError } from "../storage-errors";
 import { filesystemStorageSharedTestConfig } from "./filesystem/FilesystemStorageDriver.test";
@@ -206,23 +205,23 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 			});
 
 			test("endpoint.listEntries() returns relative paths for /dir/", async () => {
-				const entries = await asyncGeneratorToArray(endpoint.listEntries("/dir/"));
+				const entries = await Array.fromAsync(endpoint.listEntries("/dir/"));
 				expect(entries).toEqual(["htmlFile", "nested/", "textFile"]);
 			});
 
 			test("endpoint.listEntries() returns relative paths for root /", async () => {
-				const entries = await asyncGeneratorToArray(endpoint.listEntries("/"));
+				const entries = await Array.fromAsync(endpoint.listEntries("/"));
 				expect(entries).toEqual(["dir/", "existing.txt"]);
 			});
 
 			test("endpoint.listEntries() returns relative paths for /dir/nested/", async () => {
-				const entries = await asyncGeneratorToArray(endpoint.listEntries("/dir/nested/"));
+				const entries = await Array.fromAsync(endpoint.listEntries("/dir/nested/"));
 				expect(entries).toEqual(["deep/", "file3.txt"]);
 			});
 
 			test("endpoint.listFilesRecursive() returns relative paths for /dir/", async () => {
 				// Shared data: /dir/textFile, /dir/htmlFile, /dir/nested/file3.txt, /dir/nested/deep/file4.txt
-				const files = await asyncGeneratorToArray(endpoint.listFilesRecursive("/dir/"));
+				const files = await Array.fromAsync(endpoint.listFilesRecursive("/dir/"));
 
 				expect(files).toEqual([
 					"htmlFile",
@@ -234,7 +233,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 
 			test("endpoint.listFilesRecursive() returns relative paths for root /", async () => {
 				// Shared data: all files
-				const files = await asyncGeneratorToArray(endpoint.listFilesRecursive("/"));
+				const files = await Array.fromAsync(endpoint.listFilesRecursive("/"));
 
 				expect(files).toEqual([
 					"dir/htmlFile",
@@ -247,7 +246,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 
 			test("endpoint.listFilesRecursive() returns relative paths for /dir/nested/", async () => {
 				// Shared data: /dir/nested/file3.txt, /dir/nested/deep/file4.txt
-				const files = await asyncGeneratorToArray(endpoint.listFilesRecursive("/dir/nested/"));
+				const files = await Array.fromAsync(endpoint.listFilesRecursive("/dir/nested/"));
 
 				expect(files).toEqual(["deep/file4.txt", "file3.txt"]);
 			});
