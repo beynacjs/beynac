@@ -163,16 +163,25 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 					"/dir/nested/",
 					"/dir/textFile",
 				]);
+
+				// Shouldn't throw
+				await disk.directory("/non-existent/").list();
 			});
 
 			test("directory.files() - immediate only", async () => {
 				const files = await disk.directory("/dir/").files();
 				expect(files.map((f) => f.path)).toEqual(["/dir/htmlFile", "/dir/textFile"]);
+
+				// Shouldn't throw
+				await disk.directory("/non-existent/").files();
 			});
 
 			test("directory.files({ recursive: false })", async () => {
 				const files = await disk.directory("/dir/").files({ recursive: false });
 				expect(files.map((f) => f.path)).toEqual(["/dir/htmlFile", "/dir/textFile"]);
+
+				// Shouldn't throw
+				await disk.directory("/non-existent/").files({ recursive: false });
 			});
 
 			test("directory.files({ recursive: true })", async () => {
@@ -183,11 +192,17 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 					"/dir/nested/file3.txt",
 					"/dir/textFile",
 				]);
+
+				// Shouldn't throw
+				await disk.directory("/non-existent/").files({ recursive: true });
 			});
 
 			test("directory.directories()", async () => {
 				const dirs = await disk.directory("/dir/").directories();
 				expect(dirs.map((d) => d.path)).toEqual(["/dir/nested/"]);
+
+				// Shouldn't throw
+				await disk.directory("/non-existent/").directories();
 			});
 
 			test("endpoint.listEntries() returns relative paths for /dir/", async () => {
@@ -235,18 +250,6 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 				const files = await asyncGeneratorToArray(endpoint.listFilesRecursive("/dir/nested/"));
 
 				expect(files).toEqual(["deep/file4.txt", "file3.txt"]);
-			});
-
-			test("endpoint.listEntries() returns empty for non-existent prefix", async () => {
-				const entries = await asyncGeneratorToArray(endpoint.listEntries("/nonexistent/"));
-
-				expect(entries).toEqual([]);
-			});
-
-			test("endpoint.listFilesRecursive() returns empty for non-existent prefix", async () => {
-				const files = await asyncGeneratorToArray(endpoint.listFilesRecursive("/nonexistent/"));
-
-				expect(files).toEqual([]);
 			});
 		});
 
@@ -427,13 +430,10 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 					"/rootfile.txt",
 				]);
 
-				// Can delete already-deleted directory
+				// Can delete already deleted directory
 				await dir.deleteAll();
-				expect(await dir.exists()).toBe(false);
-
 				// Can delete directory that never existed
-				await disk.directory("/never-existed").deleteAll();
-				expect(await dir.exists()).toBe(false);
+				await disk.directory("/non-existent/").deleteAll();
 			});
 
 			test("directory.putFile()", async () => {
@@ -447,6 +447,13 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 
 				expect(await file.exists()).toBe(true);
 				expect(file.path).toBe("/uploads/test.txt");
+
+				// can overwrite
+				await dir.putFile({
+					data: "content",
+					mimeType: "text/plain",
+					suggestedName: "test.txt",
+				});
 			});
 		});
 	});

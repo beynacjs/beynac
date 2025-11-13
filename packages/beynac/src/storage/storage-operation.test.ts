@@ -27,6 +27,7 @@ describe(storageOperation, () => {
 			() => new FileReadingEvent(mockDisk, "/test.txt"),
 			(start) => new FileDeletedEvent(start),
 			dispatcher,
+			{ onNotFound: "throw" },
 		);
 
 		expect(result).toBe("async success");
@@ -46,6 +47,7 @@ describe(storageOperation, () => {
 				() => new FileDeletingEvent(mockDisk, "/test.txt"),
 				(start) => new FileDeletedEvent(start),
 				dispatcher,
+				{ onNotFound: "throw" },
 			);
 			throw new Error("Should have thrown");
 		} catch (error) {
@@ -68,6 +70,7 @@ describe(storageOperation, () => {
 				() => new FileWritingEvent(mockDisk, "/test.txt", "test data", "text/plain"),
 				(start) => new FileWrittenEvent(start),
 				dispatcher,
+				{ onNotFound: "throw" },
 			);
 			throw new Error("Should have thrown");
 		} catch (error) {
@@ -91,6 +94,7 @@ describe(storageOperation, () => {
 				() => new FileDeletingEvent(mockDisk, "/test.txt"),
 				(start) => new FileDeletedEvent(start),
 				dispatcher,
+				{ onNotFound: "throw" },
 			);
 			throw new Error("Should have thrown");
 		} catch (error) {
@@ -113,6 +117,7 @@ describe(storageOperation, () => {
 				() => new FileReadingEvent(mockDisk, "/test.txt"), // Wrong event type
 				(start) => new FileDeletedEvent(start),
 				dispatcher,
+				{ onNotFound: "throw" },
 			);
 			throw new Error("Should have thrown");
 		} catch (error) {
@@ -145,6 +150,7 @@ describe(storageOperation, () => {
 				return completedEvent;
 			},
 			dispatcher,
+			{ onNotFound: "throw" },
 		);
 
 		expect(completedEvent).toBeDefined();
@@ -165,6 +171,7 @@ describe(storageOperation, () => {
 			() => new FileDeletingEvent(mockDisk, "/test.txt"),
 			(start) => new FileDeletedEvent(start),
 			dispatcher,
+			{ onNotFound: "throw" },
 		);
 
 		const results: string[] = [];

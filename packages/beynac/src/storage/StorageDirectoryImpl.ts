@@ -50,6 +50,7 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 			() => new DirectoryExistenceCheckingEvent(this.disk, this.path),
 			(start, exists) => new DirectoryExistenceCheckedEvent(start, exists),
 			this.#dispatcher,
+			{ onNotFound: false },
 		);
 	}
 
@@ -64,6 +65,7 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 			() => new DirectoryListingEvent(this.disk, this.path, "all", false),
 			(start, count) => new DirectoryListedEvent(start, count),
 			this.#dispatcher,
+			{ onNotFound: emptyGenerator() },
 		);
 	}
 
@@ -94,6 +96,7 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 			() => new DirectoryListingEvent(this.disk, this.path, "files", recursive),
 			(start, count) => new DirectoryListedEvent(start, count),
 			this.#dispatcher,
+			{ onNotFound: emptyGenerator() },
 		);
 	}
 
@@ -128,6 +131,7 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 			() => new DirectoryListingEvent(this.disk, this.path, "directories", false),
 			(start, count) => new DirectoryListedEvent(start, count),
 			this.#dispatcher,
+			{ onNotFound: emptyGenerator() },
 		);
 	}
 
@@ -147,6 +151,7 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 			() => new DirectoryDeletingEvent(this.disk, this.path),
 			(start) => new DirectoryDeletedEvent(start),
 			this.#dispatcher,
+			{ onNotFound: undefined },
 		);
 	}
 
@@ -246,3 +251,5 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 		return `${this.#endpoint.name}:/${this.path}`;
 	}
 }
+
+const emptyGenerator = async function* () {};

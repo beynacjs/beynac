@@ -533,6 +533,9 @@ export interface StorageEndpoint {
 
 	/**
 	 * Delete all files under a prefix.
+	 *
+	 * If the prefix does not exist the implementation must either return normally
+	 * or throw a NotFoundError.
 	 */
 	deleteAllUnderPrefix(prefix: string): Promise<void>;
 }

@@ -30,7 +30,7 @@ export function storageOperation<
 		result: EventValueForFn<TFn>,
 	) => StorageOperationCompletedEvent,
 	dispatcher: Dispatcher,
-	options: { onNotFound?: Awaited<ReturnType<TFn>> } = {},
+	options: { onNotFound: "throw" | Awaited<ReturnType<TFn>> },
 ): ReturnType<TFn> {
 	const startEvent = beforeEvent();
 
@@ -41,7 +41,7 @@ export function storageOperation<
 	}
 
 	const handleStorageError = (error: unknown): ReturnType<TFn> | void => {
-		if ("onNotFound" in options && error instanceof NotFoundError) {
+		if (options.onNotFound !== "throw" && error instanceof NotFoundError) {
 			return options.onNotFound;
 		}
 
