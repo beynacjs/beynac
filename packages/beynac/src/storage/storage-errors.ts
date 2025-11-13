@@ -72,27 +72,15 @@ export class PermissionsError extends StorageError {
 }
 
 /**
- * Thrown for HTTP errors not covered by more specific error types.
- */
-export class StorageHttpError extends StorageError {
-	constructor(
-		public readonly path: string,
-		public readonly statusCode: number,
-		public readonly statusText: string,
-	) {
-		super(`HTTP error ${statusCode} (${statusText}): ${path}`);
-	}
-}
-
-/**
  * Thrown when a storage operation fails with an unexpected error. The cause is
  * available on the `cause` property.
  */
 export class StorageUnknownError extends StorageError {
 	constructor(
 		public readonly operation: string,
-		cause: Error,
+		cause: unknown,
 	) {
-		super(`Unable to ${operation}: ${cause.message}`, cause);
+		const error = cause instanceof Error ? cause : new Error(String(cause));
+		super(`Unable to ${operation}: ${error.message}`, error);
 	}
 }

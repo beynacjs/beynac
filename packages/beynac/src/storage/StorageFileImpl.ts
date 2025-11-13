@@ -3,6 +3,7 @@ import type {
 	StorageData,
 	StorageDisk,
 	StorageEndpoint,
+	StorageEndpointFileInfoResult,
 	StorageFile,
 	StorageFileFetchResult,
 	StorageFileInfo,
@@ -63,6 +64,7 @@ export class StorageFileImpl extends BaseClass implements StorageFile {
 			() => new FileDeletingEvent(this.disk, this.path),
 			(start) => new FileDeletedEvent(start),
 			this.#dispatcher,
+			{ onNotFound: undefined },
 		);
 	}
 
@@ -73,6 +75,7 @@ export class StorageFileImpl extends BaseClass implements StorageFile {
 			() => new FileExistenceCheckingEvent(this.disk, this.path),
 			(start, exists) => new FileExistenceCheckedEvent(start, exists),
 			this.#dispatcher,
+			{ onNotFound: false },
 		);
 	}
 
@@ -113,34 +116,25 @@ export class StorageFileImpl extends BaseClass implements StorageFile {
 		return await storageOperation(
 			"file:info-retrieve",
 			async (): Promise<StorageFileInfo | null> => {
-				try {
-					const endpointInfo = await this.#endpoint.getInfoSingle(this.path);
+				let endpointInfo: StorageEndpointFileInfoResult;
+				endpointInfo = await this.#endpoint.getInfoSingle(this.path);
 
-					if (!endpointInfo) {
-						return null;
-					}
-
-					let mimeType = endpointInfo.mimeType;
-					if (!mimeType || !this.#endpoint.supportsMimeTypes) {
-						mimeType = mimeTypeFromFileName(this.path) ?? "application/octet-stream";
-					}
-
-					return {
-						etag: endpointInfo.etag,
-						size: endpointInfo.contentLength,
-						mimeType,
-						originalMimeType: endpointInfo.mimeType,
-					};
-				} catch (error) {
-					if (error instanceof NotFoundError) {
-						return null;
-					}
-					throw error;
+				let mimeType = endpointInfo.mimeType;
+				if (!mimeType || !this.#endpoint.supportsMimeTypes) {
+					mimeType = mimeTypeFromFileName(this.path) ?? "application/octet-stream";
 				}
+
+				return {
+					etag: endpointInfo.etag,
+					size: endpointInfo.contentLength,
+					mimeType,
+					originalMimeType: endpointInfo.mimeType,
+				};
 			},
 			() => new FileInfoRetrievingEvent(this.disk, this.path),
 			(start, result) => new FileInfoRetrievedEvent(start, result),
 			this.#dispatcher,
+			{ onNotFound: null },
 		);
 	}
 

@@ -1,4 +1,3 @@
-import { join } from "node:path";
 import type { Dispatcher } from "../contracts/Dispatcher";
 import type {
 	StorageData,
@@ -10,7 +9,7 @@ import type {
 } from "../contracts/Storage";
 import { parseAttributeHeader } from "../helpers/headers";
 import { asyncGeneratorToArray, BaseClass } from "../utils";
-import { createFileName, mimeTypeFromFileName, sanitiseName } from "./file-names";
+import { createFileName, joinSlashPaths, mimeTypeFromFileName, sanitiseName } from "./file-names";
 import { StorageFileImpl } from "./StorageFileImpl";
 import { InvalidPathError } from "./storage-errors";
 import {
@@ -157,7 +156,7 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 			return this;
 		}
 		const cleanPath = parts.join("/");
-		let fullPath = join(this.path, cleanPath);
+		let fullPath = joinSlashPaths(this.path, cleanPath);
 		if (!fullPath.endsWith("/")) {
 			fullPath += "/";
 		}
@@ -173,7 +172,7 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 		return new StorageFileImpl(
 			this.disk,
 			this.#endpoint,
-			join(this.path, cleanPath),
+			joinSlashPaths(this.path, cleanPath),
 			this.#dispatcher,
 		);
 	}
@@ -187,7 +186,7 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 		return segments.map((segment) => {
 			const sanitisedName = sanitiseName(segment, this.#endpoint.invalidNameChars);
 			if (onInvalid === "throw" && sanitisedName !== segment) {
-				const fullPath = join(this.path, path);
+				const fullPath = joinSlashPaths(this.path, path);
 				throw InvalidPathError.forInvalidCharacters(fullPath, this.#endpoint);
 			}
 			return sanitisedName;

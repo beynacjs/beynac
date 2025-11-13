@@ -176,3 +176,17 @@ export function sanitiseName(name: string, invalidChars: string): string {
 
 	return sanitised + hashSuffix;
 }
+
+/**
+ * Joins two path segments ensuring exactly one "/" between them.
+ * Handles cases where either segment starts or ends with a slash.
+ */
+export function joinSlashPaths(a: string, b: string): string {
+	if (!a) return b;
+	if (!b) return a;
+
+	const aClean = a.endsWith("/") ? a.slice(0, -1) : a;
+	const bClean = b.startsWith("/") ? b.slice(1) : b;
+
+	return `${aClean}/${bClean}`;
+}

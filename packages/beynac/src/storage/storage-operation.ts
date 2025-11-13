@@ -1,11 +1,5 @@
 import type { Dispatcher } from "../contracts/Dispatcher";
-import {
-	NotFoundError,
-	PermissionsError,
-	StorageError,
-	StorageHttpError,
-	StorageUnknownError,
-} from "./storage-errors";
+import { NotFoundError, StorageError, StorageUnknownError } from "./storage-errors";
 import {
 	StorageOperationCompletedEvent,
 	StorageOperationFailedEvent,
@@ -36,6 +30,7 @@ export function storageOperation<
 		result: EventValueForFn<TFn>,
 	) => StorageOperationCompletedEvent,
 	dispatcher: Dispatcher,
+	options: { onNotFound?: Awaited<ReturnType<TFn>> } = {},
 ): ReturnType<TFn> {
 	const startEvent = beforeEvent();
 
@@ -45,25 +40,13 @@ export function storageOperation<
 		);
 	}
 
-	const throwStorageError = (error: unknown): never => {
-		let storageError: StorageError;
-
-		if (error instanceof StorageHttpError) {
-			const status = error.statusCode;
-			if (status === 404) {
-				storageError = new NotFoundError(error.path);
-			} else if (status === 401 || status === 403 || status === 407) {
-				storageError = PermissionsError.forHttpError(error.path, status);
-			} else {
-				storageError = error;
-			}
-		} else if (error instanceof StorageError) {
-			storageError = error;
-		} else if (error instanceof Error) {
-			storageError = new StorageUnknownError(operationType, error);
-		} else {
-			storageError = new StorageUnknownError(operationType, new Error(String(error)));
+	const handleStorageError = (error: unknown): ReturnType<TFn> | void => {
+		if ("onNotFound" in options && error instanceof NotFoundError) {
+			return options.onNotFound;
 		}
+
+		let storageError =
+			error instanceof StorageError ? error : new StorageUnknownError(operationType, error);
 
 		dispatcher.dispatch(new StorageOperationFailedEvent(startEvent, storageError));
 		throw storageError;
@@ -83,7 +66,7 @@ export function storageOperation<
 				}
 				dispatcher.dispatch(afterEvent(startEvent, count as EventValueForFn<TFn>));
 			} catch (error) {
-				throwStorageError(error);
+				handleStorageError(error);
 			}
 		})() as ReturnType<TFn>;
 	}
@@ -93,5 +76,5 @@ export function storageOperation<
 			dispatcher.dispatch(afterEvent(startEvent, value as EventValueForFn<TFn>));
 			return value;
 		})
-		.catch(throwStorageError) as ReturnType<TFn>;
+		.catch(handleStorageError) as ReturnType<TFn>;
 }

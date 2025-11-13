@@ -428,7 +428,11 @@ export interface StorageEndpoint {
 	name: string;
 
 	/**
-	 * Read a file, returning the web-standard response e.g. from the fetch() call used to make the request
+	 * Read a file
+	 *
+	 * Should throw NotFoundError if the file does not exist, PermissionsError
+	 * if the user doesn't have permission to read the file, or
+	 * StorageUnknownError in other cases.
 	 */
 	readSingle(path: string): Promise<StorageEndpointFileReadResult>;
 
@@ -446,13 +450,16 @@ export interface StorageEndpoint {
 
 	/**
 	 * Write a file.
+	 *
+	 * Should throw PermissionsError if the user doesn't have permission to
+	 * write the file, or StorageUnknownError in other cases.
 	 */
 	writeSingle(options: StorageEndpointWriteOptions): Promise<void>;
 
 	/**
-	 * Get information about a file.
+	 * Get information about a file. Should throw NotFoundError if the file does not exist.
 	 */
-	getInfoSingle(path: string): Promise<StorageEndpointFileInfoResult | null>;
+	getInfoSingle(path: string): Promise<StorageEndpointFileInfoResult>;
 
 	/**
 	 * Get an unsigned URL that will work to download this file if it is public.
@@ -470,17 +477,19 @@ export interface StorageEndpoint {
 	getTemporaryUploadUrl(path: string, expires: Date): Promise<string>;
 
 	/**
-	 * Copy a file from one path to another. Should throw if the source file does not exist.
+	 * Copy a file internally within this endpoint. Should throw NotFoundError if the source file does not exist.
 	 */
 	copy(source: string, destination: string): Promise<void>;
 
 	/**
-	 * Copy a file internally within this endpoint. Should throw if the source file does not exist.
+	 * Copy a file internally within this endpoint. Should throw NotFoundError if the source file does not exist.
 	 */
 	move(source: string, destination: string): Promise<void>;
 
 	/**
 	 * Check if a file exists at the given path.
+	 *
+	 * If the file does not exist the implementation can either return false or throw a NotFoundError.
 	 */
 	existsSingle(path: string): Promise<boolean>;
 
@@ -517,7 +526,8 @@ export interface StorageEndpoint {
 	/**
 	 * Delete a single file.
 	 *
-	 * This operation does not throw an error if the file does not exist.
+	 * If the file does not exist the implementation must either return normally
+	 * or throw a NotFoundError.
 	 */
 	deleteSingle(path: string): Promise<void>;
 
