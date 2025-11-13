@@ -3,6 +3,7 @@ import { createTypeToken } from "../container/container-key";
 import type { Container } from "../contracts";
 import type { Dispatcher } from "./Dispatcher";
 import { IntegrationContext } from "./IntegrationContext";
+import type { Storage } from "./Storage";
 
 export type QueryParams =
 	| Record<string, string | number | undefined | null | Array<string | number | undefined | null>>
@@ -52,6 +53,11 @@ export interface Application<RouteParams extends Record<string, string> = {}> {
 	 * Accessor for the event dispatcher
 	 */
 	readonly events: Dispatcher;
+
+	/**
+	 * Accessor for the storage manager
+	 */
+	readonly storage: Storage;
 
 	/**
 	 * Generate a URL for a named route with type-safe parameters and optional query string

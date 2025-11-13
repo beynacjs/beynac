@@ -3,6 +3,7 @@ import { createTypeToken } from "../container/container-key";
 import type { Routes } from "../http";
 import type { MiddlewareReference } from "../http/Middleware";
 import type { MiddlewarePriorityBuilder } from "../http/MiddlewarePriorityBuilder";
+import type { StorageEndpoint } from "./Storage";
 
 export interface Configuration<RouteParams extends Record<string, string> = {}> {
 	/**
@@ -156,6 +157,33 @@ export interface Configuration<RouteParams extends Record<string, string> = {}> 
 		 */
 		defaultProtocol?: "http" | "https" | undefined;
 	};
+
+	/**
+	 * Storage disk configuration.
+	 *
+	 * Ensure that you define the default disk. `storage.disk()` with no arguments
+	 * returns the default disk, which is `'local'` unless overridden by the
+	 * defaultDisk property.
+	 *
+	 * @example
+	 * {
+	 *   disks: {
+	 *     local: filesystemStorage({ root: '/var/storage' }),
+	 *     temp: memoryStorage({}),
+	 *   }
+	 * }
+	 */
+	disks?: Record<string, StorageEndpoint>;
+
+	/**
+	 * The default disk is returned from Storage.disk() and used when performing
+	 * directory operations directly on the storage facade, e.g. Storage.allFiles()
+	 *
+	 * If no default disk is specified, the 'local' disk will be used
+	 *
+	 * @default 'local'
+	 */
+	defaultDisk?: string | undefined;
 }
 
 export const Configuration: TypeToken<Configuration> =

@@ -1,4 +1,7 @@
+import { inject } from "../container/inject";
+import { Configuration } from "../contracts/Configuration";
 import type { Dispatcher } from "../contracts/Dispatcher";
+import { Dispatcher as DispatcherKey } from "../contracts/Dispatcher";
 import type {
 	Storage,
 	StorageDirectoryOperations,
@@ -7,9 +10,10 @@ import type {
 } from "../contracts/Storage";
 import { DelegatesToDirectory } from "./DelegatesToDirectory";
 import { MemoryStorageDriver } from "./drivers/memory/MemoryStorageDriver";
-import type { StorageConfig } from "./StorageConfig";
 import { StorageDiskImpl } from "./StorageDiskImpl";
 import { DiskNotFoundError } from "./storage-errors";
+
+type StorageConfig = Pick<Configuration, "disks" | "defaultDisk">;
 
 let anonDiskId = 0;
 
@@ -19,7 +23,10 @@ export class StorageImpl extends DelegatesToDirectory implements Storage {
 	#originalEndpoints: Map<string, StorageEndpoint> = new Map();
 	#dispatcher: Dispatcher;
 
-	constructor(config: StorageConfig, dispatcher: Dispatcher) {
+	constructor(
+		config: StorageConfig = inject(Configuration),
+		dispatcher: Dispatcher = inject(DispatcherKey),
+	) {
 		super();
 		this.#dispatcher = dispatcher;
 		for (const [name, diskConfig] of Object.entries(config.disks ?? {})) {

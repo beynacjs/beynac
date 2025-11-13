@@ -7,5 +7,6 @@ export { Headers } from "./Headers";
 export { IntegrationContext } from "./IntegrationContext";
 export { KeepAlive } from "./KeepAlive";
 export { RequestLocals } from "./RequestLocals";
+export type { StorageEndpoint } from "./Storage";
 export { Storage } from "./Storage";
 export { ViewRenderer } from "./ViewRenderer";

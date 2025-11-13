@@ -1,5 +1,5 @@
 import { ContainerImpl } from "../container/ContainerImpl";
-import { Cookies, Headers, KeepAlive, RequestLocals, ViewRenderer } from "../contracts";
+import { Cookies, Headers, KeepAlive, RequestLocals, Storage, ViewRenderer } from "../contracts";
 import { Application, UrlOptionsNoParams, UrlOptionsWithParams } from "../contracts/Application";
 import { Configuration } from "../contracts/Configuration";
 import { Container } from "../contracts/Container";
@@ -10,6 +10,7 @@ import { DevModeWatchService } from "../development/DevModeWatchService";
 import { BeynacError } from "../error";
 import { group, Router, RouteUrlGenerator } from "../http";
 import { RequestHandler } from "../http/RequestHandler";
+import { StorageImpl } from "../storage/StorageImpl";
 import { BaseClass } from "../utils";
 import { ViewRendererImpl } from "../view/ViewRendererImpl";
 import { CookiesImpl } from "./CookiesImpl";
@@ -55,6 +56,7 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 		this.container.scoped(KeepAlive, KeepAliveImpl);
 		this.container.singleton(ViewRenderer, ViewRendererImpl);
 		this.container.singleton(DispatcherKey, DispatcherImpl);
+		this.container.singleton(Storage, StorageImpl);
 		this.container.singleton(DevModeAutoRefreshMiddleware);
 		this.container.singleton(DevModeWatchService);
 		this.container.singleton(Router);
@@ -92,6 +94,10 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 
 	get events(): Dispatcher {
 		return this.container.get(DispatcherKey);
+	}
+
+	get storage(): import("../contracts/Storage").Storage {
+		return this.container.get(Storage);
 	}
 
 	url<N extends keyof RouteParams & string>(
