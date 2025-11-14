@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import type { StorageDisk } from "../contracts/Storage";
-import { expectErrorWithProperties, mockDispatcher, spyOnAll } from "../test-utils";
+import { expectError, mockDispatcher, spyOnAll } from "../test-utils";
 import { resetAllMocks } from "../testing/mocks";
 import { memoryStorage } from "./drivers/memory/MemoryStorageDriver";
 import { StorageDiskImpl } from "./StorageDiskImpl";
@@ -45,9 +45,13 @@ describe(StorageImpl, () => {
 		});
 
 		test("throws clear error when disk doesn't exist", () => {
-			expectErrorWithProperties(() => storage.disk("nonexistent"), DiskNotFoundError, {
-				diskName: "nonexistent",
-			});
+			expectError(
+				() => storage.disk("nonexistent"),
+				DiskNotFoundError,
+				(error) => {
+					expect(error.diskName).toBe("nonexistent");
+				},
+			);
 		});
 
 		test("throws when default disk doesn't exist", () => {
@@ -58,9 +62,13 @@ describe(StorageImpl, () => {
 				},
 				mockDispatcher(),
 			);
-			expectErrorWithProperties(() => storageWithoutDefault.disk(), DiskNotFoundError, {
-				diskName: "local",
-			});
+			expectError(
+				() => storageWithoutDefault.disk(),
+				DiskNotFoundError,
+				(error) => {
+					expect(error.diskName).toBe("local");
+				},
+			);
 		});
 
 		test("disk() always returns same instance for same name", () => {

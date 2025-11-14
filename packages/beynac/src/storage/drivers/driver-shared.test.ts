@@ -1,6 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import type { StorageDisk, StorageEndpoint } from "../../contracts/Storage";
-import { expectErrorWithProperties, mockDispatcher } from "../../test-utils";
+import { expectError, mockDispatcher } from "../../test-utils";
 import { StorageImpl } from "../StorageImpl";
 import { NotFoundError } from "../storage-errors";
 import { filesystemStorageSharedTestConfig } from "./filesystem/FilesystemStorageDriver.test";
@@ -11,7 +11,6 @@ import { scopedStorageSharedTestConfig } from "./scoped/ScopedStorageDriver.test
 export type SharedTestConfig = {
 	name: string;
 	createEndpoint: () => StorageEndpoint;
-	checkPaths?: boolean;
 };
 
 const driverConfigs: SharedTestConfig[] = [
@@ -20,7 +19,7 @@ const driverConfigs: SharedTestConfig[] = [
 	...scopedStorageSharedTestConfig,
 ];
 
-describe.each(driverConfigs)("$name", ({ createEndpoint, checkPaths = true }) => {
+describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 	let endpoint: StorageEndpoint;
 
 	beforeEach(() => {
@@ -84,10 +83,12 @@ describe.each(driverConfigs)("$name", ({ createEndpoint, checkPaths = true }) =>
 				expect(htmlFetchResult.response.headers.get("Content-Length")).toBe("9");
 				expect(htmlFetchResult.response.headers.get("Content-Type")).toBe(expectedHtmlMime);
 
-				await expectErrorWithProperties(
+				await expectError(
 					() => disk.file("/nonexistent.txt").fetch(),
 					NotFoundError,
-					checkPaths ? { path: "/nonexistent.txt" } : ({} as NotFoundError),
+					(error) => {
+						expect(error.path).toEndWith("/nonexistent.txt");
+					},
 				);
 			});
 
@@ -312,10 +313,12 @@ describe.each(driverConfigs)("$name", ({ createEndpoint, checkPaths = true }) =>
 					expect(await dest.exists()).toBe(true);
 
 					const missing = disk.file("/nonexistent.txt");
-					await expectErrorWithProperties(
+					await expectError(
 						() => missing.copyTo(disk.file("/dest2.txt")),
 						NotFoundError,
-						checkPaths ? { path: "/nonexistent.txt" } : ({} as NotFoundError),
+						(error) => {
+							expect(error.path).toEndWith("/nonexistent.txt");
+						},
 					);
 				});
 
@@ -329,10 +332,12 @@ describe.each(driverConfigs)("$name", ({ createEndpoint, checkPaths = true }) =>
 					expect(await dest.exists()).toBe(true);
 
 					const missing = disk.file("/nonexistent.txt");
-					await expectErrorWithProperties(
+					await expectError(
 						() => missing.copyTo(disk2.file("/dest2.txt")),
 						NotFoundError,
-						checkPaths ? { path: "/nonexistent.txt" } : ({} as NotFoundError),
+						(error) => {
+							expect(error.path).toEndWith("/nonexistent.txt");
+						},
 					);
 				});
 
@@ -367,10 +372,12 @@ describe.each(driverConfigs)("$name", ({ createEndpoint, checkPaths = true }) =>
 					expect(await source.exists()).toBe(false);
 
 					const missing = disk.file("/nonexistent.txt");
-					await expectErrorWithProperties(
+					await expectError(
 						() => missing.moveTo(disk.file("/dest2.txt")),
 						NotFoundError,
-						checkPaths ? { path: "/nonexistent.txt" } : ({} as NotFoundError),
+						(error) => {
+							expect(error.path).toEndWith("/nonexistent.txt");
+						},
 					);
 				});
 
@@ -385,10 +392,12 @@ describe.each(driverConfigs)("$name", ({ createEndpoint, checkPaths = true }) =>
 					expect(await source.exists()).toBe(false);
 
 					const missing = disk.file("/nonexistent.txt");
-					await expectErrorWithProperties(
+					await expectError(
 						() => missing.moveTo(disk2.file("/dest2.txt")),
 						NotFoundError,
-						checkPaths ? { path: "/nonexistent.txt" } : ({} as NotFoundError),
+						(error) => {
+							expect(error.path).toEndWith("/nonexistent.txt");
+						},
 					);
 				});
 

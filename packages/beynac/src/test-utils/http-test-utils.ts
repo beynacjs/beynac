@@ -1,17 +1,11 @@
-import type { Mock} from "bun:test";
+import type { Mock } from "bun:test";
 import { mock } from "bun:test";
-import type { IntegrationContext } from "../contracts";
-import type { Application, Container } from "../contracts";
+import type { Application, Container, IntegrationContext } from "../contracts";
 import type { Configuration } from "../contracts/Configuration";
 import { createApplication } from "../entry";
 import { ResourceController } from "../http";
-import type {
-	BaseController,
-	ControllerContext,
-	FunctionController} from "../http/Controller";
-import {
-	type ControllerReturn
-} from "../http/Controller";
+import type { BaseController, ControllerContext, FunctionController } from "../http/Controller";
+import { type ControllerReturn } from "../http/Controller";
 import { type ClassMiddleware } from "../http/Middleware";
 import { Router } from "../http/Router";
 

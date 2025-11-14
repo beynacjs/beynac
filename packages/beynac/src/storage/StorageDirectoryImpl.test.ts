@@ -3,7 +3,7 @@ import { ContainerImpl } from "../container/ContainerImpl";
 import type { Dispatcher } from "../contracts/Dispatcher";
 import type { StorageDirectory, StorageEndpoint } from "../contracts/Storage";
 import { DispatcherImpl } from "../core/DispatcherImpl";
-import { expectErrorWithProperties, mockDispatcher } from "../test-utils";
+import { expectError, mockDispatcher } from "../test-utils";
 import { mockCurrentTime } from "../testing";
 import { memoryStorage } from "./drivers/memory/MemoryStorageDriver";
 import { StorageDirectoryImpl } from "./StorageDirectoryImpl";
@@ -57,10 +57,14 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("throws when trailing slash is missing", () => {
-			expectErrorWithProperties(() => create("/path/to/dir"), InvalidPathError, {
-				path: "/path/to/dir",
-				reason: "directory paths must start and end with a slash",
-			});
+			expectError(
+				() => create("/path/to/dir"),
+				InvalidPathError,
+				(error) => {
+					expect(error.path).toBe("/path/to/dir");
+					expect(error.reason).toBe("directory paths must start and end with a slash");
+				},
+			);
 		});
 
 		test("throws when leading slash is missing", () => {
@@ -259,12 +263,12 @@ describe(StorageDirectoryImpl, () => {
 
 			expect(() => dir.directory("a<<b", { onInvalid: "throw" })).toThrow(InvalidPathError);
 
-			expectErrorWithProperties(
+			expectError(
 				() => dir.directory("a<<b", { onInvalid: "throw" }),
 				InvalidPathError,
-				{
-					path: "/parent/a<<b",
-					reason: "memory driver does not allow <> in names",
+				(error) => {
+					expect(error.path).toBe("/parent/a<<b");
+					expect(error.reason).toBe("memory driver does not allow <> in names");
 				},
 			);
 		});
@@ -346,14 +350,22 @@ describe(StorageDirectoryImpl, () => {
 
 		test("throws when filename is empty", () => {
 			const dir = create("/parent/");
-			expectErrorWithProperties(() => dir.file(""), InvalidPathError, {
-				path: "",
-				reason: "file name cannot be empty",
-			});
-			expectErrorWithProperties(() => dir.file("subdir/"), InvalidPathError, {
-				path: "subdir/",
-				reason: "file name cannot be empty",
-			});
+			expectError(
+				() => dir.file(""),
+				InvalidPathError,
+				(error) => {
+					expect(error.path).toBe("");
+					expect(error.reason).toBe("file name cannot be empty");
+				},
+			);
+			expectError(
+				() => dir.file("subdir/"),
+				InvalidPathError,
+				(error) => {
+					expect(error.path).toBe("subdir/");
+					expect(error.reason).toBe("file name cannot be empty");
+				},
+			);
 		});
 
 		test("from root directory creates correct path with leading slash", () => {

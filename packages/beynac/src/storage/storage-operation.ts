@@ -1,7 +1,6 @@
 import type { Dispatcher } from "../contracts/Dispatcher";
 import { NotFoundError, StorageError, StorageUnknownError } from "./storage-errors";
-import type {
-	StorageOperationCompletedEvent} from "./storage-events";
+import type { StorageOperationCompletedEvent } from "./storage-events";
 import {
 	StorageOperationFailedEvent,
 	type StorageOperationStartingEvent,
@@ -61,7 +60,7 @@ export function storageOperation<
 		return (async function* () {
 			let count = 0;
 			try {
-				for await (const value of result as AsyncGenerator<unknown, unknown, unknown>) {
+				for await (const value of result) {
 					count++;
 					yield value;
 				}

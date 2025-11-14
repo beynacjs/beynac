@@ -1,19 +1,15 @@
 import { expect } from "bun:test";
 
-type ErrorOwnProperties<T extends Error> = Omit<T, keyof Error>;
-
 type Voidify<T> = T extends Promise<unknown> ? Promise<void> : void;
 
-export function expectErrorWithProperties<T extends Error, R>(
+export function expectError<T extends Error, R>(
 	fn: () => R,
 	errorClass: new (...args: never[]) => T,
-	properties: ErrorOwnProperties<T>,
+	assertError: (error: T) => void,
 ): Voidify<R> {
 	const checkThrownValue = (err: unknown) => {
 		expect(err).toBeInstanceOf(errorClass);
-		for (const [key, value] of Object.entries(properties)) {
-			expect((err as Record<string, unknown>)[key]).toBe(value);
-		}
+		assertError(err as T);
 	};
 	const shouldHaveThrown = () => {
 		throw new Error(`Expected function to throw ${errorClass.name}`);

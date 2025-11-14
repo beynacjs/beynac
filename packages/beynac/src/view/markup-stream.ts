@@ -1,5 +1,5 @@
 import { arrayWrap, BaseClass } from "../utils";
-import type { JSXElement} from "./public-types";
+import type { JSXElement } from "./public-types";
 import { type JSXNode, tagAsJsxElement } from "./public-types";
 
 /**

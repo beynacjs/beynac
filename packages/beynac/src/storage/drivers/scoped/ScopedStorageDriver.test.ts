@@ -22,7 +22,6 @@ export const scopedStorageSharedTestConfig: SharedTestConfig[] = [
 				disk: memoryStorage(),
 				prefix: "/scoped/",
 			}),
-		checkPaths: false,
 	},
 ];
 

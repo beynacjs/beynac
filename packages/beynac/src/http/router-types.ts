@@ -1,7 +1,7 @@
 import type { TypeToken } from "../container/container-key";
 import { createTypeToken } from "../container/container-key";
 import type { Component } from "../view/Component";
-import type { Controller} from "./Controller";
+import type { Controller } from "./Controller";
 import { type ControllerContext } from "./Controller";
 import type { MiddlewareReference } from "./Middleware";
 import type { MiddlewareSet } from "./MiddlewareSet";

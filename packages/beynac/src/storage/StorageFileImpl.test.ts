@@ -4,7 +4,7 @@ import type { Dispatcher } from "../contracts/Dispatcher";
 import type { StorageEndpoint, StorageFile } from "../contracts/Storage";
 import { DispatcherImpl } from "../core/DispatcherImpl";
 import { mockCurrentTime, resetMockTime } from "../helpers/time";
-import { expectErrorWithProperties, mockDispatcher, spyOnAll } from "../test-utils";
+import { expectError, mockDispatcher, spyOnAll } from "../test-utils";
 import { memoryStorage } from "./drivers/memory/MemoryStorageDriver";
 import { StorageDiskImpl } from "./StorageDiskImpl";
 import { StorageFileImpl } from "./StorageFileImpl";
@@ -58,10 +58,14 @@ describe(StorageFileImpl, () => {
 			expect(() => create("")).toThrowError(InvalidPathError);
 			expect(() => create("foo.txt")).toThrowError(InvalidPathError);
 
-			expectErrorWithProperties(() => create("foo.txt"), InvalidPathError, {
-				path: "foo.txt",
-				reason: "must start with a slash",
-			});
+			expectError(
+				() => create("foo.txt"),
+				InvalidPathError,
+				(error) => {
+					expect(error.path).toBe("foo.txt");
+					expect(error.reason).toBe("must start with a slash");
+				},
+			);
 		});
 	});
 
@@ -105,9 +109,13 @@ describe(StorageFileImpl, () => {
 			const file = disk.file("nonexistent.txt");
 			expect(file.fetch()).rejects.toThrow(NotFoundError);
 
-			await expectErrorWithProperties(() => file.fetch(), NotFoundError, {
-				path: "/nonexistent.txt",
-			});
+			await expectError(
+				() => file.fetch(),
+				NotFoundError,
+				(error) => {
+					expect(error.path).toBe("/nonexistent.txt");
+				},
+			);
 		});
 
 		test("infers missing MIME type from extension when supportsMimeTypes is false", async () => {
@@ -444,9 +452,13 @@ describe(StorageFileImpl, () => {
 			const dest = disk2.file("dest.txt");
 			expect(source.copyTo(dest)).rejects.toThrow(NotFoundError);
 
-			await expectErrorWithProperties(() => source.copyTo(dest), NotFoundError, {
-				path: "/nonexistent.txt",
-			});
+			await expectError(
+				() => source.copyTo(dest),
+				NotFoundError,
+				(error) => {
+					expect(error.path).toBe("/nonexistent.txt");
+				},
+			);
 		});
 	});
 

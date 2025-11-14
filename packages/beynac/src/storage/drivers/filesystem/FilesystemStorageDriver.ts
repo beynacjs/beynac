@@ -110,7 +110,7 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 		const fsPath = this.#toFilesystemPath(path);
 		const buffer = await new Response(data).arrayBuffer();
 
-		await withNodeErrors(path, async () => {
+		await withNodeErrors(fsPath, async () => {
 			await this.#ensureParentDirectoryExists(fsPath);
 			await fs.writeFile(fsPath, new Uint8Array(buffer));
 		});
@@ -119,11 +119,11 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 	async readSingle(path: string): Promise<StorageEndpointFileReadResult> {
 		const fsPath = this.#toFilesystemPath(path);
 
-		return await withNodeErrors(path, async () => {
+		return await withNodeErrors(fsPath, async () => {
 			const stats = await fs.stat(fsPath);
 			const nodeStream = createReadStream(fsPath);
 			const webStream = Readable.toWeb(nodeStream);
-			const wrappedStream = wrapStreamErrors(webStream, (error) => convertNodeError(error, path));
+			const wrappedStream = wrapStreamErrors(webStream, (error) => convertNodeError(error, fsPath));
 			return {
 				contentLength: stats.size,
 				mimeType: null,
@@ -136,7 +136,7 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 	async getInfoSingle(path: string): Promise<StorageEndpointFileInfoResult> {
 		const fsPath = this.#toFilesystemPath(path);
 
-		const stats = await withNodeErrors(path, () => fs.stat(fsPath));
+		const stats = await withNodeErrors(fsPath, () => fs.stat(fsPath));
 
 		return {
 			contentLength: stats.size,
@@ -152,14 +152,14 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 
 	async deleteSingle(path: string): Promise<void> {
 		const fsPath = this.#toFilesystemPath(path);
-		await withNodeErrors(path, () => fs.unlink(fsPath));
+		await withNodeErrors(fsPath, () => fs.unlink(fsPath));
 	}
 
 	async copy(source: string, destination: string): Promise<void> {
 		const sourceFsPath = this.#toFilesystemPath(source);
 		const destFsPath = this.#toFilesystemPath(destination);
 
-		await withNodeErrors(source, async () => {
+		await withNodeErrors(sourceFsPath, async () => {
 			await this.#ensureParentDirectoryExists(destFsPath);
 			await fs.copyFile(sourceFsPath, destFsPath);
 		});
@@ -169,7 +169,7 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 		const sourceFsPath = this.#toFilesystemPath(source);
 		const destFsPath = this.#toFilesystemPath(destination);
 
-		await withNodeErrors(source, async () => {
+		await withNodeErrors(sourceFsPath, async () => {
 			await this.#ensureParentDirectoryExists(destFsPath);
 			await fs.rename(sourceFsPath, destFsPath);
 		});
@@ -216,17 +216,17 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 
 	async existsAnyUnderPrefix(prefix: string): Promise<boolean> {
 		// Only check for files, not empty directories
-		const generator = this.list(prefix, true, true);
+		const generator = this.#list(prefix, true, true);
 		const first = await generator.next();
 		return !first.done;
 	}
 
 	async *listEntries(prefix: string): AsyncGenerator<string, void> {
-		yield* this.list(prefix, false, false);
+		yield* this.#list(prefix, false, false);
 	}
 
 	async *listFilesRecursive(prefix: string): AsyncGenerator<string, void> {
-		yield* this.list(prefix, true, true);
+		yield* this.#list(prefix, true, true);
 	}
 
 	async deleteAllUnderPrefix(prefix: string): Promise<void> {
@@ -245,7 +245,7 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 	/**
 	 * Core list implementation that buffers results in memory
 	 */
-	private async *list(
+	async *#list(
 		prefix: string,
 		filesOnly: boolean,
 		recursive: boolean,
@@ -298,22 +298,14 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 		}
 	}
 
-	/**
-	 * Convert storage path to filesystem path
-	 */
 	#toFilesystemPath(storagePath: string): string {
-		// Remove leading slash and join with root path
-		const relativePath = storagePath.startsWith("/") ? storagePath.slice(1) : storagePath;
-		return join(this.#rootPath, relativePath);
+		return join(this.#rootPath, storagePath);
 	}
 
 	async #ensureParentDirectoryExists(path: string): Promise<void> {
 		await fs.mkdir(dirname(path), { recursive: true });
 	}
 
-	/**
-	 * Generate ETag from file stats (hash of mtime + size)
-	 */
 	#generateEtag(stats: fsSync.Stats): string {
 		const data = `${stats.mtimeMs}-${stats.size}`;
 		return createHash("sha256").update(data).digest("hex");

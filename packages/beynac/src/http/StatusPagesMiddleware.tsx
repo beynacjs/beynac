@@ -6,13 +6,8 @@ import { RequestLocals, ViewRenderer } from "../contracts";
 import { AbortException, abort, abortExceptionKey } from "./abort";
 import type { ControllerContext } from "./Controller";
 import { BaseMiddleware, type MiddlewareNext } from "./Middleware";
-import type {
-	RouteDefinition,
-	StatusPages} from "./router-types";
-import {
-	CurrentRouteDefinition,
-	type StatusPageComponent
-} from "./router-types";
+import type { RouteDefinition, StatusPages } from "./router-types";
+import { CurrentRouteDefinition, type StatusPageComponent } from "./router-types";
 
 /**
  * Middleware that renders custom error pages for 4xx and 5xx responses.
