@@ -1,4 +1,3 @@
-import * as nodePath from "node:path";
 import type { Dispatcher } from "../contracts/Dispatcher";
 import type {
 	StorageData,
@@ -11,6 +10,7 @@ import type {
 import { parseAttributeHeader } from "../helpers/headers";
 import { BaseClass } from "../utils";
 import { createFileName, mimeTypeFromFileName, sanitiseName } from "./file-names";
+import { posix } from "./path";
 import { StorageFileImpl } from "./StorageFileImpl";
 import { InvalidPathError } from "./storage-errors";
 import {
@@ -163,7 +163,7 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 			return this;
 		}
 
-		let fullPath = nodePath.normalize(nodePath.join(this.path, parts.join("/")));
+		let fullPath = posix.normalize(posix.join(this.path, parts.join("/")));
 
 		if (!fullPath.endsWith("/")) {
 			fullPath += "/";
@@ -173,25 +173,25 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 	}
 
 	file(path: string, options?: { onInvalid?: "convert" | "throw" }): StorageFile {
-		// Check if path ends with slash (indicates directory, not file)
-		if (path.trim().endsWith("/") || path.trim() === "") {
+		if (path.endsWith("/") || path.endsWith("\\") || path === "") {
 			throw new InvalidPathError(path, "file name cannot be empty");
 		}
 
 		const parts = this.#splitAndSanitisePath(path, options?.onInvalid);
 
-		const fullPath = nodePath.normalize(nodePath.join(this.path, parts.join("/")));
+		const fullPath = posix.normalize(posix.join(this.path, parts.join("/")));
 
 		return new StorageFileImpl(this.disk, this.#endpoint, fullPath, this.#dispatcher);
 	}
 
 	#splitAndSanitisePath(path: string, onInvalid: "convert" | "throw" = "convert"): string[] {
-		const segments = path.replaceAll(/^\/+|\/$/g, "").split(/\/+/g);
+		path = path.trim().replaceAll(/\s/g, "_");
+		const segments = path.replaceAll(/^[\\/]+|[\\/]$/g, "").split(/[\\/]+/g);
 
 		return segments.map((segment) => {
 			const sanitisedName = sanitiseName(segment, this.#endpoint.invalidNameChars);
 			if (onInvalid === "throw" && sanitisedName !== segment) {
-				const fullPath = nodePath.join(this.path, path);
+				const fullPath = posix.join(this.path, path);
 				throw InvalidPathError.forInvalidCharacters(fullPath, this.#endpoint);
 			}
 			return sanitisedName;

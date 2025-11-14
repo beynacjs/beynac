@@ -1,14 +1,28 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { StorageEndpoint } from "../../../contracts";
-import { mockTmpDirectory, resetAllMocks } from "../../../testing/mocks";
+import { resetAllMocks } from "../../../testing";
+import { resetAllTestDirectories, testDirectory } from "../../../testing/mocks";
+import { mockPlatformPaths } from "../../path";
 import { StorageUnknownError } from "../../storage-errors";
 import type { SharedTestConfig } from "../driver-shared.test";
 import { filesystemStorage } from "./FilesystemStorageDriver";
 
+beforeEach(() => {
+	mockPlatformPaths("posix");
+});
+
+afterEach(() => {
+	resetAllMocks();
+});
+
+afterAll(() => {
+	resetAllTestDirectories();
+});
+
 function filesystemStorageWithTmpDir(): StorageEndpoint {
-	const tempDir = mockTmpDirectory();
+	const tempDir = testDirectory({ cleanUpOn: "manual" });
 	return filesystemStorage({
 		rootPath: tempDir,
 		publicUrlPrefix: "https://example.com/files",
@@ -45,7 +59,7 @@ describe(filesystemStorage, () => {
 		};
 
 		beforeEach(() => {
-			tempDir = mockTmpDirectory();
+			tempDir = testDirectory({ cleanUpOn: "manual" });
 			storage = filesystemStorage({
 				rootPath: tempDir,
 				publicUrlPrefix: "https://example.com/files",

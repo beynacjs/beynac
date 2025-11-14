@@ -6,6 +6,7 @@ import { DispatcherImpl } from "../core/DispatcherImpl";
 import { expectError, mockDispatcher } from "../test-utils";
 import { mockCurrentTime } from "../testing";
 import { memoryStorage } from "./drivers/memory/MemoryStorageDriver";
+import { mockPlatformPaths } from "./path";
 import { StorageDirectoryImpl } from "./StorageDirectoryImpl";
 import { StorageDiskImpl } from "./StorageDiskImpl";
 import { StorageFileImpl } from "./StorageFileImpl";
@@ -31,6 +32,7 @@ describe(StorageDirectoryImpl, () => {
 	let dispatcher: Dispatcher;
 
 	beforeEach(() => {
+		mockPlatformPaths("posix");
 		endpoint = memoryStorage({
 			initialFiles: {
 				"/subdir/file1.txt": "file 1",
@@ -101,10 +103,7 @@ describe(StorageDirectoryImpl, () => {
 	describe("listStreaming()", () => {
 		test("yields immediate files and directories", async () => {
 			const dir = create("/subdir/");
-			const entries = [];
-			for await (const entry of dir.listStreaming()) {
-				entries.push(entry);
-			}
+			const entries = await Array.fromAsync(dir.listStreaming());
 			expect(getPaths(entries)).toEqual([
 				"/subdir/a/",
 				"/subdir/b/",
@@ -144,10 +143,7 @@ describe(StorageDirectoryImpl, () => {
 	describe("filesStreaming()", () => {
 		test("yields files directly in directory when no options provided", async () => {
 			const dir = create("/subdir/");
-			const files = [];
-			for await (const file of dir.filesStreaming()) {
-				files.push(file);
-			}
+			const files = await Array.fromAsync(dir.filesStreaming());
 			expect(getPaths(files)).toEqual(["/subdir/file1.txt", "/subdir/file2.txt"]);
 		});
 
@@ -178,10 +174,7 @@ describe(StorageDirectoryImpl, () => {
 	describe("directoriesStreaming()", () => {
 		test("yields direct subdirectories", async () => {
 			const dir = create("/subdir/");
-			const directories = [];
-			for await (const directory of dir.directoriesStreaming()) {
-				directories.push(directory);
-			}
+			const directories = await Array.fromAsync(dir.directoriesStreaming());
 			expect(getPaths(directories)).toEqual(["/subdir/a/", "/subdir/b/"]);
 		});
 	});
@@ -299,7 +292,17 @@ describe(StorageDirectoryImpl, () => {
 				expect(dir.directory("./a/../b").path).toBe("/parent/b/");
 			});
 
-			test("stops at root with excessive '..' like Unix (no errors)", () => {
+			test("handles windows-style paths", () => {
+				const dir = create("/parent/");
+				expect(dir.directory("\\foo\\bar").path).toBe("/parent/foo/bar/");
+				expect(dir.directory("\\foo\\bar\\").path).toBe("/parent/foo/bar/");
+				expect(dir.directory("foo\\bar").path).toBe("/parent/foo/bar/");
+				expect(dir.directory("foo\\bar\\").path).toBe("/parent/foo/bar/");
+				expect(dir.file("\\foo\\bar").path).toBe("/parent/foo/bar");
+				expect(dir.file("foo\\bar").path).toBe("/parent/foo/bar");
+			});
+
+			test("stops at root with excessive '..'", () => {
 				const dir = create("/parent/child/");
 				// Trying to go above root just results in root
 				expect(dir.directory("../../..").path).toBe("/");
@@ -348,6 +351,12 @@ describe(StorageDirectoryImpl, () => {
 			expect(file.path).toBe("/parent/test.txt");
 		});
 
+		test("converts spaces to underscores", () => {
+			const dir = create("/parent/");
+			const file = dir.directory(" foo\fbar ").file("  test \t.txt ");
+			expect(file.path).toBe("/parent/foo_bar/test__.txt");
+		});
+
 		test("throws when filename is empty", () => {
 			const dir = create("/parent/");
 			expectError(
@@ -363,6 +372,14 @@ describe(StorageDirectoryImpl, () => {
 				InvalidPathError,
 				(error) => {
 					expect(error.path).toBe("subdir/");
+					expect(error.reason).toBe("file name cannot be empty");
+				},
+			);
+			expectError(
+				() => dir.file("subdir\\"),
+				InvalidPathError,
+				(error) => {
+					expect(error.path).toBe("subdir\\");
 					expect(error.reason).toBe("file name cannot be empty");
 				},
 			);

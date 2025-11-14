@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mock, resetAllMocks } from "../../testing/mocks";
+import { describe, expect, test } from "bun:test";
+import { mock } from "../../testing/mocks";
 import { scrypt, scryptSync, verifyScrypt, verifyScryptSync } from "./scrypt";
 
 // Use minimal rounds for fast testing
@@ -77,10 +77,6 @@ describe(verifyScryptSync, () => {
 });
 
 describe("mocking", () => {
-	afterEach(() => {
-		resetAllMocks();
-	});
-
 	test("scrypt can be mocked", async () => {
 		mock(scrypt, async () => "foo");
 		const hash = await scrypt("password");

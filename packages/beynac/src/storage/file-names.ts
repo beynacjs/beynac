@@ -1,7 +1,7 @@
-import { basename, extname } from "node:path";
 import { sha256 } from "../helpers/hash/sha";
 import * as str from "../helpers/str";
 import { regExpEscape } from "../utils";
+import { posix } from "./path";
 
 /**
  * MIME type and file name handling for storage operations. Based on Chrome's
@@ -116,7 +116,7 @@ const getMimeForExtension = (extension: string): string | undefined => {
 };
 
 export function mimeTypeFromFileName(nameOrPath: string): string | null {
-	const extension = extname(nameOrPath.toLowerCase());
+	const extension = posix.extname(nameOrPath.toLowerCase());
 	return getMimeForExtension(extension) ?? null;
 }
 
@@ -126,7 +126,7 @@ export function createFileName(
 	supportsMimeTypes: boolean,
 ): string {
 	let usedRandomId = false;
-	let name = basename(suggestedName?.trim() ?? "");
+	let name = posix.basename(suggestedName?.trim() ?? "");
 	if (!name) {
 		// Use all caps so that they're unique on case-insensitive filesystems
 		name = str.random(20, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ");
@@ -138,7 +138,7 @@ export function createFileName(
 	if (!supportsMimeTypes || usedRandomId) {
 		const expectedExtension = getExtensionForMime(cleanMimeType);
 		if (expectedExtension) {
-			const extension = extname(name).toLowerCase();
+			const extension = posix.extname(name).toLowerCase();
 
 			if (extension) {
 				const currentMime = getMimeForExtension(extension);
@@ -168,7 +168,7 @@ export function sanitiseName(name: string, invalidChars: string): string {
 	const hash = sha256(name);
 	const hashSuffix = `-${hash.slice(0, 8)}`;
 
-	const extension = extname(sanitised);
+	const extension = posix.extname(sanitised);
 	if (extension) {
 		const nameWithoutExt = sanitised.slice(0, -extension.length);
 		return nameWithoutExt + hashSuffix + extension;

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { readdirSync, readFileSync } from "fs";
-import { basename } from "path";
+import { readdirSync, readFileSync } from "node:fs";
+import { basename } from "node:path";
 import { isTypeToken } from "../container/container-key";
 
 describe("Contracts", () => {

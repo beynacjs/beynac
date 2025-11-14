@@ -28,10 +28,10 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 
 	describe("Shared Integration Tests", () => {
 		describe("Read-only file and directory operations", () => {
-			// Shared init for all read-only tests for performance
 			let storage: StorageImpl;
 			let disk: StorageDisk;
 			let endpoint: StorageEndpoint;
+
 			beforeAll(async () => {
 				endpoint = createEndpoint();
 				storage = new StorageImpl(

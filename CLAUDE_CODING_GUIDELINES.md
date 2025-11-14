@@ -39,9 +39,12 @@ These guidelines must be followed when writing code for the Beynac project. Afte
         - ✅ CORRECT: `{ optional?: string | undefined }`
         - ❌ WRONG: `{ optional?: string }`
 
-- **Avoid dynamic imports with static names**
-    - ✅ CORRECT: `import fsPromises from "node:fs/promises";`
-    - ❌ WRONG: `await import("node:fs/promises")`
+- **Use static imports at the top of the file**
+    - ✅ CORRECT: `import fs from "node:fs/promises";`
+    - ❌ WRONG: `await import("node:fs/promises")` -- dynamic imports are not allowed
+    - ❌ WRONG: `const promises = require("node:fs/promises")` -- require is not allowed, either at the top of files or in code
+    - ❌ WRONG: `function processPath(path: string): import("node:path").ParsedPath` -- inline import in type annotation
+    - If at any point it looks like using one of these patterns is the only way to implement a feature, stop and explain the issue. There is ALWAYS a better way.
 
 - **Do not rename exports in barrel files**
     - ✅ CORRECT: `export { foo } from "./foo";`

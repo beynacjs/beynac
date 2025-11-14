@@ -344,18 +344,28 @@ export interface StorageDirectoryOperations {
 	deleteAll(): Promise<void>;
 
 	/**
-	 * Return a directory reference by resolving a path relative to this directory.
+	 * Return a directory reference by resolving a path relative to this
+	 * directory.
+	 *
+	 * You can descend multiple directories in one call with
+	 * directory("foo/bar/baz"). Windows-style paths like "foo\\bar\\baz" are
+	 * also supported, and are converted to forward slashes.
+	 *
+	 * Paths are trimmed of leading and trailing whitespace and internal spaces
+	 * converted to underscores.
 	 *
 	 * By default, handles invalid filenames by generating a unique valid
-	 * filename. This can cause surprising results if you write files using
-	 * this API then try to read them using a different system. For example,
-	 * if you try to save a file called "test:file" to a filesystem that
-	 * doesn't support colons, the file will be saved as
-	 * "test_file-3c5b0673" (3c5b0673 is a hash of the original name).
+	 * filename. This can cause surprising results if you write files using this
+	 * API then try to read them using a different system. For example, if you
+	 * try to save a file called "test:file" to a filesystem that doesn't
+	 * support colons, the file will be saved as "test_file-3c5b0673" (3c5b0673
+	 * is a hash of the original name).
 	 *
-	 * @param [options.onInvalid] - "convert" to generate valid file names (the default), or "error" to throw an error
+	 * @param [options.onInvalid] - "convert" to generate valid file names (the
+	 *                              default), or "error" to throw an error
 	 *
-	 * @path a directory name e.g. "pokemon" or path e.g. "pokemon/pikachu/images"
+	 * @param path - a directory name e.g. "pokemon" or path e.g.
+	 *               "pokemon/pikachu/images"
 	 */
 	directory(path: string, options?: FileSanitiseOptions): StorageDirectory;
 
@@ -363,7 +373,11 @@ export interface StorageDirectoryOperations {
 	 * Return a file reference by resolving a path relative to this directory.
 	 *
 	 * Slashes in the filename are interpreted as directory names, so
-	 * "foo/bar.txt" returns a file in the "foo" subdirectory.
+	 * "foo/bar.txt" returns a file in the "foo" subdirectory. Windows-style paths
+	 * like "foo\\bar.txt" are also supported, and are converted to forward slashes.
+	 *
+	 * Paths are trimmed of leading and trailing whitespace and internal spaces
+	 * converted to underscores.
 	 *
 	 * By default, handles invalid filenames by generating a unique valid
 	 * filename. This can cause surprising results if you write files using

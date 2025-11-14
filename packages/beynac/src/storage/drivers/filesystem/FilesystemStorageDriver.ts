@@ -2,12 +2,8 @@ import { createHash } from "node:crypto";
 import type * as fsSync from "node:fs";
 import { createReadStream, createWriteStream } from "node:fs";
 import * as fs from "node:fs/promises";
-import { dirname, join } from "node:path";
 import { pipeline, Readable } from "node:stream";
 import { promisify } from "node:util";
-
-const pipelineAsync = promisify(pipeline);
-
 import type {
 	StorageEndpoint,
 	StorageEndpointFileInfoResult,
@@ -16,7 +12,10 @@ import type {
 } from "../../../contracts/Storage";
 import { BaseClass } from "../../../utils";
 import { joinSlashPaths } from "../../file-names";
+import { platform } from "../../path";
 import { NotFoundError, PermissionsError, StorageUnknownError } from "../../storage-errors";
+
+const pipelineAsync = promisify(pipeline);
 
 /**
  * Configuration for the filesystem driver
@@ -236,7 +235,7 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 					return true;
 				}
 				if (dirent.isDirectory()) {
-					const subPath = join(fsPath, dirent.name);
+					const subPath = platform.join(fsPath, dirent.name);
 					if (await this.#hasAnyFile(subPath)) {
 						return true;
 					}
@@ -263,8 +262,7 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 
 	async *listEntries(prefix: string): AsyncGenerator<string, void> {
 		yield* this.#streamDirectory({
-			relativePath: "",
-			fsPath: this.#toFilesystemPath(prefix),
+			rootFsPath: this.#toFilesystemPath(prefix),
 			filesOnly: false,
 			recursive: false,
 		});
@@ -272,8 +270,7 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 
 	async *listFilesRecursive(prefix: string): AsyncGenerator<string, void> {
 		yield* this.#streamDirectory({
-			relativePath: "",
-			fsPath: this.#toFilesystemPath(prefix),
+			rootFsPath: this.#toFilesystemPath(prefix),
 			filesOnly: true,
 			recursive: true,
 		});
@@ -290,19 +287,20 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 	}
 
 	async *#streamDirectory(options: {
-		relativePath: string;
-		fsPath: string;
+		rootFsPath: string;
 		filesOnly: boolean;
 		recursive: boolean;
+		relativePath?: string;
 	}): AsyncGenerator<string, void> {
-		const { relativePath, fsPath, filesOnly, recursive } = options;
-
+		const { relativePath, rootFsPath, filesOnly, recursive } = options;
 		const entries: string[] = [];
+
+		const currentPath = relativePath ? platform.join(rootFsPath, relativePath) : rootFsPath;
 
 		let dir: fsSync.Dir | undefined;
 
 		try {
-			dir = await fs.opendir(fsPath);
+			dir = await fs.opendir(currentPath);
 			for await (const dirent of dir) {
 				if (dirent.isDirectory()) {
 					entries.push(`${dirent.name}/`);
@@ -311,7 +309,7 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 				}
 			}
 		} catch (error) {
-			const storageError = convertNodeError(error, fsPath);
+			const storageError = convertNodeError(error, rootFsPath);
 			if (storageError instanceof NotFoundError) {
 				if (entries.length > 0) {
 					// If we successfully got the first entry, but later got a
@@ -338,10 +336,9 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 			}
 
 			if (recursive && isDirectory) {
-				const subFsPath = join(fsPath, entry.slice(0, -1));
 				yield* this.#streamDirectory({
 					relativePath: entryPath.slice(0, -1),
-					fsPath: subFsPath,
+					rootFsPath,
 					filesOnly,
 					recursive,
 				});
@@ -350,11 +347,11 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 	}
 
 	#toFilesystemPath(storagePath: string): string {
-		return join(this.#rootPath, storagePath);
+		return platform.join(this.#rootPath, storagePath);
 	}
 
 	async #ensureParentDirectoryExists(path: string): Promise<void> {
-		await fs.mkdir(dirname(path), { recursive: true });
+		await fs.mkdir(platform.dirname(path), { recursive: true });
 	}
 
 	#generateEtag(stats: fsSync.Stats): string {

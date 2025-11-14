@@ -7,12 +7,29 @@
     "source.fixAll.biome": "explicit"
   },
   "cSpell.words": [
+    "apa",
     "Beynac",
+    "beynac",
+    "bitmask",
+    "bouche",
     "bunfig",
+    "crockford",
     "jsxs",
     "laravel",
+    "lexicographically",
+    "mockable",
+    "nanoid",
+    "oxlint",
+    "phc",
+    "replacer",
+    "shouty",
+    "sortable",
+    "ulid",
+    "ulids",
     "unitless",
-    "vendored"
+    "uuid",
+    "vendored",
+
   ],
   "typescript.tsdk": "node_modules/typescript/lib"
 }
