@@ -79,7 +79,7 @@ export class StorageFileImpl extends BaseClass implements StorageFile {
 		);
 	}
 
-	async fetch(): Promise<StorageFileFetchResult> {
+	async get(): Promise<StorageFileFetchResult> {
 		return await storageOperation(
 			"file:read",
 			async (): Promise<StorageFileFetchResult> => {
@@ -249,7 +249,7 @@ export class StorageFileImpl extends BaseClass implements StorageFile {
 			return;
 		}
 
-		const { response, originalMimeType } = await this.fetch();
+		const { response, originalMimeType } = await this.get();
 
 		await destination.put({
 			data: response.body ?? new Uint8Array(),

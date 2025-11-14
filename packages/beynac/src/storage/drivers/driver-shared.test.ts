@@ -59,10 +59,10 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 				expect(await disk.file("/nonexistent.txt").exists()).toBe(false);
 			});
 
-			test("file.fetch()", async () => {
+			test("file.get()", async () => {
 				// Insert the text file first. We expect it to come out in
 				// alphabetical order, i.e. second, rather than insertion order.
-				const textFetchResult = await disk.file("/dir/textFile").fetch();
+				const textFetchResult = await disk.file("/dir/textFile").get();
 				expect(await textFetchResult.response.text()).toBe("textual-data");
 				expect(textFetchResult.size).toBe(12);
 				// If driver doesn't support MIME types, files without extensions get octet-stream
@@ -73,7 +73,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 				expect(textFetchResult.response.headers.get("Content-Length")).toBe("12");
 				expect(textFetchResult.response.headers.get("Content-Type")).toBe(expectedTextMime);
 
-				const htmlFetchResult = await disk.file("/dir/htmlFile").fetch();
+				const htmlFetchResult = await disk.file("/dir/htmlFile").get();
 				expect(await htmlFetchResult.response.text()).toBe("html-data");
 				expect(htmlFetchResult.size).toBe(9);
 				const expectedHtmlMime = endpoint.supportsMimeTypes
@@ -84,7 +84,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 				expect(htmlFetchResult.response.headers.get("Content-Type")).toBe(expectedHtmlMime);
 
 				await expectError(
-					() => disk.file("/nonexistent.txt").fetch(),
+					() => disk.file("/nonexistent.txt").get(),
 					NotFoundError,
 					(error) => {
 						expect(error.path).toEndWith("/nonexistent.txt");
@@ -171,24 +171,24 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 				await disk.directory("/non-existent/").list();
 			});
 
-			test("directory.files() - immediate only", async () => {
-				const files = await disk.directory("/dir/").files();
+			test("directory.listFiles() - immediate only", async () => {
+				const files = await disk.directory("/dir/").listFiles();
 				expect(files.map((f) => f.path)).toEqual(["/dir/htmlFile", "/dir/textFile"]);
 
 				// Shouldn't throw
-				await disk.directory("/non-existent/").files();
+				await disk.directory("/non-existent/").listFiles();
 			});
 
-			test("directory.files({ recursive: false })", async () => {
-				const files = await disk.directory("/dir/").files({ recursive: false });
+			test("directory.listFiles({ recursive: false })", async () => {
+				const files = await disk.directory("/dir/").listFiles({ recursive: false });
 				expect(files.map((f) => f.path)).toEqual(["/dir/htmlFile", "/dir/textFile"]);
 
 				// Shouldn't throw
-				await disk.directory("/non-existent/").files({ recursive: false });
+				await disk.directory("/non-existent/").listFiles({ recursive: false });
 			});
 
-			test("directory.files({ recursive: true })", async () => {
-				const files = await disk.directory("/dir/").files({ recursive: true });
+			test("directory.listFiles({ recursive: true })", async () => {
+				const files = await disk.directory("/dir/").listFiles({ recursive: true });
 				expect(files.map((f) => f.path)).toEqual([
 					"/dir/htmlFile",
 					"/dir/nested/deep/file4.txt",
@@ -197,15 +197,15 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 				]);
 
 				// Shouldn't throw
-				await disk.directory("/non-existent/").files({ recursive: true });
+				await disk.directory("/non-existent/").listFiles({ recursive: true });
 			});
 
-			test("directory.directories()", async () => {
-				const dirs = await disk.directory("/dir/").directories();
+			test("directory.listDirectories()", async () => {
+				const dirs = await disk.directory("/dir/").listDirectories();
 				expect(dirs.map((d) => d.path)).toEqual(["/dir/nested/"]);
 
 				// Shouldn't throw
-				await disk.directory("/non-existent/").directories();
+				await disk.directory("/non-existent/").listDirectories();
 			});
 
 			test("endpoint.listEntries() returns relative paths for /dir/", async () => {
@@ -279,7 +279,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 
 					// overwrite is OK
 					await file.put({ data: "content2", mimeType: "text/plain" });
-					expect(await (await file.fetch()).response.text()).toBe("content2");
+					expect(await (await file.get()).response.text()).toBe("content2");
 
 					await file.delete();
 					expect(await file.exists()).toBe(false);
@@ -296,7 +296,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 					await file.put({ data, mimeType: "application/octet-stream" });
 					expect(await file.exists()).toBe(true);
 
-					expect(await (await file.fetch()).response.arrayBuffer()).toEqual(data.buffer);
+					expect(await (await file.get()).response.arrayBuffer()).toEqual(data.buffer);
 
 					await file.delete();
 					expect(await file.exists()).toBe(false);
@@ -435,7 +435,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 				await dir.deleteAll();
 				expect(await dir.exists()).toBe(false);
 
-				const remainingFiles = await disk.files({ recursive: true });
+				const remainingFiles = await disk.listFiles({ recursive: true });
 				expect(remainingFiles.map((file) => file.path)).toEqual([
 					"/otherdir/sibling.txt",
 					"/rootfile.txt",

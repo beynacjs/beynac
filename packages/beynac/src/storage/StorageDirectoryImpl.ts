@@ -85,11 +85,11 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 		return new StorageFileImpl(this.disk, this.#endpoint, absolutePath, this.#dispatcher);
 	}
 
-	async files(options?: { recursive?: boolean }): Promise<Array<StorageFile>> {
-		return Array.fromAsync(this.filesStreaming(options));
+	async listFiles(options?: { recursive?: boolean }): Promise<Array<StorageFile>> {
+		return Array.fromAsync(this.listFilesStreaming(options));
 	}
 
-	filesStreaming(options?: { recursive?: boolean }): AsyncGenerator<StorageFile, void> {
+	listFilesStreaming(options?: { recursive?: boolean }): AsyncGenerator<StorageFile, void> {
 		const recursive = options?.recursive ?? false;
 		return storageOperation(
 			"directory:list",
@@ -121,11 +121,11 @@ export class StorageDirectoryImpl extends BaseClass implements StorageDirectory 
 		}
 	}
 
-	async directories(): Promise<Array<StorageDirectory>> {
-		return Array.fromAsync(this.directoriesStreaming());
+	async listDirectories(): Promise<Array<StorageDirectory>> {
+		return Array.fromAsync(this.listDirectoriesStreaming());
 	}
 
-	directoriesStreaming(): AsyncGenerator<StorageDirectory, void> {
+	listDirectoriesStreaming(): AsyncGenerator<StorageDirectory, void> {
 		return storageOperation(
 			"directory:list",
 			this.#directoriesStreamingGenerator.bind(this),

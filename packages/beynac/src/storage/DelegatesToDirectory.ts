@@ -24,20 +24,20 @@ export abstract class DelegatesToDirectory extends BaseClass implements StorageD
 		return this.getDirectoryForDelegation().listStreaming();
 	}
 
-	async files(options?: { recursive?: boolean }): Promise<Array<StorageFile>> {
-		return await this.getDirectoryForDelegation().files(options);
+	async listFiles(options?: { recursive?: boolean }): Promise<Array<StorageFile>> {
+		return await this.getDirectoryForDelegation().listFiles(options);
 	}
 
-	filesStreaming(options?: { recursive?: boolean }): AsyncGenerator<StorageFile, void> {
-		return this.getDirectoryForDelegation().filesStreaming(options);
+	listFilesStreaming(options?: { recursive?: boolean }): AsyncGenerator<StorageFile, void> {
+		return this.getDirectoryForDelegation().listFilesStreaming(options);
 	}
 
-	async directories(): Promise<Array<StorageDirectory>> {
-		return await this.getDirectoryForDelegation().directories();
+	async listDirectories(): Promise<Array<StorageDirectory>> {
+		return await this.getDirectoryForDelegation().listDirectories();
 	}
 
-	directoriesStreaming(): AsyncGenerator<StorageDirectory, void> {
-		return this.getDirectoryForDelegation().directoriesStreaming();
+	listDirectoriesStreaming(): AsyncGenerator<StorageDirectory, void> {
+		return this.getDirectoryForDelegation().listDirectoriesStreaming();
 	}
 
 	async deleteAll(): Promise<void> {

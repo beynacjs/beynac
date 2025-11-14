@@ -21,7 +21,7 @@ describe("Storage integration with Application", () => {
 
 		// Smoke test writing and reading
 		await app.storage.file("test.txt").put("content");
-		const uploadedFile = await app.storage.disk("uploads").file("test.txt").fetch();
+		const uploadedFile = await app.storage.disk("uploads").file("test.txt").get();
 		expect(await uploadedFile.response.text()).toBe("content");
 
 		// Test that storage events are dispatched via app.events

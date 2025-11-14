@@ -113,22 +113,22 @@ describe(StorageDirectoryImpl, () => {
 		});
 	});
 
-	describe("files()", () => {
+	describe("listFiles()", () => {
 		test("returns files directly in directory when no options provided", async () => {
 			const dir = create("/subdir/");
-			const files = await dir.files();
+			const files = await dir.listFiles();
 			expect(getPaths(files)).toEqual(["/subdir/file1.txt", "/subdir/file2.txt"]);
 		});
 
 		test("returns files directly in directory when recursive: false", async () => {
 			const dir = create("/subdir/");
-			const files = await dir.files({ recursive: false });
+			const files = await dir.listFiles({ recursive: false });
 			expect(getPaths(files)).toEqual(["/subdir/file1.txt", "/subdir/file2.txt"]);
 		});
 
 		test("returns all files recursively when recursive: true", async () => {
 			const dir = create("/subdir/");
-			const files = await dir.files({ recursive: true });
+			const files = await dir.listFiles({ recursive: true });
 			expect(getPaths(files)).toEqual([
 				"/subdir/a/b/deep.txt",
 				"/subdir/a/file.txt",
@@ -140,17 +140,17 @@ describe(StorageDirectoryImpl, () => {
 		});
 	});
 
-	describe("filesStreaming()", () => {
+	describe("listFilesStreaming()", () => {
 		test("yields files directly in directory when no options provided", async () => {
 			const dir = create("/subdir/");
-			const files = await Array.fromAsync(dir.filesStreaming());
+			const files = await Array.fromAsync(dir.listFilesStreaming());
 			expect(getPaths(files)).toEqual(["/subdir/file1.txt", "/subdir/file2.txt"]);
 		});
 
 		test("yields all files recursively when recursive: true", async () => {
 			const dir = create("/subdir/");
 			const files = [];
-			for await (const file of dir.filesStreaming({ recursive: true })) {
+			for await (const file of dir.listFilesStreaming({ recursive: true })) {
 				files.push(file);
 			}
 			expect(getPaths(files)).toEqual([
@@ -164,17 +164,17 @@ describe(StorageDirectoryImpl, () => {
 		});
 	});
 
-	describe("directories()", () => {
+	describe("listDirectories()", () => {
 		test("returns direct subdirectories", async () => {
 			const dir = create("/subdir/");
-			expect(getPaths(await dir.directories())).toEqual(["/subdir/a/", "/subdir/b/"]);
+			expect(getPaths(await dir.listDirectories())).toEqual(["/subdir/a/", "/subdir/b/"]);
 		});
 	});
 
-	describe("directoriesStreaming()", () => {
+	describe("listDirectoriesStreaming()", () => {
 		test("yields direct subdirectories", async () => {
 			const dir = create("/subdir/");
-			const directories = await Array.fromAsync(dir.directoriesStreaming());
+			const directories = await Array.fromAsync(dir.listDirectoriesStreaming());
 			expect(getPaths(directories)).toEqual(["/subdir/a/", "/subdir/b/"]);
 		});
 	});
@@ -479,7 +479,7 @@ describe(StorageDirectoryImpl, () => {
 
 			expect(file.path).toBe("/uploads/document");
 			expect(await file.exists()).toBe(true);
-			const { response, originalMimeType } = await file.fetch();
+			const { response, originalMimeType } = await file.get();
 			expect(await response.text()).toBe("content");
 			expect(originalMimeType).toBe("text/html; charset=utf-8");
 		});
@@ -497,7 +497,7 @@ describe(StorageDirectoryImpl, () => {
 			const file = await dir.putFile(request);
 
 			expect(file.path).toBe("/uploads/request-file");
-			const { response, originalMimeType } = await file.fetch();
+			const { response, originalMimeType } = await file.get();
 			expect(await response.text()).toBe("content");
 			expect(originalMimeType).toBe("text/html");
 		});
@@ -655,30 +655,30 @@ describe(StorageDirectoryImpl, () => {
 			eventDispatcher.expectEvents([startEvent, endEvent]);
 		});
 
-		test("files() dispatches directory:list events via filesStreaming() with recursive:false", async () => {
+		test("listFiles() dispatches directory:list events via listFilesStreaming() with recursive:false", async () => {
 			const dir = eventDisk.directory("subdir");
 
-			await dir.files();
+			await dir.listFiles();
 
 			const startEvent = new DirectoryListingEvent(eventDisk, "/subdir/", "files", false);
 			const endEvent = new DirectoryListedEvent(startEvent, 2); // 2 immediate files
 			eventDispatcher.expectEvents([startEvent, endEvent]);
 		});
 
-		test("files({recursive:true}) dispatches directory:list events via filesStreaming() with recursive:true", async () => {
+		test("listFiles({recursive:true}) dispatches directory:list events via listFilesStreaming() with recursive:true", async () => {
 			const dir = eventDisk.directory("subdir");
 
-			await dir.files({ recursive: true });
+			await dir.listFiles({ recursive: true });
 
 			const startEvent = new DirectoryListingEvent(eventDisk, "/subdir/", "files", true);
 			const endEvent = new DirectoryListedEvent(startEvent, 6); // All 6 files recursively
 			eventDispatcher.expectEvents([startEvent, endEvent]);
 		});
 
-		test("filesStreaming() dispatches same events as files()", async () => {
+		test("listFilesStreaming() dispatches same events as listFiles()", async () => {
 			const dir = eventDisk.directory("subdir");
 
-			for await (const _file of dir.filesStreaming({ recursive: true })) {
+			for await (const _file of dir.listFilesStreaming({ recursive: true })) {
 				// Consume the generator
 			}
 
@@ -687,20 +687,20 @@ describe(StorageDirectoryImpl, () => {
 			eventDispatcher.expectEvents([startEvent, endEvent]);
 		});
 
-		test("directories() dispatches directory:list events via directoriesStreaming()", async () => {
+		test("listDirectories() dispatches directory:list events via listDirectoriesStreaming()", async () => {
 			const dir = eventDisk.directory("subdir");
 
-			await dir.directories();
+			await dir.listDirectories();
 
 			const startEvent = new DirectoryListingEvent(eventDisk, "/subdir/", "directories", false);
 			const endEvent = new DirectoryListedEvent(startEvent, 2); // 2 immediate directories
 			eventDispatcher.expectEvents([startEvent, endEvent]);
 		});
 
-		test("directoriesStreaming() dispatches directory:list events once", async () => {
+		test("listDirectoriesStreaming() dispatches directory:list events once", async () => {
 			const dir = eventDisk.directory("subdir");
 
-			for await (const _dir of dir.directoriesStreaming()) {
+			for await (const _dir of dir.listDirectoriesStreaming()) {
 				// Consume the generator
 			}
 

@@ -148,11 +148,11 @@ describe("FilesystemStorageDriver - Windows path handling", () => {
 			expect(fs.unlink).toHaveBeenCalledWith("C:\\storage\\foo\\bar.txt");
 		});
 
-		test("file.fetch() converts POSIX storage path to Windows filesystem path", async () => {
+		test("file.get() converts POSIX storage path to Windows filesystem path", async () => {
 			const { disk } = createDisk("C:\\storage");
 			const file = disk.directory("foo").file("bar.txt");
 
-			await file.fetch();
+			await file.get();
 
 			expect(fs.stat).toHaveBeenCalledTimes(1);
 			expect(fs.stat).toHaveBeenCalledWith("C:\\storage\\foo\\bar.txt");
@@ -218,21 +218,21 @@ describe("FilesystemStorageDriver - Windows path handling", () => {
 			expect(fs.opendir).toHaveBeenCalledWith("C:\\storage\\foo\\bar\\");
 		});
 
-		test("directory.files() converts POSIX storage path to Windows filesystem path", async () => {
+		test("directory.listFiles() converts POSIX storage path to Windows filesystem path", async () => {
 			const { disk } = createDisk("C:\\storage");
 			const dir = disk.directory("foo/bar");
 
-			await dir.files();
+			await dir.listFiles();
 
 			expect(fs.opendir).toHaveBeenCalledTimes(1);
 			expect(fs.opendir).toHaveBeenCalledWith("C:\\storage\\foo\\bar\\");
 		});
 
-		test("directory.files({recursive:true}) converts POSIX storage path to Windows filesystem path", async () => {
+		test("directory.listFiles({recursive:true}) converts POSIX storage path to Windows filesystem path", async () => {
 			const { disk } = createDisk("C:\\storage");
 			const dir = disk.directory("foo/bar");
 
-			await dir.files({ recursive: true });
+			await dir.listFiles({ recursive: true });
 
 			expect(fs.opendir).toHaveBeenCalledTimes(1);
 			expect(fs.opendir).toHaveBeenCalledWith("C:\\storage\\foo\\bar\\");

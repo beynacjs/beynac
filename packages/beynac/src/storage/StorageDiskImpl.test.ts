@@ -49,29 +49,29 @@ describe(StorageDiskImpl, () => {
 			expect(mockRoot.listStreaming).toHaveBeenCalled();
 		});
 
-		test("disk.files() delegates to root directory", async () => {
-			await disk.files();
-			expect(mockRoot.files).toHaveBeenCalled();
+		test("disk.listFiles() delegates to root directory", async () => {
+			await disk.listFiles();
+			expect(mockRoot.listFiles).toHaveBeenCalled();
 		});
 
-		test("disk.files(options) delegates to root directory with options", async () => {
-			await disk.files({ recursive: true });
-			expect(mockRoot.files).toHaveBeenCalledWith({ recursive: true });
+		test("disk.listFiles(options) delegates to root directory with options", async () => {
+			await disk.listFiles({ recursive: true });
+			expect(mockRoot.listFiles).toHaveBeenCalledWith({ recursive: true });
 		});
 
-		test("disk.filesStreaming() delegates to root directory", () => {
-			disk.filesStreaming();
-			expect(mockRoot.filesStreaming).toHaveBeenCalled();
+		test("disk.listFilesStreaming() delegates to root directory", () => {
+			disk.listFilesStreaming();
+			expect(mockRoot.listFilesStreaming).toHaveBeenCalled();
 		});
 
-		test("disk.directories() delegates to root directory", async () => {
-			await disk.directories();
-			expect(mockRoot.directories).toHaveBeenCalled();
+		test("disk.listDirectories() delegates to root directory", async () => {
+			await disk.listDirectories();
+			expect(mockRoot.listDirectories).toHaveBeenCalled();
 		});
 
-		test("disk.directoriesStreaming() delegates to root directory", () => {
-			disk.directoriesStreaming();
-			expect(mockRoot.directoriesStreaming).toHaveBeenCalled();
+		test("disk.listDirectoriesStreaming() delegates to root directory", () => {
+			disk.listDirectoriesStreaming();
+			expect(mockRoot.listDirectoriesStreaming).toHaveBeenCalled();
 		});
 
 		test("disk.deleteAll() delegates to root directory", async () => {
@@ -102,11 +102,11 @@ describe(StorageDiskImpl, () => {
 
 			const file = disk.file("test.txt");
 			expect(await file.exists()).toBe(true);
-			const fetchResult = await file.fetch();
+			const fetchResult = await file.get();
 			expect(await fetchResult.response.text()).toBe("root file");
 
 			const dir = disk.directory("subdir");
-			const files = await dir.files();
+			const files = await dir.listFiles();
 			expect(files.length).toBe(1);
 			expect(files[0].path).toBe("/subdir/nested.txt");
 		});

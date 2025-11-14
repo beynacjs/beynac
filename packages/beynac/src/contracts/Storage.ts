@@ -98,8 +98,8 @@ type StorageFileSizeAndMime = {
 
 export interface StorageFileInfo extends StorageFileSizeAndMime {
 	/**
-	 * The file etag if available. S3 provides an eta with fetch responses,
-	 * filesystem drivers do not. If the etag is not available in the fetch()
+	 * The file etag if available. S3 provides an etag with get() responses,
+	 * filesystem drivers do not. If the etag is not available in the get()
 	 * response it can be obtained with info()
 	 */
 	etag: string;
@@ -107,14 +107,14 @@ export interface StorageFileInfo extends StorageFileSizeAndMime {
 
 export interface StorageFileFetchResult extends StorageFileSizeAndMime {
 	/**
-	 * The file etag if available. S3 provides an etag with fetch responses,
-	 * filesystem drivers do not. If the etag is not available in the fetch()
+	 * The file etag if available. S3 provides an etag with get() responses,
+	 * filesystem drivers do not. If the etag is not available in the get()
 	 * response it can be obtained with info()
 	 */
 	etag: string | null;
 
 	/**
-	 * A web-standard Response object like that returned from `fetch()` that can
+	 * A web-standard Response object like that returned from `get()` that can
 	 * be read using methods like response.json(), or response.getReader().
 	 *
 	 * It will have Content-Length and Content-Type and ETag headers set.
@@ -154,14 +154,15 @@ export interface StorageFile {
 	exists(): Promise<boolean>;
 
 	/**
-	 * Fetch this file and return an object containing metadata and a
-	 * web-standard Response object.
+	 * Get this file and return an object containing metadata and a web-standard
+	 * Response object.
 	 *
 	 * Unlike the fetch() API, this method will only return a response on
 	 * success. On failure, an appropriate kind of error will be thrown, e.g.
-	 * NotFoundError or PermissionsError.
+	 * NotFoundError or PermissionsError. So you do not need to check the
+	 * response.ok property
 	 */
-	fetch(): Promise<StorageFileFetchResult>;
+	get(): Promise<StorageFileFetchResult>;
 
 	/**
 	 * Get metadata on this file. Returns null if no file exists.
@@ -312,7 +313,7 @@ export interface StorageDirectoryOperations {
 	 *
 	 * @param [options.recursive] - if true, include files in subdirectories in the results
 	 */
-	files(options?: { recursive?: boolean }): Promise<Array<StorageFile>>;
+	listFiles(options?: { recursive?: boolean }): Promise<Array<StorageFile>>;
 
 	/**
 	 * List child files in alphabetical order. By default, only direct children are returned.
@@ -321,19 +322,19 @@ export interface StorageDirectoryOperations {
 	 *
 	 * @param [options.recursive] - if true, include files in subdirectories in the results
 	 */
-	filesStreaming(options?: { recursive?: boolean }): AsyncGenerator<StorageFile, void>;
+	listFilesStreaming(options?: { recursive?: boolean }): AsyncGenerator<StorageFile, void>;
 
 	/**
 	 * List direct child directories in alphabetical order.
 	 */
-	directories(): Promise<Array<StorageDirectory>>;
+	listDirectories(): Promise<Array<StorageDirectory>>;
 
 	/**
 	 * List direct child directories in alphabetical order.
 	 *
 	 * Stream results to avoid buffering the whole list in memory.
 	 */
-	directoriesStreaming(): AsyncGenerator<StorageDirectory, void>;
+	listDirectoriesStreaming(): AsyncGenerator<StorageDirectory, void>;
 
 	/**
 	 * Delete all files within this directory, recursively.
