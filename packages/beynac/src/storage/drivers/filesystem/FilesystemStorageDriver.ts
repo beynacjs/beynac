@@ -1,9 +1,13 @@
 import { createHash } from "node:crypto";
 import type * as fsSync from "node:fs";
-import { createReadStream } from "node:fs";
+import { createReadStream, createWriteStream } from "node:fs";
 import * as fs from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { Readable } from "node:stream";
+import { pipeline, Readable } from "node:stream";
+import { promisify } from "node:util";
+
+const pipelineAsync = promisify(pipeline);
+
 import type {
 	StorageEndpoint,
 	StorageEndpointFileInfoResult,
@@ -108,11 +112,12 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 
 	async writeSingle({ data, path }: StorageEndpointWriteOptions): Promise<void> {
 		const fsPath = this.#toFilesystemPath(path);
-		const buffer = await new Response(data).arrayBuffer();
 
 		await withNodeErrors(fsPath, async () => {
 			await this.#ensureParentDirectoryExists(fsPath);
-			await fs.writeFile(fsPath, new Uint8Array(buffer));
+			const webStream = new Response(data).body;
+			const nodeStream = webStream ? Readable.fromWeb(webStream) : Readable.from([]);
+			await pipelineAsync(nodeStream, createWriteStream(fsPath));
 		});
 	}
 
@@ -215,85 +220,131 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 	}
 
 	async existsAnyUnderPrefix(prefix: string): Promise<boolean> {
-		// Only check for files, not empty directories
-		const generator = this.#list(prefix, true, true);
-		const first = await generator.next();
-		return !first.done;
+		const fsPrefix = this.#toFilesystemPath(prefix);
+		return await this.#hasAnyFile(fsPrefix);
+	}
+
+	async #hasAnyFile(fsPath: string): Promise<boolean> {
+		let dir: fsSync.Dir | undefined;
+
+		let entries = 0;
+		try {
+			dir = await fs.opendir(fsPath);
+			for await (const dirent of dir) {
+				++entries;
+				if (dirent.isFile()) {
+					return true;
+				}
+				if (dirent.isDirectory()) {
+					const subPath = join(fsPath, dirent.name);
+					if (await this.#hasAnyFile(subPath)) {
+						return true;
+					}
+				}
+			}
+			return false;
+		} catch (error) {
+			const storageError = convertNodeError(error, fsPath);
+			if (storageError instanceof NotFoundError) {
+				if (entries > 0) {
+					// If we successfully got the first entry, but later got a
+					// ENOENT, it's either a bug in our code or the directory
+					// was deleted while we were iterating, either way throw the
+					// node error not NotFoundError
+					throw error;
+				}
+				return false;
+			}
+			throw storageError;
+		} finally {
+			await dir?.close();
+		}
 	}
 
 	async *listEntries(prefix: string): AsyncGenerator<string, void> {
-		yield* this.#list(prefix, false, false);
+		yield* this.#streamDirectory({
+			relativePath: "",
+			fsPath: this.#toFilesystemPath(prefix),
+			filesOnly: false,
+			recursive: false,
+		});
 	}
 
 	async *listFilesRecursive(prefix: string): AsyncGenerator<string, void> {
-		yield* this.#list(prefix, true, true);
+		yield* this.#streamDirectory({
+			relativePath: "",
+			fsPath: this.#toFilesystemPath(prefix),
+			filesOnly: true,
+			recursive: true,
+		});
 	}
 
 	async deleteAllUnderPrefix(prefix: string): Promise<void> {
-		const files: string[] = [];
-
-		for await (const file of this.listFilesRecursive(prefix)) {
-			files.push(file);
-		}
-
-		for (const file of files) {
-			const fullPath = `${prefix}${file}`;
-			await this.deleteSingle(fullPath);
-		}
-	}
-
-	/**
-	 * Core list implementation that buffers results in memory
-	 */
-	async *#list(
-		prefix: string,
-		filesOnly: boolean,
-		recursive: boolean,
-	): AsyncGenerator<string, void> {
 		const fsPrefix = this.#toFilesystemPath(prefix);
-		const results: string[] = [];
 
-		// Recursively collect all entries
-		await this.#collectEntries(fsPrefix, "", filesOnly, recursive, results);
-
-		// Sort and yield
-		results.sort();
-		for (const entry of results) {
-			yield entry;
-		}
+		await withNodeErrors(fsPrefix, async () => {
+			// Use fs.rm with recursive option to remove directory and all contents
+			// force: true means it won't throw if the directory doesn't exist
+			await fs.rm(fsPrefix, { recursive: true, force: true });
+		});
 	}
 
-	/**
-	 * Recursively collect entries
-	 */
-	async #collectEntries(
-		fsBasePath: string,
-		relativePath: string,
-		filesOnly: boolean,
-		recursive: boolean,
-		results: string[],
-	): Promise<void> {
-		const currentPath = relativePath ? join(fsBasePath, relativePath) : fsBasePath;
+	async *#streamDirectory(options: {
+		relativePath: string;
+		fsPath: string;
+		filesOnly: boolean;
+		recursive: boolean;
+	}): AsyncGenerator<string, void> {
+		const { relativePath, fsPath, filesOnly, recursive } = options;
 
-		const entries = await withNodeErrors(currentPath, () =>
-			fs.readdir(currentPath, { withFileTypes: true }),
-		);
+		const entries: string[] = [];
+
+		let dir: fsSync.Dir | undefined;
+
+		try {
+			dir = await fs.opendir(fsPath);
+			for await (const dirent of dir) {
+				if (dirent.isDirectory()) {
+					entries.push(`${dirent.name}/`);
+				} else if (dirent.isFile()) {
+					entries.push(dirent.name);
+				}
+			}
+		} catch (error) {
+			const storageError = convertNodeError(error, fsPath);
+			if (storageError instanceof NotFoundError) {
+				if (entries.length > 0) {
+					// If we successfully got the first entry, but later got a
+					// ENOENT, it's either a bug in our code or the directory
+					// was deleted while we were iterating, either way throw the
+					// node error not NotFoundError
+					throw error;
+				}
+				return;
+			}
+			throw storageError;
+		} finally {
+			await dir?.close();
+		}
+
+		entries.sort();
 
 		for (const entry of entries) {
-			const entryRelativePath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
+			const isDirectory = entry.endsWith("/");
+			const entryPath = relativePath ? `${relativePath}/${entry}` : entry;
 
-			if (entry.isDirectory()) {
-				if (recursive) {
-					// Recurse into directory
-					await this.#collectEntries(fsBasePath, entryRelativePath, filesOnly, recursive, results);
-				} else {
-					// Add directory entry (non-recursive)
-					if (!filesOnly) {
-						results.push(`${entryRelativePath}/`);
-					}
-				}
-			} else if (entry.isFile()) {
-				results.push(entryRelativePath);
+			if (!(filesOnly && isDirectory)) {
+				yield entryPath;
+			}
+
+			if (recursive && isDirectory) {
+				const subFsPath = join(fsPath, entry.slice(0, -1));
+				yield* this.#streamDirectory({
+					relativePath: entryPath.slice(0, -1),
+					fsPath: subFsPath,
+					filesOnly,
+					recursive,
+				});
 			}
 		}
 	}

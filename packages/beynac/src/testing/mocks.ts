@@ -115,6 +115,7 @@ export function resetMock(fn: Function): void {
  * });
  */
 export function resetAllMocks(): void {
+	console.log(">>>>>> resetAllMocks");
 	for (const ref of resetCallbacks) {
 		const callback = ref.deref();
 		if (callback !== undefined) {
@@ -126,4 +127,51 @@ export function resetAllMocks(): void {
 
 export function isMockable(fn: unknown): fn is Mockable {
 	return typeof fn === "function" && ORIGINAL in fn;
+}
+
+/**
+ * Create a temporary directory that is automatically cleaned up and return its
+ * absolute path.
+ *
+ * The directory is created on the real filesystem using Node.js
+ * `mkdtempSync()`, so you can use standard filesystem operations to interact
+ * with it. When `resetAllMocks()` is invoked, the directory and all its
+ * contents are recursively deleted.
+ *
+ * @param prefix - Optional prefix for the temp directory name (defaults to
+ * "beynac-test-")
+ *
+ * @returns
+ *
+ * @example
+ * import { mockTmpDirectory, resetAllMocks } from "@beynac/testing/mocks";
+ * import { afterEach, test } from "bun:test";
+ *
+ * afterEach(() => {
+ *   resetAllMocks(); // Cleans up all temp directories
+ * });
+ *
+ * test("filesystem operations", () => {
+ *   const tempDir = mockTmpDirectory();
+ *   // Use tempDir for file operations
+ *   // Directory will be automatically deleted after test
+ * });
+ */
+let i = 0;
+export function mockTmpDirectory(prefix = "beynac-test-"): string {
+	if (++i == 20) throw new Error("Too many mocks");
+	const { mkdtempSync } = require("node:fs");
+	const { join } = require("node:path");
+	const { tmpdir } = require("node:os");
+	const fs = require("node:fs/promises");
+
+	const tempDir = mkdtempSync(join(tmpdir(), prefix));
+
+	console.log("?????", tempDir);
+	onResetAllMocks(async () => {
+		console.log("!!!!!", tempDir);
+		await fs.rm(tempDir, { recursive: true, force: true });
+	});
+
+	return tempDir;
 }

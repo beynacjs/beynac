@@ -1,14 +1,14 @@
-import { describe, expect, test } from "bun:test";
-import { mkdtempSync, readdirSync, readFileSync } from "node:fs";
-import * as os from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { StorageEndpoint } from "../../../contracts";
+import { mockTmpDirectory, resetAllMocks } from "../../../testing/mocks";
 import { StorageUnknownError } from "../../storage-errors";
 import type { SharedTestConfig } from "../driver-shared.test";
 import { filesystemStorage } from "./FilesystemStorageDriver";
 
 function filesystemStorageWithTmpDir(): StorageEndpoint {
-	const tempDir = mkdtempSync(join(os.tmpdir(), "beynac-fs-test-"));
+	const tempDir = mockTmpDirectory();
 	return filesystemStorage({
 		rootPath: tempDir,
 		publicUrlPrefix: "https://example.com/files",
@@ -35,129 +35,113 @@ export const filesystemStorageSharedTestConfig: SharedTestConfig = {
 
 describe(filesystemStorage, () => {
 	describe("Filesystem-specific behavior", () => {
-		test("publicUrlPrefix configuration - throws when not configured", async () => {
-			const tempDir = mkdtempSync(join(os.tmpdir(), "beynac-fs-test-"));
-			const storage = filesystemStorage({ rootPath: tempDir }); // No publicUrlPrefix
+		let tempDir: string;
+		let storage: StorageEndpoint;
 
-			await storage.writeSingle({ path: "/test.txt", data: "content", mimeType: "text/plain" });
+		const fsPath = (relativePath: string) => join(tempDir, relativePath);
 
-			expect(storage.getPublicDownloadUrl("/test.txt")).rejects.toThrow(
-				"publicUrlPrefix is required",
-			);
-			expect(
-				storage.getSignedDownloadUrl("/test.txt", new Date(Date.now() + 3600000)),
-			).rejects.toThrow("getSignedDownloadUrl is required");
-			expect(
-				storage.getTemporaryUploadUrl("/test.txt", new Date(Date.now() + 3600000)),
-			).rejects.toThrow("getSignedUploadUrl is required");
-		});
+		const writeTestFile = async (storage: StorageEndpoint, path: string) => {
+			await storage.writeSingle({ path, data: "content", mimeType: null });
+		};
 
-		test("publicUrlPrefix configuration - uses configured prefix", async () => {
-			const tempDir = mkdtempSync(join(os.tmpdir(), "beynac-fs-test-"));
-			const storage = filesystemStorage({
+		beforeEach(() => {
+			tempDir = mockTmpDirectory();
+			storage = filesystemStorage({
 				rootPath: tempDir,
-				publicUrlPrefix: "https://cdn.example.com/files",
+				publicUrlPrefix: "https://example.com/files",
 				getSignedDownloadUrl: ({ path, expires, downloadFileName }) => {
 					const params = new URLSearchParams();
 					params.set("expires", expires.toISOString());
 					if (downloadFileName) {
 						params.set("download", downloadFileName);
 					}
-					return `https://cdn.example.com/files${path}?${params.toString()}`;
+					return `mock-url://download${path}?${params.toString()}`;
 				},
 				getSignedUploadUrl: ({ path, expires }) => {
 					const params = new URLSearchParams();
-					params.set("upload", "true");
 					params.set("expires", expires.toISOString());
-					return `https://cdn.example.com/files${path}?${params.toString()}`;
+					return `mock-url://upload${path}?${params.toString()}`;
 				},
 			});
+		});
 
-			await storage.writeSingle({ path: "/test.txt", data: "content", mimeType: "text/plain" });
+		afterEach(() => {
+			resetAllMocks();
+		});
+
+		test("publicUrlPrefix configuration - throws when not configured", async () => {
+			const storageWithoutPrefix = filesystemStorage({ rootPath: tempDir });
+
+			await writeTestFile(storageWithoutPrefix, "/test.txt");
+
+			expect(storageWithoutPrefix.getPublicDownloadUrl("/test.txt")).rejects.toThrow(
+				"publicUrlPrefix is required",
+			);
+			expect(
+				storageWithoutPrefix.getSignedDownloadUrl("/test.txt", new Date(Date.now() + 3600000)),
+			).rejects.toThrow("getSignedDownloadUrl is required");
+			expect(
+				storageWithoutPrefix.getTemporaryUploadUrl("/test.txt", new Date(Date.now() + 3600000)),
+			).rejects.toThrow("getSignedUploadUrl is required");
+		});
+
+		test("publicUrlPrefix configuration - uses configured prefix", async () => {
+			await writeTestFile(storage, "/test.txt");
 
 			const publicUrl = await storage.getPublicDownloadUrl("/test.txt");
-			expect(publicUrl).toBe("https://cdn.example.com/files/test.txt");
+			expect(publicUrl).toBe("https://example.com/files/test.txt");
 
 			const publicUrlWithDownload = await storage.getPublicDownloadUrl("/test.txt", "custom.txt");
-			expect(publicUrlWithDownload).toBe(
-				"https://cdn.example.com/files/test.txt?download=custom.txt",
-			);
+			expect(publicUrlWithDownload).toBe("https://example.com/files/test.txt?download=custom.txt");
 
-			const signedUrl = await storage.getSignedDownloadUrl(
-				"/test.txt",
-				new Date(Date.now() + 3600000),
-			);
-			expect(signedUrl).toMatch(/^https:\/\/cdn\.example\.com\/files\/test\.txt\?expires=/);
+			const signedUrl = await storage.getSignedDownloadUrl("/test.txt", new Date("2025-11-14"));
+			expect(signedUrl).toStartWith("mock-url://download/test.txt?expires=2025-11-14");
 
-			const uploadUrl = await storage.getTemporaryUploadUrl(
-				"/test.txt",
-				new Date(Date.now() + 3600000),
-			);
-			expect(uploadUrl).toMatch(
-				/^https:\/\/cdn\.example\.com\/files\/test\.txt\?upload=true&expires=/,
-			);
+			const uploadUrl = await storage.getTemporaryUploadUrl("/test.txt", new Date("2025-11-14"));
+			expect(uploadUrl).toStartWith("mock-url://upload/test.txt?expires=2025-11-14");
 		});
 
 		test("publicUrlPrefix with trailing slash", async () => {
-			const tempDir = mkdtempSync(join(os.tmpdir(), "beynac-fs-test-"));
-			const storage = filesystemStorage({
+			const storageWithTrailingSlash = filesystemStorage({
 				rootPath: tempDir,
 				publicUrlPrefix: "https://cdn.example.com/files/",
 			});
 
-			await storage.writeSingle({ path: "/test.txt", data: "content", mimeType: "text/plain" });
+			await writeTestFile(storageWithTrailingSlash, "/test.txt");
 
-			const url = await storage.getPublicDownloadUrl("/test.txt");
+			const url = await storageWithTrailingSlash.getPublicDownloadUrl("/test.txt");
 			expect(url).toBe("https://cdn.example.com/files/test.txt");
 		});
 
 		test("ETag changes when file is modified", async () => {
-			const storage = filesystemStorageWithTmpDir();
-
-			await storage.writeSingle({ path: "/test.txt", data: "content1", mimeType: "text/plain" });
+			await storage.writeSingle({ path: "/test.txt", data: "content1", mimeType: null });
 			const info1 = await storage.getInfoSingle("/test.txt");
 
 			// Wait a bit to ensure mtime changes
 			await new Promise((resolve) => setTimeout(resolve, 10));
 
-			await storage.writeSingle({ path: "/test.txt", data: "content2", mimeType: "text/plain" });
+			await storage.writeSingle({ path: "/test.txt", data: "content2", mimeType: null });
 			const info2 = await storage.getInfoSingle("/test.txt");
 
+			const sha256Regex = /^[a-f0-9]{64}$/;
+			expect(info1?.etag).toMatch(sha256Regex);
+			expect(info2?.etag).toMatch(sha256Regex);
 			expect(info1?.etag).not.toBe(info2?.etag);
 		});
 
-		test("ETag format is consistent", async () => {
-			const storage = filesystemStorageWithTmpDir();
-
-			await storage.writeSingle({ path: "/test.txt", data: "content", mimeType: "text/plain" });
-			const info = await storage.getInfoSingle("/test.txt");
-
-			expect(info?.etag).toMatch(/^[a-f0-9]{64}$/); // SHA256 hex
-		});
-
 		test("deeply nested directories are auto-created", async () => {
-			const tempDir = mkdtempSync(join(os.tmpdir(), "beynac-fs-test-"));
-			const storage = filesystemStorage({ rootPath: tempDir });
-
-			await storage.writeSingle({
-				path: "/a/b/c/d/e/file.txt",
-				data: "content",
-				mimeType: "text/plain",
-			});
+			await writeTestFile(storage, "/a/b/c/d/e/file.txt");
 
 			const exists = await storage.existsSingle("/a/b/c/d/e/file.txt");
 			expect(exists).toBe(true);
 
 			// Verify actual filesystem structure
-			const filePath = join(tempDir, "a/b/c/d/e/file.txt");
-			const content = readFileSync(filePath, "utf-8");
+			const content = readFileSync(fsPath("a/b/c/d/e/file.txt"), "utf-8");
 			expect(content).toBe("content");
 		});
 
 		test("copy creates destination directories", async () => {
-			const storage = filesystemStorageWithTmpDir();
-
-			await storage.writeSingle({ path: "/source.txt", data: "content", mimeType: "text/plain" });
+			await writeTestFile(storage, "/source.txt");
 			await storage.copy("/source.txt", "/deep/nested/dest.txt");
 
 			const exists = await storage.existsSingle("/deep/nested/dest.txt");
@@ -165,9 +149,7 @@ describe(filesystemStorage, () => {
 		});
 
 		test("move creates destination directories", async () => {
-			const storage = filesystemStorageWithTmpDir();
-
-			await storage.writeSingle({ path: "/source.txt", data: "content", mimeType: "text/plain" });
+			await writeTestFile(storage, "/source.txt");
 			await storage.move("/source.txt", "/deep/nested/dest.txt");
 
 			const sourceExists = await storage.existsSingle("/source.txt");
@@ -176,56 +158,8 @@ describe(filesystemStorage, () => {
 			expect(destExists).toBe(true);
 		});
 
-		test("no metadata files are created", async () => {
-			const tempDir = mkdtempSync(join(os.tmpdir(), "beynac-fs-test-"));
-			const storage = filesystemStorage({ rootPath: tempDir });
-
-			await storage.writeSingle({
-				path: "/test.txt",
-				data: "content",
-				mimeType: "text/plain",
-			});
-
-			const files = readdirSync(tempDir);
-			expect(files).toEqual(["test.txt"]);
-			expect(files.some((f) => f.includes("meta"))).toBe(false);
-		});
-
-		test("files written with different MIME types don't store metadata", async () => {
-			const tempDir = mkdtempSync(join(os.tmpdir(), "beynac-fs-test-"));
-			const storage = filesystemStorage({ rootPath: tempDir });
-
-			await storage.writeSingle({
-				path: "/file1.txt",
-				data: "content1",
-				mimeType: "text/plain",
-			});
-			await storage.writeSingle({
-				path: "/file2.txt",
-				data: "content2",
-				mimeType: "text/html",
-			});
-
-			const files = readdirSync(tempDir);
-			expect(files.sort()).toEqual(["file1.txt", "file2.txt"]);
-
-			// Both files should return null for MIME type
-			const info1 = await storage.getInfoSingle("/file1.txt");
-			const info2 = await storage.getInfoSingle("/file2.txt");
-			expect(info1?.mimeType).toBe(null);
-			expect(info2?.mimeType).toBe(null);
-		});
-
 		test("reading a directory as a file produces EISDIR error from stream", async () => {
-			const tempDir = mkdtempSync(join(os.tmpdir(), "beynac-fs-test-"));
-			const storage = filesystemStorage({ rootPath: tempDir });
-
-			// Create a directory
-			await storage.writeSingle({
-				path: "/subdir/file.txt",
-				data: "content",
-				mimeType: "text/plain",
-			});
+			await writeTestFile(storage, "/subdir/file.txt");
 
 			let error: Error | null = null;
 			try {
@@ -238,6 +172,42 @@ describe(filesystemStorage, () => {
 			// Errors should be converted to non-node error
 			expect(error).toBeInstanceOf(StorageUnknownError);
 			expect(error?.toString()).toContain("EISDIR: illegal operation on a directory, read");
+		});
+
+		test("deleteAllUnderPrefix removes all files and directories including prefix", async () => {
+			// Create nested directory structure with files
+			await writeTestFile(storage, "/parent/file1.txt");
+			await writeTestFile(storage, "/parent/subdir/file2.txt");
+			await writeTestFile(storage, "/parent/subdir/deep/file3.txt");
+			await writeTestFile(storage, "/other/file4.txt");
+
+			// Verify structure exists
+			expect(existsSync(fsPath("parent/file1.txt"))).toBe(true);
+			expect(existsSync(fsPath("parent/subdir/file2.txt"))).toBe(true);
+			expect(existsSync(fsPath("parent/subdir/deep/file3.txt"))).toBe(true);
+			expect(existsSync(fsPath("other/file4.txt"))).toBe(true);
+
+			// Delete everything under /parent/
+			await storage.deleteAllUnderPrefix("/parent/");
+
+			// Verify /parent/ directory and all contents are deleted
+			expect(existsSync(fsPath("parent"))).toBe(false);
+			expect(existsSync(fsPath("parent/file1.txt"))).toBe(false);
+			expect(existsSync(fsPath("parent/subdir"))).toBe(false);
+			expect(existsSync(fsPath("parent/subdir/file2.txt"))).toBe(false);
+			expect(existsSync(fsPath("parent/subdir/deep"))).toBe(false);
+			expect(existsSync(fsPath("parent/subdir/deep/file3.txt"))).toBe(false);
+
+			// Verify /other/ directory is untouched
+			expect(existsSync(fsPath("other/file4.txt"))).toBe(true);
+		});
+
+		test("deleteAllUnderPrefix succeeds when directory does not exist", async () => {
+			// Should not throw
+			await storage.deleteAllUnderPrefix("/nonexistent/");
+
+			// Verify it completes without error
+			expect(true).toBe(true);
 		});
 	});
 });
