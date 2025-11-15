@@ -1,9 +1,8 @@
-import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { StorageEndpoint } from "../../../contracts";
-import { resetAllMocks } from "../../../testing";
-import { resetAllTestDirectories, testDirectory } from "../../../testing/mocks";
+import { createTestDirectory, resetAllMocks } from "../../../testing";
 import { mockPlatformPaths } from "../../path";
 import { StorageUnknownError } from "../../storage-errors";
 import type { SharedTestConfig } from "../driver-shared.test";
@@ -17,12 +16,8 @@ afterEach(() => {
 	resetAllMocks();
 });
 
-afterAll(() => {
-	resetAllTestDirectories();
-});
-
 function filesystemStorageWithTmpDir(): StorageEndpoint {
-	const tempDir = testDirectory({ cleanUpOn: "manual" });
+	const tempDir = createTestDirectory();
 	return filesystemStorage({
 		rootPath: tempDir,
 		publicUrlPrefix: "https://example.com/files",
@@ -59,7 +54,7 @@ describe(filesystemStorage, () => {
 		};
 
 		beforeEach(() => {
-			tempDir = testDirectory({ cleanUpOn: "manual" });
+			tempDir = createTestDirectory();
 			storage = filesystemStorage({
 				rootPath: tempDir,
 				publicUrlPrefix: "https://example.com/files",

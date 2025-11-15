@@ -1,8 +1,3 @@
-import * as fs from "node:fs";
-import * as os from "node:os";
-// oxlint-disable-next-line no-restricted-imports
-import * as path from "node:path";
-
 const ORIGINAL: unique symbol = Symbol("original");
 const MOCK: unique symbol = Symbol("mock");
 
@@ -19,28 +14,6 @@ export function onResetAllMocks(callback: () => void): void {
 }
 
 type Mockable = Function & { [ORIGINAL]: Function; [MOCK]: Function | null };
-
-/**
- * Create a named function that delegates to the provided function.
- * Uses eval in environments that support it, falls back to unnamed function otherwise.
- *
- * @param name - The name for the new function
- * @param fn - The function to delegate to
- * @returns A new function with the specified name
- */
-function withFunctionName<F extends Function>(name: string, fn: F): F {
-	if (!name) return fn;
-
-	try {
-		// Try to create a named function using eval with minimal code
-		// This is wrapped in try-catch for environments that don't support eval (e.g., Cloudflare Workers)
-		return eval(`(function ${name}(...args) {
-			return fn.apply(this, args);
-		})`) as F;
-	} catch {
-		return fn;
-	}
-}
 
 /**
  * Wraps a function to make it mockable for testing.
@@ -85,10 +58,7 @@ export function mock<F extends Function>(fn: F, impl: F): void {
 	}
 	fn[MOCK] = impl;
 
-	// Register a callback to reset this mock
-	onResetAllMocks(() => {
-		fn[MOCK] = null;
-	});
+	onResetAllMocks(() => resetMock(fn));
 }
 
 /**
@@ -123,54 +93,11 @@ export function resetAllMocks(): void {
 	invokeAllAndClear(resetCallbacks);
 }
 
+/**
+ * Determine whether a function is mockable using {@link mock}
+ */
 export function isMockable(fn: unknown): fn is Mockable {
 	return typeof fn === "function" && ORIGINAL in fn;
-}
-
-const manualTestDirectoryResetCallbacks = new Set<WeakRef<() => void>>();
-
-/**
- * Clean up all test directories created with cleanUpOn: "manual"
- * and cleanUpOn: "mock-reset".
- *
- * Call this in afterAll() when using manual cleanup mode.
- */
-export function resetAllTestDirectories(): void {
-	invokeAllAndClear(manualTestDirectoryResetCallbacks);
-}
-
-/**
- * Create a directory for test data
- *
- * By default the directory is automatically cleaned up when
- * resetAllMocks() is called, which you typically do after each test.
- *
- * @param [options.cleanUpOn] - `"mock-reset"`: (the default) remove the
- *         directory on `resetAllMocks()`; `"manual"`: remove the directory
- *         when `resetAllTestDirectories()` is called
- */
-export function testDirectory({
-	cleanUpOn = "mock-reset",
-}: {
-	cleanUpOn?: "mock-reset" | "manual";
-} = {}): string {
-	const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "beynac-test-"));
-
-	const cleanup = () => {
-		try {
-			fs.rmSync(tempDir, { recursive: true, force: true });
-		} catch {
-			// Ignore errors if already deleted
-		}
-	};
-
-	if (cleanUpOn === "mock-reset") {
-		onResetAllMocks(cleanup);
-	} else if (cleanUpOn === "manual") {
-		manualTestDirectoryResetCallbacks.add(new WeakRef(cleanup));
-	}
-
-	return tempDir;
 }
 
 function invokeAllAndClear(callbacks: Set<WeakRef<() => void>>): void {
@@ -181,4 +108,18 @@ function invokeAllAndClear(callbacks: Set<WeakRef<() => void>>): void {
 		}
 	}
 	callbacks.clear();
+}
+
+function withFunctionName<F extends Function>(name: string, fn: F): F {
+	if (!name) return fn;
+
+	try {
+		// Try to create a named function using eval with minimal code
+		// This is wrapped in try-catch for environments that don't support eval (e.g., Cloudflare Workers)
+		return eval(`(function ${name}(...args) {
+			return fn.apply(this, args);
+		})`) as F;
+	} catch {
+		return fn;
+	}
 }
