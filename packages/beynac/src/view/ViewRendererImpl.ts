@@ -192,8 +192,8 @@ export class ViewRendererImpl extends BaseClass implements ViewRenderer {
 			rootContext = new ContextImpl();
 			rootContext.set(ComponentInstantiator, (tag: Component, props: Props) => {
 				if (isClassComponent(tag)) {
-					// Instantiate using container.call() so inject() works in constructor
-					const instance = this.container.call(() => new tag(props));
+					// Instantiate using container.withInject() so inject() works in constructor
+					const instance = this.container.withInject(() => new tag(props));
 					return (ctx: Context) => instance.render(ctx);
 				}
 				return (ctx: Context) => tag(props, ctx);

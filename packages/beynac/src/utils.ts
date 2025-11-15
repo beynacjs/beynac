@@ -142,11 +142,14 @@ export class ArrayMultiMap<K, V> extends MultiMap<K, V> {
 }
 
 /**
- * Extract method names from T that have no required arguments (all parameters are optional)
+ * Extract method names from T
  */
-export type MethodNamesWithNoRequiredArgs<T> = {
-	[K in keyof T]: T[K] extends () => unknown ? K : never;
+export type MethodNames<T> = {
+	[K in keyof T]: T[K] extends Function ? K : never;
 }[keyof T];
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyFunction = (...args: any) => any;
 
 /**
  * A reference to any constructor - can not be instantiated

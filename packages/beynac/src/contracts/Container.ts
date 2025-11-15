@@ -1,7 +1,7 @@
 import type { ContextualBindingBuilder } from "../container/ContextualBindingBuilder";
 import type { KeyOrClass, TypeToken } from "../container/container-key";
 import { createTypeToken } from "../container/container-key";
-import type { MethodNamesWithNoRequiredArgs, NoArgConstructor } from "../utils";
+import type { AnyFunction, MethodNames, NoArgConstructor } from "../utils";
 
 /**
  * A function that produces an instance of T
@@ -410,11 +410,42 @@ export interface Container {
 	 * @param closure The closure to call
 	 * @returns The return value of the closure
 	 */
-	call<R>(closure: () => R): R;
+	withInject<R>(closure: () => R): R;
 
 	/**
-	 * Call a method on an object in the context of the container, allowing
+	 * Invoke a method on an object in the context of the container, allowing
 	 * dependencies to be injected into the method.
+	 *
+	 * The method may declare injected arguments and contextual bindings can
+	 * be used to override the dependencies given to the object.
+	 *
+	 * @param object The object containing the method
+	 * @param methodName The name of the method to call
+	 * @param params The parameters to pass to the method
+	 * @returns The return value of the method
+	 *
+	 * @example
+	 * class FooCreator {
+	 *   createFoo(name: string, helper = inject(Helper)): Foo {
+	 *     ...
+	 *   }
+	 * }
+	 * // optionally use contextual bindings to override the dependency
+	 * container.when(FooCreator).needs(Helper).give(CustomHelper);
+	 * // call a method on a Foo instance
+	 * const creator = new FooCreator();
+	 * const result = container.invoke(creator, "createFoo", "myFoo");
+	 */
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	invoke<T extends object, K extends MethodNames<T> & keyof T>(
+		object: T,
+		methodName: K,
+		...params: T[K] extends AnyFunction ? Parameters<T[K]> : never[]
+	): T[K] extends AnyFunction ? ReturnType<T[K]> : never;
+
+	/**
+	 * Invoke a method on an object, allowing dependencies to be injected into
+	 * the method.
 	 *
 	 * The method may declare injected dependencies and contextual bindings can
 	 * be used to override the dependencies given to the object.
@@ -422,11 +453,17 @@ export interface Container {
 	 * @param object The object containing the method
 	 * @param methodName The name of the method to call
 	 * @returns The return value of the method
+	 *
+	 * @example
+	 * class Foo {
+	 *   constructor(private name: string, private dispatcher = inject(Dispatcher)) {}
+	 * }
+	 * // optionally use contextual bindings to override the dependency
+	 * container.when(Foo).needs(Dispatcher).give(CustomDispatcher);
+	 * // create a Foo instance
+	 * const foo = container.construct(Foo, "myFoo");
 	 */
-	call<T extends object, K extends MethodNamesWithNoRequiredArgs<T>>(
-		object: T,
-		methodName: K,
-	): T[K] extends () => infer R ? R : never;
+	construct<P extends unknown[], T>(cls: { new (...args: P): T }, ...args: P): T;
 
 	/**
 	 * Assign a set of tags to a given binding.
@@ -471,7 +508,7 @@ export interface Container {
 	 *     .needs(IPaymentGateway)
 	 *     .give(StripePaymentGateway)
 	 */
-	when(dependent: KeyOrClass | KeyOrClass[]): ContextualBindingBuilder;
+	when(consumer: KeyOrClass | KeyOrClass[]): ContextualBindingBuilder;
 }
 
 export const Container: TypeToken<Container> = createTypeToken("Container");

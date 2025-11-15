@@ -613,9 +613,9 @@ export class ContainerImpl extends BaseClass implements Container {
 		}
 	}
 
-	when(dependent: KeyOrClass | KeyOrClass[]): ContextualBindingBuilder {
+	when(consumer: KeyOrClass | KeyOrClass[]): ContextualBindingBuilder {
 		return new ContextualBindingBuilder(this, (need, factory) => {
-			for (const type of arrayWrap(dependent)) {
+			for (const type of arrayWrap(consumer)) {
 				const binding = this.#bindings.get(type) ?? this.#getConcreteBinding(type);
 				binding.contextualOverrides ??= new Map();
 				binding.contextualOverrides.set(need, factory);
@@ -665,41 +665,42 @@ export class ContainerImpl extends BaseClass implements Container {
 		}
 	}
 
-	call<T extends object, K extends keyof T, R>(
-		objectOrClosure: T | (() => R),
-		methodName?: K,
-	): R | (T[K] extends () => infer R2 ? R2 : never) {
-		// If only one argument and it's a function, it's a closure
-		if (arguments.length === 1 && typeof objectOrClosure === "function") {
-			const closure = objectOrClosure;
-			const previousInjectHandler = _getInjectHandler();
-			try {
-				_setInjectHandler(<TArg>(dependency: KeyOrClass<TArg>, optional: boolean) => {
-					return this.#getInjected(undefined, dependency, optional) as TArg;
-				});
-				return closure();
-			} finally {
-				_setInjectHandler(previousInjectHandler);
-			}
-		}
+	withInject<R>(closure: () => R): R {
+		return this.#contextualInject(undefined, closure);
+	}
 
-		// Otherwise it's an object method call
-		const object = objectOrClosure as T;
-		const dependent = (Object.getPrototypeOf(object) as object).constructor as
-			| KeyOrClass
-			| undefined;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	invoke<T extends object, K extends keyof T>(
+		object: T,
+		methodName: K,
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		...params: T[K] extends (...args: any) => any ? Parameters<T[K]> : never[]
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	): T[K] extends (...args: any) => any ? ReturnType<T[K]> : never {
+		const consumer = (Object.getPrototypeOf(object) as object).constructor as KeyOrClass;
 
-		const previousInjectHandler = _getInjectHandler();
-		try {
-			_setInjectHandler(<TArg>(dependency: KeyOrClass<TArg>, optional: boolean) => {
-				return this.#getInjected(dependent, dependency, optional) as TArg;
-			});
-			const o = object as Record<string, () => unknown>;
+		return this.#contextualInject(consumer, () => {
+			const o = object as Record<string, (...args: unknown[]) => unknown>;
 			const m = methodName as string;
 			if (!o[m]) {
 				throw new Error(`Method ${m} not found on object`);
 			}
-			return o[m]() as T[K] extends () => infer R2 ? R2 : never;
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			return o[m](...params) as T[K] extends (...args: any) => any ? ReturnType<T[K]> : never;
+		});
+	}
+
+	construct<P extends unknown[], T>(impl: { new (...args: P): T }, ...args: P): T {
+		return this.#contextualInject(impl, () => new impl(...args));
+	}
+
+	#contextualInject<R>(consumer: KeyOrClass | undefined, closure: () => R): R {
+		const previousInjectHandler = _getInjectHandler();
+		try {
+			_setInjectHandler(<TArg>(dependency: KeyOrClass<TArg>, optional: boolean) => {
+				return this.#getInjected(consumer, dependency, optional) as TArg;
+			});
+			return closure();
 		} finally {
 			_setInjectHandler(previousInjectHandler);
 		}

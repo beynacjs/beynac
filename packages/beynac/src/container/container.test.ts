@@ -760,14 +760,14 @@ test("it throws exception when abstract is same as alias", () => {
 	}).toThrowErrorMatchingInlineSnapshot(`"[Foo] is aliased to itself."`);
 });
 
-test("call method with object and method name", () => {
+test("invoke() with injected args", () => {
 	class Foo {
 		getDepName(dep = inject(Dep)) {
 			return dep.name;
 		}
 	}
 
-	const name = container.call(new Foo(), "getDepName");
+	const name = container.invoke(new Foo(), "getDepName");
 
 	expect(name).toBe("default");
 
@@ -776,15 +776,75 @@ test("call method with object and method name", () => {
 	);
 });
 
-test("call closure with dependency injection", () => {
-	const result = container.call(() => {
+test("invoke() with required non-injected args", () => {
+	class Foo {
+		getDepName(mandatory: string, dep = inject(Dep)) {
+			return mandatory + dep.name;
+		}
+	}
+
+	// @ts-expect-error -- should be an error to omit the required arg
+	container.invoke(new Foo(), "getDepName");
+
+	const result = container.invoke(new Foo(), "getDepName", "prefix:");
+	expect(result).toBe("prefix:default");
+});
+
+test("invoke() with optional non-injected args", () => {
+	class Foo {
+		getDepName(optional = "not-provided:", dep = inject(Dep)) {
+			return optional + dep.name;
+		}
+	}
+
+	expect(container.invoke(new Foo(), "getDepName")).toBe("not-provided:default");
+
+	expect(container.invoke(new Foo(), "getDepName", "provided:")).toBe("provided:default");
+});
+
+test("construct() with required arg", () => {
+	class Foo {
+		constructor(
+			public mandatory: number,
+			public injected = inject(Dep),
+		) {}
+	}
+
+	const foo = container.construct(Foo, 42);
+
+	// @ts-expect-error -- should be an error not to provide a mandatory arg
+	container.construct(Foo);
+
+	expect(foo.mandatory).toBe(42);
+	expect(foo.injected).toBeInstanceOf(Dep);
+});
+
+test("construct() with optional arg", () => {
+	class Foo {
+		constructor(
+			public mandatory?: number,
+			public injected = inject(Dep),
+		) {}
+	}
+
+	let foo = container.construct(Foo, 80);
+	expect(foo.mandatory).toBe(80);
+	expect(foo.injected).toBeInstanceOf(Dep);
+
+	foo = container.construct(Foo);
+	expect(foo.mandatory).toBeUndefined();
+	expect(foo.injected).toBeInstanceOf(Dep);
+});
+
+test("withInject with dependency injection", () => {
+	const result = container.withInject(() => {
 		const dep = inject(Dep);
 		return dep.name;
 	});
 
 	expect(result).toBe("default");
 
-	// Without container.call, inject should throw
+	// Without withInject, inject should throw
 	expect(() => {
 		const dep = inject(Dep);
 		return dep.name;
@@ -793,10 +853,10 @@ test("call closure with dependency injection", () => {
 	);
 });
 
-test("call closure with custom bound dependency", () => {
+test("withInject with custom bound dependency", () => {
 	container.bind(Dep, { factory: () => new Dep("custom") });
 
-	const result = container.call(() => {
+	const result = container.withInject(() => {
 		const dep = inject(Dep);
 		return dep.name;
 	});
@@ -804,16 +864,16 @@ test("call closure with custom bound dependency", () => {
 	expect(result).toBe("custom");
 });
 
-test("call closure returns closure return value", () => {
-	const result = container.call(() => {
+test("withInject returns closure return value", () => {
+	const result = container.withInject(() => {
 		return { value: 42, nested: { data: "test" } };
 	});
 
 	expect(result).toEqual({ value: 42, nested: { data: "test" } });
 });
 
-test("call closure with no dependencies", () => {
-	const result = container.call(() => "hello world");
+test("withInject closure with no dependencies", () => {
+	const result = container.withInject(() => "hello world");
 	expect(result).toBe("hello world");
 });
 
@@ -1231,7 +1291,7 @@ describe("Container contextual bindings", () => {
 		expect(container.get(B).dep.name).toBe("bound");
 	});
 
-	test("contextual binding works for method invocation", () => {
+	test("contextual binding works for invoke()", () => {
 		class A {
 			f(arg = inject(Dep)) {
 				return arg.name;
@@ -1243,8 +1303,26 @@ describe("Container contextual bindings", () => {
 			.needs(Dep)
 			.create(() => new Dep("contextual"));
 
-		const result = container.call(new A(), "f");
+		const result = container.invoke(new A(), "f");
 		expect(result).toBe("contextual");
+	});
+
+	test("contextual binding works for construct()", () => {
+		class A {
+			constructor(
+				public mandatory: string,
+				public injected = inject(Dep),
+			) {}
+		}
+
+		container
+			.when(A)
+			.needs(Dep)
+			.create(() => new Dep("contextual"));
+
+		const result = container.construct(A, "mandatory-value");
+		expect(result.mandatory).toBe("mandatory-value");
+		expect(result.injected.name).toBe("contextual");
 	});
 
 	test("contextual binding matches stored class when factory is used", () => {
@@ -1460,7 +1538,7 @@ describe("Container extend", () => {
 			.create(() => "bar");
 
 		expect(container.get(A).foo).toBe("bar extended");
-		expect(container.call(new A(""), "m")).toBe("bar extended");
+		expect(container.invoke(new A(""), "m")).toBe("bar extended");
 	});
 
 	test("extend instances are preserved", () => {

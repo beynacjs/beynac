@@ -24,8 +24,6 @@ describe("FilesystemStorageDriver - Windows path handling", () => {
 			});
 		});
 
-		await new Promise((resolve) => setTimeout(resolve, 500));
-
 		// Mock opendir to return an async iterable directory
 		const mockOpendir = mock(() => {
 			const entries: any[] = [];
