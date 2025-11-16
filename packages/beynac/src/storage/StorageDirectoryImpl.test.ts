@@ -5,8 +5,8 @@ import type { StorageDirectory, StorageEndpoint } from "../contracts/Storage";
 import { DispatcherImpl } from "../core/DispatcherImpl";
 import { expectError, mockDispatcher } from "../test-utils";
 import { mockCurrentTime } from "../testing";
-import { memoryStorage } from "./drivers/memory/MemoryStorageDriver";
-import { mockPlatformPaths } from "./path";
+import { MemoryStorageEndpoint } from "./drivers/memory/MemoryStorageEndpoint";
+import { mockPlatformPaths } from "./path-operations";
 import { StorageDirectoryImpl } from "./StorageDirectoryImpl";
 import { StorageDiskImpl } from "./StorageDiskImpl";
 import { StorageFileImpl } from "./StorageFileImpl";
@@ -33,7 +33,7 @@ describe(StorageDirectoryImpl, () => {
 
 	beforeEach(() => {
 		mockPlatformPaths("posix");
-		endpoint = memoryStorage({
+		endpoint = new MemoryStorageEndpoint({
 			initialFiles: {
 				"/subdir/file1.txt": "file 1",
 				"/subdir/file2.txt": "file 2",
@@ -225,7 +225,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("sanitises each path segment individually", () => {
-			const sanitisingEndpoint = memoryStorage({
+			const sanitisingEndpoint = new MemoryStorageEndpoint({
 				invalidNameChars: "<>",
 			});
 			const dir = create("/parent/", sanitisingEndpoint);
@@ -234,7 +234,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("converts when onInvalid is 'convert' or not provided", () => {
-			const sanitisingEndpoint = memoryStorage({
+			const sanitisingEndpoint = new MemoryStorageEndpoint({
 				invalidNameChars: "<>",
 			});
 			const dir = create("/parent/", sanitisingEndpoint);
@@ -249,7 +249,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("throws when onInvalid is 'throw' and path has invalid chars", () => {
-			const sanitisingEndpoint = memoryStorage({
+			const sanitisingEndpoint = new MemoryStorageEndpoint({
 				invalidNameChars: "<>",
 			});
 			const dir = create("/parent/", sanitisingEndpoint);
@@ -392,7 +392,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("sanitises invalid characters in filename", () => {
-			const sanitisingEndpoint = memoryStorage({
+			const sanitisingEndpoint = new MemoryStorageEndpoint({
 				invalidNameChars: "<>:",
 			});
 			const dir = create("/parent/", sanitisingEndpoint);
@@ -401,7 +401,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("converts when onInvalid is 'convert' or not provided", () => {
-			const sanitisingEndpoint = memoryStorage({
+			const sanitisingEndpoint = new MemoryStorageEndpoint({
 				invalidNameChars: "<>:",
 			});
 			const dir = create("/parent/", sanitisingEndpoint);
@@ -416,7 +416,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("throws when onInvalid is 'throw' and filename has invalid chars", () => {
-			const sanitisingEndpoint = memoryStorage({
+			const sanitisingEndpoint = new MemoryStorageEndpoint({
 				invalidNameChars: "<>:",
 			});
 			const dir = create("/parent/", sanitisingEndpoint);
@@ -427,7 +427,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("sanitises slashes in filename preserving path structure", () => {
-			const sanitisingEndpoint = memoryStorage({
+			const sanitisingEndpoint = new MemoryStorageEndpoint({
 				invalidNameChars: "/",
 			});
 			const dir = create("/parent/", sanitisingEndpoint);
@@ -607,7 +607,7 @@ describe(StorageDirectoryImpl, () => {
 
 	describe("toString()", () => {
 		test("returns [StorageDirectoryImpl endpoint://path]", () => {
-			const endpoint = memoryStorage({ name: "test-endpoint" });
+			const endpoint = new MemoryStorageEndpoint({ name: "test-endpoint" });
 			const dir = create("/path/to/dir/", endpoint);
 			expect(dir.toString()).toBe("[StorageDirectoryImpl test-endpoint://path/to/dir/]");
 		});

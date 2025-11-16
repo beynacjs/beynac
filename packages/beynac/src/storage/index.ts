@@ -1,17 +1,18 @@
 export {
-	FilesystemStorageDriver,
-	type FilesystemStorageDriverConfig,
+	type FilesystemStorageConfig,
+	FilesystemStorageEndpoint,
 	filesystemStorage,
-} from "./drivers/filesystem/FilesystemStorageDriver";
+} from "./drivers/filesystem";
 export {
-	MemoryStorageDriver,
-	type MemoryStorageDriverConfig,
+	type MemoryStorageConfig,
+	MemoryStorageEndpoint,
 	memoryStorage,
-} from "./drivers/memory/MemoryStorageDriver";
+} from "./drivers/memory";
 export {
-	type ScopedStorageDriverConfig,
+	type ScopedStorageConfig,
+	ScopedStorageEndpoint,
 	scopedStorage,
-} from "./drivers/scoped/ScopedStorageDriver";
+} from "./drivers/scoped";
 export { StorageDirectoryImpl } from "./StorageDirectoryImpl";
 export { StorageDiskImpl } from "./StorageDiskImpl";
 export { StorageFileImpl } from "./StorageFileImpl";

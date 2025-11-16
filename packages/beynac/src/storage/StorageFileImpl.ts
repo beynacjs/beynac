@@ -147,7 +147,7 @@ export class StorageFileImpl extends BaseClass implements StorageFile {
 		return await storageOperation(
 			"file:url-generate",
 			() =>
-				this.#endpoint.getSignedDownloadUrl(
+				this.#endpoint.makeSignedDownloadUrlWith(
 					this.path,
 					durationStringToDate("100y"),
 					options?.downloadAs,
@@ -169,7 +169,7 @@ export class StorageFileImpl extends BaseClass implements StorageFile {
 		return await storageOperation(
 			"file:url-generate",
 			() =>
-				this.#endpoint.getSignedDownloadUrl(
+				this.#endpoint.makeSignedDownloadUrlWith(
 					this.path,
 					durationStringToDate(options?.expires ?? "100y"),
 					options?.downloadAs,

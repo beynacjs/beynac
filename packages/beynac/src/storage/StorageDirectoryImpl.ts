@@ -10,7 +10,7 @@ import type {
 import { parseAttributeHeader } from "../helpers/headers";
 import { BaseClass } from "../utils";
 import { createFileName, mimeTypeFromFileName, sanitiseName } from "./file-names";
-import { posix } from "./path";
+import { posix } from "./path-operations";
 import { StorageFileImpl } from "./StorageFileImpl";
 import { InvalidPathError } from "./storage-errors";
 import {

@@ -1,7 +1,7 @@
 import { sha256 } from "../helpers/hash/sha";
 import * as str from "../helpers/str";
 import { regExpEscape } from "../utils";
-import { posix } from "./path";
+import { posix } from "./path-operations";
 
 /**
  * MIME type and file name handling for storage operations. Based on Chrome's

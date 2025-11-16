@@ -1,0 +1,98 @@
+import type { WriteStream } from "node:fs";
+import { ReadStream } from "node:fs";
+import { Writable } from "node:stream";
+import { ContainerImpl } from "../container";
+import type { ConfiguredStorageDriver, StorageEndpoint } from "../contracts/Storage";
+import { spyOnAll } from "../test-utils";
+import { BaseClass } from "../utils";
+import type { Dir, FilesystemOps, Stats } from "./filesystem-operations";
+import type { StorageEndpointBuilder } from "./StorageEndpointBuilder";
+
+export type SharedTestConfig = {
+	name: string;
+	createEndpoint: () => StorageEndpoint;
+};
+
+export function mockEndpointBuilder(): StorageEndpointBuilder {
+	const container = new ContainerImpl();
+	return {
+		build: (driver: ConfiguredStorageDriver | StorageEndpoint) =>
+			"getEndpoint" in driver ? driver.getEndpoint(container) : driver,
+	};
+}
+
+export class MockFilesystemOperations extends BaseClass implements FilesystemOps {
+	constructor() {
+		super();
+		spyOnAll(this);
+	}
+
+	async stat(_path: string): Promise<Stats> {
+		return {
+			isFile: () => true,
+			isDirectory: () => false,
+			isSymbolicLink: () => false,
+			isBlockDevice: () => false,
+			isCharacterDevice: () => false,
+			isFIFO: () => false,
+			isSocket: () => false,
+			dev: 0,
+			ino: 0,
+			mode: 0,
+			nlink: 0,
+			uid: 0,
+			gid: 0,
+			rdev: 0,
+			size: 0,
+			blksize: 0,
+			blocks: 0,
+			atimeMs: 0,
+			mtimeMs: 0,
+			ctimeMs: 0,
+			birthtimeMs: 0,
+			atime: new Date(),
+			mtime: new Date(),
+			ctime: new Date(),
+			birthtime: new Date(),
+		} as Stats;
+	}
+
+	async mkdir(_path: string, _options?: unknown): Promise<unknown> {
+		return;
+	}
+
+	async opendir(path: string): Promise<Dir> {
+		return {
+			path,
+			close: async () => {},
+			closeSync: () => {},
+			read: async () => null,
+			readSync: () => null,
+			[Symbol.asyncIterator]: async function* () {},
+		};
+	}
+
+	async unlink(_path: string): Promise<void> {}
+
+	async copyFile(_source: string, _destination: string): Promise<void> {}
+
+	async rename(_oldPath: string, _newPath: string): Promise<void> {}
+
+	async exists(_path: string): Promise<boolean> {
+		return true;
+	}
+
+	async rm(_path: string, _options?: unknown): Promise<void> {}
+
+	createReadStream(_path: string): ReadStream {
+		return ReadStream.from(new Uint8Array()) as ReadStream;
+	}
+
+	createWriteStream(_path: string): WriteStream {
+		return new Writable({
+			write(_chunk, _encoding, callback) {
+				callback();
+			},
+		}) as WriteStream;
+	}
+}

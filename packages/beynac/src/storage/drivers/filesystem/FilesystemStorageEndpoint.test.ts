@@ -3,10 +3,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { StorageEndpoint } from "../../../contracts";
 import { createTestDirectory, resetAllMocks } from "../../../testing";
-import { mockPlatformPaths } from "../../path";
+import { mockPlatformPaths } from "../../path-operations";
 import { StorageUnknownError } from "../../storage-errors";
-import type { SharedTestConfig } from "../driver-shared.test";
-import { filesystemStorage } from "./FilesystemStorageDriver";
+import type { SharedTestConfig } from "../../storage-test-utils";
+import { FilesystemStorageEndpoint, filesystemStorage } from "./FilesystemStorageEndpoint";
 
 beforeEach(() => {
 	mockPlatformPaths("posix");
@@ -18,10 +18,10 @@ afterEach(() => {
 
 function filesystemStorageWithTmpDir(): StorageEndpoint {
 	const tempDir = createTestDirectory();
-	return filesystemStorage({
+	return new FilesystemStorageEndpoint({
 		rootPath: tempDir,
-		publicUrlPrefix: "https://example.com/files",
-		getSignedDownloadUrl: ({ path, expires, downloadFileName }) => {
+		makePublicUrlWith: "https://example.com/files",
+		makeSignedDownloadUrlWith: ({ path, expires, downloadFileName }) => {
 			const params = new URLSearchParams();
 			params.set("expires", expires.toISOString());
 			if (downloadFileName) {
@@ -29,7 +29,7 @@ function filesystemStorageWithTmpDir(): StorageEndpoint {
 			}
 			return `mock-url://download${path}?${params.toString()}`;
 		},
-		getSignedUploadUrl: ({ path, expires }) => {
+		makeSignedUploadUrlWith: ({ path, expires }) => {
 			const params = new URLSearchParams();
 			params.set("expires", expires.toISOString());
 			return `mock-url://upload${path}?${params.toString()}`;
@@ -55,10 +55,10 @@ describe(filesystemStorage, () => {
 
 		beforeEach(() => {
 			tempDir = createTestDirectory();
-			storage = filesystemStorage({
+			storage = new FilesystemStorageEndpoint({
 				rootPath: tempDir,
-				publicUrlPrefix: "https://example.com/files",
-				getSignedDownloadUrl: ({ path, expires, downloadFileName }) => {
+				makePublicUrlWith: "https://example.com/files",
+				makeSignedDownloadUrlWith: ({ path, expires, downloadFileName }) => {
 					const params = new URLSearchParams();
 					params.set("expires", expires.toISOString());
 					if (downloadFileName) {
@@ -66,7 +66,7 @@ describe(filesystemStorage, () => {
 					}
 					return `mock-url://download${path}?${params.toString()}`;
 				},
-				getSignedUploadUrl: ({ path, expires }) => {
+				makeSignedUploadUrlWith: ({ path, expires }) => {
 					const params = new URLSearchParams();
 					params.set("expires", expires.toISOString());
 					return `mock-url://upload${path}?${params.toString()}`;
@@ -78,23 +78,23 @@ describe(filesystemStorage, () => {
 			resetAllMocks();
 		});
 
-		test("publicUrlPrefix configuration - throws when not configured", async () => {
-			const storageWithoutPrefix = filesystemStorage({ rootPath: tempDir });
+		test("makePublicUrlWith configuration - throws when not configured", async () => {
+			const storageWithoutPrefix = new FilesystemStorageEndpoint({ rootPath: tempDir });
 
 			await writeTestFile(storageWithoutPrefix, "/test.txt");
 
 			expect(storageWithoutPrefix.getPublicDownloadUrl("/test.txt")).rejects.toThrow(
-				"publicUrlPrefix is required",
+				"makePublicUrlWith is required",
 			);
 			expect(
-				storageWithoutPrefix.getSignedDownloadUrl("/test.txt", new Date(Date.now() + 3600000)),
-			).rejects.toThrow("getSignedDownloadUrl is required");
+				storageWithoutPrefix.makeSignedDownloadUrlWith("/test.txt", new Date(Date.now() + 3600000)),
+			).rejects.toThrow("makeSignedDownloadUrlWith is required");
 			expect(
 				storageWithoutPrefix.getTemporaryUploadUrl("/test.txt", new Date(Date.now() + 3600000)),
-			).rejects.toThrow("getSignedUploadUrl is required");
+			).rejects.toThrow("makeSignedUploadUrlWith is required");
 		});
 
-		test("publicUrlPrefix configuration - uses configured prefix", async () => {
+		test("makePublicUrlWith configuration - uses configured string prefix", async () => {
 			await writeTestFile(storage, "/test.txt");
 
 			const publicUrl = await storage.getPublicDownloadUrl("/test.txt");
@@ -103,17 +103,40 @@ describe(filesystemStorage, () => {
 			const publicUrlWithDownload = await storage.getPublicDownloadUrl("/test.txt", "custom.txt");
 			expect(publicUrlWithDownload).toBe("https://example.com/files/test.txt?download=custom.txt");
 
-			const signedUrl = await storage.getSignedDownloadUrl("/test.txt", new Date("2025-11-14"));
+			const signedUrl = await storage.makeSignedDownloadUrlWith(
+				"/test.txt",
+				new Date("2025-11-14"),
+			);
 			expect(signedUrl).toStartWith("mock-url://download/test.txt?expires=2025-11-14");
 
 			const uploadUrl = await storage.getTemporaryUploadUrl("/test.txt", new Date("2025-11-14"));
 			expect(uploadUrl).toStartWith("mock-url://upload/test.txt?expires=2025-11-14");
 		});
 
-		test("publicUrlPrefix with trailing slash", async () => {
-			const storageWithTrailingSlash = filesystemStorage({
+		test("makePublicUrlWith configuration - uses callback function", async () => {
+			const storageWithCallback = new FilesystemStorageEndpoint({
 				rootPath: tempDir,
-				publicUrlPrefix: "https://cdn.example.com/files/",
+				makePublicUrlWith: (path) => `https://custom-cdn.example.com/v2${path}`,
+			});
+
+			await writeTestFile(storageWithCallback, "/test.txt");
+
+			const publicUrl = await storageWithCallback.getPublicDownloadUrl("/test.txt");
+			expect(publicUrl).toBe("https://custom-cdn.example.com/v2/test.txt");
+
+			const publicUrlWithDownload = await storageWithCallback.getPublicDownloadUrl(
+				"/test.txt",
+				"custom.txt",
+			);
+			expect(publicUrlWithDownload).toBe(
+				"https://custom-cdn.example.com/v2/test.txt?download=custom.txt",
+			);
+		});
+
+		test("makePublicUrlWith with trailing slash", async () => {
+			const storageWithTrailingSlash = new FilesystemStorageEndpoint({
+				rootPath: tempDir,
+				makePublicUrlWith: "https://cdn.example.com/files/",
 			});
 
 			await writeTestFile(storageWithTrailingSlash, "/test.txt");

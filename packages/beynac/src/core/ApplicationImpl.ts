@@ -11,6 +11,10 @@ import { DevModeWatchService } from "../development/DevModeWatchService";
 import { BeynacError } from "../error";
 import { group, Router, RouteUrlGenerator } from "../http";
 import { RequestHandler } from "../http/RequestHandler";
+import {
+	StorageEndpointBuilder,
+	StorageEndpointBuilderImpl,
+} from "../storage/StorageEndpointBuilder";
 import { StorageImpl } from "../storage/StorageImpl";
 import { BaseClass } from "../utils";
 import { ViewRendererImpl } from "../view/ViewRendererImpl";
@@ -57,6 +61,7 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 		this.container.scoped(KeepAlive, KeepAliveImpl);
 		this.container.singleton(ViewRenderer, ViewRendererImpl);
 		this.container.singleton(DispatcherKey, DispatcherImpl);
+		this.container.singleton(StorageEndpointBuilder, StorageEndpointBuilderImpl);
 		this.container.singleton(Storage, StorageImpl);
 		this.container.singleton(DevModeAutoRefreshMiddleware);
 		this.container.singleton(DevModeWatchService);
@@ -74,9 +79,6 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 		// Register routes with dev mode middleware if needed
 		if (this.#config.routes) {
 			const router = this.container.get(Router);
-
-			// Wrap routes with dev mode middleware if enabled
-			// TODO add configuration defaults so that each code usage doesn't need to know about the correct default
 			if (autoRefreshEnabled) {
 				const wrappedRoutes = group({ middleware: DevModeAutoRefreshMiddleware }, [
 					this.#config.routes,

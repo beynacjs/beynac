@@ -3,15 +3,11 @@ import type { StorageDisk, StorageEndpoint } from "../../contracts/Storage";
 import { expectError, mockDispatcher } from "../../test-utils";
 import { StorageImpl } from "../StorageImpl";
 import { NotFoundError } from "../storage-errors";
-import { filesystemStorageSharedTestConfig } from "./filesystem/FilesystemStorageDriver.test";
-import { memoryStorage } from "./memory/MemoryStorageDriver";
-import { memoryStorageSharedTestConfig } from "./memory/MemoryStorageDriver.test";
-import { scopedStorageSharedTestConfig } from "./scoped/ScopedStorageDriver.test";
-
-export type SharedTestConfig = {
-	name: string;
-	createEndpoint: () => StorageEndpoint;
-};
+import { mockEndpointBuilder, type SharedTestConfig } from "../storage-test-utils";
+import { filesystemStorageSharedTestConfig } from "./filesystem/FilesystemStorageEndpoint.test";
+import { MemoryStorageEndpoint } from "./memory/MemoryStorageEndpoint";
+import { memoryStorageSharedTestConfig } from "./memory/MemoryStorageEndpoint.test";
+import { scopedStorageSharedTestConfig } from "./scoped/ScopedStorageEndpoint.test";
 
 const driverConfigs: SharedTestConfig[] = [
 	memoryStorageSharedTestConfig,
@@ -40,6 +36,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 						defaultDisk: "test",
 					},
 					mockDispatcher(),
+					mockEndpointBuilder(),
 				);
 				disk = storage.disk();
 				const files = [
@@ -266,6 +263,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 						defaultDisk: "test",
 					},
 					mockDispatcher(),
+					mockEndpointBuilder(),
 				);
 				disk = storage.disk();
 			});
@@ -342,7 +340,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 				});
 
 				test("cross-disk, different driver", async () => {
-					const memoryDisk = storage.build(memoryStorage());
+					const memoryDisk = storage.build(new MemoryStorageEndpoint({}));
 
 					// From memory driver
 					const memorySource = memoryDisk.file("/source.txt");
@@ -402,7 +400,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 				});
 
 				test("cross-disk, different driver", async () => {
-					const memoryDisk = storage.build(memoryStorage());
+					const memoryDisk = storage.build(new MemoryStorageEndpoint({}));
 
 					// From memory driver
 					const memorySource = memoryDisk.file("/source.txt");
@@ -614,7 +612,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 			});
 		});
 
-		describe("getSignedDownloadUrl()", () => {
+		describe("makeSignedDownloadUrlWith()", () => {
 			test("handles downloadFileName parameter", async () => {
 				await endpoint.writeSingle({
 					path: "/test.txt",
@@ -622,7 +620,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 					mimeType: "text/plain",
 				});
 				const expires = new Date(Date.now() + 3600000);
-				const url = await endpoint.getSignedDownloadUrl("/test.txt", expires, "custom.txt");
+				const url = await endpoint.makeSignedDownloadUrlWith("/test.txt", expires, "custom.txt");
 				expect(url).toInclude("custom");
 			});
 		});

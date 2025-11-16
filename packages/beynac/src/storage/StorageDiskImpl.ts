@@ -12,14 +12,18 @@ import { StorageDirectoryImpl } from "./StorageDirectoryImpl";
  */
 export class StorageDiskImpl extends DelegatesToDirectory implements StorageDisk {
 	readonly name: string;
-	readonly #rootDirectory: StorageDirectoryImpl;
 	readonly #endpoint: StorageEndpoint;
+	readonly #rootDirectory: StorageDirectoryImpl;
 
 	constructor(name: string, endpoint: StorageEndpoint, dispatcher: Dispatcher) {
 		super();
 		this.name = name;
 		this.#endpoint = endpoint;
 		this.#rootDirectory = new StorageDirectoryImpl(this, endpoint, "/", dispatcher);
+	}
+
+	getEndpoint(): StorageEndpoint {
+		return this.#endpoint;
 	}
 
 	protected override getDirectoryForDelegation(): StorageDirectoryOperations {

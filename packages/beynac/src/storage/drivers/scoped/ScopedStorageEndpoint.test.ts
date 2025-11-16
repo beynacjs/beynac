@@ -2,26 +2,38 @@ import { beforeEach, describe, expect, spyOn, test } from "bun:test";
 import type { StorageEndpoint } from "../../../contracts/Storage";
 import { mockDispatcher } from "../../../test-utils";
 import { StorageImpl } from "../../StorageImpl";
-import type { SharedTestConfig } from "../driver-shared.test";
-import { memoryStorage } from "../memory/MemoryStorageDriver";
-import { scopedStorage } from "./ScopedStorageDriver";
+import { mockEndpointBuilder, type SharedTestConfig } from "../../storage-test-utils";
+import { MemoryStorageEndpoint } from "../memory/MemoryStorageEndpoint";
+import { ScopedStorageEndpoint } from "./ScopedStorageEndpoint";
+import { scopedStorage } from "./scopedStorage";
+
+// Dummy factory for tests - never called since we pass StorageEndpoint directly
+const dummyStorageFactory = () => {
+	throw new Error("Should not be called in unit tests with direct StorageEndpoint");
+};
 
 export const scopedStorageSharedTestConfig: SharedTestConfig[] = [
 	{
 		name: `${scopedStorage.name} on "/"`,
 		createEndpoint: () =>
-			scopedStorage({
-				disk: memoryStorage(),
-				prefix: "/",
-			}),
+			new ScopedStorageEndpoint(
+				{
+					disk: new MemoryStorageEndpoint({}),
+					prefix: "/",
+				},
+				dummyStorageFactory,
+			),
 	},
 	{
 		name: `${scopedStorage.name} on "/scoped/"`,
 		createEndpoint: () =>
-			scopedStorage({
-				disk: memoryStorage(),
-				prefix: "/scoped/",
-			}),
+			new ScopedStorageEndpoint(
+				{
+					disk: new MemoryStorageEndpoint({}),
+					prefix: "/scoped/",
+				},
+				dummyStorageFactory,
+			),
 	},
 ];
 
@@ -30,11 +42,14 @@ describe(scopedStorage, () => {
 	let scopedDisk: StorageEndpoint;
 
 	beforeEach(() => {
-		wrappedDisk = memoryStorage();
-		scopedDisk = scopedStorage({
-			disk: wrappedDisk,
-			prefix: "/videos/",
-		});
+		wrappedDisk = new MemoryStorageEndpoint({});
+		scopedDisk = new ScopedStorageEndpoint(
+			{
+				disk: wrappedDisk,
+				prefix: "/videos/",
+			},
+			dummyStorageFactory,
+		);
 	});
 
 	test("writeSingle() prepends prefix to path", async () => {
@@ -165,11 +180,11 @@ describe(scopedStorage, () => {
 		expect(spy).toHaveBeenCalledWith("/videos/file.txt", "download.txt");
 	});
 
-	test("getSignedDownloadUrl() prepends prefix to path", async () => {
-		const spy = spyOn(wrappedDisk, "getSignedDownloadUrl");
+	test("makeSignedDownloadUrlWith() prepends prefix to path", async () => {
+		const spy = spyOn(wrappedDisk, "makeSignedDownloadUrlWith");
 		const expires = new Date();
 
-		await scopedDisk.getSignedDownloadUrl("/file.txt", expires, "download.txt");
+		await scopedDisk.makeSignedDownloadUrlWith("/file.txt", expires, "download.txt");
 
 		expect(spy).toHaveBeenCalledWith("/videos/file.txt", expires, "download.txt");
 	});
@@ -214,6 +229,7 @@ describe(scopedStorage, () => {
 				defaultDisk: "scoped",
 			},
 			mockDispatcher(),
+			mockEndpointBuilder(),
 		);
 
 		const disk = storage.disk();
@@ -235,22 +251,43 @@ describe(scopedStorage, () => {
 	});
 
 	test("forwards supportsMimeTypes from wrapped disk", () => {
-		const diskWithMime = memoryStorage({ supportsMimeTypes: true });
-		const diskWithoutMime = memoryStorage({ supportsMimeTypes: false });
+		const diskWithMime = new MemoryStorageEndpoint({ supportsMimeTypes: true });
+		const diskWithoutMime = new MemoryStorageEndpoint({ supportsMimeTypes: false });
 
-		const scopedWithMime = scopedStorage({ disk: diskWithMime, prefix: "/test/" });
-		const scopedWithoutMime = scopedStorage({ disk: diskWithoutMime, prefix: "/test/" });
+		const scopedWithMime = new ScopedStorageEndpoint(
+			{ disk: diskWithMime, prefix: "/test/" },
+			dummyStorageFactory,
+		);
+		const scopedWithoutMime = new ScopedStorageEndpoint(
+			{
+				disk: diskWithoutMime,
+				prefix: "/test/",
+			},
+			dummyStorageFactory,
+		);
 
 		expect(scopedWithMime.supportsMimeTypes).toBe(true);
 		expect(scopedWithoutMime.supportsMimeTypes).toBe(false);
 	});
 
 	test("forwards invalidNameChars from wrapped disk", () => {
-		const diskWithInvalid = memoryStorage({ invalidNameChars: '<>:"' });
-		const diskWithoutInvalid = memoryStorage({ invalidNameChars: "" });
+		const diskWithInvalid = new MemoryStorageEndpoint({ invalidNameChars: '<>:"' });
+		const diskWithoutInvalid = new MemoryStorageEndpoint({ invalidNameChars: "" });
 
-		const scopedWithInvalid = scopedStorage({ disk: diskWithInvalid, prefix: "/test/" });
-		const scopedWithoutInvalid = scopedStorage({ disk: diskWithoutInvalid, prefix: "/test/" });
+		const scopedWithInvalid = new ScopedStorageEndpoint(
+			{
+				disk: diskWithInvalid,
+				prefix: "/test/",
+			},
+			dummyStorageFactory,
+		);
+		const scopedWithoutInvalid = new ScopedStorageEndpoint(
+			{
+				disk: diskWithoutInvalid,
+				prefix: "/test/",
+			},
+			dummyStorageFactory,
+		);
 
 		expect(scopedWithInvalid.invalidNameChars).toBe('<>:"');
 		expect(scopedWithoutInvalid.invalidNameChars).toBe("");
@@ -265,13 +302,16 @@ describe(scopedStorage, () => {
 		["", "/file.txt", "/file.txt"],
 		["/users/123/uploads/", "/file.txt", "/users/123/uploads/file.txt"],
 	])('handles "%s" prefix and "%s" path', async (prefix, path, expected) => {
-		const wrappedDisk = memoryStorage();
+		const wrappedDisk = new MemoryStorageEndpoint({});
 		const spy = spyOn(wrappedDisk, "writeSingle");
 
-		const scopedDisk = scopedStorage({
-			disk: wrappedDisk,
-			prefix,
-		});
+		const scopedDisk = new ScopedStorageEndpoint(
+			{
+				disk: wrappedDisk,
+				prefix,
+			},
+			dummyStorageFactory,
+		);
 
 		await scopedDisk.writeSingle({
 			path,

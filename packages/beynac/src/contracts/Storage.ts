@@ -1,4 +1,5 @@
 import { createTypeToken, type TypeToken } from "../container/container-key";
+import type { Container } from "./Container";
 
 /**
  * A manager for storage disks
@@ -20,7 +21,7 @@ export interface Storage extends StorageDirectoryOperations {
 	 * @param endpoint a storage driver configuration e.g. filesystemStorage({... config ...})
 	 * @param name an optional disk name for debugging
 	 */
-	build(endpoint: StorageEndpoint, name?: string): StorageDisk;
+	build(endpoint: ConfiguredStorageDriver | StorageEndpoint, name?: string): StorageDisk;
 
 	/**
 	 * Replace a disk with one backed by a temporary directory that will be
@@ -47,6 +48,11 @@ export interface Storage extends StorageDirectoryOperations {
  */
 export interface StorageDisk extends StorageDirectoryOperations {
 	readonly name: string;
+
+	/**
+	 * Get the underlying storage endpoint for this disk
+	 */
+	getEndpoint(): StorageEndpoint;
 }
 
 export type StorageEntry = StorageFile | StorageDirectory;
@@ -433,6 +439,10 @@ export interface StorageEndpointFileReadResult {
 	data: StorageData;
 }
 
+export interface ConfiguredStorageDriver {
+	getEndpoint(container: Container): StorageEndpoint;
+}
+
 /**
  * A connection to a specific storage location, e.g. a local directory or S3 bucket.
  */
@@ -488,7 +498,11 @@ export interface StorageEndpoint {
 	/**
 	 * Get a temporary download URL for a path.
 	 */
-	getSignedDownloadUrl(path: string, expires: Date, downloadFileName?: string): Promise<string>;
+	makeSignedDownloadUrlWith(
+		path: string,
+		expires: Date,
+		downloadFileName?: string,
+	): Promise<string>;
 
 	/**
 	 * Get a temporary upload URL for a path.

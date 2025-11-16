@@ -1,10 +1,8 @@
 import { createHash } from "node:crypto";
-import type * as fsSync from "node:fs";
-import { createReadStream, createWriteStream } from "node:fs";
-import * as fs from "node:fs/promises";
 import { pipeline, Readable } from "node:stream";
 import { promisify } from "node:util";
 import type {
+	ConfiguredStorageDriver,
 	StorageEndpoint,
 	StorageEndpointFileInfoResult,
 	StorageEndpointFileReadResult,
@@ -12,92 +10,28 @@ import type {
 } from "../../../contracts/Storage";
 import { BaseClass } from "../../../utils";
 import { joinSlashPaths } from "../../file-names";
-import { platform } from "../../path";
+import { type Dir, fsOps, type Stats } from "../../filesystem-operations";
+import { platform } from "../../path-operations";
 import { NotFoundError, PermissionsError, StorageUnknownError } from "../../storage-errors";
+import type { FilesystemStorageConfig } from "./FilesystemStorageConfig";
 
 const pipelineAsync = promisify(pipeline);
 
 /**
- * Configuration for the filesystem driver
- */
-export interface FilesystemStorageDriverConfig {
-	/**
-	 * Root directory where files are stored on disk.
-	 * All storage paths will be relative to this directory.
-	 */
-	rootPath: string;
-
-	/**
-	 * Name of this endpoint for identification purposes.
-	 * Default: "filesystem"
-	 */
-	name?: string | undefined;
-
-	/**
-	 * Public URL prefix for generating download URLs.
-	 * Required for url() method.
-	 * If not provided, url() will throw an error.
-	 *
-	 * @example
-	 * publicUrlPrefix: "https://cdn.example.com/files"
-	 */
-	publicUrlPrefix?: string | undefined;
-
-	/**
-	 * Function to generate signed download URLs.
-	 * Required for signedUrl() method.
-	 * If not provided, signedUrl() will throw an error.
-	 *
-	 * @example
-	 * getSignedDownloadUrl: ({ path, expires, downloadFileName, config }) => {
-	 *   const signature = generateHMAC(path + expires);
-	 *   return `https://cdn.example.com${path}?expires=${expires}&sig=${signature}`;
-	 * }
-	 */
-	getSignedDownloadUrl?:
-		| ((params: {
-				path: string;
-				expires: Date;
-				downloadFileName?: string | undefined;
-				config: FilesystemStorageDriverConfig;
-		  }) => string | Promise<string>)
-		| undefined;
-
-	/**
-	 * Function to generate signed upload URLs.
-	 * Required for uploadUrl() method.
-	 * If not provided, uploadUrl() will throw an error.
-	 *
-	 * @example
-	 * getSignedUploadUrl: ({ path, expires, config }) => {
-	 *   const signature = generateHMAC(path + expires);
-	 *   return `https://cdn.example.com${path}?upload=true&expires=${expires}&sig=${signature}`;
-	 * }
-	 */
-	getSignedUploadUrl?:
-		| ((params: {
-				path: string;
-				expires: Date;
-				config: FilesystemStorageDriverConfig;
-		  }) => string | Promise<string>)
-		| undefined;
-}
-
-/**
  * Filesystem storage driver for local file storage
  */
-export class FilesystemStorageDriver extends BaseClass implements StorageEndpoint {
+export class FilesystemStorageEndpoint extends BaseClass implements StorageEndpoint {
 	readonly #rootPath: string;
-	readonly #publicUrlPrefix: string | undefined;
-	readonly #config: FilesystemStorageDriverConfig;
+	readonly #makePublicUrlWith: string | ((path: string) => string) | undefined;
+	readonly #config: FilesystemStorageConfig;
 
 	readonly name: string;
 
-	constructor(config: FilesystemStorageDriverConfig) {
+	constructor(config: FilesystemStorageConfig) {
 		super();
 		this.name = config.name ?? "filesystem";
 		this.#rootPath = config.rootPath;
-		this.#publicUrlPrefix = config.publicUrlPrefix;
+		this.#makePublicUrlWith = config.makePublicUrlWith;
 		this.#config = config;
 	}
 
@@ -116,7 +50,7 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 			await this.#ensureParentDirectoryExists(fsPath);
 			const webStream = new Response(data).body;
 			const nodeStream = webStream ? Readable.fromWeb(webStream) : Readable.from([]);
-			await pipelineAsync(nodeStream, createWriteStream(fsPath));
+			await pipelineAsync(nodeStream, fsOps.createWriteStream(fsPath));
 		});
 	}
 
@@ -124,8 +58,8 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 		const fsPath = this.#toFilesystemPath(path);
 
 		return await withNodeErrors(fsPath, async () => {
-			const stats = await fs.stat(fsPath);
-			const nodeStream = createReadStream(fsPath);
+			const stats = await fsOps.stat(fsPath);
+			const nodeStream = fsOps.createReadStream(fsPath);
 			const webStream = Readable.toWeb(nodeStream);
 			const wrappedStream = wrapStreamErrors(webStream, (error) => convertNodeError(error, fsPath));
 			return {
@@ -140,7 +74,7 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 	async getInfoSingle(path: string): Promise<StorageEndpointFileInfoResult> {
 		const fsPath = this.#toFilesystemPath(path);
 
-		const stats = await withNodeErrors(fsPath, () => fs.stat(fsPath));
+		const stats = await withNodeErrors(fsPath, () => fsOps.stat(fsPath));
 
 		return {
 			contentLength: stats.size,
@@ -151,12 +85,12 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 
 	async existsSingle(path: string): Promise<boolean> {
 		const fsPath = this.#toFilesystemPath(path);
-		return fs.exists(fsPath);
+		return fsOps.exists(fsPath);
 	}
 
 	async deleteSingle(path: string): Promise<void> {
 		const fsPath = this.#toFilesystemPath(path);
-		await withNodeErrors(fsPath, () => fs.unlink(fsPath));
+		await withNodeErrors(fsPath, () => fsOps.unlink(fsPath));
 	}
 
 	async copy(source: string, destination: string): Promise<void> {
@@ -165,7 +99,7 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 
 		await withNodeErrors(sourceFsPath, async () => {
 			await this.#ensureParentDirectoryExists(destFsPath);
-			await fs.copyFile(sourceFsPath, destFsPath);
+			await fsOps.copyFile(sourceFsPath, destFsPath);
 		});
 	}
 
@@ -175,31 +109,35 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 
 		await withNodeErrors(sourceFsPath, async () => {
 			await this.#ensureParentDirectoryExists(destFsPath);
-			await fs.rename(sourceFsPath, destFsPath);
+			await fsOps.rename(sourceFsPath, destFsPath);
 		});
 	}
 
 	async getPublicDownloadUrl(path: string, downloadFileName?: string): Promise<string> {
-		if (!this.#publicUrlPrefix) {
-			throw new Error("publicUrlPrefix is required for URL generation");
+		if (!this.#makePublicUrlWith) {
+			throw new Error("makePublicUrlWith is required for URL generation");
 		}
 
-		const baseUrl = joinSlashPaths(this.#publicUrlPrefix, path);
+		const baseUrl =
+			typeof this.#makePublicUrlWith === "string"
+				? joinSlashPaths(this.#makePublicUrlWith, path)
+				: this.#makePublicUrlWith(path);
+
 		if (downloadFileName) {
 			return `${baseUrl}?download=${encodeURIComponent(downloadFileName)}`;
 		}
 		return baseUrl;
 	}
 
-	async getSignedDownloadUrl(
+	async makeSignedDownloadUrlWith(
 		path: string,
 		expires: Date,
 		downloadFileName?: string,
 	): Promise<string> {
-		if (!this.#config.getSignedDownloadUrl) {
-			throw new Error("getSignedDownloadUrl is required for signed URL generation");
+		if (!this.#config.makeSignedDownloadUrlWith) {
+			throw new Error("makeSignedDownloadUrlWith is required for signed URL generation");
 		}
-		return await this.#config.getSignedDownloadUrl({
+		return await this.#config.makeSignedDownloadUrlWith({
 			path,
 			expires,
 			downloadFileName,
@@ -208,10 +146,10 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 	}
 
 	async getTemporaryUploadUrl(path: string, expires: Date): Promise<string> {
-		if (!this.#config.getSignedUploadUrl) {
-			throw new Error("getSignedUploadUrl is required for signed upload URL generation");
+		if (!this.#config.makeSignedUploadUrlWith) {
+			throw new Error("makeSignedUploadUrlWith is required for signed upload URL generation");
 		}
-		return await this.#config.getSignedUploadUrl({
+		return await this.#config.makeSignedUploadUrlWith({
 			path,
 			expires,
 			config: this.#config,
@@ -224,11 +162,11 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 	}
 
 	async #hasAnyFile(fsPath: string): Promise<boolean> {
-		let dir: fsSync.Dir | undefined;
+		let dir: Dir | undefined;
 
 		let entries = 0;
 		try {
-			dir = await fs.opendir(fsPath);
+			dir = await fsOps.opendir(fsPath);
 			for await (const dirent of dir) {
 				++entries;
 				if (dirent.isFile()) {
@@ -282,7 +220,7 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 		await withNodeErrors(fsPrefix, async () => {
 			// Use fs.rm with recursive option to remove directory and all contents
 			// force: true means it won't throw if the directory doesn't exist
-			await fs.rm(fsPrefix, { recursive: true, force: true });
+			await fsOps.rm(fsPrefix, { recursive: true, force: true });
 		});
 	}
 
@@ -297,10 +235,10 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 
 		const currentPath = relativePath ? platform.join(rootFsPath, relativePath) : rootFsPath;
 
-		let dir: fsSync.Dir | undefined;
+		let dir: Dir | undefined;
 
 		try {
-			dir = await fs.opendir(currentPath);
+			dir = await fsOps.opendir(currentPath);
 			for await (const dirent of dir) {
 				if (dirent.isDirectory()) {
 					entries.push(`${dirent.name}/`);
@@ -351,10 +289,10 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 	}
 
 	async #ensureParentDirectoryExists(path: string): Promise<void> {
-		await fs.mkdir(platform.dirname(path), { recursive: true });
+		await fsOps.mkdir(platform.dirname(path), { recursive: true });
 	}
 
-	#generateEtag(stats: fsSync.Stats): string {
+	#generateEtag(stats: Stats): string {
 		const data = `${stats.mtimeMs}-${stats.size}`;
 		return createHash("sha256").update(data).digest("hex");
 	}
@@ -363,8 +301,12 @@ export class FilesystemStorageDriver extends BaseClass implements StorageEndpoin
 /**
  * Create filesystem-backed storage
  */
-export function filesystemStorage(config: FilesystemStorageDriverConfig): StorageEndpoint {
-	return new FilesystemStorageDriver(config);
+export function filesystemStorage(config: FilesystemStorageConfig): ConfiguredStorageDriver {
+	return {
+		getEndpoint(): StorageEndpoint {
+			return new FilesystemStorageEndpoint(config);
+		},
+	};
 }
 
 /**
