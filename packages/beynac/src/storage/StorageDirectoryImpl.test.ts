@@ -607,9 +607,9 @@ describe(StorageDirectoryImpl, () => {
 
 	describe("toString()", () => {
 		test("returns [StorageDirectoryImpl endpoint://path]", () => {
-			const endpoint = new MemoryStorageEndpoint({ name: "test-endpoint" });
+			const endpoint = new MemoryStorageEndpoint({});
 			const dir = create("/path/to/dir/", endpoint);
-			expect(dir.toString()).toBe("[StorageDirectoryImpl test-endpoint://path/to/dir/]");
+			expect(dir.toString()).toBe("[StorageDirectoryImpl memory://path/to/dir/]");
 		});
 	});
 

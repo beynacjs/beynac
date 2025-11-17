@@ -538,9 +538,9 @@ describe(StorageFileImpl, () => {
 
 	describe("toString()", () => {
 		test("returns [StorageFileImpl endpoint://path]", () => {
-			const endpoint = new MemoryStorageEndpoint({ name: "test-endpoint" });
+			const endpoint = new MemoryStorageEndpoint({});
 			const file = create("/path/to/file.txt", endpoint);
-			expect(file.toString()).toBe("[StorageFileImpl test-endpoint://path/to/file.txt]");
+			expect(file.toString()).toBe("[StorageFileImpl memory://path/to/file.txt]");
 		});
 	});
 

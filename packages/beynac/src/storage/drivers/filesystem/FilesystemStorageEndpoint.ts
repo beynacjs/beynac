@@ -25,14 +25,15 @@ export class FilesystemStorageEndpoint extends BaseClass implements StorageEndpo
 	readonly #makePublicUrlWith: string | ((path: string) => string) | undefined;
 	readonly #config: FilesystemStorageConfig;
 
-	readonly name: string;
-
 	constructor(config: FilesystemStorageConfig) {
 		super();
-		this.name = config.name ?? "filesystem";
 		this.#rootPath = config.rootPath;
 		this.#makePublicUrlWith = config.makePublicUrlWith;
 		this.#config = config;
+	}
+
+	get name(): "filesystem" {
+		return "filesystem";
 	}
 
 	get invalidNameChars(): string {

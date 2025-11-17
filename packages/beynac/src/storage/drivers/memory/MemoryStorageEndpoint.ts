@@ -21,13 +21,11 @@ interface MemoryFile {
 export class MemoryStorageEndpoint extends BaseClass implements StorageEndpoint {
 	readonly #files: Map<string, MemoryFile> = new Map();
 
-	readonly name: string;
 	readonly supportsMimeTypes: boolean;
 	readonly invalidNameChars: string;
 
 	constructor(config: MemoryStorageConfig) {
 		super();
-		this.name = config.name ?? "memory";
 		const supportsMimeTypes = config.supportsMimeTypes ?? true;
 		this.supportsMimeTypes = supportsMimeTypes;
 		this.invalidNameChars = config.invalidNameChars ?? "";
@@ -46,6 +44,10 @@ export class MemoryStorageEndpoint extends BaseClass implements StorageEndpoint 
 				}
 			}
 		}
+	}
+
+	get name(): "memory" {
+		return "memory";
 	}
 
 	async writeSingle({ data, path, mimeType }: StorageEndpointWriteOptions): Promise<void> {

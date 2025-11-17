@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { StorageEndpoint } from "../../../contracts";
-import { createTestDirectory, resetAllMocks } from "../../../testing";
+import { createTestDirectory } from "../../../testing";
 import { sleep } from "../../../utils";
 import { mockPlatformPaths } from "../../path-operations";
 import { StorageUnknownError } from "../../storage-errors";
@@ -11,10 +11,6 @@ import { FilesystemStorageEndpoint, filesystemStorage } from "./FilesystemStorag
 
 beforeEach(() => {
 	mockPlatformPaths("posix");
-});
-
-afterEach(() => {
-	resetAllMocks();
 });
 
 function filesystemStorageWithTmpDir(): StorageEndpoint {
@@ -73,10 +69,6 @@ describe(filesystemStorage, () => {
 					return `mock-url://upload${path}?${params.toString()}`;
 				},
 			});
-		});
-
-		afterEach(() => {
-			resetAllMocks();
 		});
 
 		test("makePublicUrlWith configuration - throws when not configured", async () => {

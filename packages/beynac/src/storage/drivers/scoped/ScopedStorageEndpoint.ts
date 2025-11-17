@@ -1,6 +1,5 @@
 import { injectFactory } from "../../../container/inject";
 import type {
-	ConfiguredStorageDriver,
 	Storage,
 	StorageEndpoint,
 	StorageEndpointFileInfoResult,
@@ -8,13 +7,10 @@ import type {
 	StorageEndpointWriteOptions,
 } from "../../../contracts/Storage";
 import { Storage as StorageKey } from "../../../contracts/Storage";
-import { BaseClass } from "../../../utils";
+import { WrappedEndpoint } from "../../storage-utils";
 import type { ScopedStorageConfig } from "./ScopedStorageConfig";
 
-export class ScopedStorageEndpoint extends BaseClass implements StorageEndpoint {
-	readonly #diskConfig: string | ConfiguredStorageDriver | StorageEndpoint;
-	readonly #getStorage: () => Storage;
-	#endpoint: StorageEndpoint | null = null;
+export class ScopedStorageEndpoint extends WrappedEndpoint implements StorageEndpoint {
 	readonly #prefix: string;
 	readonly name = "scoped" as const;
 
@@ -22,9 +18,7 @@ export class ScopedStorageEndpoint extends BaseClass implements StorageEndpoint 
 		{ prefix, disk }: ScopedStorageConfig,
 		getStorage: () => Storage = injectFactory(StorageKey),
 	) {
-		super();
-		this.#diskConfig = disk;
-		this.#getStorage = getStorage;
+		super(disk, getStorage);
 		if (!prefix.endsWith("/")) {
 			prefix = `${prefix}/`;
 		}
@@ -34,50 +28,23 @@ export class ScopedStorageEndpoint extends BaseClass implements StorageEndpoint 
 		this.#prefix = prefix;
 	}
 
-	#getEndpoint(): StorageEndpoint {
-		if (this.#endpoint) {
-			return this.#endpoint;
-		}
-
-		const config = this.#diskConfig;
-
-		// If it's a string or driver, resolve it via Storage
-		if (typeof config === "string" || "getEndpoint" in config) {
-			const storage = this.#getStorage();
-			const disk = typeof config === "string" ? storage.disk(config) : storage.build(config);
-			this.#endpoint = disk.getEndpoint();
-		} else {
-			this.#endpoint = config;
-		}
-
-		return this.#endpoint;
-	}
-
-	get supportsMimeTypes(): boolean {
-		return this.#getEndpoint().supportsMimeTypes;
-	}
-
-	get invalidNameChars(): string {
-		return this.#getEndpoint().invalidNameChars;
-	}
-
 	async writeSingle(options: StorageEndpointWriteOptions): Promise<void> {
-		await this.#getEndpoint().writeSingle({
+		await this.endpoint.writeSingle({
 			...options,
 			path: this.#addPrefix(options.path),
 		});
 	}
 
 	async readSingle(path: string): Promise<StorageEndpointFileReadResult> {
-		return await this.#getEndpoint().readSingle(this.#addPrefix(path));
+		return await this.endpoint.readSingle(this.#addPrefix(path));
 	}
 
 	async getInfoSingle(path: string): Promise<StorageEndpointFileInfoResult> {
-		return await this.#getEndpoint().getInfoSingle(this.#addPrefix(path));
+		return await this.endpoint.getInfoSingle(this.#addPrefix(path));
 	}
 
 	async getPublicDownloadUrl(path: string, downloadFileName?: string): Promise<string> {
-		return await this.#getEndpoint().getPublicDownloadUrl(this.#addPrefix(path), downloadFileName);
+		return await this.endpoint.getPublicDownloadUrl(this.#addPrefix(path), downloadFileName);
 	}
 
 	async getSignedDownloadUrl(
@@ -85,7 +52,7 @@ export class ScopedStorageEndpoint extends BaseClass implements StorageEndpoint 
 		expires: Date,
 		downloadFileName?: string,
 	): Promise<string> {
-		return await this.#getEndpoint().getSignedDownloadUrl(
+		return await this.endpoint.getSignedDownloadUrl(
 			this.#addPrefix(path),
 			expires,
 			downloadFileName,
@@ -93,39 +60,39 @@ export class ScopedStorageEndpoint extends BaseClass implements StorageEndpoint 
 	}
 
 	async getTemporaryUploadUrl(path: string, expires: Date): Promise<string> {
-		return await this.#getEndpoint().getTemporaryUploadUrl(this.#addPrefix(path), expires);
+		return await this.endpoint.getTemporaryUploadUrl(this.#addPrefix(path), expires);
 	}
 
 	async copy(source: string, destination: string): Promise<void> {
-		await this.#getEndpoint().copy(this.#addPrefix(source), this.#addPrefix(destination));
+		await this.endpoint.copy(this.#addPrefix(source), this.#addPrefix(destination));
 	}
 
 	async move(source: string, destination: string): Promise<void> {
-		await this.#getEndpoint().move(this.#addPrefix(source), this.#addPrefix(destination));
+		await this.endpoint.move(this.#addPrefix(source), this.#addPrefix(destination));
 	}
 
 	async existsSingle(path: string): Promise<boolean> {
-		return await this.#getEndpoint().existsSingle(this.#addPrefix(path));
+		return await this.endpoint.existsSingle(this.#addPrefix(path));
 	}
 
 	async existsAnyUnderPrefix(prefix: string): Promise<boolean> {
-		return await this.#getEndpoint().existsAnyUnderPrefix(this.#addPrefix(prefix));
+		return await this.endpoint.existsAnyUnderPrefix(this.#addPrefix(prefix));
 	}
 
 	async *listEntries(prefix: string): AsyncGenerator<string, void> {
-		yield* this.#getEndpoint().listEntries(this.#addPrefix(prefix));
+		yield* this.endpoint.listEntries(this.#addPrefix(prefix));
 	}
 
 	async *listFilesRecursive(prefix: string): AsyncGenerator<string, void> {
-		yield* this.#getEndpoint().listFilesRecursive(this.#addPrefix(prefix));
+		yield* this.endpoint.listFilesRecursive(this.#addPrefix(prefix));
 	}
 
 	async deleteSingle(path: string): Promise<void> {
-		await this.#getEndpoint().deleteSingle(this.#addPrefix(path));
+		await this.endpoint.deleteSingle(this.#addPrefix(path));
 	}
 
 	async deleteAllUnderPrefix(prefix: string): Promise<void> {
-		await this.#getEndpoint().deleteAllUnderPrefix(this.#addPrefix(prefix));
+		await this.endpoint.deleteAllUnderPrefix(this.#addPrefix(prefix));
 	}
 
 	#addPrefix(path: string): string {

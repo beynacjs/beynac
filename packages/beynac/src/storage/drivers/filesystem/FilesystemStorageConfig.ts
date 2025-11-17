@@ -9,12 +9,6 @@ export interface FilesystemStorageConfig {
 	rootPath: string;
 
 	/**
-	 * Name of this endpoint for identification purposes.
-	 * Default: "filesystem"
-	 */
-	name?: string | undefined;
-
-	/**
 	 * Configuration for generating public download URLs.
 	 *
 	 * Can be either a string prefix or a function that generates URLs.

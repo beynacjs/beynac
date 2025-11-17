@@ -7,6 +7,7 @@ import { spyOnAll } from "../test-utils";
 import { BaseClass } from "../utils";
 import type { Dir, FilesystemOps, Stats } from "./filesystem-operations";
 import type { StorageEndpointBuilder } from "./StorageEndpointBuilder";
+import { isConfiguredStorageDriver } from "./storage-utils";
 
 export type SharedTestConfig = {
 	name: string;
@@ -17,7 +18,7 @@ export function mockEndpointBuilder(): StorageEndpointBuilder {
 	const container = new ContainerImpl();
 	return {
 		build: (driver: ConfiguredStorageDriver | StorageEndpoint) =>
-			"getEndpoint" in driver ? driver.getEndpoint(container) : driver,
+			isConfiguredStorageDriver(driver) ? driver.getEndpoint(container) : driver,
 	};
 }
 

@@ -1,15 +1,10 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import { mockDispatcher } from "../../../test-utils";
-import { resetAllMocks } from "../../../testing";
 import { fsOps, mockFilesystemOperations } from "../../filesystem-operations";
 import { mockPlatformPaths } from "../../path-operations";
 import { StorageImpl } from "../../StorageImpl";
 import { MockFilesystemOperations, mockEndpointBuilder } from "../../storage-test-utils";
 import { FilesystemStorageEndpoint } from "./FilesystemStorageEndpoint";
-
-afterEach(() => {
-	resetAllMocks();
-});
 
 describe(FilesystemStorageEndpoint, () => {
 	beforeEach(() => {

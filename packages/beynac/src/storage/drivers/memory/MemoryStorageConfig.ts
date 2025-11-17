@@ -41,10 +41,4 @@ export interface MemoryStorageConfig {
 	 * invalidNameChars: '<>:"/\\|?*' // Windows-style restrictions
 	 */
 	invalidNameChars?: string | undefined;
-
-	/**
-	 * Name of this endpoint for identification purposes.
-	 * Default: "memory"
-	 */
-	name?: string | undefined;
 }

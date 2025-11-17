@@ -3,6 +3,7 @@ import { createTypeToken, type TypeToken } from "../container/container-key";
 import { Container } from "../contracts";
 import type { ConfiguredStorageDriver, StorageEndpoint } from "../contracts/Storage";
 import { BaseClass } from "../utils";
+import { isConfiguredStorageDriver } from "./storage-utils";
 
 export interface StorageEndpointBuilder {
 	build(driver: ConfiguredStorageDriver | StorageEndpoint): StorageEndpoint;
@@ -17,7 +18,7 @@ export class StorageEndpointBuilderImpl extends BaseClass implements StorageEndp
 	}
 
 	build(driverOrEndpoint: ConfiguredStorageDriver | StorageEndpoint): StorageEndpoint {
-		if ("getEndpoint" in driverOrEndpoint) {
+		if (isConfiguredStorageDriver(driverOrEndpoint)) {
 			return driverOrEndpoint.getEndpoint(this.#container);
 		}
 		return driverOrEndpoint;
