@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { StorageEndpoint } from "../../../contracts";
 import { createTestDirectory, resetAllMocks } from "../../../testing";
+import { sleep } from "../../../utils";
 import { mockPlatformPaths } from "../../path-operations";
 import { StorageUnknownError } from "../../storage-errors";
 import type { SharedTestConfig } from "../../storage-test-utils";
@@ -87,7 +88,7 @@ describe(filesystemStorage, () => {
 				"makePublicUrlWith is required",
 			);
 			expect(
-				storageWithoutPrefix.makeSignedDownloadUrlWith("/test.txt", new Date(Date.now() + 3600000)),
+				storageWithoutPrefix.getSignedDownloadUrl("/test.txt", new Date(Date.now() + 3600000)),
 			).rejects.toThrow("makeSignedDownloadUrlWith is required");
 			expect(
 				storageWithoutPrefix.getTemporaryUploadUrl("/test.txt", new Date(Date.now() + 3600000)),
@@ -103,10 +104,7 @@ describe(filesystemStorage, () => {
 			const publicUrlWithDownload = await storage.getPublicDownloadUrl("/test.txt", "custom.txt");
 			expect(publicUrlWithDownload).toBe("https://example.com/files/test.txt?download=custom.txt");
 
-			const signedUrl = await storage.makeSignedDownloadUrlWith(
-				"/test.txt",
-				new Date("2025-11-14"),
-			);
+			const signedUrl = await storage.getSignedDownloadUrl("/test.txt", new Date("2025-11-14"));
 			expect(signedUrl).toStartWith("mock-url://download/test.txt?expires=2025-11-14");
 
 			const uploadUrl = await storage.getTemporaryUploadUrl("/test.txt", new Date("2025-11-14"));
@@ -150,7 +148,7 @@ describe(filesystemStorage, () => {
 			const info1 = await storage.getInfoSingle("/test.txt");
 
 			// Wait a bit to ensure mtime changes
-			await new Promise((resolve) => setTimeout(resolve, 10));
+			await sleep(10);
 
 			await storage.writeSingle({ path: "/test.txt", data: "content2", mimeType: null });
 			const info2 = await storage.getInfoSingle("/test.txt");

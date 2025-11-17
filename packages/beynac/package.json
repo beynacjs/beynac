@@ -46,6 +46,7 @@
   "author": "Bernie Sumption",
   "license": "MIT",
   "devDependencies": {
+    "@bradenmacdonald/s3-lite-client": "npm:@jsr/bradenmacdonald__s3-lite-client@0.9.4",
     "@types/bun": "1.2.19",
     "@typescript/native-preview": "^7.0.0-dev.20251023.1",
     "beynac": "workspace:",

@@ -612,7 +612,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 			});
 		});
 
-		describe("makeSignedDownloadUrlWith()", () => {
+		describe("getSignedDownloadUrl()", () => {
 			test("handles downloadFileName parameter", async () => {
 				await endpoint.writeSingle({
 					path: "/test.txt",
@@ -620,7 +620,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 					mimeType: "text/plain",
 				});
 				const expires = new Date(Date.now() + 3600000);
-				const url = await endpoint.makeSignedDownloadUrlWith("/test.txt", expires, "custom.txt");
+				const url = await endpoint.getSignedDownloadUrl("/test.txt", expires, "custom.txt");
 				expect(url).toInclude("custom");
 			});
 		});

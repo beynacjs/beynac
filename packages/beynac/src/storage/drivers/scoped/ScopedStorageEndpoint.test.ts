@@ -180,11 +180,11 @@ describe(scopedStorage, () => {
 		expect(spy).toHaveBeenCalledWith("/videos/file.txt", "download.txt");
 	});
 
-	test("makeSignedDownloadUrlWith() prepends prefix to path", async () => {
-		const spy = spyOn(wrappedDisk, "makeSignedDownloadUrlWith");
+	test("getSignedDownloadUrl() prepends prefix to path", async () => {
+		const spy = spyOn(wrappedDisk, "getSignedDownloadUrl");
 		const expires = new Date();
 
-		await scopedDisk.makeSignedDownloadUrlWith("/file.txt", expires, "download.txt");
+		await scopedDisk.getSignedDownloadUrl("/file.txt", expires, "download.txt");
 
 		expect(spy).toHaveBeenCalledWith("/videos/file.txt", expires, "download.txt");
 	});

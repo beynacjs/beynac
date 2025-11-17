@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, spyOn, test } from "bun:test";
+import { sleep } from "../utils";
 import { mock, mockable, onResetAllMocks, resetAllMocks, resetMock } from "./mocks";
 
 describe(mockable, () => {
@@ -159,7 +160,7 @@ describe(resetAllMocks, () => {
 			if (collected) {
 				break;
 			}
-			await new Promise((resolve) => setTimeout(resolve, 1));
+			await sleep(1);
 		}
 
 		// If we reach here, the callback was successfully GC'd

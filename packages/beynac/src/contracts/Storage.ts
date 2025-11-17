@@ -498,11 +498,7 @@ export interface StorageEndpoint {
 	/**
 	 * Get a temporary download URL for a path.
 	 */
-	makeSignedDownloadUrlWith(
-		path: string,
-		expires: Date,
-		downloadFileName?: string,
-	): Promise<string>;
+	getSignedDownloadUrl(path: string, expires: Date, downloadFileName?: string): Promise<string>;
 
 	/**
 	 * Get a temporary upload URL for a path.

@@ -104,7 +104,7 @@ export class MemoryStorageEndpoint extends BaseClass implements StorageEndpoint 
 		return fakeUrl(path, { download: downloadFileName });
 	}
 
-	async makeSignedDownloadUrlWith(
+	async getSignedDownloadUrl(
 		path: string,
 		expires: Date,
 		downloadFileName?: string,

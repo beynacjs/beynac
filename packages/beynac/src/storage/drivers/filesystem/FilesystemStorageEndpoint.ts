@@ -129,7 +129,7 @@ export class FilesystemStorageEndpoint extends BaseClass implements StorageEndpo
 		return baseUrl;
 	}
 
-	async makeSignedDownloadUrlWith(
+	async getSignedDownloadUrl(
 		path: string,
 		expires: Date,
 		downloadFileName?: string,

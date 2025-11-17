@@ -210,3 +210,10 @@ export const mapObjectValues = <K extends string | number | symbol, V, R>(
 		Object.entries(obj).map(([key, value]) => [key, callback(value as V)]),
 	) as Record<K, R>;
 };
+
+/**
+ * Async sleep function that pauses execution for the specified number of milliseconds
+ * @param ms - The number of milliseconds to sleep
+ */
+export const sleep = (ms: number): Promise<void> =>
+	new Promise((resolve) => setTimeout(resolve, ms));

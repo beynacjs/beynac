@@ -16,8 +16,9 @@ export interface FilesystemStorageConfig {
 
 	/**
 	 * Configuration for generating public download URLs.
+	 *
 	 * Can be either a string prefix or a function that generates URLs.
-	 * Required for getPublicDownloadUrl() method.
+	 *
 	 * If not provided, getPublicDownloadUrl() will throw an error.
 	 *
 	 * @example
@@ -32,7 +33,7 @@ export interface FilesystemStorageConfig {
 
 	/**
 	 * Function to generate signed download URLs.
-	 * Required for signedUrl() method.
+	 *
 	 * If not provided, signedUrl() will throw an error.
 	 *
 	 * @example
@@ -52,7 +53,7 @@ export interface FilesystemStorageConfig {
 
 	/**
 	 * Function to generate signed upload URLs.
-	 * Required for uploadUrl() method.
+	 *
 	 * If not provided, uploadUrl() will throw an error.
 	 *
 	 * @example

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, expectTypeOf, mock, spyOn, test } from "bun:test";
 import type { Container } from "../contracts/Container";
 import { asyncGate } from "../test-utils";
+import { sleep } from "../utils";
 import { ContainerImpl } from "./ContainerImpl";
 import type { KeyOrClass } from "./container-key";
 import { createTypeToken } from "./container-key";
@@ -2504,7 +2505,7 @@ describe("Container currentlyInScope", () => {
 			await Promise.resolve();
 			expect(ContainerImpl.currentlyInScope()).toBe(container);
 
-			await new Promise((resolve) => setTimeout(resolve, 0));
+			await sleep(0);
 			expect(ContainerImpl.currentlyInScope()).toBe(container);
 		});
 	});

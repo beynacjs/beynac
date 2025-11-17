@@ -80,12 +80,12 @@ export class ScopedStorageEndpoint extends BaseClass implements StorageEndpoint 
 		return await this.#getEndpoint().getPublicDownloadUrl(this.#addPrefix(path), downloadFileName);
 	}
 
-	async makeSignedDownloadUrlWith(
+	async getSignedDownloadUrl(
 		path: string,
 		expires: Date,
 		downloadFileName?: string,
 	): Promise<string> {
-		return await this.#getEndpoint().makeSignedDownloadUrlWith(
+		return await this.#getEndpoint().getSignedDownloadUrl(
 			this.#addPrefix(path),
 			expires,
 			downloadFileName,
