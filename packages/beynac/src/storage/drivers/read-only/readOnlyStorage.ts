@@ -5,7 +5,11 @@ import { ReadOnlyStorageEndpoint } from "./ReadOnlyStorageEndpoint";
 /**
  * Read-only storage driver that wraps an existing disk and prevents all write operations.
  *
- * @param config.disk - a string disk name or configuration (e.g. `filesystemStorage(...)`).
+ * Wrapped disks can be:
+ * - A disk name (string) to wrap a configured, named disk
+ * - A disk configuration (e.g. filesystemStorage(...))
+ * - A StorageDisk instance as returned by storage.disk()
+ * - A StorageEndpoint instance (the low-level interface implemented by storage drivers)
  *
  * @example
  * {
@@ -19,7 +23,7 @@ import { ReadOnlyStorageEndpoint } from "./ReadOnlyStorageEndpoint";
  */
 export function readOnlyStorage(config: ReadOnlyStorageConfig): ConfiguredStorageDriver {
 	return {
-		getEndpoint(container) {
+		build(container) {
 			return container.construct(ReadOnlyStorageEndpoint, config);
 		},
 	};

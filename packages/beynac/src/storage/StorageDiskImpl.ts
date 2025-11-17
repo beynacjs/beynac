@@ -12,18 +12,14 @@ import { StorageDirectoryImpl } from "./StorageDirectoryImpl";
  */
 export class StorageDiskImpl extends DelegatesToDirectory implements StorageDisk {
 	readonly name: string;
-	readonly #endpoint: StorageEndpoint;
+	readonly endpoint: StorageEndpoint;
 	readonly #rootDirectory: StorageDirectoryImpl;
 
 	constructor(name: string, endpoint: StorageEndpoint, dispatcher: Dispatcher) {
 		super();
 		this.name = name;
-		this.#endpoint = endpoint;
+		this.endpoint = endpoint;
 		this.#rootDirectory = new StorageDirectoryImpl(this, endpoint, "/", dispatcher);
-	}
-
-	getEndpoint(): StorageEndpoint {
-		return this.#endpoint;
 	}
 
 	protected override getDirectoryForDelegation(): StorageDirectoryOperations {
@@ -31,6 +27,6 @@ export class StorageDiskImpl extends DelegatesToDirectory implements StorageDisk
 	}
 
 	protected override getToStringExtra(): string | undefined {
-		return this.#endpoint.name + "://" + this.name;
+		return this.endpoint.name + "://" + this.name;
 	}
 }

@@ -7,7 +7,7 @@ import { FilesystemStorageEndpoint } from "./FilesystemStorageEndpoint";
  */
 export function filesystemStorage(config: FilesystemStorageConfig): ConfiguredStorageDriver {
 	return {
-		getEndpoint(container) {
+		build(container) {
 			return container.construct(FilesystemStorageEndpoint, config);
 		},
 	};

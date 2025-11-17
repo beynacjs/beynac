@@ -19,7 +19,7 @@ export class StorageEndpointBuilderImpl extends BaseClass implements StorageEndp
 
 	build(driverOrEndpoint: ConfiguredStorageDriver | StorageEndpoint): StorageEndpoint {
 		if (isConfiguredStorageDriver(driverOrEndpoint)) {
-			return driverOrEndpoint.getEndpoint(this.#container);
+			return driverOrEndpoint.build(this.#container);
 		}
 		return driverOrEndpoint;
 	}

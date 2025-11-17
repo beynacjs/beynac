@@ -188,6 +188,36 @@ describe(StorageFileImpl, () => {
 		});
 	});
 
+	describe("getText()", () => {
+		test("returns file content as text", async () => {
+			const file = disk.file("test.txt");
+			await file.put({ data: "hello world", mimeType: "text/plain" });
+			const text = await file.getText();
+			expect(text).toBe("hello world");
+		});
+	});
+
+	describe("getJson()", () => {
+		test("returns file content parsed as JSON", async () => {
+			const file = disk.file("data.json");
+			const data = { foo: "bar", baz: 123 };
+			await file.put({ data: JSON.stringify(data), mimeType: "application/json" });
+			const json = await file.getJson();
+			expect(json).toEqual(data);
+		});
+	});
+
+	describe("getUint8Array()", () => {
+		test("returns file content as Uint8Array", async () => {
+			const file = disk.file("data.bin");
+			const data = new Uint8Array([1, 2, 3, 4, 5]);
+			await file.put({ data, mimeType: "application/octet-stream" });
+			const binary = await file.getUint8Array();
+			expect(binary).toEqual(data);
+			expect(binary).toBeInstanceOf(Uint8Array);
+		});
+	});
+
 	describe("info()", () => {
 		test("returns file info when file exists", async () => {
 			const file = disk.file("test.txt");

@@ -113,6 +113,22 @@ export class StorageFileImpl extends BaseClass implements StorageFile {
 		);
 	}
 
+	async getText(): Promise<string> {
+		const { response } = await this.get();
+		return await response.text();
+	}
+
+	async getJson(): Promise<unknown> {
+		const { response } = await this.get();
+		return await response.json();
+	}
+
+	async getUint8Array(): Promise<Uint8Array> {
+		const { response } = await this.get();
+		const arrayBuffer = await response.arrayBuffer();
+		return new Uint8Array(arrayBuffer);
+	}
+
 	async info(): Promise<StorageFileInfo | null> {
 		return await storageOperation(
 			"file:info-retrieve",

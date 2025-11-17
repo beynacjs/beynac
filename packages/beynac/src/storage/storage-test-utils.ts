@@ -18,7 +18,7 @@ export function mockEndpointBuilder(): StorageEndpointBuilder {
 	const container = new ContainerImpl();
 	return {
 		build: (driver: ConfiguredStorageDriver | StorageEndpoint) =>
-			isConfiguredStorageDriver(driver) ? driver.getEndpoint(container) : driver,
+			isConfiguredStorageDriver(driver) ? driver.build(container) : driver,
 	};
 }
 

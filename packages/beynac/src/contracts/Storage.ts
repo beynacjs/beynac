@@ -48,11 +48,7 @@ export interface Storage extends StorageDirectoryOperations {
  */
 export interface StorageDisk extends StorageDirectoryOperations {
 	readonly name: string;
-
-	/**
-	 * Get the underlying storage endpoint for this disk
-	 */
-	getEndpoint(): StorageEndpoint;
+	readonly endpoint: StorageEndpoint;
 }
 
 export type StorageEntry = StorageFile | StorageDirectory;
@@ -169,6 +165,27 @@ export interface StorageFile {
 	 * response.ok property
 	 */
 	get(): Promise<StorageFileFetchResult>;
+
+	/**
+	 * Get the file content as text.
+	 *
+	 * This awaits get() and returns the response.text() property.
+	 */
+	getText(): Promise<string>;
+
+	/**
+	 * Get the file content parsed as JSON.
+	 *
+	 * This awaits get() and returns the response.json() property.
+	 */
+	getJson(): Promise<unknown>;
+
+	/**
+	 * Get the file content as binary data.
+	 *
+	 * This awaits get() and returns the response.arrayBuffer() property, wrapped in a Uint8Array.
+	 */
+	getUint8Array(): Promise<Uint8Array>;
 
 	/**
 	 * Get metadata on this file. Returns null if no file exists.
@@ -440,7 +457,7 @@ export interface StorageEndpointFileReadResult {
 }
 
 export interface ConfiguredStorageDriver {
-	getEndpoint(container: Container): StorageEndpoint;
+	build(container: Container): StorageEndpoint;
 }
 
 /**

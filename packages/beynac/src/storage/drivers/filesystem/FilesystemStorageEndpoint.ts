@@ -304,7 +304,7 @@ export class FilesystemStorageEndpoint extends BaseClass implements StorageEndpo
  */
 export function filesystemStorage(config: FilesystemStorageConfig): ConfiguredStorageDriver {
 	return {
-		getEndpoint(): StorageEndpoint {
+		build(): StorageEndpoint {
 			return new FilesystemStorageEndpoint(config);
 		},
 	};

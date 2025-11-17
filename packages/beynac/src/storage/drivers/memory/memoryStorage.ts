@@ -11,7 +11,7 @@ import { MemoryStorageEndpoint } from "./MemoryStorageEndpoint";
  */
 export function memoryStorage(config: MemoryStorageConfig = {}): ConfiguredStorageDriver {
 	return {
-		getEndpoint(container) {
+		build(container) {
 			return container.construct(MemoryStorageEndpoint, config);
 		},
 	};

@@ -10,6 +10,12 @@ import { ScopedStorageEndpoint } from "./ScopedStorageEndpoint";
  * a larger storage system without having to manually include the prefix in
  * every operation.
  *
+ * Wrapped disks can be:
+ * - A disk name (string) to wrap a configured, named disk
+ * - A disk configuration (e.g. filesystemStorage(...))
+ * - A StorageDisk instance as returned by storage.disk()
+ * - A StorageEndpoint instance (the low-level interface implemented by storage drivers)
+ *
  * @example
  * {
  *   disks: {
@@ -23,7 +29,7 @@ import { ScopedStorageEndpoint } from "./ScopedStorageEndpoint";
  */
 export function scopedStorage(config: ScopedStorageConfig): ConfiguredStorageDriver {
 	return {
-		getEndpoint(container) {
+		build(container) {
 			return container.construct(ScopedStorageEndpoint, config);
 		},
 	};

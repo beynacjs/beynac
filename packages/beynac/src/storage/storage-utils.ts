@@ -1,20 +1,34 @@
-import type { ConfiguredStorageDriver, Storage, StorageEndpoint } from "../contracts/Storage";
+import type {
+	ConfiguredStorageDriver,
+	Storage,
+	StorageDisk,
+	StorageEndpoint,
+} from "../contracts/Storage";
 import { BaseClass } from "../utils";
+import { StorageDiskImpl } from "./StorageDiskImpl";
 
 /**
  * Type guard to check if a value is a ConfiguredStorageDriver
  */
 export function isConfiguredStorageDriver(value: unknown): value is ConfiguredStorageDriver {
-	return typeof value === "object" && value !== null && "getEndpoint" in value;
+	return typeof (value as ConfiguredStorageDriver | null)?.build === "function";
+}
+
+export function isStorageEndpoint(value: unknown): value is StorageEndpoint {
+	return typeof (value as StorageEndpoint | null)?.readSingle === "function";
+}
+
+export function isStorageDisk(value: unknown): value is StorageDisk {
+	return value instanceof StorageDiskImpl;
 }
 
 export abstract class WrappedEndpoint extends BaseClass {
-	readonly #diskConfig: string | ConfiguredStorageDriver | StorageEndpoint;
+	readonly #diskConfig: string | ConfiguredStorageDriver | StorageEndpoint | StorageDisk;
 	readonly #getStorage: () => Storage;
 	#endpoint: StorageEndpoint | null = null;
 
 	constructor(
-		diskConfig: string | ConfiguredStorageDriver | StorageEndpoint,
+		diskConfig: string | ConfiguredStorageDriver | StorageEndpoint | StorageDisk,
 		getStorage: () => Storage,
 	) {
 		super();
@@ -27,16 +41,18 @@ export abstract class WrappedEndpoint extends BaseClass {
 			return this.#endpoint;
 		}
 
-		const config = this.#diskConfig;
+		let config = this.#diskConfig;
 
-		// If it's a string or driver, resolve it via Storage
-		if (typeof config === "string" || isConfiguredStorageDriver(config)) {
-			const storage = this.#getStorage();
-			const disk = typeof config === "string" ? storage.disk(config) : storage.build(config);
-			this.#endpoint = disk.getEndpoint();
-		} else {
-			this.#endpoint = config;
+		if (typeof config === "string") {
+			config = this.#getStorage().disk(config);
 		}
+		if (isConfiguredStorageDriver(config)) {
+			config = this.#getStorage().build(config);
+		}
+		if (isStorageDisk(config)) {
+			config = config.endpoint;
+		}
+		this.#endpoint = config;
 
 		return this.#endpoint;
 	}
