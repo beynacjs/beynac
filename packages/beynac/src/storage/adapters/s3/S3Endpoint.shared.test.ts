@@ -1,13 +1,18 @@
 import { S3Client, S3Errors } from "@bradenmacdonald/s3-lite-client";
 import { randomId } from "../../../helpers/str";
-import { MINIO_ENDPOINT, MINIO_ROOT_PASSWORD, MINIO_ROOT_USER } from "../../../test-utils/docker";
+import {
+	ensureDockerServicesRunning,
+	MINIO_ENDPOINT,
+	MINIO_ROOT_PASSWORD,
+	MINIO_ROOT_USER,
+} from "../../../test-utils/docker";
 import type { SharedTestConfig } from "../../storage-test-utils";
 import { S3Endpoint } from "./S3Endpoint";
 import type { S3StorageConfig } from "./S3StorageConfig";
 import { s3Storage } from "./s3Storage";
 
 /**
- * Shared test configuration for S3 storage driver.
+ * Shared test configuration for S3 storage adapter.
  * Uses MinIO for integration testing with unique buckets for isolation.
  */
 export const s3StorageSharedTestConfig: SharedTestConfig = {
@@ -37,6 +42,7 @@ export function createS3(endpoint: string, options: Partial<S3StorageConfig> = {
 }
 
 export async function createUniqueBucket(options: { public?: boolean } = {}): Promise<string> {
+	await ensureDockerServicesRunning(["minio"]);
 	const name = `beynac-test-${randomId(10).toLowerCase()}`;
 	await ensureBucketExists(name, options);
 	return name;

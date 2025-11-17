@@ -10,7 +10,7 @@ import { Storage as StorageKey } from "../../../contracts/Storage";
 import { WrappedEndpoint } from "../../storage-utils";
 import type { ScopedStorageConfig } from "./ScopedStorageConfig";
 
-export class ScopedStorageEndpoint extends WrappedEndpoint implements StorageEndpoint {
+export class ScopedEndpoint extends WrappedEndpoint implements StorageEndpoint {
 	readonly name = "scoped" as const;
 	readonly #prefix: string;
 

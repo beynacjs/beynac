@@ -3,8 +3,8 @@ import type { StorageEndpoint } from "../../../contracts/Storage";
 import { mockDispatcher } from "../../../test-utils";
 import { StorageImpl } from "../../StorageImpl";
 import { mockEndpointBuilder, type SharedTestConfig } from "../../storage-test-utils";
-import { MemoryStorageEndpoint } from "../memory/MemoryStorageEndpoint";
-import { ScopedStorageEndpoint } from "./ScopedStorageEndpoint";
+import { MemoryEndpoint } from "../memory/MemoryEndpoint";
+import { ScopedEndpoint } from "./ScopedEndpoint";
 import { scopedStorage } from "./scopedStorage";
 
 // Dummy factory for tests - never called since we pass StorageEndpoint directly
@@ -16,9 +16,9 @@ export const scopedStorageSharedTestConfig: SharedTestConfig[] = [
 	{
 		name: `${scopedStorage.name} on "/"`,
 		createEndpoint: () =>
-			new ScopedStorageEndpoint(
+			new ScopedEndpoint(
 				{
-					disk: new MemoryStorageEndpoint({}),
+					disk: new MemoryEndpoint({}),
 					prefix: "/",
 				},
 				dummyStorageFactory,
@@ -27,9 +27,9 @@ export const scopedStorageSharedTestConfig: SharedTestConfig[] = [
 	{
 		name: `${scopedStorage.name} on "/scoped/"`,
 		createEndpoint: () =>
-			new ScopedStorageEndpoint(
+			new ScopedEndpoint(
 				{
-					disk: new MemoryStorageEndpoint({}),
+					disk: new MemoryEndpoint({}),
 					prefix: "/scoped/",
 				},
 				dummyStorageFactory,
@@ -42,8 +42,8 @@ describe(scopedStorage, () => {
 	let scopedDisk: StorageEndpoint;
 
 	beforeEach(() => {
-		wrappedDisk = new MemoryStorageEndpoint({});
-		scopedDisk = new ScopedStorageEndpoint(
+		wrappedDisk = new MemoryEndpoint({});
+		scopedDisk = new ScopedEndpoint(
 			{
 				disk: wrappedDisk,
 				prefix: "/videos/",
@@ -251,14 +251,14 @@ describe(scopedStorage, () => {
 	});
 
 	test("forwards supportsMimeTypes from wrapped disk", () => {
-		const diskWithMime = new MemoryStorageEndpoint({ supportsMimeTypes: true });
-		const diskWithoutMime = new MemoryStorageEndpoint({ supportsMimeTypes: false });
+		const diskWithMime = new MemoryEndpoint({ supportsMimeTypes: true });
+		const diskWithoutMime = new MemoryEndpoint({ supportsMimeTypes: false });
 
-		const scopedWithMime = new ScopedStorageEndpoint(
+		const scopedWithMime = new ScopedEndpoint(
 			{ disk: diskWithMime, prefix: "/test/" },
 			dummyStorageFactory,
 		);
-		const scopedWithoutMime = new ScopedStorageEndpoint(
+		const scopedWithoutMime = new ScopedEndpoint(
 			{
 				disk: diskWithoutMime,
 				prefix: "/test/",
@@ -271,17 +271,17 @@ describe(scopedStorage, () => {
 	});
 
 	test("forwards invalidNameChars from wrapped disk", () => {
-		const diskWithInvalid = new MemoryStorageEndpoint({ invalidNameChars: '<>:"' });
-		const diskWithoutInvalid = new MemoryStorageEndpoint({ invalidNameChars: "" });
+		const diskWithInvalid = new MemoryEndpoint({ invalidNameChars: '<>:"' });
+		const diskWithoutInvalid = new MemoryEndpoint({ invalidNameChars: "" });
 
-		const scopedWithInvalid = new ScopedStorageEndpoint(
+		const scopedWithInvalid = new ScopedEndpoint(
 			{
 				disk: diskWithInvalid,
 				prefix: "/test/",
 			},
 			dummyStorageFactory,
 		);
-		const scopedWithoutInvalid = new ScopedStorageEndpoint(
+		const scopedWithoutInvalid = new ScopedEndpoint(
 			{
 				disk: diskWithoutInvalid,
 				prefix: "/test/",
@@ -302,10 +302,10 @@ describe(scopedStorage, () => {
 		["", "/file.txt", "/file.txt"],
 		["/users/123/uploads/", "/file.txt", "/users/123/uploads/file.txt"],
 	])('handles "%s" prefix and "%s" path', async (prefix, path, expected) => {
-		const wrappedDisk = new MemoryStorageEndpoint({});
+		const wrappedDisk = new MemoryEndpoint({});
 		const spy = spyOn(wrappedDisk, "writeSingle");
 
-		const scopedDisk = new ScopedStorageEndpoint(
+		const scopedDisk = new ScopedEndpoint(
 			{
 				disk: wrappedDisk,
 				prefix,

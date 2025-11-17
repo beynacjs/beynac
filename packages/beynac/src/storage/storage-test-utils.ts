@@ -2,7 +2,7 @@ import type { WriteStream } from "node:fs";
 import { ReadStream } from "node:fs";
 import { Writable } from "node:stream";
 import { ContainerImpl } from "../container";
-import type { ConfiguredStorageDriver, StorageEndpoint } from "../contracts/Storage";
+import type { StorageAdapter, StorageEndpoint } from "../contracts/Storage";
 import { spyOnAll } from "../test-utils";
 import { BaseClass } from "../utils";
 import type { Dir, FilesystemOps, Stats } from "./filesystem-operations";
@@ -18,8 +18,8 @@ export type SharedTestConfig = {
 export function mockEndpointBuilder(): StorageEndpointBuilder {
 	const container = new ContainerImpl();
 	return {
-		build: (driver: ConfiguredStorageDriver | StorageEndpoint) =>
-			isConfiguredStorageDriver(driver) ? driver.build(container) : driver,
+		build: (adapter: StorageAdapter | StorageEndpoint) =>
+			isConfiguredStorageDriver(adapter) ? adapter.build(container) : adapter,
 	};
 }
 

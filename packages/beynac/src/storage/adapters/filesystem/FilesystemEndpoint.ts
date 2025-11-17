@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { pipeline, Readable } from "node:stream";
 import { promisify } from "node:util";
 import type {
-	ConfiguredStorageDriver,
+	StorageAdapter,
 	StorageEndpoint,
 	StorageEndpointFileInfoResult,
 	StorageEndpointFileReadResult,
@@ -18,9 +18,9 @@ import type { FilesystemStorageConfig } from "./FilesystemStorageConfig";
 const pipelineAsync = promisify(pipeline);
 
 /**
- * Filesystem storage driver for local file storage
+ * Filesystem storage adapter for local file storage
  */
-export class FilesystemStorageEndpoint extends BaseClass implements StorageEndpoint {
+export class FilesystemEndpoint extends BaseClass implements StorageEndpoint {
 	readonly name = "filesystem" as const;
 	readonly invalidNameChars = '<>:"/\\|?*';
 	readonly supportsMimeTypes = false;
@@ -293,10 +293,10 @@ export class FilesystemStorageEndpoint extends BaseClass implements StorageEndpo
 /**
  * Create filesystem-backed storage
  */
-export function filesystemStorage(config: FilesystemStorageConfig): ConfiguredStorageDriver {
+export function filesystemStorage(config: FilesystemStorageConfig): StorageAdapter {
 	return {
 		build(): StorageEndpoint {
-			return new FilesystemStorageEndpoint(config);
+			return new FilesystemEndpoint(config);
 		},
 	};
 }

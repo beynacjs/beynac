@@ -7,7 +7,7 @@ import { onResetAllMocks } from "../testing";
 export type { Dir, ReadStream, Stats, WriteStream } from "node:fs";
 
 /**
- * Interface for filesystem operations used by storage drivers
+ * Interface for filesystem operations used by storage adapters
  */
 export type FilesystemOps = {
 	stat(this: void, path: string): Promise<fs.Stats>;

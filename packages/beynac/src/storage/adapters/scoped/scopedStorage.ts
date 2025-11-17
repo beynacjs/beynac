@@ -1,9 +1,9 @@
-import type { ConfiguredStorageDriver } from "../../../contracts/Storage";
+import type { StorageAdapter } from "../../../contracts/Storage";
+import { ScopedEndpoint } from "./ScopedEndpoint";
 import type { ScopedStorageConfig } from "./ScopedStorageConfig";
-import { ScopedStorageEndpoint } from "./ScopedStorageEndpoint";
 
 /**
- * Scoped storage driver that wraps an existing disk and automatically applies
+ * Scoped storage adapter that wraps an existing disk and automatically applies
  * a path prefix to all operations.
  *
  * This is useful for isolating file operations to a specific directory within
@@ -14,7 +14,7 @@ import { ScopedStorageEndpoint } from "./ScopedStorageEndpoint";
  * - A disk name (string) to wrap a configured, named disk
  * - A disk configuration (e.g. filesystemStorage(...))
  * - A StorageDisk instance as returned by storage.disk()
- * - A StorageEndpoint instance (the low-level interface implemented by storage drivers)
+ * - A StorageEndpoint instance (the low-level interface implemented by storage adapters)
  *
  * @example
  * {
@@ -27,10 +27,10 @@ import { ScopedStorageEndpoint } from "./ScopedStorageEndpoint";
  *   }
  * }
  */
-export function scopedStorage(config: ScopedStorageConfig): ConfiguredStorageDriver {
+export function scopedStorage(config: ScopedStorageConfig): StorageAdapter {
 	return {
 		build(container) {
-			return container.construct(ScopedStorageEndpoint, config);
+			return container.construct(ScopedEndpoint, config);
 		},
 	};
 }

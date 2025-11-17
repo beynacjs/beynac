@@ -7,7 +7,7 @@ import { mockPlatformPaths } from "../../path-operations";
 import { PermissionsError } from "../../storage-errors";
 import { mockEndpointBuilder } from "../../storage-test-utils";
 import { filesystemStorage } from "../filesystem/filesystemStorage";
-import { memoryStorage } from "../memory";
+import { memoryStorage } from "../memory/memoryStorage";
 import { readOnlyStorage } from "./readOnlyStorage";
 
 beforeEach(() => {

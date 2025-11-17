@@ -18,10 +18,10 @@ export interface Storage extends StorageDirectoryOperations {
 	 * uploading a file to an S3 that was not specified in your application
 	 * configuration
 	 *
-	 * @param endpoint a storage driver configuration e.g. filesystemStorage({... config ...})
+	 * @param endpoint a storage adapter e.g. filesystemStorage({... config ...})
 	 * @param name an optional disk name for debugging
 	 */
-	build(endpoint: ConfiguredStorageDriver | StorageEndpoint, name?: string): StorageDisk;
+	build(endpoint: StorageAdapter | StorageEndpoint, name?: string): StorageDisk;
 
 	/**
 	 * Replace a disk with one backed by a temporary directory that will be
@@ -55,9 +55,9 @@ export type StorageEntry = StorageFile | StorageDirectory;
 
 interface SignUrlOptions {
 	/**
-	 * Generate a signed URL with expiration on drivers that support it.
+	 * Generate a signed URL with expiration on adapters that support it.
 	 *
-	 * Drivers may clamp the expiry range to an acceptable limit, for example s3
+	 * Storage adapters may clamp the expiry range to an acceptable limit, for example s3
 	 * supports at most 7 days.
 	 *
 	 * If you do not want your links to expire, just set a very far future
@@ -72,8 +72,8 @@ interface SignUrlOptions {
 
 interface DownloadUrlOptions {
 	/**
-	 * Set the download file name on drivers that support it (s3). Other
-	 * drivers will ignore the option.
+	 * Set the download file name on adapters that support it (s3). Other
+	 * adapters will ignore the option.
 	 *
 	 * This sets a header `Content-Disposition: attachment; filename="[value of downloadAs]"` on the response.
 	 */
@@ -87,7 +87,7 @@ type StorageFileSizeAndMime = {
 	size: number;
 
 	/**
-	 * The mime type of the file. If the driver did not provide a mime type, one
+	 * The mime type of the file. If the adapter did not provide a mime type, one
 	 * will be inferred from the file extension or it will default to
 	 * "application/octet-stream" for files with no or unknown extension.
 	 */
@@ -102,7 +102,7 @@ type StorageFileSizeAndMime = {
 export interface StorageFileInfo extends StorageFileSizeAndMime {
 	/**
 	 * The file etag if available. S3 provides an etag with get() responses,
-	 * filesystem drivers do not. If the etag is not available in the get()
+	 * filesystem adapters do not. If the etag is not available in the get()
 	 * response it can be obtained with info()
 	 */
 	etag: string;
@@ -111,7 +111,7 @@ export interface StorageFileInfo extends StorageFileSizeAndMime {
 export interface StorageFileFetchResult extends StorageFileSizeAndMime {
 	/**
 	 * The file etag if available. S3 provides an etag with get() responses,
-	 * filesystem drivers do not. If the etag is not available in the get()
+	 * filesystem adapters do not. If the etag is not available in the get()
 	 * response it can be obtained with info()
 	 */
 	etag: string | null;
@@ -198,17 +198,17 @@ export interface StorageFile {
 	 *
 	 * This will be a regular unsigned URL and so relies on the file being publicly accessible.
 	 *
-	 * @param [options.downloadAs] - The suggested filename for the file, for s3. Storage drivers that do not support suggested download names will ignore this option.
+	 * @param [options.downloadAs] - The suggested filename for the file, for s3. Storage adapters that do not support suggested download names will ignore this option.
 	 */
 	url(options?: DownloadUrlOptions): Promise<string>;
 
 	/**
 	 * Generate a signed URL to allow access to this file.
 	 *
-	 * Drivers may clamp the expiry range to an acceptable limit, for example s3
+	 * Storage adapters may clamp the expiry range to an acceptable limit, for example s3
 	 * supports at most 7 days.
 	 *
-	 * @param [options.downloadAs] - The suggested filename for the file, for s3. Storage drivers that do not support suggested download names will ignore this option.
+	 * @param [options.downloadAs] - The suggested filename for the file, for s3. Storage adapters that do not support suggested download names will ignore this option.
 	 * @param [options.expires] - A Date defining expiry time, or string in the format "1h" or "5d4h" representing a duration into the future
 	 */
 	signedUrl(options?: DownloadUrlOptions & SignUrlOptions): Promise<string>;
@@ -216,7 +216,7 @@ export interface StorageFile {
 	/**
 	 * Generate a URL that clients can POST data to to upload file content.
 	 *
-	 * Drivers may clamp the expiry range to an acceptable limit, for example s3
+	 * Storage adapters may clamp the expiry range to an acceptable limit, for example s3
 	 * supports at most 7 days.
 	 *
 	 * @param [options.expires] - A Date defining expiry time, or string in the format "1h" or "5d4h" representing a duration into the future
@@ -247,7 +247,7 @@ export interface StorageFile {
 	 * Copy the file to another location.
 	 *
 	 * If the destination is on the same disk, the copy is performed efficiently using
-	 * the driver's copy() method. Otherwise, the file is fetched and then written
+	 * the adapter's copy() method. Otherwise, the file is fetched and then written
 	 * to the destination.
 	 */
 	copyTo(destination: StorageFile): Promise<void>;
@@ -256,7 +256,7 @@ export interface StorageFile {
 	 * Move the file to another location.
 	 *
 	 * If the destination is on the same disk, the move is performed efficiently
-	 * using the driver's move() method. Otherwise, the file is copied to the
+	 * using the adapter's move() method. Otherwise, the file is copied to the
 	 * destination and then deleted from the source.
 	 *
 	 * NOTE: s3 lacks a native move operation, so this method will copy the file
@@ -437,7 +437,7 @@ export interface StorageDirectoryOperations {
 	 * @param payload.mimeType - a valid mime type e.g. "image/png"
 	 * @param payload.suggestedName - optional suggested filename
 	 *
-	 * If you pass a File or Request object, the driver will obtain a
+	 * If you pass a File or Request object, the adapter will obtain a
 	 * suggested name from the X-File-Name header or "filename" attribute of
 	 * the Content-Disposition header, and a mimeType from the Content-Type header.
 	 * Names from File or Request objects are trimmed of whitespace.
@@ -468,7 +468,7 @@ export interface StorageEndpointFileReadResult {
 	data: StorageData;
 }
 
-export interface ConfiguredStorageDriver {
+export interface StorageAdapter {
 	build(container: Container): StorageEndpoint;
 }
 

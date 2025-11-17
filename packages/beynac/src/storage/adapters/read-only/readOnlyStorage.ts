@@ -1,15 +1,15 @@
-import type { ConfiguredStorageDriver } from "../../../contracts/Storage";
+import type { StorageAdapter } from "../../../contracts/Storage";
+import { ReadOnlyEndpoint } from "./ReadOnlyEndpoint";
 import type { ReadOnlyStorageConfig } from "./ReadOnlyStorageConfig";
-import { ReadOnlyStorageEndpoint } from "./ReadOnlyStorageEndpoint";
 
 /**
- * Read-only storage driver that wraps an existing disk and prevents all write operations.
+ * Read-only storage adapter that wraps an existing disk and prevents all write operations.
  *
  * Wrapped disks can be:
  * - A disk name (string) to wrap a configured, named disk
  * - A disk configuration (e.g. filesystemStorage(...))
  * - A StorageDisk instance as returned by storage.disk()
- * - A StorageEndpoint instance (the low-level interface implemented by storage drivers)
+ * - A StorageEndpoint instance (the low-level interface implemented by storage adapters)
  *
  * @example
  * {
@@ -21,10 +21,10 @@ import { ReadOnlyStorageEndpoint } from "./ReadOnlyStorageEndpoint";
  *   }
  * }
  */
-export function readOnlyStorage(config: ReadOnlyStorageConfig): ConfiguredStorageDriver {
+export function readOnlyStorage(config: ReadOnlyStorageConfig): StorageAdapter {
 	return {
 		build(container) {
-			return container.construct(ReadOnlyStorageEndpoint, config);
+			return container.construct(ReadOnlyEndpoint, config);
 		},
 	};
 }

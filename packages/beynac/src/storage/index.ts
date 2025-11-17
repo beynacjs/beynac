@@ -1,18 +1,13 @@
-export {
-	type FilesystemStorageConfig,
-	FilesystemStorageEndpoint,
-	filesystemStorage,
-} from "./drivers/filesystem";
-export {
-	type MemoryStorageConfig,
-	MemoryStorageEndpoint,
-	memoryStorage,
-} from "./drivers/memory";
-export {
-	type ScopedStorageConfig,
-	ScopedStorageEndpoint,
-	scopedStorage,
-} from "./drivers/scoped";
+export { type FilesystemStorageConfig } from "./adapters/filesystem/FilesystemStorageConfig";
+export { filesystemStorage } from "./adapters/filesystem/filesystemStorage";
+export { type MemoryStorageConfig } from "./adapters/memory/MemoryStorageConfig";
+export { memoryStorage } from "./adapters/memory/memoryStorage";
+export { type ReadOnlyStorageConfig } from "./adapters/read-only/ReadOnlyStorageConfig";
+export { readOnlyStorage } from "./adapters/read-only/readOnlyStorage";
+export { type S3StorageConfig } from "./adapters/s3/S3StorageConfig";
+export { s3Storage } from "./adapters/s3/s3Storage";
+export { type ScopedStorageConfig } from "./adapters/scoped/ScopedStorageConfig";
+export { scopedStorage } from "./adapters/scoped/scopedStorage";
 export { StorageDirectoryImpl } from "./StorageDirectoryImpl";
 export { StorageDiskImpl } from "./StorageDiskImpl";
 export { StorageFileImpl } from "./StorageFileImpl";

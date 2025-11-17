@@ -16,9 +16,9 @@ interface MemoryFile {
 }
 
 /**
- * In-memory storage driver for testing and temporary storage
+ * In-memory storage adapter for testing and temporary storage
  */
-export class MemoryStorageEndpoint extends BaseClass implements StorageEndpoint {
+export class MemoryEndpoint extends BaseClass implements StorageEndpoint {
 	readonly name = "memory" as const;
 	readonly #files: Map<string, MemoryFile> = new Map();
 	readonly supportsMimeTypes: boolean;

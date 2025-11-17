@@ -4,16 +4,16 @@ import { fsOps, mockFilesystemOperations } from "../../filesystem-operations";
 import { mockPlatformPaths } from "../../path-operations";
 import { StorageImpl } from "../../StorageImpl";
 import { MockFilesystemOperations, mockEndpointBuilder } from "../../storage-test-utils";
-import { FilesystemStorageEndpoint } from "./FilesystemStorageEndpoint";
+import { FilesystemEndpoint } from "./FilesystemEndpoint";
 
-describe(FilesystemStorageEndpoint, () => {
+describe(FilesystemEndpoint, () => {
 	beforeEach(() => {
 		mockFilesystemOperations(new MockFilesystemOperations());
 	});
 
 	const createDisk = (rootPath: string) => {
 		const storage = new StorageImpl({}, mockDispatcher(), mockEndpointBuilder());
-		const endpoint = new FilesystemStorageEndpoint({ rootPath });
+		const endpoint = new FilesystemEndpoint({ rootPath });
 		const disk = storage.build(endpoint);
 		return { disk, endpoint, storage };
 	};

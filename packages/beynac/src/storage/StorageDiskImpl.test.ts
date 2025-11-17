@@ -5,7 +5,7 @@ import type {
 	StorageEndpoint,
 } from "../contracts/Storage";
 import { mockDispatcher, spyOnAll } from "../test-utils";
-import { MemoryStorageEndpoint } from "./drivers/memory/MemoryStorageEndpoint";
+import { MemoryEndpoint } from "./adapters/memory/MemoryEndpoint";
 import { StorageDirectoryImpl } from "./StorageDirectoryImpl";
 import { StorageDiskImpl } from "./StorageDiskImpl";
 
@@ -16,7 +16,7 @@ describe(StorageDiskImpl, () => {
 
 	describe("constructor", () => {
 		test("stores name and endpoint correctly", () => {
-			const endpoint = new MemoryStorageEndpoint({});
+			const endpoint = new MemoryEndpoint({});
 			const disk = create("test-disk", endpoint);
 			expect(disk.name).toBe("test-disk");
 		});
@@ -27,7 +27,7 @@ describe(StorageDiskImpl, () => {
 		let disk: StorageDiskImpl;
 
 		beforeEach(() => {
-			const endpoint = new MemoryStorageEndpoint({});
+			const endpoint = new MemoryEndpoint({});
 			disk = new StorageDiskImpl("test-disk", endpoint, mockDispatcher());
 			mockRoot = spyOnAll(new StorageDirectoryImpl(disk, endpoint, "/", mockDispatcher()));
 			// Override getDirectoryForDelegation to return our mock
@@ -92,7 +92,7 @@ describe(StorageDiskImpl, () => {
 
 	describe("path handling integration", () => {
 		test("disk operations work on root path", async () => {
-			const endpoint = new MemoryStorageEndpoint({
+			const endpoint = new MemoryEndpoint({
 				initialFiles: {
 					"/test.txt": "root file",
 					"/subdir/nested.txt": "nested file",
@@ -114,7 +114,7 @@ describe(StorageDiskImpl, () => {
 
 	describe("toString()", () => {
 		test("returns [StorageDiskImpl diskname]", () => {
-			const endpoint = new MemoryStorageEndpoint({});
+			const endpoint = new MemoryEndpoint({});
 			const disk = create("my-disk", endpoint);
 			expect(disk.toString()).toBe("[StorageDiskImpl memory://my-disk]");
 		});

@@ -1,17 +1,12 @@
-import type {
-	ConfiguredStorageDriver,
-	Storage,
-	StorageDisk,
-	StorageEndpoint,
-} from "../contracts/Storage";
+import type { Storage, StorageAdapter, StorageDisk, StorageEndpoint } from "../contracts/Storage";
 import { BaseClass } from "../utils";
 import { StorageDiskImpl } from "./StorageDiskImpl";
 
 /**
  * Type guard to check if a value is a ConfiguredStorageDriver
  */
-export function isConfiguredStorageDriver(value: unknown): value is ConfiguredStorageDriver {
-	return typeof (value as ConfiguredStorageDriver | null)?.build === "function";
+export function isConfiguredStorageDriver(value: unknown): value is StorageAdapter {
+	return typeof (value as StorageAdapter | null)?.build === "function";
 }
 
 export function isStorageEndpoint(value: unknown): value is StorageEndpoint {
@@ -23,12 +18,12 @@ export function isStorageDisk(value: unknown): value is StorageDisk {
 }
 
 export abstract class WrappedEndpoint extends BaseClass {
-	readonly #diskConfig: string | ConfiguredStorageDriver | StorageEndpoint | StorageDisk;
+	readonly #diskConfig: string | StorageAdapter | StorageEndpoint | StorageDisk;
 	readonly #getStorage: () => Storage;
 	#endpoint: StorageEndpoint | null = null;
 
 	constructor(
-		diskConfig: string | ConfiguredStorageDriver | StorageEndpoint | StorageDisk,
+		diskConfig: string | StorageAdapter | StorageEndpoint | StorageDisk,
 		getStorage: () => Storage,
 	) {
 		super();

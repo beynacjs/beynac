@@ -5,7 +5,7 @@ import type { StorageDirectory, StorageEndpoint } from "../contracts/Storage";
 import { DispatcherImpl } from "../core/DispatcherImpl";
 import { expectError, mockDispatcher } from "../test-utils";
 import { mockCurrentTime } from "../testing";
-import { MemoryStorageEndpoint } from "./drivers/memory/MemoryStorageEndpoint";
+import { MemoryEndpoint } from "./adapters/memory/MemoryEndpoint";
 import { mockPlatformPaths } from "./path-operations";
 import { StorageDirectoryImpl } from "./StorageDirectoryImpl";
 import { StorageDiskImpl } from "./StorageDiskImpl";
@@ -33,7 +33,7 @@ describe(StorageDirectoryImpl, () => {
 
 	beforeEach(() => {
 		mockPlatformPaths("posix");
-		endpoint = new MemoryStorageEndpoint({
+		endpoint = new MemoryEndpoint({
 			initialFiles: {
 				"/subdir/file1.txt": "file 1",
 				"/subdir/file2.txt": "file 2",
@@ -225,7 +225,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("sanitises each path segment individually", () => {
-			const sanitisingEndpoint = new MemoryStorageEndpoint({
+			const sanitisingEndpoint = new MemoryEndpoint({
 				invalidNameChars: "<>",
 			});
 			const dir = create("/parent/", sanitisingEndpoint);
@@ -234,7 +234,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("converts when onInvalid is 'convert' or not provided", () => {
-			const sanitisingEndpoint = new MemoryStorageEndpoint({
+			const sanitisingEndpoint = new MemoryEndpoint({
 				invalidNameChars: "<>",
 			});
 			const dir = create("/parent/", sanitisingEndpoint);
@@ -249,7 +249,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("throws when onInvalid is 'throw' and path has invalid chars", () => {
-			const sanitisingEndpoint = new MemoryStorageEndpoint({
+			const sanitisingEndpoint = new MemoryEndpoint({
 				invalidNameChars: "<>",
 			});
 			const dir = create("/parent/", sanitisingEndpoint);
@@ -261,7 +261,7 @@ describe(StorageDirectoryImpl, () => {
 				InvalidPathError,
 				(error) => {
 					expect(error.path).toBe("/parent/a<<b");
-					expect(error.reason).toBe("memory driver does not allow <> in names");
+					expect(error.reason).toBe("memory adapter does not allow <> in names");
 				},
 			);
 		});
@@ -392,7 +392,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("sanitises invalid characters in filename", () => {
-			const sanitisingEndpoint = new MemoryStorageEndpoint({
+			const sanitisingEndpoint = new MemoryEndpoint({
 				invalidNameChars: "<>:",
 			});
 			const dir = create("/parent/", sanitisingEndpoint);
@@ -401,7 +401,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("converts when onInvalid is 'convert' or not provided", () => {
-			const sanitisingEndpoint = new MemoryStorageEndpoint({
+			const sanitisingEndpoint = new MemoryEndpoint({
 				invalidNameChars: "<>:",
 			});
 			const dir = create("/parent/", sanitisingEndpoint);
@@ -416,7 +416,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("throws when onInvalid is 'throw' and filename has invalid chars", () => {
-			const sanitisingEndpoint = new MemoryStorageEndpoint({
+			const sanitisingEndpoint = new MemoryEndpoint({
 				invalidNameChars: "<>:",
 			});
 			const dir = create("/parent/", sanitisingEndpoint);
@@ -427,7 +427,7 @@ describe(StorageDirectoryImpl, () => {
 		});
 
 		test("sanitises slashes in filename preserving path structure", () => {
-			const sanitisingEndpoint = new MemoryStorageEndpoint({
+			const sanitisingEndpoint = new MemoryEndpoint({
 				invalidNameChars: "/",
 			});
 			const dir = create("/parent/", sanitisingEndpoint);
@@ -607,7 +607,7 @@ describe(StorageDirectoryImpl, () => {
 
 	describe("toString()", () => {
 		test("returns [StorageDirectoryImpl endpoint://path]", () => {
-			const endpoint = new MemoryStorageEndpoint({});
+			const endpoint = new MemoryEndpoint({});
 			const dir = create("/path/to/dir/", endpoint);
 			expect(dir.toString()).toBe("[StorageDirectoryImpl memory://path/to/dir/]");
 		});

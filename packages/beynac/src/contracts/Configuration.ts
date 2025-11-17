@@ -3,7 +3,7 @@ import { createTypeToken } from "../container/container-key";
 import type { Routes } from "../http";
 import type { MiddlewareReference } from "../http/Middleware";
 import type { MiddlewarePriorityBuilder } from "../http/MiddlewarePriorityBuilder";
-import type { ConfiguredStorageDriver, StorageEndpoint } from "./Storage";
+import type { StorageAdapter, StorageEndpoint } from "./Storage";
 
 export interface Configuration<RouteParams extends Record<string, string> = {}> {
 	/**
@@ -173,7 +173,7 @@ export interface Configuration<RouteParams extends Record<string, string> = {}> 
 	 *   }
 	 * }
 	 */
-	disks?: Record<string, ConfiguredStorageDriver | StorageEndpoint>;
+	disks?: Record<string, StorageAdapter | StorageEndpoint>;
 
 	/**
 	 * The default disk is returned from Storage.disk() and used when performing

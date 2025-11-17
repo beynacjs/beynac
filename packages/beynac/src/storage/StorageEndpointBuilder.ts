@@ -1,12 +1,12 @@
 import { inject } from "../container";
 import { createTypeToken, type TypeToken } from "../container/container-key";
 import { Container } from "../contracts";
-import type { ConfiguredStorageDriver, StorageEndpoint } from "../contracts/Storage";
+import type { StorageAdapter, StorageEndpoint } from "../contracts/Storage";
 import { BaseClass } from "../utils";
 import { isConfiguredStorageDriver } from "./storage-utils";
 
 export interface StorageEndpointBuilder {
-	build(driver: ConfiguredStorageDriver | StorageEndpoint): StorageEndpoint;
+	build(adapter: StorageAdapter | StorageEndpoint): StorageEndpoint;
 }
 
 export class StorageEndpointBuilderImpl extends BaseClass implements StorageEndpointBuilder {
@@ -17,11 +17,11 @@ export class StorageEndpointBuilderImpl extends BaseClass implements StorageEndp
 		this.#container = container;
 	}
 
-	build(driverOrEndpoint: ConfiguredStorageDriver | StorageEndpoint): StorageEndpoint {
-		if (isConfiguredStorageDriver(driverOrEndpoint)) {
-			return driverOrEndpoint.build(this.#container);
+	build(adapterOrEndpoint: StorageAdapter | StorageEndpoint): StorageEndpoint {
+		if (isConfiguredStorageDriver(adapterOrEndpoint)) {
+			return adapterOrEndpoint.build(this.#container);
 		}
-		return driverOrEndpoint;
+		return adapterOrEndpoint;
 	}
 }
 

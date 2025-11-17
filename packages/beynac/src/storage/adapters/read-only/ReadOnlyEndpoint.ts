@@ -11,7 +11,7 @@ import { PermissionsError } from "../../storage-errors";
 import { WrappedEndpoint } from "../../storage-utils";
 import type { ReadOnlyStorageConfig } from "./ReadOnlyStorageConfig";
 
-export class ReadOnlyStorageEndpoint extends WrappedEndpoint implements StorageEndpoint {
+export class ReadOnlyEndpoint extends WrappedEndpoint implements StorageEndpoint {
 	readonly name = "read-only" as const;
 
 	constructor(

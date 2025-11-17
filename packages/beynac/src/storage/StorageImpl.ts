@@ -3,15 +3,15 @@ import { Configuration } from "../contracts/Configuration";
 import type { Dispatcher } from "../contracts/Dispatcher";
 import { Dispatcher as DispatcherKey } from "../contracts/Dispatcher";
 import type {
-	ConfiguredStorageDriver,
 	Storage,
+	StorageAdapter,
 	StorageDirectoryOperations,
 	StorageDisk,
 	StorageEndpoint,
 } from "../contracts/Storage";
 import { onResetAllMocks } from "../testing/mocks";
+import { MemoryEndpoint } from "./adapters/memory/MemoryEndpoint";
 import { DelegatesToDirectory } from "./DelegatesToDirectory";
-import { MemoryStorageEndpoint } from "./drivers/memory/MemoryStorageEndpoint";
 import { StorageDiskImpl } from "./StorageDiskImpl";
 import { StorageEndpointBuilder } from "./StorageEndpointBuilder";
 import { DiskNotFoundError } from "./storage-errors";
@@ -35,8 +35,8 @@ export class StorageImpl extends DelegatesToDirectory implements Storage {
 		super();
 		this.#dispatcher = dispatcher;
 		this.#diskBuilder = diskBuilder;
-		for (const [name, driverOrEndpoint] of Object.entries(config.disks ?? {})) {
-			const endpoint = this.#diskBuilder.build(driverOrEndpoint);
+		for (const [name, adapterOrEndpoint] of Object.entries(config.disks ?? {})) {
+			const endpoint = this.#diskBuilder.build(adapterOrEndpoint);
 			this.#originalEndpoints.set(name, endpoint);
 			this.#register(name, endpoint);
 		}
@@ -62,14 +62,14 @@ export class StorageImpl extends DelegatesToDirectory implements Storage {
 		return disk;
 	}
 
-	build(driverOrEndpoint: ConfiguredStorageDriver | StorageEndpoint, name?: string): StorageDisk {
-		const endpoint = this.#diskBuilder.build(driverOrEndpoint);
+	build(adapterOrEndpoint: StorageAdapter | StorageEndpoint, name?: string): StorageDisk {
+		const endpoint = this.#diskBuilder.build(adapterOrEndpoint);
 		return new StorageDiskImpl(name ?? `anonymous${++anonDiskId}`, endpoint, this.#dispatcher);
 	}
 
 	mock(diskName: string, endpoint?: StorageEndpoint): void {
-		// Replace the disk with provided endpoint or a default memory driver
-		const mockEndpoint = endpoint ?? new MemoryStorageEndpoint({});
+		// Replace the disk with provided endpoint or a default memory adapter
+		const mockEndpoint = endpoint ?? new MemoryEndpoint({});
 		this.#register(diskName, mockEndpoint);
 		onResetAllMocks(() => this.resetMocks());
 	}

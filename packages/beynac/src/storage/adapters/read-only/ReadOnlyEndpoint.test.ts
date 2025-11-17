@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, spyOn, test } from "bun:test";
 import type { StorageEndpoint } from "../../../contracts/Storage";
 import { PermissionsError } from "../../storage-errors";
 import { type SharedTestConfig } from "../../storage-test-utils";
-import { MemoryStorageEndpoint } from "../memory/MemoryStorageEndpoint";
-import { ReadOnlyStorageEndpoint } from "./ReadOnlyStorageEndpoint";
+import { MemoryEndpoint } from "../memory/MemoryEndpoint";
+import { ReadOnlyEndpoint } from "./ReadOnlyEndpoint";
 import { readOnlyStorage } from "./readOnlyStorage";
 
 // Dummy factory for tests - never called since we pass StorageEndpoint directly
@@ -15,9 +15,9 @@ export const readOnlyStorageSharedTestConfig: SharedTestConfig[] = [
 	{
 		name: readOnlyStorage.name,
 		createEndpoint: () =>
-			new ReadOnlyStorageEndpoint(
+			new ReadOnlyEndpoint(
 				{
-					disk: new MemoryStorageEndpoint({}),
+					disk: new MemoryEndpoint({}),
 				},
 				dummyStorageFactory,
 			),
@@ -29,8 +29,8 @@ describe(readOnlyStorage, () => {
 	let readOnlyDisk: StorageEndpoint;
 
 	beforeEach(() => {
-		wrappedDisk = new MemoryStorageEndpoint({});
-		readOnlyDisk = new ReadOnlyStorageEndpoint(
+		wrappedDisk = new MemoryEndpoint({});
+		readOnlyDisk = new ReadOnlyEndpoint(
 			{
 				disk: wrappedDisk,
 			},
@@ -151,14 +151,11 @@ describe(readOnlyStorage, () => {
 	});
 
 	test("forwards supportsMimeTypes from wrapped disk", () => {
-		const diskWithMime = new MemoryStorageEndpoint({ supportsMimeTypes: true });
-		const diskWithoutMime = new MemoryStorageEndpoint({ supportsMimeTypes: false });
+		const diskWithMime = new MemoryEndpoint({ supportsMimeTypes: true });
+		const diskWithoutMime = new MemoryEndpoint({ supportsMimeTypes: false });
 
-		const readOnlyWithMime = new ReadOnlyStorageEndpoint(
-			{ disk: diskWithMime },
-			dummyStorageFactory,
-		);
-		const readOnlyWithoutMime = new ReadOnlyStorageEndpoint(
+		const readOnlyWithMime = new ReadOnlyEndpoint({ disk: diskWithMime }, dummyStorageFactory);
+		const readOnlyWithoutMime = new ReadOnlyEndpoint(
 			{ disk: diskWithoutMime },
 			dummyStorageFactory,
 		);
@@ -168,14 +165,14 @@ describe(readOnlyStorage, () => {
 	});
 
 	test("forwards invalidNameChars from wrapped disk", () => {
-		const diskWithInvalid = new MemoryStorageEndpoint({ invalidNameChars: '<>:"' });
-		const diskWithoutInvalid = new MemoryStorageEndpoint({ invalidNameChars: "" });
+		const diskWithInvalid = new MemoryEndpoint({ invalidNameChars: '<>:"' });
+		const diskWithoutInvalid = new MemoryEndpoint({ invalidNameChars: "" });
 
-		const readOnlyWithInvalid = new ReadOnlyStorageEndpoint(
+		const readOnlyWithInvalid = new ReadOnlyEndpoint(
 			{ disk: diskWithInvalid },
 			dummyStorageFactory,
 		);
-		const readOnlyWithoutInvalid = new ReadOnlyStorageEndpoint(
+		const readOnlyWithoutInvalid = new ReadOnlyEndpoint(
 			{ disk: diskWithoutInvalid },
 			dummyStorageFactory,
 		);

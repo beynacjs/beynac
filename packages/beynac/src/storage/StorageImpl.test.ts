@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import type { Dispatcher } from "../contracts/Dispatcher";
-import type { ConfiguredStorageDriver, StorageDisk } from "../contracts/Storage";
+import type { StorageAdapter, StorageDisk } from "../contracts/Storage";
 import { expectError, mockDispatcher, spyOnAll } from "../test-utils";
 import { resetAllMocks } from "../testing/mocks";
-import { MemoryStorageEndpoint, memoryStorage } from "./drivers/memory";
+import { MemoryEndpoint } from "./adapters/memory/MemoryEndpoint";
+import { memoryStorage } from "./adapters/memory/memoryStorage";
 import { StorageDiskImpl } from "./StorageDiskImpl";
 import type { StorageEndpointBuilder } from "./StorageEndpointBuilder";
 import { StorageImpl } from "./StorageImpl";
@@ -11,7 +12,7 @@ import { DiskNotFoundError } from "./storage-errors";
 import { mockEndpointBuilder } from "./storage-test-utils";
 
 function createStorageImpl(
-	config: { disks?: Record<string, ConfiguredStorageDriver>; defaultDisk?: string },
+	config: { disks?: Record<string, StorageAdapter>; defaultDisk?: string },
 	dispatcher?: Dispatcher,
 	builder?: StorageEndpointBuilder,
 ): StorageImpl {
@@ -125,7 +126,7 @@ describe(StorageImpl, () => {
 
 			storage.mock(
 				"test",
-				new MemoryStorageEndpoint({
+				new MemoryEndpoint({
 					initialFiles: {
 						"/custom.txt": "custom data",
 					},
@@ -233,7 +234,7 @@ describe(StorageImpl, () => {
 
 		beforeEach(() => {
 			// Create a mock disk with mocked directory operations
-			const endpoint = new MemoryStorageEndpoint({});
+			const endpoint = new MemoryEndpoint({});
 			mockDisk = spyOnAll(new StorageDiskImpl("mock-disk", endpoint, mockDispatcher()));
 
 			// Create storage and override disk() to return our mock

@@ -5,7 +5,7 @@ import type { StorageEndpoint, StorageFile } from "../contracts/Storage";
 import { DispatcherImpl } from "../core/DispatcherImpl";
 import { mockCurrentTime, resetMockTime } from "../helpers/time";
 import { expectError, mockDispatcher, spyOnAll } from "../test-utils";
-import { MemoryStorageEndpoint } from "./drivers/memory/MemoryStorageEndpoint";
+import { MemoryEndpoint } from "./adapters/memory/MemoryEndpoint";
 import { StorageDiskImpl } from "./StorageDiskImpl";
 import { StorageFileImpl } from "./StorageFileImpl";
 import { InvalidPathError, NotFoundError } from "./storage-errors";
@@ -35,7 +35,7 @@ describe(StorageFileImpl, () => {
 
 	beforeEach(() => {
 		mockCurrentTime(new Date("2025-01-01T00:00:00Z"));
-		endpoint = new MemoryStorageEndpoint({});
+		endpoint = new MemoryEndpoint({});
 		dispatcher = new DispatcherImpl(new ContainerImpl());
 		disk = new StorageDiskImpl("test", endpoint, dispatcher);
 	});
@@ -119,7 +119,7 @@ describe(StorageFileImpl, () => {
 		});
 
 		test("infers missing MIME type from extension when supportsMimeTypes is false", async () => {
-			const noMimeEndpoint = new MemoryStorageEndpoint({
+			const noMimeEndpoint = new MemoryEndpoint({
 				supportsMimeTypes: false,
 				initialFiles: {
 					"test.png": { data: "content", mimeType: undefined },
@@ -134,7 +134,7 @@ describe(StorageFileImpl, () => {
 		});
 
 		test("overrides present MIME type from extension when supportsMimeTypes is false", async () => {
-			const noMimeEndpoint = new MemoryStorageEndpoint({
+			const noMimeEndpoint = new MemoryEndpoint({
 				supportsMimeTypes: false,
 				initialFiles: {
 					"test.png": { data: "content", mimeType: null },
@@ -149,7 +149,7 @@ describe(StorageFileImpl, () => {
 		});
 
 		test("infers missing MIME type from extension when supportsMimeTypes is true", async () => {
-			const noMimeEndpoint = new MemoryStorageEndpoint({
+			const noMimeEndpoint = new MemoryEndpoint({
 				supportsMimeTypes: true,
 				initialFiles: {
 					"test.png": { data: "content", mimeType: undefined },
@@ -164,7 +164,7 @@ describe(StorageFileImpl, () => {
 		});
 
 		test("does not override present MIME type from extension when supportsMimeTypes is true", async () => {
-			const noMimeEndpoint = new MemoryStorageEndpoint({
+			const noMimeEndpoint = new MemoryEndpoint({
 				supportsMimeTypes: true,
 				initialFiles: {
 					"test.png": { data: "content", mimeType: "image/jpeg" },
@@ -246,7 +246,7 @@ describe(StorageFileImpl, () => {
 		});
 
 		test("handles missing mime type", async () => {
-			const endpoint = new MemoryStorageEndpoint({
+			const endpoint = new MemoryEndpoint({
 				supportsMimeTypes: false,
 				initialFiles: {
 					"test.png": { data: "content", mimeType: undefined },
@@ -445,7 +445,7 @@ describe(StorageFileImpl, () => {
 		});
 
 		test("copies file to different disk", async () => {
-			const endpoint2 = new MemoryStorageEndpoint({});
+			const endpoint2 = new MemoryEndpoint({});
 			const disk2 = new StorageDiskImpl("disk2", endpoint2, mockDispatcher());
 			const source = disk.file("source.txt");
 			await source.put({ data: "hello", mimeType: "text/plain" });
@@ -476,7 +476,7 @@ describe(StorageFileImpl, () => {
 		});
 
 		test("throws when source file doesn't exist on cross-disk transfer", async () => {
-			const endpoint2 = new MemoryStorageEndpoint({});
+			const endpoint2 = new MemoryEndpoint({});
 			const disk2 = new StorageDiskImpl("disk2", endpoint2, mockDispatcher());
 			const source = disk.file("nonexistent.txt");
 			const dest = disk2.file("dest.txt");
@@ -509,7 +509,7 @@ describe(StorageFileImpl, () => {
 		});
 
 		test("moves file to different disk", async () => {
-			const endpoint2 = new MemoryStorageEndpoint({});
+			const endpoint2 = new MemoryEndpoint({});
 			const disk2 = new StorageDiskImpl("disk2", endpoint2, mockDispatcher());
 			const source = disk.file("source.txt");
 			await source.put({ data: "hello", mimeType: "text/plain" });
@@ -543,7 +543,7 @@ describe(StorageFileImpl, () => {
 		});
 
 		test("throws when source file doesn't exist on cross-disk move", async () => {
-			const endpoint2 = new MemoryStorageEndpoint({});
+			const endpoint2 = new MemoryEndpoint({});
 			const disk2 = new StorageDiskImpl("disk2", endpoint2, mockDispatcher());
 			const source = disk.file("nonexistent.txt");
 			const dest = disk2.file("dest.txt");
@@ -551,7 +551,7 @@ describe(StorageFileImpl, () => {
 		});
 
 		test("does not delete source if cross-disk copy fails", async () => {
-			const endpoint2 = new MemoryStorageEndpoint({});
+			const endpoint2 = new MemoryEndpoint({});
 			const disk2 = new StorageDiskImpl("disk2", endpoint2, mockDispatcher());
 			const source = disk.file("source.txt");
 			await source.put({ data: "hello", mimeType: "text/plain" });
@@ -568,7 +568,7 @@ describe(StorageFileImpl, () => {
 
 	describe("toString()", () => {
 		test("returns [StorageFileImpl endpoint://path]", () => {
-			const endpoint = new MemoryStorageEndpoint({});
+			const endpoint = new MemoryEndpoint({});
 			const file = create("/path/to/file.txt", endpoint);
 			expect(file.toString()).toBe("[StorageFileImpl memory://path/to/file.txt]");
 		});

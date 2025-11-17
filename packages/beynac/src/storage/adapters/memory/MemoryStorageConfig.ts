@@ -1,9 +1,9 @@
 /**
- * Configuration for the memory driver
+ * Configuration for the memory adapter
  */
 export interface MemoryStorageConfig {
 	/**
-	 * Pre-populate the driver with initial files. Useful for test fixtures.
+	 * Pre-populate the storage with initial files. Useful for test fixtures.
 	 *
 	 * Values can be:
 	 * - A string (mimeType defaults to "text/plain")
@@ -27,15 +27,16 @@ export interface MemoryStorageConfig {
 		| undefined;
 
 	/**
-	 * Whether this driver supports MIME types - if not then the system infer
-	 * them from file extensions
+	 * Whether to declare support for mime types. Useful to simulate non
+	 * mime-type compatible storage for testing.
+	 *
+	 * @default true
 	 */
 	supportsMimeTypes?: boolean | undefined;
 
 	/**
-	 * A string containing characters that are invalid in filenames.
-	 * Files will have these characters replaced with underscores.
-	 * Default: "" (no invalid characters)
+	 * Declare filenames that are invalid for this adapter. Useful to simulate
+	 * storage that doesn't allow certain file names for testing.
 	 *
 	 * @example
 	 * invalidNameChars: '<>:"/\\|?*' // Windows-style restrictions

@@ -7,7 +7,7 @@ import { sleep } from "../../../utils";
 import { mockPlatformPaths } from "../../path-operations";
 import { StorageUnknownError } from "../../storage-errors";
 import type { SharedTestConfig } from "../../storage-test-utils";
-import { FilesystemStorageEndpoint, filesystemStorage } from "./FilesystemStorageEndpoint";
+import { FilesystemEndpoint, filesystemStorage } from "./FilesystemEndpoint";
 
 beforeEach(() => {
 	mockPlatformPaths("posix");
@@ -15,7 +15,7 @@ beforeEach(() => {
 
 function filesystemStorageWithTmpDir(): StorageEndpoint {
 	const tempDir = createTestDirectory();
-	return new FilesystemStorageEndpoint({
+	return new FilesystemEndpoint({
 		rootPath: tempDir,
 		makePublicUrlWith: "https://example.com/files",
 		makeSignedDownloadUrlWith: ({ path, expires, downloadFileName }) => {
@@ -52,7 +52,7 @@ describe(filesystemStorage, () => {
 
 		beforeEach(() => {
 			tempDir = createTestDirectory();
-			storage = new FilesystemStorageEndpoint({
+			storage = new FilesystemEndpoint({
 				rootPath: tempDir,
 				makePublicUrlWith: "https://example.com/files",
 				makeSignedDownloadUrlWith: ({ path, expires, downloadFileName }) => {
@@ -72,7 +72,7 @@ describe(filesystemStorage, () => {
 		});
 
 		test("makePublicUrlWith configuration - throws when not configured", async () => {
-			const storageWithoutPrefix = new FilesystemStorageEndpoint({ rootPath: tempDir });
+			const storageWithoutPrefix = new FilesystemEndpoint({ rootPath: tempDir });
 
 			await writeTestFile(storageWithoutPrefix, "/test.txt");
 
@@ -104,7 +104,7 @@ describe(filesystemStorage, () => {
 		});
 
 		test("makePublicUrlWith configuration - uses callback function", async () => {
-			const storageWithCallback = new FilesystemStorageEndpoint({
+			const storageWithCallback = new FilesystemEndpoint({
 				rootPath: tempDir,
 				makePublicUrlWith: (path) => `https://custom-cdn.example.com/v2${path}`,
 			});
@@ -124,7 +124,7 @@ describe(filesystemStorage, () => {
 		});
 
 		test("makePublicUrlWith with trailing slash", async () => {
-			const storageWithTrailingSlash = new FilesystemStorageEndpoint({
+			const storageWithTrailingSlash = new FilesystemEndpoint({
 				rootPath: tempDir,
 				makePublicUrlWith: "https://cdn.example.com/files/",
 			});

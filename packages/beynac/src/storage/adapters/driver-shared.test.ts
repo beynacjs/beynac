@@ -4,27 +4,29 @@ import { expectError, mockDispatcher, shouldSkipDockerTests } from "../../test-u
 import { StorageImpl } from "../StorageImpl";
 import { NotFoundError } from "../storage-errors";
 import { mockEndpointBuilder, type SharedTestConfig } from "../storage-test-utils";
-import { filesystemStorageSharedTestConfig } from "./filesystem/FilesystemStorageEndpoint.test";
-import { MemoryStorageEndpoint } from "./memory/MemoryStorageEndpoint";
-import { memoryStorageSharedTestConfig } from "./memory/MemoryStorageEndpoint.test";
+import { filesystemStorageSharedTestConfig } from "./filesystem/FilesystemEndpoint.test";
+import { MemoryEndpoint } from "./memory/MemoryEndpoint";
+import { memoryStorageSharedTestConfig } from "./memory/MemoryEndpoint.test";
 import { s3StorageSharedTestConfig } from "./s3/S3Endpoint.shared.test";
 import { scopedStorageSharedTestConfig } from "./scoped/ScopedStorageEndpoint.test";
 
-const driverConfigs: SharedTestConfig[] = [
+const adapterConfigs: SharedTestConfig[] = [
 	memoryStorageSharedTestConfig,
 	filesystemStorageSharedTestConfig,
 	s3StorageSharedTestConfig,
 	...scopedStorageSharedTestConfig,
 ];
 
-describe.each(driverConfigs)("$name", ({ createEndpoint, requiresDocker = false }) => {
+describe.each(adapterConfigs)("$name", ({ createEndpoint, requiresDocker = false }) => {
 	let endpoint: StorageEndpoint;
 
 	beforeEach(async () => {
 		endpoint = await createEndpoint();
 	});
 
-	describe.skipIf(requiresDocker && shouldSkipDockerTests())("Shared Integration Tests", () => {
+	const skip = requiresDocker && shouldSkipDockerTests();
+
+	describe.skipIf(skip)("Shared Integration Tests", () => {
 		describe("Read-only file and directory operations", () => {
 			let storage: StorageImpl;
 			let disk: StorageDisk;
@@ -64,7 +66,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint, requiresDocker = false 
 				const textFetchResult = await disk.file("/dir/textFile").get();
 				expect(await textFetchResult.response.text()).toBe("textual-data");
 				expect(textFetchResult.size).toBe(12);
-				// If driver doesn't support MIME types, files without extensions get octet-stream
+				// If adapter doesn't support MIME types, files without extensions get octet-stream
 				const expectedTextMime = endpoint.supportsMimeTypes
 					? "text/plain"
 					: "application/octet-stream";
@@ -97,7 +99,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint, requiresDocker = false 
 				expect(info).toEqual({
 					size: 7,
 					mimeType: "text/plain",
-					// originalMimeType is what the endpoint stored; null for drivers that don't support MIME types
+					// originalMimeType is what the endpoint stored; null for adapters that don't support MIME types
 					originalMimeType: endpoint.supportsMimeTypes ? "text/plain" : null,
 					etag: expect.any(String),
 				});
@@ -324,7 +326,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint, requiresDocker = false 
 					);
 				});
 
-				test("cross-disk, same driver", async () => {
+				test("cross-disk, same adapter", async () => {
 					const source = disk.file("/source.txt");
 					await source.put({ data: "content", mimeType: "text/plain" });
 					const disk2 = storage.build(await createEndpoint());
@@ -343,10 +345,10 @@ describe.each(driverConfigs)("$name", ({ createEndpoint, requiresDocker = false 
 					);
 				});
 
-				test("cross-disk, different driver", async () => {
-					const memoryDisk = storage.build(new MemoryStorageEndpoint({}));
+				test("cross-disk, different adapter", async () => {
+					const memoryDisk = storage.build(new MemoryEndpoint({}));
 
-					// From memory driver
+					// From memory adapter
 					const memorySource = memoryDisk.file("/source.txt");
 					await memorySource.put({ data: "content", mimeType: "text/plain" });
 					const dest1 = disk.file("/dest.txt");
@@ -354,7 +356,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint, requiresDocker = false 
 					expect(await memorySource.exists()).toBe(true);
 					expect(await dest1.exists()).toBe(true);
 
-					// To memory driver
+					// To memory adapter
 					const source = disk.file("/source.txt");
 					await source.put({ data: "content", mimeType: "text/plain" });
 					const memoryDest = memoryDisk.file("/dest2.txt");
@@ -383,7 +385,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint, requiresDocker = false 
 					);
 				});
 
-				test("cross-disk, same driver", async () => {
+				test("cross-disk, same adapter", async () => {
 					const source = disk.file("/source.txt");
 					await source.put({ data: "content", mimeType: "text/plain" });
 					const disk2 = storage.build(await createEndpoint());
@@ -403,10 +405,10 @@ describe.each(driverConfigs)("$name", ({ createEndpoint, requiresDocker = false 
 					);
 				});
 
-				test("cross-disk, different driver", async () => {
-					const memoryDisk = storage.build(new MemoryStorageEndpoint({}));
+				test("cross-disk, different adapter", async () => {
+					const memoryDisk = storage.build(new MemoryEndpoint({}));
 
-					// From memory driver
+					// From memory adapter
 					const memorySource = memoryDisk.file("/source.txt");
 					await memorySource.put({ data: "content", mimeType: "text/plain" });
 					const dest1 = disk.file("/dest.txt");
@@ -414,7 +416,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint, requiresDocker = false 
 					expect(await dest1.exists()).toBe(true);
 					expect(await memorySource.exists()).toBe(false);
 
-					// To memory driver
+					// To memory adapter
 					const source = disk.file("/source.txt");
 					await source.put({ data: "content", mimeType: "text/plain" });
 					const memoryDest = memoryDisk.file("/dest2.txt");
@@ -471,7 +473,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint, requiresDocker = false 
 		});
 	});
 
-	describe("Shared Unit Tests", () => {
+	describe.skipIf(skip)("Shared Unit Tests", () => {
 		//
 		// Contains a few unit tests not covered by the above integration tests.
 		//

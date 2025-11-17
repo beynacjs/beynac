@@ -40,7 +40,7 @@ export class InvalidPathError extends StorageError {
 	static forInvalidCharacters(path: string, endpoint: StorageEndpoint): InvalidPathError {
 		return new InvalidPathError(
 			path,
-			`${endpoint.name} driver does not allow ${endpoint.invalidNameChars} in names`,
+			`${endpoint.name} adapter does not allow ${endpoint.invalidNameChars} in names`,
 		);
 	}
 }

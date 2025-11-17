@@ -1,5 +1,5 @@
 /**
- * Configuration for the filesystem driver
+ * Configuration for the filesystem adapter
  */
 export interface FilesystemStorageConfig {
 	/**
