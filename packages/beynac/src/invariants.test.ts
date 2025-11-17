@@ -102,10 +102,13 @@ describe.each(fileExports)(
 
 		const mockableFunctions = functionExports.filter(([, fn]) => isMockable(fn));
 
-		test.each(mockableFunctions)("mockable function %s has name", (_, exportValue) => {
-			const fn = exportValue as Function;
-			expect(fn.name).toBeTruthy();
-		});
+		test.each(mockableFunctions)(
+			"mockable function %s has correct name",
+			(exportName, exportValue) => {
+				const fn = exportValue as Function;
+				expect(fn.name).toEqual(exportName);
+			},
+		);
 
 		const fileContent = await readFile(filePath, "utf-8");
 

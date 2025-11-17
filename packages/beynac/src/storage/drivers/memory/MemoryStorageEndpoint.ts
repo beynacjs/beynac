@@ -19,8 +19,8 @@ interface MemoryFile {
  * In-memory storage driver for testing and temporary storage
  */
 export class MemoryStorageEndpoint extends BaseClass implements StorageEndpoint {
+	readonly name = "memory" as const;
 	readonly #files: Map<string, MemoryFile> = new Map();
-
 	readonly supportsMimeTypes: boolean;
 	readonly invalidNameChars: string;
 
@@ -44,10 +44,6 @@ export class MemoryStorageEndpoint extends BaseClass implements StorageEndpoint 
 				}
 			}
 		}
-	}
-
-	get name(): "memory" {
-		return "memory";
 	}
 
 	async writeSingle({ data, path, mimeType }: StorageEndpointWriteOptions): Promise<void> {

@@ -12,15 +12,13 @@ import { WrappedEndpoint } from "../../storage-utils";
 import type { ReadOnlyStorageConfig } from "./ReadOnlyStorageConfig";
 
 export class ReadOnlyStorageEndpoint extends WrappedEndpoint implements StorageEndpoint {
+	readonly name = "read-only" as const;
+
 	constructor(
 		{ disk }: ReadOnlyStorageConfig,
 		getStorage: () => Storage = injectFactory(StorageKey),
 	) {
 		super(disk, getStorage);
-	}
-
-	get name(): "read-only" {
-		return "read-only";
 	}
 
 	async readSingle(path: string): Promise<StorageEndpointFileReadResult> {

@@ -1,4 +1,4 @@
-import { sha256 } from "../helpers/hash/sha";
+import { sha256 } from "../helpers/hash/digest";
 import * as str from "../helpers/str";
 import { regExpEscape } from "../utils";
 import { posix } from "./path-operations";

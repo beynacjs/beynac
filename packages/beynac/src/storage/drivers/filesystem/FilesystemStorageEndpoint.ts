@@ -21,6 +21,9 @@ const pipelineAsync = promisify(pipeline);
  * Filesystem storage driver for local file storage
  */
 export class FilesystemStorageEndpoint extends BaseClass implements StorageEndpoint {
+	readonly name = "filesystem" as const;
+	readonly invalidNameChars = '<>:"/\\|?*';
+	readonly supportsMimeTypes = false;
 	readonly #rootPath: string;
 	readonly #makePublicUrlWith: string | ((path: string) => string) | undefined;
 	readonly #config: FilesystemStorageConfig;
@@ -30,18 +33,6 @@ export class FilesystemStorageEndpoint extends BaseClass implements StorageEndpo
 		this.#rootPath = config.rootPath;
 		this.#makePublicUrlWith = config.makePublicUrlWith;
 		this.#config = config;
-	}
-
-	get name(): "filesystem" {
-		return "filesystem";
-	}
-
-	get invalidNameChars(): string {
-		return '<>:"/\\|?*';
-	}
-
-	get supportsMimeTypes(): boolean {
-		return false;
 	}
 
 	async writeSingle({ data, path }: StorageEndpointWriteOptions): Promise<void> {

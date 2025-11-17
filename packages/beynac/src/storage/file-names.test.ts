@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { sha256 } from "../helpers/hash/sha";
+import { sha256 } from "../helpers/hash/digest";
 import * as str from "../helpers/str";
 import { mock } from "../testing/mocks";
 import { createFileName, mimeTypeFromFileName, sanitiseName } from "./file-names";

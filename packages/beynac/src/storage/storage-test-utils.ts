@@ -11,7 +11,8 @@ import { isConfiguredStorageDriver } from "./storage-utils";
 
 export type SharedTestConfig = {
 	name: string;
-	createEndpoint: () => StorageEndpoint;
+	requiresDocker?: boolean;
+	createEndpoint: () => StorageEndpoint | Promise<StorageEndpoint>;
 };
 
 export function mockEndpointBuilder(): StorageEndpointBuilder {

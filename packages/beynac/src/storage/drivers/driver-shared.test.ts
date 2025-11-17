@@ -1,35 +1,37 @@
 import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import type { StorageDisk, StorageEndpoint } from "../../contracts/Storage";
-import { expectError, mockDispatcher } from "../../test-utils";
+import { expectError, mockDispatcher, shouldSkipDockerTests } from "../../test-utils";
 import { StorageImpl } from "../StorageImpl";
 import { NotFoundError } from "../storage-errors";
 import { mockEndpointBuilder, type SharedTestConfig } from "../storage-test-utils";
 import { filesystemStorageSharedTestConfig } from "./filesystem/FilesystemStorageEndpoint.test";
 import { MemoryStorageEndpoint } from "./memory/MemoryStorageEndpoint";
 import { memoryStorageSharedTestConfig } from "./memory/MemoryStorageEndpoint.test";
+import { s3StorageSharedTestConfig } from "./s3/S3Endpoint.shared.test";
 import { scopedStorageSharedTestConfig } from "./scoped/ScopedStorageEndpoint.test";
 
 const driverConfigs: SharedTestConfig[] = [
 	memoryStorageSharedTestConfig,
 	filesystemStorageSharedTestConfig,
+	s3StorageSharedTestConfig,
 	...scopedStorageSharedTestConfig,
 ];
 
-describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
+describe.each(driverConfigs)("$name", ({ createEndpoint, requiresDocker = false }) => {
 	let endpoint: StorageEndpoint;
 
-	beforeEach(() => {
-		endpoint = createEndpoint();
+	beforeEach(async () => {
+		endpoint = await createEndpoint();
 	});
 
-	describe("Shared Integration Tests", () => {
+	describe.skipIf(requiresDocker && shouldSkipDockerTests())("Shared Integration Tests", () => {
 		describe("Read-only file and directory operations", () => {
 			let storage: StorageImpl;
 			let disk: StorageDisk;
 			let endpoint: StorageEndpoint;
 
 			beforeAll(async () => {
-				endpoint = createEndpoint();
+				endpoint = await createEndpoint();
 				storage = new StorageImpl(
 					{
 						disks: { test: endpoint },
@@ -99,6 +101,8 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 					originalMimeType: endpoint.supportsMimeTypes ? "text/plain" : null,
 					etag: expect.any(String),
 				});
+
+				expect(info?.etag.length).toBeGreaterThan(10);
 
 				const htmlInfo = await disk.file("/dir/htmlFile").info();
 				const expectedHtmlMime = endpoint.supportsMimeTypes
@@ -259,7 +263,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 			beforeEach(async () => {
 				storage = new StorageImpl(
 					{
-						disks: { test: createEndpoint() },
+						disks: { test: await createEndpoint() },
 						defaultDisk: "test",
 					},
 					mockDispatcher(),
@@ -323,7 +327,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 				test("cross-disk, same driver", async () => {
 					const source = disk.file("/source.txt");
 					await source.put({ data: "content", mimeType: "text/plain" });
-					const disk2 = storage.build(createEndpoint());
+					const disk2 = storage.build(await createEndpoint());
 
 					const dest = disk2.file("/dest.txt");
 					await source.copyTo(dest);
@@ -382,7 +386,7 @@ describe.each(driverConfigs)("$name", ({ createEndpoint }) => {
 				test("cross-disk, same driver", async () => {
 					const source = disk.file("/source.txt");
 					await source.put({ data: "content", mimeType: "text/plain" });
-					const disk2 = storage.build(createEndpoint());
+					const disk2 = storage.build(await createEndpoint());
 
 					const dest = disk2.file("/dest.txt");
 					await source.moveTo(dest);

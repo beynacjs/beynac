@@ -8,12 +8,13 @@
   },
   "cSpell.words": [
     "apa",
-    "Beynac",
     "beynac",
+    "Beynac",
     "bitmask",
     "bouche",
     "bunfig",
     "crockford",
+    "dualstack",
     "jsxs",
     "laravel",
     "lexicographically",
@@ -28,8 +29,7 @@
     "ulids",
     "unitless",
     "uuid",
-    "vendored",
-
+    "vendored"
   ],
   "typescript.tsdk": "node_modules/typescript/lib"
 }

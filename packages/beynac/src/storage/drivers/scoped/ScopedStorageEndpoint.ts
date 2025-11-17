@@ -11,8 +11,8 @@ import { WrappedEndpoint } from "../../storage-utils";
 import type { ScopedStorageConfig } from "./ScopedStorageConfig";
 
 export class ScopedStorageEndpoint extends WrappedEndpoint implements StorageEndpoint {
-	readonly #prefix: string;
 	readonly name = "scoped" as const;
+	readonly #prefix: string;
 
 	constructor(
 		{ prefix, disk }: ScopedStorageConfig,

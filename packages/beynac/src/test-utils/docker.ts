@@ -15,25 +15,26 @@ export function shouldSkipDockerTests(): boolean {
 }
 
 export async function ensureDockerServicesRunning(services: DockerService[]): Promise<void> {
-	if (!isDockerAvailable()) {
-		throw new Error("Docker is not available. Please start Docker to run MinIO tests.");
-	}
-
-	// Check if all services are already running and healthy
-	const allServicesHealthy = await Promise.all(
-		services.map((service) => isServiceRunning(service)),
+	const serviceStatus = await Promise.all(
+		services.map(async (service) => ({
+			service,
+			started: await isServiceRunning(service),
+		})),
 	);
 
-	if (allServicesHealthy.every((healthy) => healthy)) {
-		// All services already running and healthy - silent success
+	const servicesToStart = serviceStatus
+		.filter((check) => !check.started)
+		.map((check) => check.service);
+
+	if (servicesToStart.length === 0) {
 		return;
 	}
 
-	// At least one service needs to be started - log what we're doing
 	const packageRoot = path.resolve(__dirname, "../..");
-	console.log(`Starting services [${services.join(", ")}] using docker compose...`);
 
-	const composeResult = spawnSync("docker", ["compose", "up", "-d", ...services], {
+	console.log(`Starting services [${servicesToStart.join(", ")}] using docker compose...`);
+
+	const composeResult = spawnSync("docker", ["compose", "up", "-d", ...servicesToStart], {
 		cwd: packageRoot,
 		encoding: "utf-8",
 	});
@@ -44,15 +45,9 @@ export async function ensureDockerServicesRunning(services: DockerService[]): Pr
 		);
 	}
 
-	console.log(`Services [${services.join(", ")}] started via docker compose`);
+	console.log(`Services [${servicesToStart.join(", ")}] started via docker compose`);
 
-	// Wait for all services to become healthy
-	await Promise.all(services.map((service) => waitForService(service)));
-}
-
-function isDockerAvailable(): boolean {
-	const result = spawnSync("docker", ["info"]);
-	return result.status === 0;
+	await Promise.all(servicesToStart.map((service) => waitForService(service)));
 }
 
 async function isServiceRunning(service: DockerService): Promise<boolean> {
@@ -73,28 +68,30 @@ async function isMinioRunning(): Promise<boolean> {
 
 async function waitForService(
 	service: DockerService,
-	maxAttempts = 30,
-	delayMs = 1000,
+	maxWaitMs = 10000,
+	delayMs = 50,
 ): Promise<void> {
 	const serviceName = service;
 	let hasLoggedWaiting = false;
+	const startTime = Date.now();
 
-	for (let i = 0; i < maxAttempts; i++) {
+	while (true) {
 		if (await isServiceRunning(service)) {
 			if (hasLoggedWaiting) {
-				console.log(`${serviceName} is ready`);
+				console.log(`    ☑️ ${serviceName} is ready`);
 			}
 			return;
 		}
 
-		// Only log on first failed check (unusual - service not ready immediately)
 		if (!hasLoggedWaiting) {
-			console.log(`Waiting for ${serviceName} to be ready...`);
+			console.log(`⏱️ Waiting for ${serviceName} to be ready...`);
 			hasLoggedWaiting = true;
+		}
+
+		if (Date.now() - startTime > maxWaitMs) {
+			throw new Error(`${serviceName} failed to become ready within the timeout period`);
 		}
 
 		await sleep(delayMs);
 	}
-
-	throw new Error(`${serviceName} failed to become ready within the timeout period`);
 }

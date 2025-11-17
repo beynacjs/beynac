@@ -55,9 +55,10 @@ export type StorageEntry = StorageFile | StorageDirectory;
 
 interface SignUrlOptions {
 	/**
-	 * Generate a signed URL with expiration on drivers that support it (s3).
-	 * Other drivers will ignore this option - if the file is public, the URL
-	 * will work, otherwise it will not be accessible.
+	 * Generate a signed URL with expiration on drivers that support it.
+	 *
+	 * Drivers may clamp the expiry range to an acceptable limit, for example s3
+	 * supports at most 7 days.
 	 *
 	 * If you do not want your links to expire, just set a very far future
 	 * expiration date.
@@ -204,6 +205,9 @@ export interface StorageFile {
 	/**
 	 * Generate a signed URL to allow access to this file.
 	 *
+	 * Drivers may clamp the expiry range to an acceptable limit, for example s3
+	 * supports at most 7 days.
+	 *
 	 * @param [options.downloadAs] - The suggested filename for the file, for s3. Storage drivers that do not support suggested download names will ignore this option.
 	 * @param [options.expires] - A Date defining expiry time, or string in the format "1h" or "5d4h" representing a duration into the future
 	 */
@@ -211,6 +215,9 @@ export interface StorageFile {
 
 	/**
 	 * Generate a URL that clients can POST data to to upload file content.
+	 *
+	 * Drivers may clamp the expiry range to an acceptable limit, for example s3
+	 * supports at most 7 days.
 	 *
 	 * @param [options.expires] - A Date defining expiry time, or string in the format "1h" or "5d4h" representing a duration into the future
 	 */
@@ -248,9 +255,14 @@ export interface StorageFile {
 	/**
 	 * Move the file to another location.
 	 *
-	 * If the destination is on the same disk, the move is performed efficiently using
-	 * the driver's move() method. Otherwise, the file is copied to the destination
-	 * and then deleted from the source.
+	 * If the destination is on the same disk, the move is performed efficiently
+	 * using the driver's move() method. Otherwise, the file is copied to the
+	 * destination and then deleted from the source.
+	 *
+	 * NOTE: s3 lacks a native move operation, so this method will copy the file
+	 * to the destination and delete the source. Your application will briefly
+	 * see temporarily see a state with two files present. If the delete fails
+	 * for some reason, the copy will remain forever.
 	 */
 	moveTo(destination: StorageFile): Promise<void>;
 }
