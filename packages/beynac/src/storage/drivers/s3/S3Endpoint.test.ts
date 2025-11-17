@@ -170,7 +170,7 @@ describe.skipIf(shouldSkipDockerTests())(s3Storage, () => {
 			);
 		});
 
-		test("signed URL generation works", async ({ expect }) => {
+		test("signed URL generation works", async () => {
 			const endpoint = await createS3WithUniqueBucket();
 
 			await endpoint.writeSingle({
