@@ -6,7 +6,7 @@
     "typescript/no-for-in-array": "error",
     "typescript/no-explicit-any": "error",
     "typescript/consistent-type-imports": "error",
-    "no-eval": "off",
+    "no-implied-eval": "off",
     "no-control-regex": "off",
     "prefer-node-protocol": "error",
     "no-restricted-imports": ["error", {
@@ -28,7 +28,8 @@
       "rules": {
         "typescript/no-explicit-any": "off",
         "typescript/unbound-method": "off",
-        "no-restricted-imports": "off"
+        "no-restricted-imports": "off",
+        "no-eval": "off"
       }
     },
     {

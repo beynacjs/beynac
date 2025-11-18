@@ -10,7 +10,10 @@ export default defineConfig({
     "view/jsx-runtime": "src/view/jsx-runtime.ts",
     "view/jsx-dev-runtime": "src/view/jsx-dev-runtime.ts",
     "http/index": "src/http/index.ts",
-    "helpers/index": "src/helpers/index.ts",
+    "helpers/hash": "src/helpers/hash/index.ts",
+    "helpers/headers": "src/helpers/headers.ts",
+    "helpers/str": "src/helpers/str/index.ts",
+    "helpers/time": "src/helpers/time.ts",
   },
   format: ["esm"],
   outDir: "dist",
@@ -18,5 +21,6 @@ export default defineConfig({
     resolve: true,
   },
   clean: true,
-  exports: true
+  exports: true,
+  noExternal: ["devalue"],
 });

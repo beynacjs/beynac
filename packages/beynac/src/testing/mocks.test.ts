@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, spyOn, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { sleep } from "../utils";
 import { mock, mockable, onResetAllMocks, resetAllMocks, resetMock } from "./mocks";
 
@@ -13,13 +13,15 @@ describe(mockable, () => {
 			return x * 2;
 		}
 		const wrapped = mockable(myTestFunction);
+		expect(wrapped).not.toBe(myTestFunction);
 		expect(wrapped.name).toBe("myTestFunction");
 	});
 
-	test("degrades gracefully when eval is not available", () => {
-		const evalSpy = spyOn(globalThis, "eval").mockImplementation(() => {
-			throw new Error("eval is not available");
-		});
+	test("degrades gracefully when Function constructor is not available", () => {
+		const originalFunction = globalThis.Function;
+		globalThis.Function = function (..._args: unknown[]): never {
+			throw new Error("Function constructor is not available");
+		} as unknown as FunctionConstructor;
 
 		function myTestFunction(x: number): number {
 			return x * 2;
@@ -30,10 +32,10 @@ describe(mockable, () => {
 		// Function still works
 		expect(wrapped(5)).toBe(10);
 
-		// Name is not preserved when eval fails
+		// Name is not preserved when Function constructor fails
 		expect(wrapped.name).not.toBe("myTestFunction");
 
-		evalSpy.mockRestore();
+		globalThis.Function = originalFunction;
 	});
 });
 

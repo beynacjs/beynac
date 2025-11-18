@@ -114,11 +114,13 @@ function withFunctionName<F extends Function>(name: string, fn: F): F {
 	if (!name) return fn;
 
 	try {
-		// Try to create a named function using eval with minimal code
-		// This is wrapped in try-catch for environments that don't support eval (e.g., Cloudflare Workers)
-		return eval(`(function ${name}(...args) {
-			return fn.apply(this, args);
-		})`) as F;
+		// Try to create a named function using Function constructor
+		// This is wrapped in try-catch for environments that don't support dynamic function creation (e.g., Cloudflare Workers)
+		const factory = new Function(
+			"fn",
+			`return function ${name}(...args) { return fn.apply(this, args); }`,
+		);
+		return factory(fn) as F;
 	} catch {
 		return fn;
 	}
