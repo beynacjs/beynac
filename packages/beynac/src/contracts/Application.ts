@@ -1,6 +1,8 @@
 import type { TypeToken } from "../container/container-key";
 import { createTypeToken } from "../container/container-key";
 import type { Container } from "../contracts";
+import type { ServiceProvider } from "../core/ServiceProvider";
+import type { ServiceProviderReference } from "./Configuration";
 import type { Dispatcher } from "./Dispatcher";
 import type { IntegrationContext } from "./IntegrationContext";
 import type { Storage } from "./Storage";
@@ -48,6 +50,16 @@ export interface Application<RouteParams extends Record<string, string> = {}> {
 	 * require access to headers and cookies.
 	 */
 	withIntegration<R>(context: IntegrationContext, callback: () => R): R;
+
+	/**
+	 * Register a service provider.
+	 *
+	 * The service provider's register() method will be called immediately. If
+	 * the application has finished starting, the provider's boot() method will
+	 * be called as well, otherwise it will be called after the boot methods of
+	 * service providers registered earlier.
+	 */
+	registerServiceProvider(provider: ServiceProvider | ServiceProviderReference): void;
 
 	/**
 	 * Accessor for the event dispatcher

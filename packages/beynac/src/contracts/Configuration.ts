@@ -1,9 +1,13 @@
 import type { TypeToken } from "../container/container-key";
 import { createTypeToken } from "../container/container-key";
+import type { ServiceProvider } from "../core/ServiceProvider";
 import type { Routes } from "../http";
 import type { MiddlewareReference } from "../http/Middleware";
 import type { MiddlewarePriorityBuilder } from "../http/MiddlewarePriorityBuilder";
+import type { Application } from "./Application";
 import type { StorageAdapter, StorageEndpoint } from "./Storage";
+
+export type ServiceProviderReference = new (app: Application) => ServiceProvider;
 
 export interface Configuration<RouteParams extends Record<string, string> = {}> {
 	/**
@@ -23,6 +27,11 @@ export interface Configuration<RouteParams extends Record<string, string> = {}> 
 	 * Route definitions for the application
 	 */
 	routes?: Routes<RouteParams>;
+
+	/**
+	 * Service providers to register with the application.
+	 */
+	providers?: Array<ServiceProviderReference>;
 
 	/**
 	 * Configure middleware execution priority.

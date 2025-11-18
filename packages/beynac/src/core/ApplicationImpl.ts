@@ -2,6 +2,7 @@ import { ContainerImpl } from "../container/ContainerImpl";
 import { Cookies, Headers, KeepAlive, RequestLocals, Storage, ViewRenderer } from "../contracts";
 import type { UrlOptionsNoParams, UrlOptionsWithParams } from "../contracts/Application";
 import { Application } from "../contracts/Application";
+import type { ServiceProviderReference } from "../contracts/Configuration";
 import { Configuration } from "../contracts/Configuration";
 import type { Container } from "../contracts/Container";
 import { type Dispatcher, Dispatcher as DispatcherKey } from "../contracts/Dispatcher";
@@ -11,11 +12,7 @@ import { DevModeWatchService } from "../development/DevModeWatchService";
 import { BeynacError } from "../error";
 import { group, Router, RouteUrlGenerator } from "../http";
 import { RequestHandler } from "../http/RequestHandler";
-import {
-	StorageEndpointBuilder,
-	StorageEndpointBuilderImpl,
-} from "../storage/StorageEndpointBuilder";
-import { StorageImpl } from "../storage/StorageImpl";
+import { StorageServiceProvider } from "../storage/StorageServiceProvider";
 import { BaseClass } from "../utils";
 import { ViewRendererImpl } from "../view/ViewRendererImpl";
 import { CookiesImpl } from "./CookiesImpl";
@@ -23,6 +20,9 @@ import { DispatcherImpl } from "./DispatcherImpl";
 import { HeadersImpl } from "./HeadersImpl";
 import { KeepAliveImpl } from "./KeepAliveImpl";
 import { RequestLocalsImpl } from "./RequestLocalsImpl";
+import type { ServiceProvider } from "./ServiceProvider";
+
+const DEFAULT_PROVIDERS = [StorageServiceProvider];
 
 export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 	extends BaseClass
@@ -61,8 +61,6 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 		this.container.scoped(KeepAlive, KeepAliveImpl);
 		this.container.singleton(ViewRenderer, ViewRendererImpl);
 		this.container.singleton(DispatcherKey, DispatcherImpl);
-		this.container.singleton(StorageEndpointBuilder, StorageEndpointBuilderImpl);
-		this.container.singleton(Storage, StorageImpl);
 		this.container.singleton(DevModeAutoRefreshMiddleware);
 		this.container.singleton(DevModeWatchService);
 		this.container.singleton(Router);
@@ -93,6 +91,11 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 		if (autoRefreshEnabled) {
 			this.container.get(DevModeWatchService).start();
 		}
+
+		// Register phase - combine default and user providers
+		this.#registerServiceProviders(DEFAULT_PROVIDERS);
+		this.#registerServiceProviders(this.#config.providers ?? []);
+		this.#bootServiceProviders();
 	}
 
 	get events(): Dispatcher {
@@ -146,5 +149,38 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 			this.container.scopedInstance(IntegrationContext, context);
 			return callback();
 		});
+	}
+
+	#serviceProvidersToBoot: ServiceProvider[] = [];
+	#hasBooted = true;
+
+	registerServiceProvider(provider: ServiceProvider | ServiceProviderReference): void {
+		if (typeof provider === "function") {
+			provider = new provider(this);
+		}
+		provider.register();
+		this.#serviceProvidersToBoot.push(provider);
+		if (this.#hasBooted) {
+			this.#bootServiceProviders();
+		}
+	}
+
+	#registerServiceProviders(providers: ServiceProviderReference[]): void {
+		for (const provider of providers) {
+			this.registerServiceProvider(provider);
+		}
+	}
+
+	#bootServiceProviders(): void {
+		try {
+			if (this.#serviceProvidersToBoot) {
+				for (const provider of this.#serviceProvidersToBoot) {
+					provider.boot();
+				}
+			}
+		} finally {
+			this.#hasBooted = true;
+			this.#serviceProvidersToBoot.length = 0;
+		}
 	}
 }
