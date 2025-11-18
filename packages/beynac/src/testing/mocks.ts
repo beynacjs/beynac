@@ -23,8 +23,8 @@ type Mockable = Function & { [ORIGINAL]: Function; [MOCK]: Function | null };
  *   return random(length);
  * });
  */
-export function mockable<F extends Function>(fn: F): F {
-	const impl = withFunctionName(fn.name, function (this: unknown, ...args: unknown[]): unknown {
+export function mockable<F extends Function>(fn: F, name: string = fn.name): F {
+	const impl = withFunctionName(name, function (this: unknown, ...args: unknown[]): unknown {
 		if (wrapper[MOCK] != null) {
 			return wrapper[MOCK].apply(this, args);
 		}

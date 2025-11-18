@@ -1,29 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { mock } from "../../testing";
 import { md5, sha3_256, sha3_512, sha256, sha512 } from "./digest";
-
-describe(sha256, () => {
-	test("hashes string input", () => {
-		const hash = sha256("test");
-		expect(hash).toBe("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
-	});
-
-	test("hashes Uint8Array input", () => {
-		const data = new TextEncoder().encode("test");
-		const hash = sha256(data);
-		expect(hash).toBe("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
-	});
-
-	test("produces consistent hashes for same input", () => {
-		const hash1 = sha256("test");
-		const hash2 = sha256("test");
-		expect(hash1).toBe(hash2);
-	});
-
-	test("handles empty string", () => {
-		const hash = sha256("");
-		expect(hash).toBe("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
-	});
-});
 
 describe(md5, () => {
 	test("hashes string input", () => {
@@ -49,6 +26,30 @@ describe(md5, () => {
 	});
 });
 
+describe(sha256, () => {
+	test("hashes string input", () => {
+		const hash = sha256("test");
+		expect(hash).toBe("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
+	});
+
+	test("hashes Uint8Array input", () => {
+		const data = new TextEncoder().encode("test");
+		const hash = sha256(data);
+		expect(hash).toBe("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
+	});
+
+	test("produces consistent hashes for same input", () => {
+		const hash1 = sha256("test");
+		const hash2 = sha256("test");
+		expect(hash1).toBe(hash2);
+	});
+
+	test("handles empty string", () => {
+		const hash = sha256("");
+		expect(hash).toBe("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+	});
+});
+
 describe(sha512, () => {
 	test("hashes with known test vector", () => {
 		const hash = sha512("test");
@@ -71,5 +72,23 @@ describe(sha3_512, () => {
 		expect(hash).toBe(
 			"9ece086e9bac491fac5c1d1046ca11d737b92a2b2ebd93f005d7b710110c0a678288166e7fbe796883a4f2e9b3ca9f484f521d0ce464345cc1aec96779149c14",
 		);
+	});
+});
+
+describe("mocking", () => {
+	test("digest functions can be mocked", () => {
+		mock(md5, () => "mocked-md5");
+		mock(sha256, () => "mocked-sha256");
+		mock(sha512, () => "mocked-sha512");
+		mock(sha3_256, () => "mocked-sha3_256");
+		mock(sha3_512, () => "mocked-sha3_512");
+		mock(sha3_512, () => "mocked-sha3_512");
+
+		expect(md5("foo")).toBe("mocked-md5");
+		expect(sha256("foo")).toBe("mocked-sha256");
+		expect(sha512("foo")).toBe("mocked-sha512");
+		expect(sha3_256("foo")).toBe("mocked-sha3_256");
+		expect(sha3_512("foo")).toBe("mocked-sha3_512");
+		expect(sha3_512("foo")).toBe("mocked-sha3_512");
 	});
 });
