@@ -2,4 +2,5 @@
 # Generated files
 .vitepress/cache
 .vitepress/dist
+.vitepress/.temp
 public/api

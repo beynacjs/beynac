@@ -79,8 +79,8 @@ describe(FilesystemEndpoint, () => {
 
 			await file.exists();
 
-			expect(fsOps.exists).toHaveBeenCalledTimes(1);
-			expect(fsOps.exists).toHaveBeenCalledWith("C:\\storage\\foo\\bar.txt");
+			expect(fsOps.access).toHaveBeenCalledTimes(1);
+			expect(fsOps.access).toHaveBeenCalledWith("C:\\storage\\foo\\bar.txt");
 		});
 
 		test("file.delete() converts POSIX storage path to Windows filesystem path", async () => {

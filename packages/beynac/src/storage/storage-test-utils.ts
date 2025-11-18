@@ -80,9 +80,7 @@ export class MockFilesystemOperations extends BaseClass implements FilesystemOps
 
 	async rename(_oldPath: string, _newPath: string): Promise<void> {}
 
-	async exists(_path: string): Promise<boolean> {
-		return true;
-	}
+	async access(_path: string, _mode?: number): Promise<void> {}
 
 	async rm(_path: string, _options?: unknown): Promise<void> {}
 

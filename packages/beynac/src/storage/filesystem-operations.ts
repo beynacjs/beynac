@@ -16,7 +16,7 @@ export type FilesystemOps = {
 	unlink(this: void, path: string): Promise<void>;
 	copyFile(this: void, source: string, destination: string): Promise<void>;
 	rename(this: void, oldPath: string, newPath: string): Promise<void>;
-	exists(this: void, path: string): Promise<boolean>;
+	access(this: void, path: string, mode?: number): Promise<void>;
 	rm(this: void, path: string, options?: fs.RmOptions): Promise<void>;
 	createReadStream(this: void, path: string): fs.ReadStream;
 	createWriteStream(this: void, path: string): fs.WriteStream;
@@ -29,7 +29,7 @@ const realFs: FilesystemOps = {
 	unlink: fsPromises.unlink,
 	copyFile: fsPromises.copyFile,
 	rename: fsPromises.rename,
-	exists: fsPromises.exists,
+	access: fsPromises.access,
 	rm: fsPromises.rm,
 	createReadStream: fs.createReadStream,
 	createWriteStream: fs.createWriteStream,
@@ -61,8 +61,8 @@ export const fsOps: FilesystemOps = {
 	get rename() {
 		return currentFs.rename;
 	},
-	get exists() {
-		return currentFs.exists;
+	get access() {
+		return currentFs.access;
 	},
 	get rm() {
 		return currentFs.rm;

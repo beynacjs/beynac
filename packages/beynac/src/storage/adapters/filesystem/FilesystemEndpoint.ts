@@ -77,7 +77,12 @@ export class FilesystemEndpoint extends BaseClass implements StorageEndpoint {
 
 	async existsSingle(path: string): Promise<boolean> {
 		const fsPath = this.#toFilesystemPath(path);
-		return fsOps.exists(fsPath);
+		try {
+			await fsOps.access(fsPath);
+			return true;
+		} catch {
+			return false;
+		}
 	}
 
 	async deleteSingle(path: string): Promise<void> {

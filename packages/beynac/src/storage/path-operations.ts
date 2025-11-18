@@ -20,6 +20,14 @@ export const win32: PathOps = {
 	extname: (...args) => nodePath.win32.extname(...args),
 };
 
+const native: PathOps = {
+	normalize: (...args) => nodePath.normalize(...args),
+	join: (...args) => nodePath.join(...args),
+	dirname: (...args) => nodePath.dirname(...args),
+	basename: (...args) => nodePath.basename(...args),
+	extname: (...args) => nodePath.extname(...args),
+};
+
 export const platform: PathOps = {
 	normalize: (...args) => getPlatformOps().normalize(...args),
 	join: (...args) => getPlatformOps().join(...args),
@@ -28,7 +36,7 @@ export const platform: PathOps = {
 	extname: (...args) => getPlatformOps().extname(...args),
 };
 
-let platformOps: PathOps | "require" = "require";
+let platformOps: PathOps | "require" = native;
 
 const getPlatformOps = (): PathOps => {
 	if (platformOps == "require") {
@@ -46,7 +54,7 @@ const getPlatformOps = (): PathOps => {
  *
  * @internal
  */
-export function mockPlatformPaths(ops: "posix" | "win32" | "require"): void {
+export function mockPlatformPaths(ops: "posix" | "win32" | "require" | "native"): void {
 	switch (ops) {
 		case "posix":
 			platformOps = posix;
@@ -56,6 +64,9 @@ export function mockPlatformPaths(ops: "posix" | "win32" | "require"): void {
 			break;
 		case "require":
 			platformOps = "require";
+			break;
+		case "native":
+			platformOps = native;
 			break;
 	}
 }
