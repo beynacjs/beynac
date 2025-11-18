@@ -13,9 +13,10 @@
     "./helpers/headers": "./dist/helpers/headers.js",
     "./helpers/str": "./dist/helpers/str.js",
     "./helpers/time": "./dist/helpers/time.js",
-    "./http": "./dist/http/index.js",
+    "./http": "./dist/http.js",
     "./integrations/next": "./dist/integrations/next.js",
-    "./view": "./dist/view/index.js",
+    "./storage": "./dist/storage.js",
+    "./view": "./dist/view.js",
     "./view/jsx-dev-runtime": "./dist/view/jsx-dev-runtime.js",
     "./view/jsx-runtime": "./dist/view/jsx-runtime.js",
     "./package.json": "./package.json"

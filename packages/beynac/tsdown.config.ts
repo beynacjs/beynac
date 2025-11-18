@@ -11,6 +11,7 @@ export default defineConfig({
     "http/index": "src/http/index.ts",
     "index": "src/index.ts",
     "integrations/next": "src/integrations/next.ts",
+    "storage": "src/storage/index.ts",
     "view/index": "src/view/index.ts",
     "view/jsx-dev-runtime": "src/view/jsx-dev-runtime.ts",
     "view/jsx-runtime": "src/view/jsx-runtime.ts",
