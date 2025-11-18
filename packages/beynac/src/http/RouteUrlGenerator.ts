@@ -1,11 +1,11 @@
+import { Container } from "../container/contracts/Container";
 import { inject } from "../container/inject";
-import type { Headers } from "../contracts";
-import type { QueryParams } from "../contracts/Application";
-import { Configuration } from "../contracts/Configuration";
-import { Container } from "../contracts/Container";
-import { IntegrationContext } from "../contracts/IntegrationContext";
-import { HeadersImpl } from "../core/HeadersImpl";
+import type { QueryParams } from "../core/contracts/Application";
+import { Configuration } from "../core/contracts/Configuration";
+import { IntegrationContext } from "../integrations/IntegrationContext";
 import { arrayWrapOptional, BaseClass } from "../utils";
+import type { Headers } from "./contracts/Headers";
+import { HeadersImpl } from "./HeadersImpl";
 import { type RouteDefinition, type Routes } from "./router-types";
 import { replaceRouteParams } from "./syntax";
 

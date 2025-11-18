@@ -1,12 +1,12 @@
 import { S3Client, S3Errors } from "@bradenmacdonald/s3-lite-client";
+import { md5 } from "../../../helpers/hash";
+import { BaseClass, withoutUndefinedValues } from "../../../utils";
 import type {
 	StorageEndpoint,
 	StorageEndpointFileInfoResult,
 	StorageEndpointFileReadResult,
 	StorageEndpointWriteOptions,
-} from "../../../contracts/Storage";
-import { md5 } from "../../../helpers/hash";
-import { BaseClass, withoutUndefinedValues } from "../../../utils";
+} from "../../contracts/Storage";
 import { NotFoundError, PermissionsError, StorageUnknownError } from "../../storage-errors";
 import type { S3StorageConfig } from "./S3StorageConfig";
 

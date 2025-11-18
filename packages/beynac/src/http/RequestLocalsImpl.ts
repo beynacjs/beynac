@@ -1,6 +1,6 @@
-import type { RequestLocals } from "../contracts";
-import type { Key } from "../keys";
+import type { Key } from "../core/Key";
 import { BaseClass } from "../utils";
+import type { RequestLocals } from "./contracts/RequestLocals";
 
 /**
  * Implementation of RequestLocals for request-scoped storage

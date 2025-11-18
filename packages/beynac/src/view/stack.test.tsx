@@ -1,6 +1,6 @@
 /** @jsxImportSource ./ */
 import { expect, test } from "bun:test";
-import { createKey } from "../keys";
+import { createKey } from "../core/Key";
 import { asyncGate, nextTick, render, renderStream } from "../test-utils";
 import type { Component } from "./Component";
 import { Once } from "./once";

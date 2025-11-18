@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { ContainerImpl } from "../container/ContainerImpl";
-import type { Dispatcher } from "../contracts/Dispatcher";
-import type { StorageEndpoint, StorageFile } from "../contracts/Storage";
+import type { Dispatcher } from "../core/contracts/Dispatcher";
 import { DispatcherImpl } from "../core/DispatcherImpl";
 import { mockCurrentTime, resetMockTime } from "../helpers/time";
 import { expectError, mockDispatcher, spyOnAll } from "../test-utils";
 import { MemoryEndpoint } from "./adapters/memory/MemoryEndpoint";
+import type { StorageEndpoint, StorageFile } from "./contracts/Storage";
 import { StorageDiskImpl } from "./StorageDiskImpl";
 import { StorageFileImpl } from "./StorageFileImpl";
 import { InvalidPathError, NotFoundError } from "./storage-errors";

@@ -1,5 +1,5 @@
-import type { TypeToken } from "../container/container-key";
-import { createTypeToken } from "../container/container-key";
+import type { TypeToken } from "../../container/container-key";
+import { createTypeToken } from "../../container/container-key";
 
 /**
  * Provides access to request headers

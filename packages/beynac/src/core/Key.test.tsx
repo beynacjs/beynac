@@ -1,20 +1,20 @@
 /** @jsxRuntime automatic **/
 /** @jsxImportSource . **/
 import { describe, expectTypeOf, it } from "bun:test";
-import { createKey, type Key } from "./keys";
+import { createKey, type Key } from "./Key";
 
-describe("keys", () => {
-	it("key() with no arguments infers Key<unknown>", () => {
+describe(createKey, () => {
+	it("createKey() with no arguments infers Key<unknown>", () => {
 		const k = createKey();
 		expectTypeOf(k).toEqualTypeOf<Key<unknown>>();
 	});
 
-	it("key() with just name infers Key<unknown>", () => {
+	it("createKey() with just name infers Key<unknown>", () => {
 		const k = createKey({ displayName: "myKey" });
 		expectTypeOf(k).toEqualTypeOf<Key<unknown>>();
 	});
 
-	it("key() with default value infers type from default", () => {
+	it("createKey() with default value infers type from default", () => {
 		const k1 = createKey({ default: 4 });
 		expectTypeOf(k1).toEqualTypeOf<Key<number>>();
 
@@ -28,7 +28,7 @@ describe("keys", () => {
 		expectTypeOf(k4).toEqualTypeOf<Key<null>>();
 	});
 
-	it("key<T>() with no default infers Key<T | undefined>", () => {
+	it("createKey<T>() with no default infers Key<T | undefined>", () => {
 		const k1 = createKey<string>();
 		expectTypeOf(k1).toEqualTypeOf<Key<string | undefined>>();
 
@@ -39,7 +39,7 @@ describe("keys", () => {
 		expectTypeOf(k3).toEqualTypeOf<Key<number | null | undefined>>();
 	});
 
-	it("key<T>() with matching default infers Key<T>", () => {
+	it("createKey<T>() with matching default infers Key<T>", () => {
 		const k1 = createKey<string>({ default: "hello" });
 		expectTypeOf(k1).toEqualTypeOf<Key<string>>();
 
@@ -47,7 +47,7 @@ describe("keys", () => {
 		expectTypeOf(k2).toEqualTypeOf<Key<number>>();
 	});
 
-	it("key<T>() with mismatched default causes type error", () => {
+	it("createKey<T>() with mismatched default causes type error", () => {
 		// @ts-expect-error - default value must match type parameter
 		const _k1 = createKey<string>({ default: 42 });
 

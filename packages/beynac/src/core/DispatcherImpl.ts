@@ -1,9 +1,9 @@
 import { inject } from "../container";
-import { Container } from "../contracts/Container";
-import type { Dispatcher, EventListener } from "../contracts/Dispatcher";
-import { isClassListener } from "../contracts/Dispatcher";
+import { Container } from "../container/contracts/Container";
 import type { AnyConstructor } from "../utils";
 import { BaseClass, getPrototypeChain, SetMultiMap } from "../utils";
+import type { Dispatcher, EventListener } from "./contracts/Dispatcher";
+import { isClassListener } from "./contracts/Dispatcher";
 
 type AnyEventListener = EventListener<object>;
 

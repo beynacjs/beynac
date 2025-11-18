@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { readdirSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { BeynacError } from "./error";
-import { BeynacEvent } from "./event";
+import { BeynacError } from "./core/BeynacError";
+import { BeynacEvent } from "./core/BeynacEvent";
 import { isMockable } from "./testing/mocks";
 import { BaseClass, getPrototypeChain } from "./utils";
 
@@ -149,3 +149,51 @@ describe.each(fileExports)(
 		}
 	},
 );
+
+describe("contract re-exports", () => {
+	test("src/contracts.ts matches generated content", async () => {
+		// Import the generation function
+		const { generateContractsFileContent } = await import("../scripts/regenerate-contracts");
+
+		// Generate what the content should be
+		const expectedContent = generateContractsFileContent(srcDir);
+
+		// Read the actual contracts.ts file
+		const contractsFilePath = join(srcDir, "contracts.ts");
+		const actualContent = await readFile(contractsFilePath, "utf-8");
+
+		// Compare them
+		if (actualContent !== expectedContent) {
+			throw new Error(
+				`src/contracts.ts content does not match generated content. Run 'bun run regenerate-contracts' to update it.\n\nExpected:\n${expectedContent}\n\nActual:\n${actualContent}`,
+			);
+		}
+	});
+
+	test("no imports from central contracts.ts file", async () => {
+		// Check all TypeScript files to ensure none import from the central contracts.ts
+		const restrictedImportPattern = /from\s+['"]\.\.?\/contracts['"]/;
+
+		const violations: string[] = [];
+
+		for (const { relativePath, content } of fileExports) {
+			// Skip the contracts.ts file itself and the regenerate-contracts script
+			if (
+				relativePath === "contracts.ts" ||
+				relativePath.includes("scripts/regenerate-contracts")
+			) {
+				continue;
+			}
+
+			if (restrictedImportPattern.test(content)) {
+				violations.push(relativePath);
+			}
+		}
+
+		if (violations.length > 0) {
+			throw new Error(
+				`The following files import from the central contracts.ts file. Import from module-specific contract files instead (e.g., '../core/contracts/Application'):\n\n${violations.join("\n")}`,
+			);
+		}
+	});
+});

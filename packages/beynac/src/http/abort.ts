@@ -1,8 +1,8 @@
 import { ContainerImpl } from "../container/ContainerImpl";
-import { RequestLocals } from "../contracts";
-import type { Key } from "../keys";
-import { createKey } from "../keys";
+import type { Key } from "../core/Key";
+import { createKey } from "../core/Key";
 import { BaseClass } from "../utils";
+import { RequestLocals } from "./contracts/RequestLocals";
 import { redirectStatus } from "./redirect";
 
 /**

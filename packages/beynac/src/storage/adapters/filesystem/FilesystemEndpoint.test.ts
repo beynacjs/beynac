@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { StorageEndpoint } from "../../../contracts";
 import { createTestDirectory } from "../../../testing";
 import { sleep } from "../../../utils";
+import type { StorageEndpoint } from "../../contracts/Storage";
 import { mockPlatformPaths } from "../../path-operations";
 import { StorageUnknownError } from "../../storage-errors";
 import type { SharedTestConfig } from "../../storage-test-utils";

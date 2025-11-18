@@ -6,7 +6,7 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"includes": ["packages/*/src/**", "test-apps/nextjs/{app,beynac}/**"]
+		"includes": ["packages/*/src/**", "packages/*/scripts/**", "test-apps/nextjs/{app,beynac}/**"]
 	},
 	"formatter": {
 		"enabled": true,

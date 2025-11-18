@@ -1,4 +1,4 @@
-import type { StorageAdapter } from "../../../contracts/Storage";
+import type { StorageAdapter } from "../../contracts/Storage";
 import { FilesystemEndpoint } from "./FilesystemEndpoint";
 import type { FilesystemStorageConfig } from "./FilesystemStorageConfig";
 

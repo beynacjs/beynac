@@ -1,5 +1,5 @@
 import type { KeyOrClass } from "../container/container-key";
-import type { Application } from "../contracts/Application";
+import type { Application } from "./contracts/Application";
 
 type UnknownRecord = Record<string | symbol, unknown>;
 

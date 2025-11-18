@@ -1,16 +1,16 @@
 import { inject } from "../container/inject";
-import { Configuration } from "../contracts/Configuration";
-import type { Dispatcher } from "../contracts/Dispatcher";
-import { Dispatcher as DispatcherKey } from "../contracts/Dispatcher";
+import { Configuration } from "../core/contracts/Configuration";
+import type { Dispatcher } from "../core/contracts/Dispatcher";
+import { Dispatcher as DispatcherKey } from "../core/contracts/Dispatcher";
+import { onResetAllMocks } from "../testing/mocks";
+import { MemoryEndpoint } from "./adapters/memory/MemoryEndpoint";
 import type {
 	Storage,
 	StorageAdapter,
 	StorageDirectoryOperations,
 	StorageDisk,
 	StorageEndpoint,
-} from "../contracts/Storage";
-import { onResetAllMocks } from "../testing/mocks";
-import { MemoryEndpoint } from "./adapters/memory/MemoryEndpoint";
+} from "./contracts/Storage";
 import { DelegatesToDirectory } from "./DelegatesToDirectory";
 import { StorageDiskImpl } from "./StorageDiskImpl";
 import { StorageEndpointBuilder } from "./StorageEndpointBuilder";

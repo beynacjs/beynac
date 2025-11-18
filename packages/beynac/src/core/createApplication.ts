@@ -1,7 +1,7 @@
-import type { Application } from "./contracts";
+import { ApplicationImpl } from "./ApplicationImpl";
+import type { Application } from "./contracts/Application";
 import type { Configuration } from "./contracts/Configuration";
-import { ApplicationImpl } from "./core/ApplicationImpl";
-import { setFacadeApplication } from "./core/facade";
+import { setFacadeApplication } from "./facade";
 
 export const createApplication = <RouteParams extends Record<string, string> = {}>(
 	config: Configuration<RouteParams> = {},

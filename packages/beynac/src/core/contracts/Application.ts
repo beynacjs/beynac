@@ -1,11 +1,10 @@
-import type { TypeToken } from "../container/container-key";
-import { createTypeToken } from "../container/container-key";
-import type { Container } from "../contracts";
-import type { ServiceProvider } from "../core/ServiceProvider";
-import type { ServiceProviderReference } from "./Configuration";
+import type { TypeToken } from "../../container/container-key";
+import { createTypeToken } from "../../container/container-key";
+import type { Container } from "../../container/contracts/Container";
+import type { IntegrationContext } from "../../integrations/IntegrationContext";
+import type { Storage } from "../../storage/contracts/Storage";
+import type { ServiceProvider } from "../ServiceProvider";
 import type { Dispatcher } from "./Dispatcher";
-import type { IntegrationContext } from "./IntegrationContext";
-import type { Storage } from "./Storage";
 
 export type QueryParams =
 	| Record<string, string | number | undefined | null | Array<string | number | undefined | null>>
@@ -83,3 +82,5 @@ export interface Application<RouteParams extends Record<string, string> = {}> {
 }
 
 export const Application: TypeToken<Application> = createTypeToken("Application");
+
+export type ServiceProviderReference = new (app: Application) => ServiceProvider;

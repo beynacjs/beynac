@@ -1,7 +1,7 @@
 import { inject } from "../container/inject";
-import type { Cookies } from "../contracts/Cookies";
-import { type CookieAttributes, IntegrationContext } from "../contracts/IntegrationContext";
+import { type CookieAttributes, IntegrationContext } from "../integrations/IntegrationContext";
 import { BaseClass } from "../utils";
+import type { Cookies } from "./contracts/Cookies";
 
 export class CookiesImpl extends BaseClass implements Cookies {
 	#keys: string[] | undefined;

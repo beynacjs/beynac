@@ -1,4 +1,4 @@
-import { BeynacError } from "../error";
+import { BeynacError } from "../core/BeynacError";
 import { BaseClass } from "../utils";
 import type { MiddlewareReference } from "./Middleware";
 

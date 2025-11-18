@@ -2,8 +2,9 @@
 import { beforeEach, describe, expect, mock, spyOn, test } from "bun:test";
 import { ContainerImpl } from "../container/ContainerImpl";
 import { createTypeToken } from "../container/container-key";
-import { Configuration, Container } from "../contracts";
-import { BaseListener, Dispatcher } from "../contracts/Dispatcher";
+import { Container } from "../container/contracts/Container";
+import { Configuration } from "../core/contracts/Configuration";
+import { BaseListener, Dispatcher } from "../core/contracts/Dispatcher";
 import { RequestHandledEvent } from "../events";
 import { createTestApplication, MockController, mockMiddleware } from "../test-utils";
 import { abort, any, get, group, post, Router, redirect, StatusPagesMiddleware } from ".";

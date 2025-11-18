@@ -1,5 +1,5 @@
-import type { Storage, StorageAdapter, StorageDisk, StorageEndpoint } from "../contracts/Storage";
 import { BaseClass } from "../utils";
+import type { Storage, StorageAdapter, StorageDisk, StorageEndpoint } from "./contracts/Storage";
 import { StorageDiskImpl } from "./StorageDiskImpl";
 
 /**

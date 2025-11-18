@@ -1,4 +1,4 @@
-import type { StorageAdapter } from "../../../contracts/Storage";
+import type { StorageAdapter } from "../../contracts/Storage";
 import { ReadOnlyEndpoint } from "./ReadOnlyEndpoint";
 import type { ReadOnlyStorageConfig } from "./ReadOnlyStorageConfig";
 

@@ -1,9 +1,5 @@
-import type { Dispatcher } from "../contracts/Dispatcher";
-import type {
-	StorageDirectoryOperations,
-	StorageDisk,
-	StorageEndpoint,
-} from "../contracts/Storage";
+import type { Dispatcher } from "../core/contracts/Dispatcher";
+import type { StorageDirectoryOperations, StorageDisk, StorageEndpoint } from "./contracts/Storage";
 import { DelegatesToDirectory } from "./DelegatesToDirectory";
 import { StorageDirectoryImpl } from "./StorageDirectoryImpl";
 

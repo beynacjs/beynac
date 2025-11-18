@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, expectTypeOf, test } from "bun:test";
 import { ContainerImpl } from "../container/ContainerImpl";
-import { Configuration } from "../contracts/Configuration";
+import { Configuration } from "../core/contracts/Configuration";
 import { MockController, mockController } from "../test-utils";
 import {
 	delete_,

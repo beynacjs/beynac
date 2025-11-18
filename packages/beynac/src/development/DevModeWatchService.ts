@@ -1,6 +1,6 @@
 import { type FSWatcher, watch } from "node:fs";
 import { inject } from "../container/inject";
-import { Configuration } from "../contracts/Configuration";
+import { Configuration } from "../core/contracts/Configuration";
 import { BaseClass, pluralCount } from "../utils";
 import { DevModeAutoRefreshMiddleware } from "./DevModeAutoRefreshMiddleware";
 

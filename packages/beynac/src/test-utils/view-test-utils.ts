@@ -1,6 +1,6 @@
 import { ContainerImpl } from "../container/ContainerImpl";
-import type { RenderResponseOptions } from "../contracts/ViewRenderer";
-import { ViewRenderer } from "../contracts/ViewRenderer";
+import type { RenderResponseOptions } from "../view/contracts/ViewRenderer";
+import { ViewRenderer } from "../view/contracts/ViewRenderer";
 import type { JSXNode, RenderOptions } from "../view/public-types";
 import { ViewRendererImpl } from "../view/ViewRendererImpl";
 

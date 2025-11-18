@@ -1,4 +1,6 @@
-import type { Dispatcher } from "../contracts/Dispatcher";
+import type { Dispatcher } from "../core/contracts/Dispatcher";
+import { durationStringToDate } from "../helpers/time";
+import { BaseClass } from "../utils";
 import type {
 	StorageData,
 	StorageDisk,
@@ -11,9 +13,7 @@ import type {
 	StorageFileSignedUrlOptions,
 	StorageFileUploadUrlOptions,
 	StorageFileUrlOptions,
-} from "../contracts/Storage";
-import { durationStringToDate } from "../helpers/time";
-import { BaseClass } from "../utils";
+} from "./contracts/Storage";
 import { mimeTypeFromFileName } from "./file-names";
 import { InvalidPathError } from "./storage-errors";
 import {

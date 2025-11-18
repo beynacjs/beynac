@@ -7,7 +7,7 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
-    "./contracts": "./dist/contracts/index.js",
+    "./contracts": "./dist/contracts.js",
     "./facades": "./dist/facades.js",
     "./helpers/hash": "./dist/helpers/hash.js",
     "./helpers/headers": "./dist/helpers/headers.js",
@@ -32,7 +32,8 @@
     "test:coverage": "bun test --coverage --coverage-reporter=lcov",
     "build": "tsdown",
     "build:watch": "tsdown --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "regenerate-contracts": "bun run scripts/regenerate-contracts.ts"
   },
   "files": [
     "README.md",

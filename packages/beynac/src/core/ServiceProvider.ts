@@ -1,6 +1,6 @@
-import type { Application } from "../contracts/Application";
-import type { Container } from "../contracts/Container";
+import type { Container } from "../container/contracts/Container";
 import { BaseClass } from "../utils";
+import type { Application } from "./contracts/Application";
 
 /**
  * Base class for service providers.

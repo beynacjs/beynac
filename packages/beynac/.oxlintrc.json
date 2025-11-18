@@ -18,13 +18,17 @@
         {
           "group": ["node:path"],
           "message": "Direct imports from 'node:path' should use the abstraction from src/storage/path.ts instead."
+        },
+        {
+          "group": ["**/contracts"],
+          "message": "Do not import from the central contracts.ts file. Import from module-specific contract files instead (e.g., '../core/core-contracts', '../http/http-contracts', etc.)."
         }
       ]
     }]
   },
   "overrides": [
     {
-      "files": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.test.mts", "src/test-utils/**", "src/invariants.test.ts", "src/contracts/contracts.test.ts"],
+      "files": ["scripts/**/*", "src/**/*.test.{ts,tsx,mts}", "src/**/*.test.mts", "src/test-utils/**"],
       "rules": {
         "typescript/no-explicit-any": "off",
         "typescript/unbound-method": "off",

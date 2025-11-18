@@ -1,4 +1,4 @@
-import { BaseClass } from "./utils";
+import { BaseClass } from "../utils";
 
 /**
  * Base class for all events in Beynac.

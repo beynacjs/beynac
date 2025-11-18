@@ -1,5 +1,5 @@
 import { inject } from "../container/inject";
-import { Configuration } from "../contracts/Configuration";
+import { Configuration } from "../core/contracts/Configuration";
 import type { ControllerContext } from "../http/Controller";
 import { BaseMiddleware, type MiddlewareNext } from "../http/Middleware";
 

@@ -1,5 +1,5 @@
 import { inject } from "../container/inject";
-import { Configuration } from "../contracts";
+import { Configuration } from "../core/contracts/Configuration";
 import { BaseClass } from "../utils";
 import { DEFAULT_MIDDLEWARE_PRIORITY } from "./default-middleware-priority";
 import type { MiddlewareReference } from "./Middleware";

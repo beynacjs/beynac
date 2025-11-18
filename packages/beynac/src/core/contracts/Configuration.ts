@@ -1,13 +1,6 @@
-import type { TypeToken } from "../container/container-key";
-import { createTypeToken } from "../container/container-key";
-import type { ServiceProvider } from "../core/ServiceProvider";
-import type { Routes } from "../http";
-import type { MiddlewareReference } from "../http/Middleware";
-import type { MiddlewarePriorityBuilder } from "../http/MiddlewarePriorityBuilder";
-import type { Application } from "./Application";
-import type { StorageAdapter, StorageEndpoint } from "./Storage";
-
-export type ServiceProviderReference = new (app: Application) => ServiceProvider;
+import type { TypeToken } from "../../container/container-key";
+import { createTypeToken } from "../../container/container-key";
+import type { ServiceProviderReference } from "./Application";
 
 export interface Configuration<RouteParams extends Record<string, string> = {}> {
 	/**
@@ -217,3 +210,9 @@ export function resolveEnvironmentChoice(
 			return !isDevelopment;
 	}
 }
+
+// Re-imported types to avoid circular dependencies
+import type { Routes } from "../../http";
+import type { MiddlewareReference } from "../../http/Middleware";
+import type { MiddlewarePriorityBuilder } from "../../http/MiddlewarePriorityBuilder";
+import type { StorageAdapter, StorageEndpoint } from "../../storage/contracts/Storage";

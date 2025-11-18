@@ -1,4 +1,4 @@
-import type { Key } from "../keys";
+import type { Key } from "../core/Key";
 import type * as CSS from "../vendor/csstype";
 import type { IntrinsicElements as IntrinsicElementsDefined } from "./intrinsic-element-types";
 

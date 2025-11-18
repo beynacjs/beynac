@@ -1,4 +1,4 @@
-import { BeynacError } from "../error";
+import { BeynacError } from "../core/BeynacError";
 import { getKeyName, type KeyOrClass } from "./container-key";
 import { NO_VALUE, type NoValue } from "./no-value";
 

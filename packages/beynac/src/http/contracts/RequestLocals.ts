@@ -1,6 +1,6 @@
-import type { TypeToken } from "../container/container-key";
-import { createTypeToken } from "../container/container-key";
-import type { Key } from "../keys";
+import type { TypeToken } from "../../container/container-key";
+import { createTypeToken } from "../../container/container-key";
+import type { Key } from "../../core/Key";
 
 /**
  * Type-safe storage for request-scoped data using typed keys

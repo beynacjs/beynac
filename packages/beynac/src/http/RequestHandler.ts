@@ -1,7 +1,9 @@
+import { Container } from "../container/contracts/Container";
 import { inject } from "../container/inject";
-import { Configuration, Container, Dispatcher, RequestLocals, ViewRenderer } from "../contracts";
-import { resolveEnvironmentChoice } from "../contracts/Configuration";
+import { Configuration, resolveEnvironmentChoice } from "../core/contracts/Configuration";
+import { Dispatcher } from "../core/contracts/Dispatcher";
 import { BaseClass } from "../utils";
+import { ViewRenderer } from "../view/contracts/ViewRenderer";
 import { isJsxElement, type JSX } from "../view/public-types";
 import { AbortException, abortExceptionKey } from "./abort";
 import type { BaseController } from "./Controller";
@@ -11,6 +13,7 @@ import {
 	type ControllerReturn,
 	isClassController,
 } from "./Controller";
+import { RequestLocals } from "./contracts/RequestLocals";
 import { RequestHandledEvent } from "./http-events";
 import { throwOnMissingPropertyAccess } from "./params-access-checker";
 import {

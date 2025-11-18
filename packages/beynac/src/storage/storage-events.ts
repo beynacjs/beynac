@@ -1,5 +1,5 @@
-import type { StorageData, StorageDisk, StorageFileInfo } from "../contracts/Storage";
-import { BeynacEvent } from "../event";
+import { BeynacEvent } from "../core/BeynacEvent";
+import type { StorageData, StorageDisk, StorageFileInfo } from "./contracts/Storage";
 import type { StorageError } from "./storage-errors";
 
 /**

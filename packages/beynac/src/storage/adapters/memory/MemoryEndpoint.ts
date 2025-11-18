@@ -1,11 +1,11 @@
+import * as hash from "../../../helpers/hash";
+import { BaseClass, describeType } from "../../../utils";
 import type {
 	StorageEndpoint,
 	StorageEndpointFileInfoResult,
 	StorageEndpointFileReadResult,
 	StorageEndpointWriteOptions,
-} from "../../../contracts/Storage";
-import * as hash from "../../../helpers/hash";
-import { BaseClass, describeType } from "../../../utils";
+} from "../../contracts/Storage";
 import { NotFoundError } from "../../storage-errors";
 import type { MemoryStorageConfig } from "./MemoryStorageConfig";
 

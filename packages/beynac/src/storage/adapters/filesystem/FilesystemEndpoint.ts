@@ -1,14 +1,14 @@
 import { createHash } from "node:crypto";
 import { pipeline, Readable } from "node:stream";
 import { promisify } from "node:util";
+import { BaseClass } from "../../../utils";
 import type {
 	StorageAdapter,
 	StorageEndpoint,
 	StorageEndpointFileInfoResult,
 	StorageEndpointFileReadResult,
 	StorageEndpointWriteOptions,
-} from "../../../contracts/Storage";
-import { BaseClass } from "../../../utils";
+} from "../../contracts/Storage";
 import { joinSlashPaths } from "../../file-names";
 import { type Dir, fsOps, type Stats } from "../../filesystem-operations";
 import { platform } from "../../path-operations";

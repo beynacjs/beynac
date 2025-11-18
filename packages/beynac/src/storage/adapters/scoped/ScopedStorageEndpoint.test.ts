@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, spyOn, test } from "bun:test";
-import type { StorageEndpoint } from "../../../contracts/Storage";
 import { mockDispatcher } from "../../../test-utils";
+import type { StorageEndpoint } from "../../contracts/Storage";
 import { StorageImpl } from "../../StorageImpl";
 import { mockEndpointBuilder, type SharedTestConfig } from "../../storage-test-utils";
 import { MemoryEndpoint } from "../memory/MemoryEndpoint";

@@ -1,7 +1,7 @@
-import type { TypeToken } from "../container/container-key";
-import { createTypeToken } from "../container/container-key";
-import type { AnyConstructor, NoArgConstructor } from "../utils";
-import { BaseClass } from "../utils";
+import type { TypeToken } from "../../container/container-key";
+import { createTypeToken } from "../../container/container-key";
+import type { AnyConstructor, NoArgConstructor } from "../../utils";
+import { BaseClass } from "../../utils";
 
 export type FunctionListener<T extends object> = (event: T) => void;
 

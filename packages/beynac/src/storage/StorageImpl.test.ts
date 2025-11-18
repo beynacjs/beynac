@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import type { Dispatcher } from "../contracts/Dispatcher";
-import type { StorageAdapter, StorageDisk } from "../contracts/Storage";
+import type { Dispatcher } from "../core/contracts/Dispatcher";
 import { expectError, mockDispatcher, spyOnAll } from "../test-utils";
 import { resetAllMocks } from "../testing/mocks";
 import { MemoryEndpoint } from "./adapters/memory/MemoryEndpoint";
 import { memoryStorage } from "./adapters/memory/memoryStorage";
+import type { StorageAdapter, StorageDisk } from "./contracts/Storage";
 import { StorageDiskImpl } from "./StorageDiskImpl";
 import type { StorageEndpointBuilder } from "./StorageEndpointBuilder";
 import { StorageImpl } from "./StorageImpl";

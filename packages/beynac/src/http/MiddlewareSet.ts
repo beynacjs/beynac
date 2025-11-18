@@ -1,4 +1,4 @@
-import type { Container } from "../contracts";
+import type { Container } from "../container/contracts/Container";
 import { arrayWrapOptional, BaseClass } from "../utils";
 import { isClassMiddleware, type MiddlewareNext, type MiddlewareReference } from "./Middleware";
 

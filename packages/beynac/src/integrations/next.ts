@@ -1,6 +1,7 @@
 import { cookies, headers } from "next/headers";
 import { after } from "next/server";
-import type { Application, IntegrationContext } from "../contracts";
+import type { Application } from "../core/contracts/Application";
+import type { IntegrationContext } from "./IntegrationContext";
 
 type AppRouterHandler = (req: Request) => Promise<Response>;
 

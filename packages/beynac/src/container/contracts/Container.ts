@@ -1,7 +1,7 @@
-import type { ContextualBindingBuilder } from "../container/ContextualBindingBuilder";
-import type { KeyOrClass, TypeToken } from "../container/container-key";
-import { createTypeToken } from "../container/container-key";
-import type { AnyFunction, MethodNames, NoArgConstructor } from "../utils";
+import type { AnyFunction, MethodNames, NoArgConstructor } from "../../utils";
+import type { ContextualBindingBuilder } from "../ContextualBindingBuilder";
+import type { KeyOrClass, TypeToken } from "../container-key";
+import { createTypeToken } from "../container-key";
 
 /**
  * A function that produces an instance of T
@@ -12,7 +12,7 @@ export type FactoryFunction<T> = (container: Container) => {
 
 export type Lifecycle = "transient" | "singleton" | "scoped";
 
-type BindArgsWithFactory<T> = {
+export type BindArgsWithFactory<T> = {
 	class?: new (...args: never[]) => T;
 	factory?: FactoryFunction<T>;
 	instance?: T;
@@ -20,7 +20,7 @@ type BindArgsWithFactory<T> = {
 	ifNotBound?: boolean;
 };
 
-type BindArgsWithoutFactory<T> = {
+export type BindArgsWithoutFactory<T> = {
 	class: NoArgConstructor<T>;
 	factory?: never;
 	instance?: never;

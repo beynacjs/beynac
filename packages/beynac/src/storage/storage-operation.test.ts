@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import type { StorageDisk } from "../contracts/Storage";
 import { mockDispatcher } from "../test-utils";
 import { mockCurrentTime, resetMockTime } from "../testing";
+import type { StorageDisk } from "./contracts/Storage";
 import { InvalidPathError, StorageUnknownError } from "./storage-errors";
 import {
 	FileDeletedEvent,

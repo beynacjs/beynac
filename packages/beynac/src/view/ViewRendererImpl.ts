@@ -1,11 +1,11 @@
+import { Container } from "../container/contracts/Container";
 import { inject } from "../container/inject";
-import { Container } from "../contracts/Container";
-import type { RenderResponseOptions, ViewRenderer } from "../contracts/ViewRenderer";
-import { BeynacError } from "../error";
+import { BeynacError } from "../core/BeynacError";
 import { BaseClass, withoutUndefinedValues } from "../utils";
 import { type Component, ComponentInstantiator, isClassComponent } from "./Component";
 import { type ClassAttributeValue, classAttribute } from "./class-attribute";
 import { ContextImpl } from "./context";
+import type { RenderResponseOptions, ViewRenderer } from "./contracts/ViewRenderer";
 import { MarkupStream } from "./markup-stream";
 import { isOnceNode, type OnceKey } from "./once";
 import type { Props } from "./public-types";

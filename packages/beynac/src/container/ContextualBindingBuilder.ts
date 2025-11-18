@@ -1,7 +1,7 @@
-import type { Container } from "../contracts/Container";
 import { BaseClass } from "../utils";
 import type { FactoryFunction } from "./ContainerImpl";
 import type { KeyOrClass } from "./container-key";
+import type { Container } from "./contracts/Container";
 
 type AddCallback = (need: KeyOrClass, factory: FactoryFunction<unknown>) => void;
 

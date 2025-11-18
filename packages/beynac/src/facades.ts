@@ -1,8 +1,8 @@
-import { Cookies as CookiesContract } from "./contracts/Cookies";
-import { Headers as HeadersContract } from "./contracts/Headers";
-import { KeepAlive as KeepAliveContract } from "./contracts/KeepAlive";
-import { ViewRenderer as ViewRendererContract } from "./contracts/ViewRenderer";
 import { createFacade } from "./core/facade";
+import { Cookies as CookiesContract } from "./http/contracts/Cookies";
+import { Headers as HeadersContract } from "./http/contracts/Headers";
+import { KeepAlive as KeepAliveContract } from "./http/contracts/KeepAlive";
+import { ViewRenderer as ViewRendererContract } from "./view/contracts/ViewRenderer";
 
 export const KeepAlive: KeepAliveContract = createFacade(KeepAliveContract);
 export const Headers: HeadersContract = createFacade(HeadersContract);

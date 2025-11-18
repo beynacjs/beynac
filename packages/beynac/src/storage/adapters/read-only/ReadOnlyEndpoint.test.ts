@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, spyOn, test } from "bun:test";
-import type { StorageEndpoint } from "../../../contracts/Storage";
+import type { StorageEndpoint } from "../../contracts/Storage";
 import { PermissionsError } from "../../storage-errors";
 import { type SharedTestConfig } from "../../storage-test-utils";
 import { MemoryEndpoint } from "../memory/MemoryEndpoint";

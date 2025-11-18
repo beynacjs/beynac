@@ -1,6 +1,6 @@
 /** @jsxImportSource ./ */
 import { describe, expect, expectTypeOf, test } from "bun:test";
-import { createKey } from "../keys";
+import { createKey } from "../core/Key";
 import { render } from "../test-utils";
 import { type Component } from "./Component";
 import { ContextImpl } from "./context";

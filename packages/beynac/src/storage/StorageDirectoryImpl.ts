@@ -1,4 +1,6 @@
-import type { Dispatcher } from "../contracts/Dispatcher";
+import type { Dispatcher } from "../core/contracts/Dispatcher";
+import { parseAttributeHeader } from "../helpers/headers";
+import { BaseClass } from "../utils";
 import type {
 	StorageData,
 	StorageDirectory,
@@ -6,9 +8,7 @@ import type {
 	StorageEndpoint,
 	StorageFile,
 	StorageFilePutPayload,
-} from "../contracts/Storage";
-import { parseAttributeHeader } from "../helpers/headers";
-import { BaseClass } from "../utils";
+} from "./contracts/Storage";
 import { createFileName, mimeTypeFromFileName, sanitiseName } from "./file-names";
 import { posix } from "./path-operations";
 import { StorageFileImpl } from "./StorageFileImpl";

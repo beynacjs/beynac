@@ -1,11 +1,7 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
-import type {
-	StorageDirectoryOperations,
-	StorageDisk,
-	StorageEndpoint,
-} from "../contracts/Storage";
 import { mockDispatcher, spyOnAll } from "../test-utils";
 import { MemoryEndpoint } from "./adapters/memory/MemoryEndpoint";
+import type { StorageDirectoryOperations, StorageDisk, StorageEndpoint } from "./contracts/Storage";
 import { StorageDirectoryImpl } from "./StorageDirectoryImpl";
 import { StorageDiskImpl } from "./StorageDiskImpl";
 

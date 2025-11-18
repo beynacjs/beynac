@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, test } from "bun:test";
-import { createKey } from "../keys";
+import { createKey } from "../core/Key";
 import { RequestLocalsImpl } from "./RequestLocalsImpl";
 
 describe(RequestLocalsImpl, () => {

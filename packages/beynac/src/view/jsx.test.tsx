@@ -2,7 +2,7 @@
 import { expect, test } from "bun:test";
 import { ContainerImpl } from "../container";
 import { createTypeToken } from "../container/container-key";
-import { createKey } from "../keys";
+import { createKey } from "../core/Key";
 import { render } from "../test-utils";
 import type { Component } from "./Component";
 import { BaseComponent } from "./Component";

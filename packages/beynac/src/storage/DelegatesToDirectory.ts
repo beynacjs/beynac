@@ -1,10 +1,10 @@
+import { BaseClass } from "../utils";
 import type {
 	StorageDirectory,
 	StorageDirectoryOperations,
 	StorageFile,
 	StorageFilePutPayload,
-} from "../contracts/Storage";
-import { BaseClass } from "../utils";
+} from "./contracts/Storage";
 
 /**
  * Implementation of the StorageDisk interface

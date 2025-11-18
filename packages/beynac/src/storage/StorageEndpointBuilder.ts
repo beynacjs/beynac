@@ -1,8 +1,8 @@
 import { inject } from "../container";
 import { createTypeToken, type TypeToken } from "../container/container-key";
-import { Container } from "../contracts";
-import type { StorageAdapter, StorageEndpoint } from "../contracts/Storage";
+import { Container } from "../container/contracts/Container";
 import { BaseClass } from "../utils";
+import type { StorageAdapter, StorageEndpoint } from "./contracts/Storage";
 import { isConfiguredStorageDriver } from "./storage-utils";
 
 export interface StorageEndpointBuilder {

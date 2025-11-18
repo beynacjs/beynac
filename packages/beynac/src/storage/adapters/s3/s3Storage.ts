@@ -1,4 +1,4 @@
-import type { StorageAdapter } from "../../../contracts/Storage";
+import type { StorageAdapter } from "../../contracts/Storage";
 import { S3Endpoint } from "./S3Endpoint";
 import type { S3StorageConfig } from "./S3StorageConfig";
 

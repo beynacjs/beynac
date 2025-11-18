@@ -1,7 +1,7 @@
 import { inject } from "../container/inject";
-import type { ViewRenderer } from "../contracts/ViewRenderer";
-import { ViewRenderer as ViewRendererToken } from "../contracts/ViewRenderer";
 import { BaseComponent } from "./Component";
+import type { ViewRenderer } from "./contracts/ViewRenderer";
+import { ViewRenderer as ViewRendererToken } from "./contracts/ViewRenderer";
 import type { Context, JSXElement, PropsWithChildren } from "./public-types";
 import { tagAsJsxElement } from "./public-types";
 import { RawContent } from "./raw";

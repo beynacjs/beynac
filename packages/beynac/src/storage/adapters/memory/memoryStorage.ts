@@ -1,4 +1,4 @@
-import type { StorageAdapter } from "../../../contracts/Storage";
+import type { StorageAdapter } from "../../contracts/Storage";
 import { MemoryEndpoint } from "./MemoryEndpoint";
 import type { MemoryStorageConfig } from "./MemoryStorageConfig";
 

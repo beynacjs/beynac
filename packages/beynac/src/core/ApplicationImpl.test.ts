@@ -1,6 +1,4 @@
 import { afterEach, describe, expect, expectTypeOf, test } from "bun:test";
-import { Dispatcher } from "../contracts/Dispatcher";
-import { createApplication } from "../entry";
 import { Cookies, Headers } from "../facades";
 import { get, group } from "../http";
 import type { ControllerContext } from "../http/Controller";
@@ -8,8 +6,12 @@ import { BaseController } from "../http/Controller";
 import type { Routes } from "../http/router-types";
 import { integrationContext, MockController, mockMiddleware } from "../test-utils";
 import { ApplicationImpl } from "./ApplicationImpl";
+import type { Application, ServiceProviderReference } from "./contracts/Application";
+import { Dispatcher } from "./contracts/Dispatcher";
+import { createApplication } from "./createApplication";
 import { DispatcherImpl } from "./DispatcherImpl";
 import { setFacadeApplication } from "./facade";
+import { ServiceProvider } from "./ServiceProvider";
 
 afterEach(() => {
 	setFacadeApplication(null);
@@ -18,6 +20,8 @@ afterEach(() => {
 describe("ApplicationImpl", () => {
 	test("events getter uses container resolution", () => {
 		const app = new ApplicationImpl();
+		app.bootstrap();
+
 		// Bind dispatcher as singleton
 		app.container.bind(Dispatcher, {
 			factory: (container) => new DispatcherImpl(container),
@@ -367,4 +371,201 @@ describe("ApplicationImpl", () => {
 			expect(await response.text()).toBe("https://proxy.example.com:8443/test");
 		});
 	});
+
+	describe("service providers", () => {
+		test("provider is only registered once even if called multiple times", () => {
+			const app = new ApplicationImpl();
+			const calls: string[] = [];
+			const Provider = mockServiceProvider("test", calls);
+
+			app.registerServiceProvider(Provider);
+			app.registerServiceProvider(Provider);
+			app.registerServiceProvider(Provider);
+			app.bootstrap();
+
+			expect(calls).toEqual(["register:test", "boot:test"]);
+		});
+
+		test("calls register() immediately when provider is registered", () => {
+			const app = new ApplicationImpl();
+			const calls: string[] = [];
+			const Provider = mockServiceProvider("test", calls);
+
+			app.registerServiceProvider(Provider);
+
+			expect(calls).toEqual(["register:test"]);
+		});
+
+		test("calls boot() during bootstrap after all providers registered", () => {
+			const app = new ApplicationImpl();
+			const calls: string[] = [];
+			const Provider = mockServiceProvider("test", calls);
+
+			app.registerServiceProvider(Provider);
+			expect(calls).toEqual(["register:test"]);
+
+			app.bootstrap();
+			expect(calls).toEqual(["register:test", "boot:test"]);
+		});
+
+		test("calls all register() methods before any boot() methods", () => {
+			const app = new ApplicationImpl();
+			const calls: string[] = [];
+
+			const ProviderA = mockServiceProvider("A", calls);
+			const ProviderB = mockServiceProvider("B", calls);
+			const ProviderC = mockServiceProvider("C", calls);
+
+			app.registerServiceProvider(ProviderA);
+			app.registerServiceProvider(ProviderB);
+			app.registerServiceProvider(ProviderC);
+			app.bootstrap();
+
+			expect(calls).toEqual([
+				"register:A",
+				"register:B",
+				"register:C",
+				"boot:A",
+				"boot:B",
+				"boot:C",
+			]);
+		});
+
+		test("boots providers in registration order", () => {
+			const app = new ApplicationImpl();
+			const calls: string[] = [];
+
+			const ProviderA = mockServiceProvider("A", calls);
+			const ProviderB = mockServiceProvider("B", calls);
+			const ProviderC = mockServiceProvider("C", calls);
+
+			app.registerServiceProvider(ProviderA);
+			app.registerServiceProvider(ProviderB);
+			app.registerServiceProvider(ProviderC);
+			app.bootstrap();
+
+			const bootOrder = calls.filter((c) => c.startsWith("boot:"));
+			expect(bootOrder).toEqual(["boot:A", "boot:B", "boot:C"]);
+		});
+
+		test("provider receives app reference in constructor", () => {
+			const app = new ApplicationImpl();
+			let receivedApp: Application | undefined;
+
+			class TestProvider extends ServiceProvider {
+				override register(): void {
+					receivedApp = this.app;
+				}
+			}
+
+			app.registerServiceProvider(TestProvider);
+
+			expect(receivedApp).toBe(app);
+		});
+
+		test("provider can access container via this.container", () => {
+			const app = new ApplicationImpl();
+			let accessedContainer = false;
+
+			class TestProvider extends ServiceProvider {
+				override register(): void {
+					expect(this.container).toBe(app.container);
+					accessedContainer = true;
+				}
+			}
+
+			app.registerServiceProvider(TestProvider);
+
+			expect(accessedContainer).toBe(true);
+		});
+
+		test("provider registered during boot is registered and booted in same cycle", () => {
+			const app = new ApplicationImpl();
+			const calls: string[] = [];
+
+			const SecondProvider = mockServiceProvider("second", calls);
+
+			class FirstProvider extends ServiceProvider {
+				override register(): void {
+					calls.push("register:first");
+				}
+
+				override boot(): void {
+					calls.push("boot:first");
+					app.registerServiceProvider(SecondProvider);
+				}
+			}
+
+			app.registerServiceProvider(FirstProvider);
+			app.bootstrap();
+
+			expect(calls).toEqual(["register:first", "boot:first", "register:second", "boot:second"]);
+		});
+
+		test("provider registered after bootstrap completes is registered and booted immediately", () => {
+			const app = new ApplicationImpl();
+			const calls: string[] = [];
+
+			app.bootstrap();
+
+			const Provider = mockServiceProvider("late", calls);
+			app.registerServiceProvider(Provider);
+
+			expect(calls).toEqual(["register:late", "boot:late"]);
+		});
+
+		test("error in provider.register() prevents bootstrap", () => {
+			const app = new ApplicationImpl();
+
+			class FailingProvider extends ServiceProvider {
+				override register(): void {
+					throw new Error("register failed");
+				}
+			}
+
+			expect(() => {
+				app.registerServiceProvider(FailingProvider);
+			}).toThrow("register failed");
+		});
+
+		test("error in provider.boot() prevents bootstrap", () => {
+			const app = new ApplicationImpl();
+
+			class FailingProvider extends ServiceProvider {
+				override boot(): void {
+					throw new Error("boot failed");
+				}
+			}
+
+			app.registerServiceProvider(FailingProvider);
+
+			expect(() => {
+				app.bootstrap();
+			}).toThrow("boot failed");
+		});
+
+		test("DEFAULT_PROVIDERS are registered during bootstrap", () => {
+			const app = new ApplicationImpl();
+			app.bootstrap();
+
+			// Verify core providers are available (test a few from different providers)
+			expect(() => app.container.get(Dispatcher)).not.toThrow();
+			expect(() => app.events).not.toThrow();
+			expect(() => app.storage).not.toThrow();
+		});
+	});
 });
+
+const mockServiceProvider = (name: string, calls: string[]): ServiceProviderReference =>
+	class extends ServiceProvider {
+		static override get name(): string {
+			return name;
+		}
+		override register(): void {
+			calls.push(`register:${name}`);
+		}
+
+		override boot(): void {
+			calls.push(`boot:${name}`);
+		}
+	};

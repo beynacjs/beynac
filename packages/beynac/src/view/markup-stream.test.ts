@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { createKey } from "../keys";
+import { createKey } from "../core/Key";
 import { render, renderResponse, renderStream } from "../test-utils";
 import { asyncGate } from "../test-utils/async-gate";
 import { MarkupStream } from "./markup-stream";

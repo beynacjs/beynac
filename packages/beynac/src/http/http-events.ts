@@ -1,4 +1,4 @@
-import { BeynacEvent } from "../event";
+import { BeynacEvent } from "../core/BeynacEvent";
 import type { ControllerContext } from "./Controller";
 
 export class RequestHandledEvent extends BeynacEvent {

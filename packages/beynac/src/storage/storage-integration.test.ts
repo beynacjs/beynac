@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { Storage } from "../contracts";
 import { createTestApplication } from "../test-utils";
 import { memoryStorage } from "./adapters/memory/memoryStorage";
+import { Storage } from "./contracts/Storage";
 import { FileWrittenEvent } from "./storage-events";
 
 describe("Storage integration with Application", () => {

@@ -1,5 +1,5 @@
 import { expect, mock } from "bun:test";
-import type { Dispatcher } from "../contracts/Dispatcher";
+import type { Dispatcher } from "../core/contracts/Dispatcher";
 
 export interface MockDispatcher extends Dispatcher {
 	expectEvents: (expected: object[]) => void;

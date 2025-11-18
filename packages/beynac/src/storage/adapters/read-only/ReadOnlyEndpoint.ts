@@ -5,8 +5,8 @@ import type {
 	StorageEndpointFileInfoResult,
 	StorageEndpointFileReadResult,
 	StorageEndpointWriteOptions,
-} from "../../../contracts/Storage";
-import { Storage as StorageKey } from "../../../contracts/Storage";
+} from "../../contracts/Storage";
+import { Storage as StorageKey } from "../../contracts/Storage";
 import { PermissionsError } from "../../storage-errors";
 import { WrappedEndpoint } from "../../storage-utils";
 import type { ReadOnlyStorageConfig } from "./ReadOnlyStorageConfig";

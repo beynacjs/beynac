@@ -1,4 +1,4 @@
-import { type Key } from "../keys";
+import { type Key } from "../core/Key";
 import { BaseClass } from "../utils";
 import type { Context } from "./public-types";
 
