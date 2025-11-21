@@ -1,6 +1,5 @@
 import { Container } from "../container/contracts/Container";
 import { inject } from "../container/inject";
-import { BeynacError } from "../core/BeynacError";
 import { BaseClass, withoutUndefinedValues } from "../utils";
 import { type Component, ComponentInstantiator, isClassComponent } from "./Component";
 import { type ClassAttributeValue, classAttribute } from "./class-attribute";
@@ -13,6 +12,7 @@ import { isSpecialNode } from "./special-node";
 import { isStackOutNode, isStackPushNode } from "./stack";
 import { StreamBuffer } from "./stream-buffer";
 import { styleObjectToString } from "./style-attribute";
+import { type ErrorKind, RenderingError } from "./view-errors";
 import type { Props } from "./view-types";
 import { type Context, type CSSProperties, type JSXNode, type RenderOptions } from "./view-types";
 
@@ -21,43 +21,20 @@ type ComponentStack = {
 	parent: ComponentStack | null;
 };
 
-type ErrorKind =
-	| "content-function-error"
-	| "content-function-promise-rejection"
-	| "content-promise-error"
-	| "attribute-type-error"
-	| "invalid-content";
-
-/**
- * Error thrown during rendering when an error occurs during content expansion or rendering.
- * Includes a component stack trace for debugging.
- */
-export class RenderingError extends BeynacError {
-	readonly errorKind: ErrorKind;
-	readonly componentStack: string[];
-
-	constructor(errorKind: ErrorKind, componentStack: ComponentStack | null, cause: unknown) {
-		const errorDetail = cause instanceof Error ? cause.message : String(cause);
-
-		// Convert linked list to array for public API
-		const stackArray: string[] = [];
-		let node = componentStack;
-		while (node) {
-			stackArray.unshift(node.name);
-			node = node.parent;
-		}
-
-		// Build stack trace string
-		const stackTrace = stackArray.map((name) => `<${name}>`).join(" -> ");
-		const message = stackTrace
-			? `Rendering error: ${errorDetail}; Component stack: ${stackTrace}`
-			: `Rendering error: ${errorDetail}`;
-
-		super(message);
-		this.errorKind = errorKind;
-		this.componentStack = stackArray;
-		this.cause = cause;
+function throwRenderingError(
+	errorKind: ErrorKind,
+	componentStack: ComponentStack | null,
+	cause: unknown,
+): never {
+	// Convert linked list to array for public API
+	const stackArray: string[] = [];
+	let node = componentStack;
+	while (node) {
+		stackArray.unshift(node.name);
+		node = node.parent;
 	}
+
+	throw new RenderingError(errorKind, stackArray, cause);
 }
 
 const HTML_ESCAPE: Record<string, string> = {
@@ -307,7 +284,7 @@ export class ViewRendererImpl extends BaseClass implements ViewRenderer {
 				case "object":
 					if (node === null) return;
 					if (isReactElement(node)) {
-						throw new RenderingError(
+						throwRenderingError(
 							"invalid-content",
 							stack,
 							new Error(
@@ -365,7 +342,7 @@ export class ViewRendererImpl extends BaseClass implements ViewRenderer {
 							if (error instanceof RenderingError) {
 								throw error;
 							}
-							throw new RenderingError("content-promise-error", stack, error);
+							throwRenderingError("content-promise-error", stack, error);
 						}
 						return;
 					}
@@ -396,7 +373,7 @@ export class ViewRendererImpl extends BaseClass implements ViewRenderer {
 									const resolved = (await result) as JSXNode;
 									await renderNode(resolved, contextToUse, stack);
 								} catch (error) {
-									throw new RenderingError("content-function-promise-rejection", stack, error);
+									throwRenderingError("content-function-promise-rejection", stack, error);
 								}
 							} else {
 								await renderNode(result, contextToUse, stack);
@@ -414,7 +391,7 @@ export class ViewRendererImpl extends BaseClass implements ViewRenderer {
 									contextToUse = childContext.wasModified() ? childContext : context;
 									await renderNode(resolved, contextToUse, stack);
 								} catch (error) {
-									throw new RenderingError("content-function-promise-rejection", stack, error);
+									throwRenderingError("content-function-promise-rejection", stack, error);
 								}
 							} else {
 								// For sync functions, check wasModified immediately
@@ -426,7 +403,7 @@ export class ViewRendererImpl extends BaseClass implements ViewRenderer {
 						if (error instanceof RenderingError) {
 							throw error;
 						}
-						throw new RenderingError("content-function-error", stack, error);
+						throwRenderingError("content-function-error", stack, error);
 					}
 					return;
 			}
@@ -446,7 +423,7 @@ export class ViewRendererImpl extends BaseClass implements ViewRenderer {
 			if (tag) {
 				const isVoidElement = mode === "html" && emptyTags.has(tag);
 				if (isVoidElement && hasChildren) {
-					throw new RenderingError(
+					throwRenderingError(
 						"attribute-type-error",
 						newStack,
 						new Error(`<${tag}> is a void element and must not have children`),
@@ -460,7 +437,7 @@ export class ViewRendererImpl extends BaseClass implements ViewRenderer {
 					if (error instanceof RenderingError) {
 						throw error;
 					}
-					throw new RenderingError("attribute-type-error", newStack, error);
+					throwRenderingError("attribute-type-error", newStack, error);
 				}
 
 				if (isVoidElement || selfClosing) {
@@ -518,7 +495,7 @@ export class ViewRendererImpl extends BaseClass implements ViewRenderer {
 									: typeof value === "symbol"
 										? "Symbol"
 										: "Function";
-							throw new RenderingError(
+							throwRenderingError(
 								"attribute-type-error",
 								stack,
 								new Error(`Attribute "${key}" has an invalid value type: ${valueType}`),

@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import { BeynacError } from "../core/BeynacError";
+import { BeynacError } from "../core/core-errors";
 import {
 	type AnyConstructor,
 	ArrayMultiMap,

@@ -1,5 +1,5 @@
-import { BeynacError } from "../../core/BeynacError";
-import { BeynacEvent } from "../../core/BeynacEvent";
+import { BeynacError } from "../../core/core-errors";
+import { BeynacEvent } from "../../core/core-events";
 import { isMockable } from "../../testing/mocks";
 import { BaseClass, getPrototypeChain } from "../../utils";
 import type { SourceFile } from "./SourceFile";
@@ -19,28 +19,64 @@ export function getFileErrors(file: SourceFile): string[] {
 			const endsWithError = exp.name.endsWith("Error");
 			const endsWithEvent = exp.name.endsWith("Event");
 
-			// Check Error naming conventions
-			if (endsWithError && !extendsBeynacError) {
-				errors.push(
-					`${exp.name} in ${file.path} ends with "Error" but does not extend BeynacError`,
-				);
-			}
-			if (extendsBeynacError && !endsWithError) {
-				errors.push(
-					`${exp.name} in ${file.path} extends BeynacError but does not end with "Error"`,
-				);
+			if (endsWithError) {
+				if (!extendsBeynacError) {
+					errors.push(
+						`${exp.name} in ${file.path} ends with "Error" but does not extend BeynacError`,
+					);
+				}
+
+				const moduleName = file.folder.basename;
+				const expectedPath = `${moduleName}/${moduleName}-errors.ts`;
+				if (!file.path.endsWith(expectedPath)) {
+					errors.push(
+						`${exp.name} in ${file.path} is an Error so should be defined in ${expectedPath}`,
+					);
+				}
+
+				const exportFiles = exp.getAliases().map((e) => e.file.path);
+				const expectedExportFiles = ["errors.ts", `${moduleName}/index.ts`];
+				if (!setsEqual(exportFiles, expectedExportFiles)) {
+					errors.push(
+						`${exp.name} in ${file.path} should be exported twice in ${expectedExportFiles.join(" and ")}, but the files exporting it are: ${exportFiles.join(", ")}`,
+					);
+				}
+			} else {
+				if (extendsBeynacError) {
+					errors.push(
+						`${exp.name} in ${file.path} extends BeynacError but does not end with "Error"`,
+					);
+				}
 			}
 
-			// Check Event naming conventions
-			if (endsWithEvent && !extendsBeynacEvent) {
-				errors.push(
-					`${exp.name} in ${file.path} ends with "Event" but does not extend BeynacEvent`,
-				);
-			}
-			if (extendsBeynacEvent && !endsWithEvent) {
-				errors.push(
-					`${exp.name} in ${file.path} extends BeynacEvent but does not end with "Event"`,
-				);
+			if (endsWithEvent) {
+				if (!extendsBeynacEvent) {
+					errors.push(
+						`${exp.name} in ${file.path} ends with "Event" but does not extend BeynacEvent`,
+					);
+				}
+
+				const moduleName = file.folder.basename;
+				const expectedPath = `${moduleName}/${moduleName}-events.ts`;
+				if (!file.path.endsWith(expectedPath)) {
+					errors.push(
+						`${exp.name} in ${file.path} is an Event so should be defined in ${expectedPath}`,
+					);
+				}
+
+				const exportFiles = exp.getAliases().map((e) => e.file.path);
+				const expectedExportFiles = ["events.ts", `${moduleName}/index.ts`];
+				if (!setsEqual(exportFiles, expectedExportFiles)) {
+					errors.push(
+						`${exp.name} in ${file.path} should be exported twice in ${expectedExportFiles.join(" and ")}, but the files exporting it are: ${exportFiles.join(", ")}`,
+					);
+				}
+			} else {
+				if (extendsBeynacEvent) {
+					errors.push(
+						`${exp.name} in ${file.path} extends BeynacEvent but does not end with "Event"`,
+					);
+				}
 			}
 
 			// Check base class requirement
@@ -174,3 +210,9 @@ export function getFileErrors(file: SourceFile): string[] {
 
 	return errors;
 }
+
+const setsEqual = <T>(a: T[], b: T[]): boolean => {
+	if (a.length !== b.length) return false;
+	const aSet = new Set(a);
+	return b.every((bItem) => aSet.has(bItem));
+};

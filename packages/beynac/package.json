@@ -37,7 +37,7 @@
     "build": "tsdown",
     "build:watch": "tsdown --watch",
     "clean": "rm -rf dist",
-    "regenerate-exports": "bun run scripts/regenerate-exports.ts"
+    "regenerate-exports": "bun run scripts/regenerate-exports.ts && bun run format"
   },
   "files": [
     "README.md",

@@ -24,6 +24,7 @@ export {
 	redirect,
 	resource,
 } from "./helpers";
+export { RequestHandledEvent } from "./http-events";
 export {
 	BaseMiddleware,
 	type MiddlewareNext,

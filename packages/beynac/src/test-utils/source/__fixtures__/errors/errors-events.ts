@@ -1,4 +1,4 @@
-import { BeynacEvent } from "../../../../core/BeynacEvent";
+import { BeynacEvent } from "../../../../core/core-events";
 import { BaseClass } from "../../../../utils";
 
 // Good: ends with Event and extends BeynacEvent

@@ -10,7 +10,6 @@ import { Storage } from "../storage/contracts/Storage";
 import { StorageServiceProvider } from "../storage/StorageServiceProvider";
 import { BaseClass } from "../utils";
 import { ViewServiceProvider } from "../view/ViewServiceProvider";
-import { BeynacError } from "./BeynacError";
 import { CoreServiceProvider } from "./CoreServiceProvider";
 import type {
 	ServiceProviderReference,
@@ -21,6 +20,7 @@ import { Application } from "./contracts/Application";
 import { Configuration } from "./contracts/Configuration";
 import type { Dispatcher } from "./contracts/Dispatcher";
 import { Dispatcher as DispatcherKey } from "./contracts/Dispatcher";
+import { BeynacError } from "./core-errors";
 import type { ServiceProvider } from "./ServiceProvider";
 
 const DEFAULT_PROVIDERS = [

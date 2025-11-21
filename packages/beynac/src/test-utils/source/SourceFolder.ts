@@ -22,6 +22,14 @@ export class SourceFolder extends BaseClass {
 		}
 	}
 
+	/**
+	 * The folder name without the path.
+	 */
+	get basename(): string {
+		const lastSlash = this.path.lastIndexOf("/");
+		return lastSlash === -1 ? this.path : this.path.substring(lastSlash + 1);
+	}
+
 	protected override getToStringExtra(): string | undefined {
 		return this.path;
 	}

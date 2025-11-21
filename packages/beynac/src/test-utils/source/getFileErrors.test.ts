@@ -13,22 +13,26 @@ describe(getFileErrors, () => {
 	});
 
 	test("detects Error naming violations", () => {
-		const file = project.getFile("errors/bad-errors.ts");
+		const file = project.getFile("errors/errors-errors.ts");
 		const errors = getFileErrors(file);
 
 		expect(errors).toEqual([
-			'FooError in errors/bad-errors.ts ends with "Error" but does not extend BeynacError',
-			'BadErrorExtension in errors/bad-errors.ts extends BeynacError but does not end with "Error"',
+			'FooError in errors/errors-errors.ts ends with "Error" but does not extend BeynacError',
+			"NotInRootErrorsError in errors/errors-errors.ts should be exported twice in errors.ts and errors/index.ts, but the files exporting it are: errors/index.ts",
+			"NotInLocalErrorsError in errors/errors-errors.ts should be exported twice in errors.ts and errors/index.ts, but the files exporting it are: errors.ts",
+			'BadErrorExtension in errors/errors-errors.ts extends BeynacError but does not end with "Error"',
 		]);
 	});
 
 	test("detects Event naming violations", () => {
-		const file = project.getFile("errors/bad-events.ts");
+		const file = project.getFile("errors/errors-events.ts");
 		const errors = getFileErrors(file);
 
 		expect(errors).toEqual([
-			'FooEvent in errors/bad-events.ts ends with "Event" but does not extend BeynacEvent',
-			'BadEventExtension in errors/bad-events.ts extends BeynacEvent but does not end with "Event"',
+			"GoodEvent in errors/errors-events.ts should be exported twice in events.ts and errors/index.ts, but the files exporting it are: errors/index.ts",
+			'FooEvent in errors/errors-events.ts ends with "Event" but does not extend BeynacEvent',
+			"FooEvent in errors/errors-events.ts should be exported twice in events.ts and errors/index.ts, but the files exporting it are: errors/index.ts",
+			'BadEventExtension in errors/errors-events.ts extends BeynacEvent but does not end with "Event"',
 		]);
 	});
 

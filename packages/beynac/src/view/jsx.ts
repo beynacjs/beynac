@@ -1,4 +1,4 @@
-import { BeynacError } from "../core/BeynacError";
+import { BeynacError } from "../core/core-errors";
 import { arrayWrap, describeType } from "../utils";
 import { type Component, ComponentInstantiator } from "./Component";
 import { MarkupStream, newMarkupStreamAsElement } from "./markup-stream";

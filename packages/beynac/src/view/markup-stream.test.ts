@@ -3,7 +3,7 @@ import { createKey } from "../core/Key";
 import { render, renderResponse, renderStream } from "../test-utils";
 import { asyncGate } from "../test-utils/async-gate";
 import { MarkupStream } from "./markup-stream";
-import { RenderingError } from "./ViewRendererImpl";
+import { RenderingError } from "./view-errors";
 import type { Context, JSXNode } from "./view-types";
 
 describe("basic functionality", () => {

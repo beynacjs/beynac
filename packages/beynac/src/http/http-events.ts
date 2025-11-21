@@ -1,6 +1,9 @@
-import { BeynacEvent } from "../core/BeynacEvent";
+import { BeynacEvent } from "../core/core-events";
 import type { ControllerContext } from "./Controller";
 
+/**
+ * Event dispatched after a request has been successfully handled.
+ */
 export class RequestHandledEvent extends BeynacEvent {
 	readonly #response: Response;
 	#headers?: Headers;
