@@ -12,7 +12,7 @@ export function getFileErrors(file: SourceFile): string[] {
 
 	for (const exp of file.exports) {
 		if (exp.kind === "class") {
-			const chain = getPrototypeChain(exp.runtimeValue as object);
+			const chain = getPrototypeChain(exp.runtimeValue);
 			const extendsBaseClass = chain.includes(BaseClass);
 			const extendsBeynacError = chain.includes(BeynacError);
 			const extendsBeynacEvent = chain.includes(BeynacEvent);

@@ -87,6 +87,8 @@ function withDeleteErrors<T>(path: string, fn: () => T): T | null {
 			typeof error.code === "string"
 		) {
 			if (error.code !== "ENOENT") {
+				// TODO: Connect to logging mechanism when available
+				// eslint-disable-next-line no-console
 				console.error(`Error deleting test directory at ${path}`, error);
 			}
 			return null;

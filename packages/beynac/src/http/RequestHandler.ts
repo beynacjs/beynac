@@ -109,6 +109,7 @@ export class RequestHandler extends BaseClass {
 			const abortException = locals.get(abortExceptionKey);
 			if (abortException) {
 				// TODO: Connect to logging mechanism when available
+				// eslint-disable-next-line no-console
 				console.error(
 					"abort() was caught and ignored by user code. The abort response will be returned anyway, but unnecessary work has probably been done. Ensure that your code rethrows AbortException if caught.",
 				);

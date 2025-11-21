@@ -11,7 +11,6 @@ export class DevModeAutoRefreshMiddleware extends BaseMiddleware {
 	}
 
 	triggerReload(): void {
-		console.log(this.reloadListeners);
 		for (const listener of this.reloadListeners) {
 			listener(true);
 		}

@@ -135,8 +135,10 @@ export type AnyConstructor<T = unknown> = abstract new (...args: never[]) => T;
 
 export type NoArgConstructor<T = unknown> = abstract new () => T;
 
-export function getPrototypeChain(instanceOrClass: object | AnyConstructor): AnyConstructor[] {
+export function getPrototypeChain(instanceOrClass: unknown): AnyConstructor[] {
 	const result: AnyConstructor[] = [];
+
+	if (instanceOrClass == null) return result;
 
 	// Start with the appropriate prototype based on input type
 	let prototype: unknown =

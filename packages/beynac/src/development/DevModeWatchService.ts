@@ -35,9 +35,13 @@ export class DevModeWatchService extends BaseClass {
 		const paths = this.config.devMode?.autoRefreshPaths ?? [process.cwd()];
 
 		if (paths.length === 0) {
+			// TODO: Connect to logging mechanism when available
+			// eslint-disable-next-line no-console
 			console.log(`${DevModeWatchService.name} list of paths to watch is empty`);
 		}
 
+		// TODO: Connect to logging mechanism when available
+		// eslint-disable-next-line no-console
 		console.log(`${DevModeWatchService.name} watching: ${paths.join(", ")}`);
 
 		for (const path of paths) {
@@ -89,6 +93,8 @@ export class DevModeWatchService extends BaseClass {
 			if (rest.length > 0) {
 				message += ` and ${pluralCount(rest.length, "other")}`;
 			}
+			// TODO: Connect to logging mechanism when available
+			// eslint-disable-next-line no-console
 			console.log(`${DevModeWatchService.name} ${message} changed, reloading`);
 			this.middleware.triggerReload();
 			this.debounceTimer = null;

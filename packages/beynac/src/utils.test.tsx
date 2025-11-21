@@ -17,4 +17,14 @@ describe(getPrototypeChain, () => {
 		const chain = getPrototypeChain(C);
 		expect(chain).toEqual([C, B, A, Object]);
 	});
+
+	test("work with null", () => {
+		const chain = getPrototypeChain(null);
+		expect(chain).toEqual([]);
+	});
+
+	test("work with primitive", () => {
+		const chain = getPrototypeChain(4);
+		expect(chain).toEqual([Number, Object]);
+	});
 });

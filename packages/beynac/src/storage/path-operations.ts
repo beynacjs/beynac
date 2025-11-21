@@ -42,7 +42,6 @@ const getPlatformOps = (): PathOps => {
 	if (platformOps == "require") {
 		const message =
 			"This test must select a platform for path operations because it tests functionality using filesystem paths";
-		console.error(`💥 ${message}`);
 		throw new Error(message);
 	}
 	return platformOps;

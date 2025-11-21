@@ -1,9 +1,6 @@
-import { shimFile } from "tsdown";
 import { BaseClass } from "../utils";
 import type { Storage, StorageAdapter, StorageDisk, StorageEndpoint } from "./contracts/Storage";
 import { StorageDiskImpl } from "./StorageDiskImpl";
-
-console.log(shimFile);
 
 export function isConfiguredStorageDriver(value: unknown): value is StorageAdapter {
 	return typeof (value as StorageAdapter | null)?.build === "function";
