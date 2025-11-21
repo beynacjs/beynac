@@ -1,5 +1,7 @@
 import { defineConfig } from "tsdown";
-import { ENTRY_POINTS } from "./src/test-utils/entryPoints";
+import { ENTRY_POINTS } from "./src/test-utils/entryPoints.ts";
+
+const internalDeps = ["devalue"]
 
 export default defineConfig({
   entry: ENTRY_POINTS,
@@ -10,5 +12,5 @@ export default defineConfig({
   },
   clean: true,
   exports: true,
-  noExternal: ["devalue"],
+  external: (dep) => !internalDeps.includes(dep),
 });
