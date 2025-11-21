@@ -1,8 +1,8 @@
-import type { Container } from "../contracts";
-import { arrayWrapOptional } from "../utils";
+import type { Container } from "../container/contracts/Container";
+import { arrayWrapOptional, BaseClass } from "../utils";
 import { isClassMiddleware, type MiddlewareNext, type MiddlewareReference } from "./Middleware";
 
-export class MiddlewareSet {
+export class MiddlewareSet extends BaseClass {
 	#middleware: Set<MiddlewareReference>;
 	#withoutMiddleware: Set<MiddlewareReference | "all">;
 	#prioritySorted = false;
@@ -11,6 +11,7 @@ export class MiddlewareSet {
 		middleware: MiddlewareReference[],
 		withoutMiddleware: (MiddlewareReference | "all")[],
 	) {
+		super();
 		this.#middleware = new Set(middleware);
 		this.#withoutMiddleware = new Set(withoutMiddleware);
 	}

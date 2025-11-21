@@ -1,3 +1,5 @@
+import { sleep } from "../utils";
+
 type CheckpointFunction = (name: string) => Promise<void>;
 
 type AsyncGate = {
@@ -152,7 +154,7 @@ export function asyncGate(checkpoints: string[]): AsyncGate {
 		// Wait for released tasks to update their state - setTimeout(0) ensures we
 		// run on the next tick, even if multiple microtasks have to run
 		if (tasksToRelease.length > 0) {
-			await new Promise<void>((resolve) => setTimeout(resolve, 0));
+			await sleep(0);
 		}
 	};
 
@@ -192,4 +194,4 @@ export function asyncGate(checkpoints: string[]): AsyncGate {
 	return gate;
 }
 
-export const nextTick = (): Promise<unknown> => new Promise((resolve) => setTimeout(resolve, 0));
+export const nextTick = (): Promise<void> => sleep(0);

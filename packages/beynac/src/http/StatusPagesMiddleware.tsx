@@ -2,16 +2,13 @@
 
 import { STATUS_CODES } from "node:http";
 import { inject } from "../container/inject";
-import { RequestLocals, ViewRenderer } from "../contracts";
+import { ViewRenderer } from "../view/contracts/ViewRenderer";
 import { AbortException, abort, abortExceptionKey } from "./abort";
 import type { ControllerContext } from "./Controller";
+import { RequestLocals } from "./contracts/RequestLocals";
 import { BaseMiddleware, type MiddlewareNext } from "./Middleware";
-import {
-	CurrentRouteDefinition,
-	RouteDefinition,
-	type StatusPageComponent,
-	StatusPages,
-} from "./router-types";
+import type { RouteDefinition, StatusPages } from "./router-types";
+import { CurrentRouteDefinition, type StatusPageComponent } from "./router-types";
 
 /**
  * Middleware that renders custom error pages for 4xx and 5xx responses.

@@ -1,6 +1,6 @@
 // No-unit CSS properties based on React's implementation
 
-import { CSSProperties } from "./public-types";
+import type { CSSProperties } from "./view-types";
 
 // Source: https://github.com/facebook/react/blob/main/packages/react-dom-bindings/src/shared/isUnitlessNumber.js
 const noUnitProperties = new Set([
@@ -77,11 +77,6 @@ const noUnitProperties = new Set([
 	"WebkitLineClamp",
 ]);
 
-/**
- * Converts a style object to a CSS string.
- * Handles camelCase to kebab-case conversion and adds px units where appropriate.
- * Based on React's style handling implementation.
- */
 export const styleObjectToString = (style: CSSProperties): string => {
 	let result = "";
 	for (const [k, v] of Object.entries(style)) {

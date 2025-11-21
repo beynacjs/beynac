@@ -1,12 +1,9 @@
+import { BaseClass } from "../utils";
+
 type RedirectedContent = string | RedirectedContent[];
 type RedirectSink = RedirectedContent[];
 
-/**
- * A buffer that accumulates string content and yields it to an async iterator.
- *
- * Supports redirecting output to separate buffers for Stack.Push/Stack.Out
- */
-export class StreamBuffer {
+export class StreamBuffer extends BaseClass {
 	private buffer: string = "";
 	private pending: string[] = [];
 	private resolver: ((value: { done: boolean; chunk?: string }) => void) | null = null;

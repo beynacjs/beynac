@@ -8,7 +8,21 @@ export const arrayWrapOptional = <T>(value: T | T[] | null | undefined): T[] =>
 export const describeType = (value: unknown): string =>
 	value == null ? String(value) : typeof value;
 
-abstract class MultiMap<K, V> {
+export abstract class BaseClass {
+	toString(): string {
+		const extra = this.getToStringExtra();
+		if (extra) {
+			return `[${this.constructor.name} ${extra}]`;
+		}
+		return `[${this.constructor.name}]`;
+	}
+
+	protected getToStringExtra(): string | undefined {
+		return undefined;
+	}
+}
+
+abstract class MultiMap<K, V> extends BaseClass {
 	abstract add(key: K, value: V): void;
 
 	addAll(keys: K | K[], values: V | V[]): void {
@@ -24,11 +38,6 @@ type WithoutUndefinedValues<T extends Record<string, unknown>> = {
 	[K in keyof T]: Exclude<T[K], undefined>;
 };
 
-/**
- * Given a record, return a version of the record with all key/value pairs whose
- * value is undefined removed. Useful for passing records to APIs when
- * exactOptionalPropertyTypes is enabled.
- */
 export const withoutUndefinedValues = <T extends Record<string, unknown>>(
 	input: T,
 ): WithoutUndefinedValues<T> =>
@@ -115,34 +124,22 @@ export class ArrayMultiMap<K, V> extends MultiMap<K, V> {
 	}
 }
 
-/**
- * Extract method names from T that have no required arguments (all parameters are optional)
- */
-export type MethodNamesWithNoRequiredArgs<T> = {
-	[K in keyof T]: T[K] extends () => unknown ? K : never;
+export type MethodNames<T> = {
+	[K in keyof T]: T[K] extends Function ? K : never;
 }[keyof T];
 
-/**
- * A reference to any constructor - can not be instantiated
- */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyFunction = (...args: any) => any;
+
 export type AnyConstructor<T = unknown> = abstract new (...args: never[]) => T;
 
-/**
- * A constructor function that accepts no arguments
- */
 export type NoArgConstructor<T = unknown> = abstract new () => T;
 
-/**
- * Generator function that walks up the prototype chain from an instance or constructor.
- * Yields each constructor in the chain from most specific to least specific,
- * including Object.
- *
- * @param instanceOrClass - Either an instance of a class or a constructor function
- * @yields Constructor functions in the prototype chain
- */
-export function* getPrototypeChain(
-	instanceOrClass: object | AnyConstructor,
-): Generator<AnyConstructor> {
+export function getPrototypeChain(instanceOrClass: unknown): AnyConstructor[] {
+	const result: AnyConstructor[] = [];
+
+	if (instanceOrClass == null) return result;
+
 	// Start with the appropriate prototype based on input type
 	let prototype: unknown =
 		typeof instanceOrClass === "function"
@@ -153,13 +150,15 @@ export function* getPrototypeChain(
 	while (prototype) {
 		const constructor = (prototype as { constructor: AnyConstructor }).constructor;
 		if (typeof constructor === "function") {
-			yield constructor;
+			result.push(constructor);
 		}
 		if (prototype === Object.prototype) {
 			break;
 		}
 		prototype = Object.getPrototypeOf(prototype);
 	}
+
+	return result;
 }
 
 export const plural = (word: string): string => word + "s";
@@ -167,27 +166,18 @@ export const plural = (word: string): string => word + "s";
 export const pluralCount = (count: number, word: string): string =>
 	count + " " + (count === 1 ? word : plural(word));
 
-/**
- * Check if a value is a class that extends a given base class.
- *
- * @param value - The value to check
- * @param baseClass - The base class to check against
- * @returns True if value is a class extending baseClass
- */
-export function extendsClass<T>(
-	value: unknown,
-	baseClass: AnyConstructor<T>,
-): value is NoArgConstructor<T> {
-	if (typeof value !== "function") {
-		return false;
-	}
+export const regExpEscape = (str: string): string =>
+	// @ts-expect-error - Bun runtime supports RegExp.escape but TypeScript types don't include it yet
+	RegExp.escape(str);
 
-	// Check if value is in the prototype chain
-	for (const proto of getPrototypeChain(value)) {
-		if (proto === baseClass) {
-			return true;
-		}
-	}
+export const mapObjectValues = <K extends string | number | symbol, V, R>(
+	obj: Record<K, V>,
+	callback: (value: V) => R,
+): Record<K, R> => {
+	return Object.fromEntries(
+		Object.entries(obj).map(([key, value]) => [key, callback(value as V)]),
+	) as Record<K, R>;
+};
 
-	return false;
-}
+export const sleep = (ms: number): Promise<void> =>
+	new Promise((resolve) => setTimeout(resolve, ms));

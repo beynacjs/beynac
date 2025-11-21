@@ -1,16 +1,20 @@
+import { Container } from "../container/contracts/Container";
 import { inject } from "../container/inject";
-import { Configuration, Container, Dispatcher, RequestLocals, ViewRenderer } from "../contracts";
-import { resolveEnvironmentChoice } from "../contracts/Configuration";
-import { isJsxElement, type JSX } from "../view/public-types";
+import { Configuration, resolveEnvironmentChoice } from "../core/contracts/Configuration";
+import { Dispatcher } from "../core/contracts/Dispatcher";
+import { BaseClass } from "../utils";
+import { ViewRenderer } from "../view/contracts/ViewRenderer";
+import { isJsxElement, type JSX } from "../view/view-types";
 import { AbortException, abortExceptionKey } from "./abort";
+import type { BaseController } from "./Controller";
 import {
-	BaseController,
 	type Controller,
 	type ControllerContext,
 	type ControllerReturn,
 	isClassController,
 } from "./Controller";
-import { RequestHandled } from "./http-events";
+import { RequestLocals } from "./contracts/RequestLocals";
+import { RequestHandledEvent } from "./http-events";
 import { throwOnMissingPropertyAccess } from "./params-access-checker";
 import {
 	CurrentControllerContext,
@@ -19,7 +23,7 @@ import {
 	type RouteWithParams,
 } from "./router-types";
 
-export class RequestHandler {
+export class RequestHandler extends BaseClass {
 	#throwOnInvalidParam: boolean;
 	#streamResponses: boolean;
 
@@ -29,6 +33,7 @@ export class RequestHandler {
 		private dispatcher: Dispatcher = inject(Dispatcher),
 		config: Configuration = inject(Configuration),
 	) {
+		super();
 		const isDevelopment = !!config.development;
 		this.#throwOnInvalidParam = resolveEnvironmentChoice(
 			config.throwOnInvalidParamAccess,
@@ -97,13 +102,14 @@ export class RequestHandler {
 			const response = await pipeline(ctx);
 
 			this.dispatcher.dispatchIfHasListeners(
-				RequestHandled,
-				() => new RequestHandled(ctx, response.status, response.headers, response),
+				RequestHandledEvent,
+				() => new RequestHandledEvent(ctx, response),
 			);
 
 			const abortException = locals.get(abortExceptionKey);
 			if (abortException) {
 				// TODO: Connect to logging mechanism when available
+				// eslint-disable-next-line no-console
 				console.error(
 					"abort() was caught and ignored by user code. The abort response will be returned anyway, but unnecessary work has probably been done. Ensure that your code rethrows AbortException if caught.",
 				);

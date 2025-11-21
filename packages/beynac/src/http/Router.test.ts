@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, expectTypeOf, test } from "bun:test";
 import { ContainerImpl } from "../container/ContainerImpl";
-import { Configuration } from "../contracts/Configuration";
-import { MockController, mockController } from "../test-utils";
+import { Configuration } from "../core/contracts/Configuration";
+import { MockController, mockController } from "../test-utils/http-test-utils";
 import {
 	delete_,
 	get,
@@ -12,12 +12,12 @@ import {
 	patch,
 	post,
 	put,
-	Router,
 	type Routes,
-	RouteUrlGenerator,
-} from "./index";
+} from "./http-entry-point";
 import { BaseMiddleware } from "./Middleware";
 import { MiddlewareSet } from "./MiddlewareSet";
+import { Router } from "./Router";
+import { RouteUrlGenerator } from "./RouteUrlGenerator";
 
 /**
  * Router Unit Tests
@@ -980,7 +980,7 @@ describe("multi-method routes", () => {
 
 	test("match() accepts non-standard HTTP verbs", () => {
 		// Note: Bun doesn't allow custom HTTP methods in Request constructor
-		// (normalizes to GET/standard methods) but we want to ensure our router
+		// (normalises to GET/standard methods) but we want to ensure our router
 		// supports them on other runtimes that do. Use a Proxy to override the
 		// method property for testing.
 		const baseRequest = new Request("http://example.com/form");

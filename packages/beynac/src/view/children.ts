@@ -1,5 +1,5 @@
 import { arrayWrap } from "../utils";
-import type { JSXNode } from "./public-types";
+import type { JSXNode } from "./view-types";
 
 /**
  * Converts JSX children to an array, filtering out null, undefined, and boolean values.

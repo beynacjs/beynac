@@ -9,12 +9,22 @@ describe(getPrototypeChain, () => {
 	class C extends B {}
 
 	test("work with instance", () => {
-		const chain = Array.from(getPrototypeChain(new C()));
+		const chain = getPrototypeChain(new C());
 		expect(chain).toEqual([C, B, A, Object]);
 	});
 
 	test("work with classes", () => {
-		const chain = Array.from(getPrototypeChain(C));
+		const chain = getPrototypeChain(C);
 		expect(chain).toEqual([C, B, A, Object]);
+	});
+
+	test("work with null", () => {
+		const chain = getPrototypeChain(null);
+		expect(chain).toEqual([]);
+	});
+
+	test("work with primitive", () => {
+		const chain = getPrototypeChain(4);
+		expect(chain).toEqual([Number, Object]);
 	});
 });

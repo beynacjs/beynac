@@ -1,6 +1,6 @@
 import { inject } from "../container/inject";
-import { Configuration } from "../contracts/Configuration";
-import { ControllerContext } from "../http/Controller";
+import { Configuration } from "../core/contracts/Configuration";
+import type { ControllerContext } from "../http/Controller";
 import { BaseMiddleware, type MiddlewareNext } from "../http/Middleware";
 
 export class DevModeAutoRefreshMiddleware extends BaseMiddleware {
@@ -11,7 +11,6 @@ export class DevModeAutoRefreshMiddleware extends BaseMiddleware {
 	}
 
 	triggerReload(): void {
-		console.log(this.reloadListeners);
 		for (const listener of this.reloadListeners) {
 			listener(true);
 		}

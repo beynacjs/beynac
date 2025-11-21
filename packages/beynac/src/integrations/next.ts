@@ -1,6 +1,7 @@
 import { cookies, headers } from "next/headers";
 import { after } from "next/server";
-import { Application, IntegrationContext } from "../contracts";
+import type { Application } from "../core/contracts/Application";
+import type { IntegrationContext } from "./IntegrationContext";
 
 type AppRouterHandler = (req: Request) => Promise<Response>;
 
@@ -49,6 +50,7 @@ export const makeRouteHandlers = (app: Application): Record<Verb, AppRouterHandl
 	};
 };
 
+/***/
 export const wrapRouteHandler = <A extends unknown[], R>(
 	handler: (...args: A) => R,
 ): ((...args: A) => R) => {

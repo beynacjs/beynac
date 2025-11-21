@@ -1,6 +1,3 @@
-/**
- * Options for configuring redirect behavior
- */
 export type RedirectOptions = {
 	/**
 	 * Make a permanent redirect that instructs search engines to update their index to the new URL

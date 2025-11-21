@@ -1,4 +1,4 @@
-import { delete as delete_, get, group, post } from "beynac/http";
+import { apiResource, delete as delete_, get, group, post } from "beynac/http";
 import {
 	DeleteCookieController,
 	EchoParamController,
@@ -6,6 +6,7 @@ import {
 	SetCookieController,
 } from "../controllers/CookieApiController";
 import { IndexController } from "../controllers/IndexController";
+import { StorageController } from "../controllers/StorageController";
 
 export default group({}, [
 	get("/beynac", IndexController),
@@ -17,6 +18,9 @@ export default group({}, [
 
 	// API routes for param testing
 	get("/beynac/api/param/{param}/test", EchoParamController),
+
+	// API routes for storage testing
+	apiResource("/beynac/api/storage", StorageController),
 
 	get("/people/{personId}", IndexController, { name: "people" }),
 ]);

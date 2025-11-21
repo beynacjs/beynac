@@ -1,31 +1,16 @@
 import { inject } from "../container/inject";
-import type { ViewRenderer } from "../contracts/ViewRenderer";
-import { ViewRenderer as ViewRendererToken } from "../contracts/ViewRenderer";
 import { BaseComponent } from "./Component";
-import type { Context, JSXElement, PropsWithChildren } from "./public-types";
-import { tagAsJsxElement } from "./public-types";
+import type { ViewRenderer } from "./contracts/ViewRenderer";
+import { ViewRenderer as ViewRendererToken } from "./contracts/ViewRenderer";
 import { RawContent } from "./raw";
+import type { Context, JSXElement, PropsWithChildren } from "./view-types";
+import { tagAsJsxElement } from "./view-types";
 
 type CacheProps = PropsWithChildren<{
 	map: Map<string, string>;
 	key: string;
 }>;
 
-/**
- * PoC to check that the rendering design can support child renders.
- *
- * Cache component that renders and caches content based on a key.
- * If the key exists in the map, returns the cached rendered content.
- * Otherwise, renders the children and caches the result.
- *
- * @example
- * ```tsx
- * const cache = new Map<string, string>();
- * <Cache map={cache} key="header">
- *   <ExpensiveComponent />
- * </Cache>
- * ```
- */
 export class Cache extends BaseComponent<CacheProps> {
 	static displayName = "Cache";
 

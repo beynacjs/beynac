@@ -1,11 +1,12 @@
 /** @jsxImportSource ./ */
 import { expect, test } from "bun:test";
-import { createKey } from "../keys";
-import { asyncGate, nextTick, render, renderStream } from "../test-utils";
+import { createKey } from "../core/Key";
+import { asyncGate, nextTick } from "../test-utils/async-gate";
+import { render, renderStream } from "../test-utils/view-test-utils";
 import type { Component } from "./Component";
 import { Once } from "./once";
-import type { Context } from "./public-types";
 import { createStack } from "./stack";
+import type { Context } from "./view-types";
 
 test("basic Stack push and out functionality", async () => {
 	const MyStack = createStack();

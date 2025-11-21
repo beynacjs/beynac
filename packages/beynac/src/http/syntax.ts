@@ -1,11 +1,5 @@
-/**
- * Regular expression to match {param} syntax
- */
 export const PARAM_PATTERN: RegExp = /\{(\w+)\}/g;
 
-/**
- * Regular expression to match {...param} syntax (wildcard)
- */
 export const WILDCARD_PARAM_PATTERN: RegExp = /\{\.\.\.(\w+)\}/g;
 
 export function validateDomainSyntax(domain: string | undefined): void {

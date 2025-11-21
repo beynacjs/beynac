@@ -1,8 +1,3 @@
-/**
- * Converts various input types into a space-separated class string.
- * Optimized for server-side rendering with focus on readability and performance.
- */
-
 export type ClassAttributeValue =
 	| string
 	| number
@@ -12,14 +7,6 @@ export type ClassAttributeValue =
 	| Record<string, unknown>
 	| ClassAttributeValue[];
 
-/**
- * Combines multiple class values into a single space-separated string.
- *
- * @example
- * classAttribute("foo", { bar: true, baz: false }, ["qux"]) // "foo bar qux"
- * classAttribute("foo", null, undefined, { active: true }) // "foo active"
- * classAttribute(["a", ["b", "c"]], { d: 1, e: 0 }) // "a b c d"
- */
 export function classAttribute(...inputs: ClassAttributeValue[]): string {
 	let result = "";
 	let needSpace = false;

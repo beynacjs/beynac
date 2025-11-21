@@ -1,5 +1,7 @@
-import { createKey, Key } from "../keys";
-import type { Context, JSX, Props } from "./public-types";
+import type { Key } from "../core/Key";
+import { createKey } from "../core/Key";
+import { BaseClass } from "../utils";
+import type { Context, JSX, Props } from "./view-types";
 
 /**
  * A Function Component
@@ -18,6 +20,7 @@ export type ClassComponent<P = Props> = (new (
 	isClassComponent: true;
 };
 
+/***/
 export type Component<P = Props> = FunctionComponent<P> | ClassComponent<P>;
 
 export type ComponentInstantiator = <P>(
@@ -53,12 +56,16 @@ interface IClassComponentInstance<P = Props> {
  *   }
  * }
  */
-export abstract class BaseComponent<P = Props> implements IClassComponentInstance<P> {
+export abstract class BaseComponent<P = Props>
+	extends BaseClass
+	implements IClassComponentInstance<P>
+{
 	static readonly isClassComponent = true;
 
 	props: P;
 
 	constructor(props: P) {
+		super();
 		this.props = props;
 	}
 

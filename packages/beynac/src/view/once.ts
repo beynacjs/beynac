@@ -1,7 +1,8 @@
 import type { FunctionComponent } from "./Component";
-import type { JSXNode, PropsWithChildren } from "./public-types";
-import { tagAsJsxElement } from "./public-types";
-import { SPECIAL_NODE, SpecialNode } from "./special-node";
+import type { SpecialNode } from "./special-node";
+import { SPECIAL_NODE } from "./special-node";
+import type { JSXNode, PropsWithChildren } from "./view-types";
+import { tagAsJsxElement } from "./view-types";
 
 export type OnceKey = string | number | symbol | bigint;
 

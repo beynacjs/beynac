@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, test } from "bun:test";
-import { get, group, type Routes } from "./index";
+import { get, group, type Routes } from "./http-entry-point";
 
 test("type inference for named routes", () => {
 	// Type inference only works when name is set at creation time
@@ -202,7 +202,7 @@ describe("validation", () => {
 	});
 });
 
-import { MockController } from "../test-utils";
+import { MockController } from "../test-utils/http-test-utils";
 import { resource } from "./helpers";
 import { ResourceController } from "./ResourceController";
 

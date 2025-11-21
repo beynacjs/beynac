@@ -1,9 +1,13 @@
 import { inject } from "../container/inject";
-import { Configuration } from "../contracts";
+import { Configuration } from "../core/contracts/Configuration";
+import { BaseClass } from "../utils";
 import { DEFAULT_MIDDLEWARE_PRIORITY } from "./default-middleware-priority";
 import type { MiddlewareReference } from "./Middleware";
 import { MiddlewarePriorityBuilder } from "./MiddlewarePriorityBuilder";
-import { addRoute, createMatcher, findRoute, type MatcherContext } from "./matcher";
+import { addRoute } from "./matcher/add-route";
+import { createMatcher } from "./matcher/create-matcher";
+import { findRoute } from "./matcher/find-route";
+import type { MatcherContext } from "./matcher/types";
 import type {
 	BuiltInRouteConstraint,
 	ParamConstraint,
@@ -12,13 +16,14 @@ import type {
 	RouteWithParams,
 } from "./router-types";
 
-export class Router {
+export class Router extends BaseClass {
 	#matcher: MatcherContext<{ route: RouteDefinition }>;
 	#middlewarePriority: MiddlewareReference[];
 	#sortedMiddlewareSets = new WeakSet();
 	#config: Configuration;
 
 	constructor(config: Configuration = inject(Configuration)) {
+		super();
 		this.#config = config;
 		this.#matcher = createMatcher<{ route: RouteDefinition }>();
 		this.#middlewarePriority = this.#resolveMiddlewarePriority();
@@ -118,9 +123,6 @@ const BUILT_IN_CONSTRAINTS: Record<BuiltInRouteConstraint, RegExp> = {
 	ulid: /^[0-9A-Z]{26}$/i,
 };
 
-/**
- * Check if a value matches a constraint
- */
 function matchConstraint(constraint: ParamConstraint, value: string): boolean {
 	let pattern: RegExp | ((value: string) => boolean);
 

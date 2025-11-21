@@ -1,10 +1,12 @@
-import { BeynacError } from "../error";
+import { BeynacError } from "../core/core-errors";
+import { BaseClass } from "../utils";
 import type { MiddlewareReference } from "./Middleware";
 
-export class MiddlewarePriorityBuilder {
+export class MiddlewarePriorityBuilder extends BaseClass {
 	#list: MiddlewareReference[];
 
 	constructor(defaultList: MiddlewareReference[]) {
+		super();
 		this.#list = [...defaultList]; // Clone to avoid mutation
 	}
 

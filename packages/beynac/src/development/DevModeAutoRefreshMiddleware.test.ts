@@ -1,5 +1,5 @@
 import { expect, mock, spyOn, test } from "bun:test";
-import { controllerContext } from "../test-utils";
+import { controllerContext } from "../test-utils/http-test-utils";
 import { DevModeAutoRefreshMiddleware } from "./DevModeAutoRefreshMiddleware";
 
 test("calls next middleware for non-SSE requests", async () => {

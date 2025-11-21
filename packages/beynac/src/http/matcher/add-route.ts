@@ -2,9 +2,6 @@ import { PARAM_PATTERN, WILDCARD_PARAM_PATTERN } from "../syntax";
 import { domainAndPathToSegments, NullProtoObj, staticCacheKey } from "./matcher-utils";
 import type { MatcherContext, ParamsIndexMap } from "./types";
 
-/**
- * Add a route to the matcher context.
- */
 export function addRoute<T>(
 	ctx: MatcherContext<T>,
 	method: string,

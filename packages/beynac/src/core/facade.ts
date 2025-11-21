@@ -1,29 +1,18 @@
 import type { KeyOrClass } from "../container/container-key";
-import type { Application } from "../contracts/Application";
+import type { Application } from "./contracts/Application";
 
 type UnknownRecord = Record<string | symbol, unknown>;
 
 let application: Application | null = null;
 
-/**
- * Set the global application instance for facades.
- */
 export const setFacadeApplication = (facadeApplication: Application | null): void => {
 	application = facadeApplication ?? null;
 };
 
-/**
- * Get the global application instance for facades.
- */
 export const getFacadeApplication = (): Application | null => {
 	return application;
 };
 
-/**
- * Create a facade object that proxies method and property access to a container object
- *
- * @param key The key to look up in the container
- */
 export function createFacade<T extends object>(key: KeyOrClass<T | undefined /*FIXME*/>): T {
 	let lifecycleChecked = false;
 

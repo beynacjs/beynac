@@ -1,35 +1,15 @@
-import { createTypeToken, TypeToken } from "../container/container-key";
+import type { TypeToken } from "../container/container-key";
+import { createTypeToken } from "../container/container-key";
 import type { Component } from "../view/Component";
-import { Controller, type ControllerContext } from "./Controller";
+import type { Controller } from "./Controller";
+import { type ControllerContext } from "./Controller";
 import type { MiddlewareReference } from "./Middleware";
 import type { MiddlewareSet } from "./MiddlewareSet";
 import type { ApiResourceAction, ResourceAction } from "./ResourceController";
 
 /**
  * A collection of route definitions, returned by route creation functions like
- * get(), post(), group(), etc. This type includes type information about route
- * names and their parameters, enabling type-safe URL generation.
- *
- * The generic parameter `Params` is a map of route names to their parameter
- * names, used for type-safe URL generation with RouteUrlGenerator.url().
- *
- * @example
- * // Single route with no parameters
- * const routes = get('/dashboard', DashboardController, { name: 'dashboard' })
- * // routes is Routes<{ dashboard: never }>
- *
- * @example
- * // Single route with parameters
- * const routes = get('/users/{id}', UserController, { name: 'users.show' })
- * // routes is Routes<{ 'users.show': 'id' }>
- *
- * @example
- * // Multiple routes combined
- * const routes = group([
- *   get('/users', UsersController, { name: 'users.index' }),
- *   get('/users/{id}', UserController, { name: 'users.show' }),
- * ])
- * // routes is Routes<{ 'users.index': never, 'users.show': 'id' }>
+ * get(), post(), group(), etc
  */
 export type Routes<Params extends Record<string, string> = {}> = readonly RouteDefinition[] & {
 	readonly __nameParamsMap?: Params; // Phantom type for type inference
@@ -43,9 +23,6 @@ export type StatusPageComponent = Component<{
 	error?: Error | undefined;
 }>;
 
-/**
- * Base options shared by both routes and groups
- */
 interface BaseRouteOptions<PathPart extends string> {
 	/**
 	 * A middleware class or array of classes
@@ -184,18 +161,10 @@ export interface RouteDefinition {
 export const CurrentRouteDefinition: TypeToken<RouteDefinition> =
 	createTypeToken("CurrentRouteDefinition");
 
-/**
- * The current controller context, available during request handling.
- * Contains the Request object, params, URL, and metadata.
- */
 export const CurrentControllerContext: TypeToken<ControllerContext> = createTypeToken(
 	"CurrentControllerContext",
 );
 
-/**
- * A matched route with its request, URL and parameters.
- * Returned by Router.lookup() and passed to RequestHandler.handle()
- */
 export interface RouteWithParams {
 	route: RouteDefinition;
 	request: Request;
@@ -203,10 +172,6 @@ export interface RouteWithParams {
 	params: Record<string, string>;
 }
 
-/**
- * Extract parameter names from a path pattern
- * "/users/{id}/{...rest}" -> "id" | "rest"
- */
 export type ExtractRouteParams<T extends string> =
 	T extends `${infer Before}{${infer Param}}${infer After}`
 		? Param extends `...${infer WildcardParam}`
@@ -221,15 +186,8 @@ export type ExtractDomainAndPathParams<
 	? ExtractRouteParams<Domain> | ExtractRouteParams<Path>
 	: ExtractRouteParams<Path>;
 
-/**
- * Flatten intersection types and force IDE to display expanded form
- * { a: never } & { b: "id" } -> { a: never; b: "id" }
- */
 export type Prettify<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 
-/**
- * Merge an array of Routes via intersection, then prettify
- */
 export type MergeChildren<Children extends readonly unknown[]> = Prettify<
 	Children extends readonly [infer First, ...infer Rest]
 		? ExtractMap<First> & MergeChildren<Rest>
@@ -242,10 +200,6 @@ export type AddPrefixParams<Map extends Record<string, string>, PrefixParams ext
 	[K in keyof Map]: Map[K] extends never ? PrefixParams : Map[K] | PrefixParams;
 };
 
-/**
- * Prepend a name prefix to all keys in a map
- * { "show": "id" } + "users." -> { "users.show": "id" }
- */
 export type PrependPrefixToKeys<
 	Map extends Record<string, string>,
 	Prefix extends string,

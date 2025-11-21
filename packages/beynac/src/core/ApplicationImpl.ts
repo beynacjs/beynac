@@ -1,31 +1,49 @@
 import { ContainerImpl } from "../container/ContainerImpl";
-import { Cookies, Headers, KeepAlive, RequestLocals, ViewRenderer } from "../contracts";
-import { Application, UrlOptionsNoParams, UrlOptionsWithParams } from "../contracts/Application";
-import { Configuration } from "../contracts/Configuration";
-import { Container } from "../contracts/Container";
-import { type Dispatcher, Dispatcher as DispatcherKey } from "../contracts/Dispatcher";
-import { IntegrationContext } from "../contracts/IntegrationContext";
-import { DevModeAutoRefreshMiddleware } from "../development/DevModeAutoRefreshMiddleware";
-import { DevModeWatchService } from "../development/DevModeWatchService";
-import { BeynacError } from "../error";
-import { group, Router, RouteUrlGenerator } from "../http";
+import type { Container } from "../container/contracts/Container";
+import { DevelopmentServiceProvider } from "../development/DevelopmentServiceProvider";
+import { HttpServiceProvider } from "../http/HttpServiceProvider";
 import { RequestHandler } from "../http/RequestHandler";
-import { ViewRendererImpl } from "../view/ViewRendererImpl";
-import { CookiesImpl } from "./CookiesImpl";
-import { DispatcherImpl } from "./DispatcherImpl";
-import { HeadersImpl } from "./HeadersImpl";
-import { KeepAliveImpl } from "./KeepAliveImpl";
-import { RequestLocalsImpl } from "./RequestLocalsImpl";
+import { Router } from "../http/Router";
+import { RouteUrlGenerator } from "../http/RouteUrlGenerator";
+import { IntegrationContext } from "../integrations/IntegrationContext";
+import { Storage } from "../storage/contracts/Storage";
+import { StorageServiceProvider } from "../storage/StorageServiceProvider";
+import { BaseClass } from "../utils";
+import { ViewServiceProvider } from "../view/ViewServiceProvider";
+import { CoreServiceProvider } from "./CoreServiceProvider";
+import type {
+	ServiceProviderReference,
+	UrlOptionsNoParams,
+	UrlOptionsWithParams,
+} from "./contracts/Application";
+import { Application } from "./contracts/Application";
+import { Configuration } from "./contracts/Configuration";
+import type { Dispatcher } from "./contracts/Dispatcher";
+import { Dispatcher as DispatcherKey } from "./contracts/Dispatcher";
+import { BeynacError } from "./core-errors";
+import type { ServiceProvider } from "./ServiceProvider";
+
+const DEFAULT_PROVIDERS = [
+	CoreServiceProvider,
+	HttpServiceProvider,
+	ViewServiceProvider,
+	StorageServiceProvider,
+	DevelopmentServiceProvider,
+];
 
 export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
+	extends BaseClass
 	implements Application<RouteParams>
 {
 	readonly container: Container;
-	#bootstrapped = false;
+
 	#config: Configuration<RouteParams>;
-	#urlGenerator?: RouteUrlGenerator;
+	#serviceProvidersToBoot: ServiceProvider[] = [];
+	#registeredProviders = new Set<ServiceProviderReference>();
+	#hasBooted = false;
 
 	constructor(config: Configuration<RouteParams> = {}) {
+		super();
 		this.container = new ContainerImpl();
 		this.#config = config;
 		if (config.appUrl?.overrideHost?.includes("/")) {
@@ -41,50 +59,22 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 	}
 
 	bootstrap(): void {
-		if (this.#bootstrapped) return;
-		this.#bootstrapped = true;
-
+		if (this.#hasBooted) return;
 		this.container.singletonInstance(Configuration, this.#config);
 		this.container.singletonInstance(Application, this);
-		this.container.scoped(Headers, HeadersImpl);
-		this.container.scoped(Cookies, CookiesImpl);
-		this.container.scoped(RequestLocals, RequestLocalsImpl);
-		this.container.scoped(KeepAlive, KeepAliveImpl);
-		this.container.singleton(ViewRenderer, ViewRendererImpl);
-		this.container.singleton(DispatcherKey, DispatcherImpl);
-		this.container.singleton(DevModeAutoRefreshMiddleware);
-		this.container.singleton(DevModeWatchService);
-		this.container.singleton(Router);
-		this.container.singleton(RequestHandler);
-		this.container.singleton(RouteUrlGenerator);
-
-		this.#urlGenerator = this.container.get(RouteUrlGenerator);
-
-		// Register routes with dev mode middleware if needed
-		if (this.#config.routes) {
-			const router = this.container.get(Router);
-
-			// Wrap routes with dev mode middleware if enabled
-			if (this.#config.development && !this.#config.devMode?.suppressAutoRefresh) {
-				const wrappedRoutes = group({ middleware: DevModeAutoRefreshMiddleware }, [
-					this.#config.routes,
-				]);
-				router.register(wrappedRoutes);
-				this.#urlGenerator.register(wrappedRoutes);
-			} else {
-				router.register(this.#config.routes);
-				this.#urlGenerator.register(this.#config.routes);
-			}
-		}
-
-		// Start dev mode watch service
-		if (this.#config.development && !this.#config.devMode?.suppressAutoRefresh) {
-			this.container.get(DevModeWatchService).start();
-		}
+		this.#registerServiceProviders(DEFAULT_PROVIDERS);
+		this.#registerServiceProviders(this.#config.providers ?? []);
+		this.#bootServiceProviders();
 	}
 
 	get events(): Dispatcher {
+		this.#requireBooted("events");
 		return this.container.get(DispatcherKey);
+	}
+
+	get storage(): Storage {
+		this.#requireBooted("storage");
+		return this.container.get(Storage);
 	}
 
 	url<N extends keyof RouteParams & string>(
@@ -93,13 +83,12 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 			? [] | [options?: UrlOptionsNoParams]
 			: [options: UrlOptionsWithParams<RouteParams[N]>]
 	): string {
-		if (!this.#urlGenerator) {
-			throw new Error("Can't call url() before the application is bootstrapped.");
-		}
-		return this.#urlGenerator.url(name, args[0]);
+		this.#requireBooted(this.url.name);
+		return this.container.get(RouteUrlGenerator).url(name, args[0]);
 	}
 
 	async handleRequest(request: Request, context: IntegrationContext): Promise<Response> {
+		this.#requireBooted(this.handleRequest.name);
 		// Enrich context with requestUrl if not already provided
 		const enrichedContext: IntegrationContext = {
 			...context,
@@ -123,6 +112,7 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 	}
 
 	withIntegration<R>(context: IntegrationContext, callback: () => R): R {
+		this.#requireBooted(this.withIntegration.name);
 		if (this.container.hasScope) {
 			throw new BeynacError("Can't start a new request scope, we're already handling a request.");
 		}
@@ -130,5 +120,43 @@ export class ApplicationImpl<RouteParams extends Record<string, string> = {}>
 			this.container.scopedInstance(IntegrationContext, context);
 			return callback();
 		});
+	}
+
+	registerServiceProvider(providerClass: ServiceProviderReference): void {
+		if (this.#registeredProviders.has(providerClass)) {
+			return;
+		}
+		this.#registeredProviders.add(providerClass);
+
+		const provider = new providerClass(this);
+		provider.register();
+		this.#serviceProvidersToBoot.push(provider);
+		if (this.#hasBooted) {
+			this.#bootServiceProviders();
+		}
+	}
+
+	#registerServiceProviders(providers: ServiceProviderReference[]): void {
+		for (const provider of providers) {
+			this.registerServiceProvider(provider);
+		}
+	}
+
+	#bootServiceProviders(): void {
+		try {
+			// Iterate by index to allow providers to register new providers during boot
+			for (let i = 0; i < this.#serviceProvidersToBoot.length; i++) {
+				this.#serviceProvidersToBoot[i].boot();
+			}
+		} finally {
+			this.#hasBooted = true;
+			this.#serviceProvidersToBoot.length = 0;
+		}
+	}
+
+	#requireBooted(method: string): void {
+		if (!this.#hasBooted) {
+			throw new BeynacError(`Application must be bootstrapped before using app.${method}`);
+		}
 	}
 }

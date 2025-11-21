@@ -5,22 +5,8 @@ When I ask questions, answer briefly to minimise time taken to read response. I'
 ## General instructions for tasks
 
 - After you have finished a task, run the formatter then check for issues with `bun check`. Only fix issues that are related to the code you're working on. If there are unrelated lint or test issues elsewhere in the codebase report them but no not fix them.
-- Once the tests and lint check have passed, review your code for issues and potential improvements but DO NOT make them yet. Report these to me and let me decide if I want to make the changes.
-
-## Coding guidelines
-
-- The linter is there to prevent you from using bad patterns. Try not to add lint disable comments.
-- In particular, try to avoid use of `any`. Use `unknown` where possible. When an assignment breaks type checking, think carefully about how to write the code in a type safe way. If this really isn't possible, avoid `foo = bar as any`, use `foo = bar as TheCorrectType`
-- When writing tests, pass the function or class under test to the first argument describe, e.g. `describe(myFunc, ...)` not `describe("myFunc", ...)`
-- in bun, expect never returns a promise, do not `await expect(...)` just use `expect(...)`
-- Use #truePrivate methods over typescript style `private method()`
-- Our codebase is compiled with --isolatedDeclarations, so you can't pass undefined to an optional parameter. If this causes compile errors, the fix is to add undefined to the type, e.g. {optional?: string | undefined}
-
-## Testing guidelines
-
-- To run tests, always use `bun run test` not `bun test`.
-- To filter the tests run, use file name/directory pattern after double hyphen `bun run test -- router.test.ts` and/or test name pattern `bun run test -- -t "foo"`
-- When asserting types, use `expectTypeOf(value).toEqualTypeOf<Expected>()` instead of the deprecated `expectTypeOf(value).toMatchTypeOf<Expected>()`
+- Once the tests and lint check have passed, review your code against CLAUDE_CODING_GUIDELINES.md to ensure all guidelines are followed.
+- After reviewing against guidelines, check for any other issues and potential improvements but DO NOT make them yet. Report these to me and let me decide if I want to make the changes.
 
 ## Soft port process
 

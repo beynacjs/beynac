@@ -1,1 +1,0 @@
-export { createApplication } from "./entry";

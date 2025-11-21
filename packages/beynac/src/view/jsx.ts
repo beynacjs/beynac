@@ -1,9 +1,9 @@
-import { BeynacError } from "../error";
+import { BeynacError } from "../core/core-errors";
 import { arrayWrap, describeType } from "../utils";
 import { type Component, ComponentInstantiator } from "./Component";
 import { MarkupStream, newMarkupStreamAsElement } from "./markup-stream";
-import type { Context, JSX, JSXNode } from "./public-types";
-import { tagAsJsxElement } from "./public-types";
+import type { Context, JSX, JSXNode } from "./view-types";
+import { tagAsJsxElement } from "./view-types";
 
 type JSXFactory = (
 	tag: string | Component,
@@ -13,6 +13,7 @@ type JSXFactory = (
 
 const notProvided = Symbol();
 
+/***/
 export const jsx: JSXFactory = (
 	tag: string | Component,
 	props: Record<string, unknown> | null,
@@ -51,9 +52,14 @@ export const jsx: JSXFactory = (
 		throw new BeynacError(`Expected tag to be a string or component, got ${describeType(tag)}`);
 	}
 };
+
+/***/
 export const jsxs: JSXFactory = jsx;
+
+/***/
 export const jsxDEV: JSXFactory = jsx;
 
+/***/
 export const Fragment = (props: Record<string, unknown> | null): JSX.Element => {
 	const children = props?.children ?? null;
 	return newMarkupStreamAsElement(null, null, arrayWrap(children) as JSXNode[]);

@@ -1,17 +1,15 @@
-import { Mock, mock } from "bun:test";
-import type { IntegrationContext } from "../contracts";
-import { Application, Container } from "../contracts";
-import type { Configuration } from "../contracts/Configuration";
-import { createApplication } from "../entry";
-import { ResourceController } from "../http";
-import {
-	BaseController,
-	ControllerContext,
-	type ControllerReturn,
-	FunctionController,
-} from "../http/Controller";
+import type { Mock } from "bun:test";
+import { mock } from "bun:test";
+import type { Container } from "../container/contracts/Container";
+import type { Application } from "../core/contracts/Application";
+import type { Configuration } from "../core/contracts/Configuration";
+import { createApplication } from "../core/createApplication";
+import type { BaseController, ControllerContext, FunctionController } from "../http/Controller";
+import { type ControllerReturn } from "../http/Controller";
 import { type ClassMiddleware } from "../http/Middleware";
+import { ResourceController } from "../http/ResourceController";
 import { Router } from "../http/Router";
+import type { IntegrationContext } from "../integrations/IntegrationContext";
 
 export class MockController extends ResourceController {
 	override handle: Mock<BaseController["handle"]>;
@@ -218,7 +216,7 @@ export const createTestApplication = <RouteParams extends Record<string, string>
 } => {
 	const app = createApplication({
 		...config,
-		devMode: { suppressAutoRefresh: true, ...config.devMode },
+		devMode: { autoRefresh: false, ...config.devMode },
 	});
 
 	const container = app.container;

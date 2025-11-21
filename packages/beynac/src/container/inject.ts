@@ -1,4 +1,4 @@
-import { BeynacError } from "../error";
+import { BeynacError } from "../core/core-errors";
 import { getKeyName, type KeyOrClass } from "./container-key";
 import { NO_VALUE, type NoValue } from "./no-value";
 
@@ -60,6 +60,12 @@ export function injectOptional<T>(arg: KeyOrClass<T>): T | null {
  *
  * This is useful as an alternative to inject() for transient and scoped
  * dependencies when you want to be able to create fresh instances on demand.
+ *
+ * Another use case is to break circular dependencies. If you have two singleton
+ * classes A and B and both require a reference to the other, you can't have
+ * both accept a reference to the other as a constructor argument, but you can
+ * have one accept a factory function that returns the other and lazily wire up
+ * the circular reference.
  *
  * @param token a type token created with typeKey or a class reference
  *

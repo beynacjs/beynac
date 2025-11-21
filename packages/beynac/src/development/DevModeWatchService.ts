@@ -1,7 +1,7 @@
 import { type FSWatcher, watch } from "node:fs";
 import { inject } from "../container/inject";
-import { Configuration } from "../contracts/Configuration";
-import { pluralCount } from "../utils";
+import { Configuration } from "../core/contracts/Configuration";
+import { BaseClass, pluralCount } from "../utils";
 import { DevModeAutoRefreshMiddleware } from "./DevModeAutoRefreshMiddleware";
 
 declare global {
@@ -9,7 +9,7 @@ declare global {
 	var __beynacWatchService: DevModeWatchService | undefined;
 }
 
-export class DevModeWatchService {
+export class DevModeWatchService extends BaseClass {
 	#started = false;
 	#destroyed = false;
 	#filesChanged: string[] = [];
@@ -19,7 +19,9 @@ export class DevModeWatchService {
 	constructor(
 		private config: Configuration = inject(Configuration),
 		private middleware: DevModeAutoRefreshMiddleware = inject(DevModeAutoRefreshMiddleware),
-	) {}
+	) {
+		super();
+	}
 
 	start(): void {
 		if (this.#started || this.#destroyed) return;
@@ -33,9 +35,13 @@ export class DevModeWatchService {
 		const paths = this.config.devMode?.autoRefreshPaths ?? [process.cwd()];
 
 		if (paths.length === 0) {
+			// TODO: Connect to logging mechanism when available
+			// eslint-disable-next-line no-console
 			console.log(`${DevModeWatchService.name} list of paths to watch is empty`);
 		}
 
+		// TODO: Connect to logging mechanism when available
+		// eslint-disable-next-line no-console
 		console.log(`${DevModeWatchService.name} watching: ${paths.join(", ")}`);
 
 		for (const path of paths) {
@@ -87,6 +93,8 @@ export class DevModeWatchService {
 			if (rest.length > 0) {
 				message += ` and ${pluralCount(rest.length, "other")}`;
 			}
+			// TODO: Connect to logging mechanism when available
+			// eslint-disable-next-line no-console
 			console.log(`${DevModeWatchService.name} ${message} changed, reloading`);
 			this.middleware.triggerReload();
 			this.debounceTimer = null;

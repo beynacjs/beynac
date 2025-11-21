@@ -1,0 +1,187 @@
+import { beforeEach, describe, expect, spyOn, test } from "bun:test";
+import type { StorageEndpoint } from "../../contracts/Storage";
+import { PermissionsError } from "../../storage-errors";
+import { type SharedTestConfig } from "../../storage-test-utils";
+import { MemoryEndpoint } from "../memory/MemoryEndpoint";
+import { ReadOnlyEndpoint } from "./ReadOnlyEndpoint";
+import { readOnlyStorage } from "./readOnlyStorage";
+
+// Dummy factory for tests - never called since we pass StorageEndpoint directly
+const dummyStorageFactory = () => {
+	throw new Error("Should not be called in unit tests with direct StorageEndpoint");
+};
+
+export const readOnlyStorageSharedTestConfig: SharedTestConfig[] = [
+	{
+		name: readOnlyStorage.name,
+		createEndpoint: () =>
+			new ReadOnlyEndpoint(
+				{
+					disk: new MemoryEndpoint({}),
+				},
+				dummyStorageFactory,
+			),
+	},
+];
+
+describe(readOnlyStorage, () => {
+	let wrappedDisk: StorageEndpoint;
+	let readOnlyDisk: StorageEndpoint;
+
+	beforeEach(() => {
+		wrappedDisk = new MemoryEndpoint({});
+		readOnlyDisk = new ReadOnlyEndpoint(
+			{
+				disk: wrappedDisk,
+			},
+			dummyStorageFactory,
+		);
+	});
+
+	test("readSingle() delegates to wrapped disk", async () => {
+		const spy = spyOn(wrappedDisk, "readSingle");
+
+		await wrappedDisk.writeSingle({
+			path: "/file.txt",
+			data: "content",
+			mimeType: "text/plain",
+		});
+
+		await readOnlyDisk.readSingle("/file.txt");
+
+		expect(spy).toHaveBeenCalledWith("/file.txt");
+	});
+
+	test("getInfoSingle() delegates to wrapped disk", async () => {
+		const spy = spyOn(wrappedDisk, "getInfoSingle");
+
+		await wrappedDisk.writeSingle({
+			path: "/file.txt",
+			data: "content",
+			mimeType: "text/plain",
+		});
+
+		await readOnlyDisk.getInfoSingle("/file.txt");
+
+		expect(spy).toHaveBeenCalledWith("/file.txt");
+	});
+
+	test("existsSingle() delegates to wrapped disk", async () => {
+		const spy = spyOn(wrappedDisk, "existsSingle");
+
+		await readOnlyDisk.existsSingle("/file.txt");
+
+		expect(spy).toHaveBeenCalledWith("/file.txt");
+	});
+
+	test("existsAnyUnderPrefix() delegates to wrapped disk", async () => {
+		const spy = spyOn(wrappedDisk, "existsAnyUnderPrefix");
+
+		await readOnlyDisk.existsAnyUnderPrefix("/subfolder/");
+
+		expect(spy).toHaveBeenCalledWith("/subfolder/");
+	});
+
+	test("listEntries() delegates to wrapped disk", async () => {
+		const spy = spyOn(wrappedDisk, "listEntries");
+
+		await Array.fromAsync(readOnlyDisk.listEntries("/subfolder/"));
+
+		expect(spy).toHaveBeenCalledWith("/subfolder/");
+	});
+
+	test("listFilesRecursive() delegates to wrapped disk", async () => {
+		const spy = spyOn(wrappedDisk, "listFilesRecursive");
+
+		await Array.fromAsync(readOnlyDisk.listFilesRecursive("/subfolder/"));
+
+		expect(spy).toHaveBeenCalledWith("/subfolder/");
+	});
+
+	test("getPublicDownloadUrl() delegates to wrapped disk", async () => {
+		const spy = spyOn(wrappedDisk, "getPublicDownloadUrl");
+
+		await readOnlyDisk.getPublicDownloadUrl("/file.txt", "download.txt");
+
+		expect(spy).toHaveBeenCalledWith("/file.txt", "download.txt");
+	});
+
+	test("getSignedDownloadUrl() delegates to wrapped disk", async () => {
+		const spy = spyOn(wrappedDisk, "getSignedDownloadUrl");
+		const expires = new Date();
+
+		await readOnlyDisk.getSignedDownloadUrl("/file.txt", expires, "download.txt");
+
+		expect(spy).toHaveBeenCalledWith("/file.txt", expires, "download.txt");
+	});
+
+	test("getTemporaryUploadUrl() delegates to wrapped disk", async () => {
+		const spy = spyOn(wrappedDisk, "getTemporaryUploadUrl");
+		const expires = new Date();
+
+		await readOnlyDisk.getTemporaryUploadUrl("/file.txt", expires);
+
+		expect(spy).toHaveBeenCalledWith("/file.txt", expires);
+	});
+
+	test("writeSingle() throws PermissionsError", async () => {
+		expect(
+			readOnlyDisk.writeSingle({
+				path: "/file.txt",
+				data: "content",
+				mimeType: "text/plain",
+			}),
+		).rejects.toThrow(PermissionsError);
+	});
+
+	test("copy() throws PermissionsError", async () => {
+		expect(readOnlyDisk.copy("/source.txt", "/dest.txt")).rejects.toThrow(PermissionsError);
+	});
+
+	test("move() throws PermissionsError", async () => {
+		expect(readOnlyDisk.move("/source.txt", "/dest.txt")).rejects.toThrow(PermissionsError);
+	});
+
+	test("deleteSingle() throws PermissionsError", async () => {
+		expect(readOnlyDisk.deleteSingle("/file.txt")).rejects.toThrow(PermissionsError);
+	});
+
+	test("deleteAllUnderPrefix() throws PermissionsError", async () => {
+		expect(readOnlyDisk.deleteAllUnderPrefix("/subfolder/")).rejects.toThrow(PermissionsError);
+	});
+
+	test("forwards supportsMimeTypes from wrapped disk", () => {
+		const diskWithMime = new MemoryEndpoint({ supportsMimeTypes: true });
+		const diskWithoutMime = new MemoryEndpoint({ supportsMimeTypes: false });
+
+		const readOnlyWithMime = new ReadOnlyEndpoint({ disk: diskWithMime }, dummyStorageFactory);
+		const readOnlyWithoutMime = new ReadOnlyEndpoint(
+			{ disk: diskWithoutMime },
+			dummyStorageFactory,
+		);
+
+		expect(readOnlyWithMime.supportsMimeTypes).toBe(true);
+		expect(readOnlyWithoutMime.supportsMimeTypes).toBe(false);
+	});
+
+	test("forwards invalidNameChars from wrapped disk", () => {
+		const diskWithInvalid = new MemoryEndpoint({ invalidNameChars: '<>:"' });
+		const diskWithoutInvalid = new MemoryEndpoint({ invalidNameChars: "" });
+
+		const readOnlyWithInvalid = new ReadOnlyEndpoint(
+			{ disk: diskWithInvalid },
+			dummyStorageFactory,
+		);
+		const readOnlyWithoutInvalid = new ReadOnlyEndpoint(
+			{ disk: diskWithoutInvalid },
+			dummyStorageFactory,
+		);
+
+		expect(readOnlyWithInvalid.invalidNameChars).toBe('<>:"');
+		expect(readOnlyWithoutInvalid.invalidNameChars).toBe("");
+	});
+
+	test("has name", () => {
+		expect(readOnlyDisk.name).toBe("read-only");
+	});
+});

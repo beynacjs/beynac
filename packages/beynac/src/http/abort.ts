@@ -1,25 +1,30 @@
 import { ContainerImpl } from "../container/ContainerImpl";
-import { RequestLocals } from "../contracts";
-import { createKey, Key } from "../keys";
+import type { Key } from "../core/Key";
+import { createKey } from "../core/Key";
+import { BaseClass } from "../utils";
+import { RequestLocals } from "./contracts/RequestLocals";
+import type { RedirectOptions } from "./redirect";
 import { redirectStatus } from "./redirect";
 
 /**
  * Exception thrown to abort request handling and return an HTTP response.
  * Caught by the router and the wrapped response is returned.
  *
- * This exception extends Error to integrate properly with error handling,
- * but the router catches it and returns the response instead of treating
- * it as an error.
+ * This is not an error - it's used for control flow to exit early from
+ * request handlers and return a specific response.
  */
-export class AbortException extends Error {
-	override readonly cause?: Error | undefined;
+export class AbortException extends BaseClass implements Error {
+	readonly cause?: Error | undefined;
 	readonly response: Response;
+	readonly message: string;
+	readonly name: string;
 
 	constructor(response: Response, cause?: Error) {
-		super("Request aborted");
-		this.name = "AbortException";
+		super();
 		this.response = response;
 		this.cause = cause;
+		this.message = cause?.message ?? "Request aborted";
+		this.name = this.constructor.name;
 	}
 
 	/**
@@ -41,16 +46,11 @@ export class AbortException extends Error {
 	}
 }
 
-/**
- * Key for storing abort exceptions in RequestLocals
- */
+/***/
 export const abortExceptionKey: Key<AbortException | undefined> = createKey<AbortException>({
 	displayName: "abortException",
 });
 
-/**
- * Provides methods to abort HTTP requests early
- */
 export type Abort = {
 	/**
 	 * Abort request handling return a response with the given status code.
@@ -89,7 +89,7 @@ export type Abort = {
 	 * @example
 	 * abort.redirect('/new-location', { permanent: true });
 	 */
-	redirect(to: string, options?: { permanent?: boolean; preserveHttpMethod?: boolean }): never;
+	redirect(to: string, options?: RedirectOptions): never;
 
 	/**
 	 * Abort the current request and return a 404 Not Found response.
@@ -250,8 +250,9 @@ function _abort(
 	throw exception;
 }
 
+/***/
 export const abort: Abort = Object.assign(_abort, {
-	redirect(to: string, options?: { permanent?: boolean; preserveHttpMethod?: boolean }): never {
+	redirect(to: string, options?: RedirectOptions): never {
 		const status = redirectStatus(options);
 		_abort(status, "", { Location: to });
 	},

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { IntegrationContext } from "../contracts";
+import type { IntegrationContext } from "../integrations/IntegrationContext";
 import { ApplicationImpl } from "./ApplicationImpl";
 import { createFacade, setFacadeApplication } from "./facade";
 
@@ -27,6 +27,7 @@ describe(createFacade, () => {
 
 	beforeEach(() => {
 		app = new ApplicationImpl();
+		app.bootstrap();
 		setFacadeApplication(app);
 	});
 

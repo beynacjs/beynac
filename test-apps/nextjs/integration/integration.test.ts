@@ -190,3 +190,64 @@ describe("Param API", () => {
     expect(data.param).toBe("foo?bar&baz=qux");
   });
 });
+
+describe("Storage API", () => {
+  test("complete file lifecycle: upload, download, delete, verify deleted", async () => {
+    // Load the test image
+    const imagePath = resolve(import.meta.dir, "../../../packages/website/public/img/bruno-logo-medium.png");
+    const imageFile = Bun.file(imagePath);
+    const originalBytes = await imageFile.arrayBuffer();
+    const originalSize = imageFile.size;
+
+    // 1. Upload the image
+    const formData = new FormData();
+    const blob = new Blob([originalBytes], { type: "image/png" });
+    formData.append("file", blob, "bruno-logo-medium.png");
+
+    let response = await fetch(`${BASE_URL}/beynac/api/storage`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const responseText = await response.text();
+    if (response.status !== 200) {
+      console.error("Upload failed:", response.status, responseText);
+      throw new Error(`Upload failed with status ${response.status}: ${responseText}`);
+    }
+
+    let data = JSON.parse(responseText);
+
+    expect(response.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(data.id).toBe("bruno-logo-medium.png");
+    expect(data.mimeType).toBe("image/png");
+    expect(data.size).toBe(originalSize);
+
+    // 2. Download and verify content matches
+    response = await fetch(`${BASE_URL}/beynac/api/storage/bruno-logo-medium.png`);
+
+    if (response.status !== 200) {
+      const errorText = await response.text();
+      console.error("Download failed:", response.status, errorText.substring(0, 500));
+    }
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("image/png");
+
+    const downloadedBytes = await response.arrayBuffer();
+    expect(new Uint8Array(downloadedBytes)).toEqual(new Uint8Array(originalBytes));
+
+    // 3. Delete the file
+    response = await fetch(`${BASE_URL}/beynac/api/storage/bruno-logo-medium.png`, {
+      method: "DELETE",
+    });
+    data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.success).toBe(true);
+
+    // 4. Verify file is deleted (should return 404)
+    response = await fetch(`${BASE_URL}/beynac/api/storage/bruno-logo-medium.png`);
+    expect(response.status).toBe(404);
+  });
+});

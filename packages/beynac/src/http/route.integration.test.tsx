@@ -2,20 +2,23 @@
 import { beforeEach, describe, expect, mock, spyOn, test } from "bun:test";
 import { ContainerImpl } from "../container/ContainerImpl";
 import { createTypeToken } from "../container/container-key";
-import { Configuration, Container } from "../contracts";
-import { BaseListener, Dispatcher } from "../contracts/Dispatcher";
-import { RequestHandled } from "../events";
-import { createTestApplication, MockController, mockMiddleware } from "../test-utils";
+import { Container } from "../container/contracts/Container";
+import { BaseListener } from "../core/BaseListener";
+import { Configuration } from "../core/contracts/Configuration";
+import { Dispatcher } from "../core/contracts/Dispatcher";
+import { RequestHandledEvent } from "../events";
 import {
-	BaseController,
-	ClassController,
-	Controller,
-	type ControllerContext,
-	type ControllerReturn,
-} from "./Controller";
-import { any, get, group, post, Router, redirect } from "./index";
-import { BaseMiddleware, FunctionMiddleware } from "./Middleware";
+	createTestApplication,
+	MockController,
+	mockMiddleware,
+} from "../test-utils/http-test-utils";
+import type { ClassController, Controller } from "./Controller";
+import { BaseController, type ControllerContext, type ControllerReturn } from "./Controller";
+import { abort, any, get, group, post, redirect, StatusPagesMiddleware } from "./http-entry-point";
+import type { FunctionMiddleware } from "./Middleware";
+import { BaseMiddleware } from "./Middleware";
 import { MiddlewareSet } from "./MiddlewareSet";
+import { Router } from "./Router";
 
 let container: Container;
 let router: Router;
@@ -633,8 +636,6 @@ describe("status pages", () => {
 	);
 
 	test("renders custom 404 page with correct status", async () => {
-		const { StatusPagesMiddleware } = await import("./index");
-
 		router.register(
 			get("/test", () => new Response("Not Found", { status: 404 }), {
 				middleware: StatusPagesMiddleware,
@@ -650,8 +651,6 @@ describe("status pages", () => {
 	});
 
 	test("AbortException triggers status page", async () => {
-		const { StatusPagesMiddleware, abort } = await import("./index");
-
 		router.register(
 			get(
 				"/test",
@@ -672,8 +671,6 @@ describe("status pages", () => {
 	});
 
 	test("Response with error status triggers status page", async () => {
-		const { StatusPagesMiddleware } = await import("./index");
-
 		router.register(
 			get("/test", () => new Response("Not Found", { status: 404 }), {
 				middleware: StatusPagesMiddleware,
@@ -688,8 +685,6 @@ describe("status pages", () => {
 	});
 
 	test("middleware throws abort triggers status page", async () => {
-		const { StatusPagesMiddleware, abort } = await import("./index");
-
 		class AuthMiddleware extends BaseMiddleware {
 			handle(_ctx: ControllerContext) {
 				return abort.unauthorized("Not authorized");
@@ -738,8 +733,6 @@ describe("status pages", () => {
 	// });
 
 	test("Error thrown in middleware before StatusPagesMiddleware can catch it gets a default plaintext response", async () => {
-		const { abort, StatusPagesMiddleware } = await import("./index");
-
 		class EarlyMiddleware extends BaseMiddleware {
 			handle() {
 				return abort.unauthorized();
@@ -769,17 +762,17 @@ describe("status pages", () => {
 	});
 });
 
-test("RequestHandled event allows listeners to access responses", async () => {
+test("RequestHandledEvent allows listeners to access responses", async () => {
 	let capturedContext: ControllerContext | undefined;
 	let capturedStatus: number | undefined;
 	let capturedHeaders: Headers | undefined;
 	let capturedBody: Promise<string> | undefined;
 
 	class TestListener extends BaseListener {
-		handle(event: RequestHandled) {
+		handle(event: RequestHandledEvent) {
 			capturedContext = event.context;
-			capturedStatus = event.responseStatus;
-			capturedHeaders = event.responseHeaders;
+			capturedStatus = event.status;
+			capturedHeaders = event.headers;
 
 			// Clone and read response body
 			const clonedResponse = event.cloneResponse();
@@ -787,7 +780,7 @@ test("RequestHandled event allows listeners to access responses", async () => {
 		}
 	}
 
-	container.get(Dispatcher).addListener(RequestHandled, TestListener);
+	container.get(Dispatcher).addListener(RequestHandledEvent, TestListener);
 
 	router.register(
 		get("/test/{id}", (ctx) => {

@@ -1,22 +1,34 @@
+import { BeynacEvent } from "../core/core-events";
 import type { ControllerContext } from "./Controller";
 
-export class RequestHandled {
+/**
+ * Event dispatched after a request has been successfully handled.
+ */
+export class RequestHandledEvent extends BeynacEvent {
 	readonly #response: Response;
+	#headers?: Headers;
 
 	constructor(
 		public readonly context: ControllerContext,
-		public readonly responseStatus: number,
-		public readonly responseHeaders: Headers,
 		response: Response,
 	) {
+		super();
 		this.#response = response;
 	}
 
+	get status(): number {
+		return this.#response.status;
+	}
+
+	get headers(): Headers | undefined {
+		if (!this.#headers) {
+			this.#headers = new Headers(this.#response.headers);
+		}
+		return this.#headers;
+	}
+
 	/**
-	 * Get a clone of the response.
-	 *
-	 * WARNING: Cloning a streaming response will buffer all data in memory.
-	 * Only call this if you need to inspect the response body.
+	 * Get a clone of the response so that you can access the response body.
 	 */
 	cloneResponse(): Response {
 		return this.#response.clone() as Response;

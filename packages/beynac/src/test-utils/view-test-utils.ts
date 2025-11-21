@@ -1,8 +1,8 @@
 import { ContainerImpl } from "../container/ContainerImpl";
-import type { RenderResponseOptions } from "../contracts/ViewRenderer";
-import { ViewRenderer } from "../contracts/ViewRenderer";
-import type { JSXNode, RenderOptions } from "../view/public-types";
+import type { RenderResponseOptions } from "../view/contracts/ViewRenderer";
+import { ViewRenderer } from "../view/contracts/ViewRenderer";
 import { ViewRendererImpl } from "../view/ViewRendererImpl";
+import type { JSXNode, RenderOptions } from "../view/view-types";
 
 const container = new ContainerImpl();
 container.singleton(ViewRenderer, ViewRendererImpl);

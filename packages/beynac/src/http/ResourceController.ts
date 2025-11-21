@@ -1,10 +1,8 @@
 import { abort } from "./abort";
 import { BaseController, type ControllerContext, type ControllerReturn } from "./Controller";
 
-/**
- * The seven standard RESTful resource actions
- */
 export type ApiResourceAction = "index" | "store" | "show" | "update" | "destroy";
+
 export type ResourceAction = ApiResourceAction | "create" | "edit";
 
 /**

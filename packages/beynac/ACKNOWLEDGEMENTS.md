@@ -26,6 +26,14 @@ Hono inspired the design of Beynac's JSX renderer. Portions of our JSX renderer 
 
 Beynac's routing engine is a fork of Rou3, adapted for our specific requirements. The core radix tree algorithm remains largely unchanged from the original implementation.
 
+## content-disposition
+
+**Repository:** https://github.com/jshttp/content-disposition
+**License:** MIT
+**Copyright:** Douglas Christopher Wilson
+
+Beynac's RFC 5987 value/attribute header implementation is a fork of the content-disposition package with modifications for our use case.
+
 ---
 
 All incorporated code is used in compliance with the MIT License terms, which require preservation of copyright notices and license text in distributed copies.

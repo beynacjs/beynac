@@ -1,21 +1,16 @@
 import { defineConfig } from "tsdown";
+import { ENTRY_POINTS } from "./src/test-utils/entryPoints.ts";
+
+const internalDeps = ["devalue"]
 
 export default defineConfig({
-  entry: {
-    index: "src/index.ts",
-    "contracts/index": "src/contracts/index.ts",
-    facades: "src/facades.ts",
-    "integrations/next": "src/integrations/next.ts",
-    "view/index": "src/view/index.ts",
-    "view/jsx-runtime": "src/view/jsx-runtime.ts",
-    "view/jsx-dev-runtime": "src/view/jsx-dev-runtime.ts",
-    "http/index": "src/http/index.ts",
-  },
+  entry: ENTRY_POINTS,
   format: ["esm"],
   outDir: "dist",
   dts: {
     resolve: true,
   },
   clean: true,
-  exports: true
+  exports: true,
+  external: (dep) => !internalDeps.includes(dep),
 });

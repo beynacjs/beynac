@@ -100,7 +100,7 @@ describe("status pages normalization", () => {
 		expect(routes[0].statusPages!["5xx"]).toBe(Test5xxPage);
 	});
 
-	test("undefined normalizes to null", () => {
+	test("undefined normalises to null", () => {
 		const routes = get("/test", () => new Response());
 
 		expect(routes[0].statusPages).toBe(null);

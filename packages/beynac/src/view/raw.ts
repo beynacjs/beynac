@@ -1,16 +1,19 @@
-import { JSXElement, tagAsJsxElement } from "./public-types";
+import { BaseClass } from "../utils";
 import { SPECIAL_NODE } from "./special-node";
+import type { JSXElement } from "./view-types";
+import { tagAsJsxElement } from "./view-types";
 
-export class RawContent {
+export class RawContent extends BaseClass {
 	#content: string;
 
 	constructor(content: string) {
+		super();
 		this.#content = content;
 		Object.assign(this, { [SPECIAL_NODE]: true });
 		tagAsJsxElement(this);
 	}
 
-	toString(): string {
+	override toString(): string {
 		return this.#content;
 	}
 
