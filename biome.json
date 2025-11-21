@@ -6,7 +6,15 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"includes": ["packages/*/src/**", "packages/*/scripts/**", "test-apps/nextjs/{app,beynac}/**"]
+		"includes": [
+			"packages/*/src/**",
+			"packages/*/scripts/**",
+			"test-apps/nextjs/{app,beynac}/**",
+			"!!**/packages/beynac/src/contracts.ts",
+			"!!**/packages/beynac/src/errors.ts",
+			"!!**/packages/beynac/src/events.ts",
+			"!!**/packages/beynac/src/facades.ts"
+		]
 	},
 	"formatter": {
 		"enabled": true,

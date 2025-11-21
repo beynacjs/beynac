@@ -19,15 +19,13 @@ describe("codebase invariants", () => {
 	});
 
 	test.each(generatedFiles)("src/%s matches generated content", async (filename) => {
-		const normaliseCode = (code: string) => code.replaceAll(/[,{}]\s+/g, " ");
-
-		const expectedContent = normaliseCode(getGeneratedFileContent(project)[filename]);
+		const expectedContent = getGeneratedFileContent(project)[filename];
 		const filePath = join(srcDir, filename);
-		const actualContent = normaliseCode(await readFile(filePath, "utf-8"));
+		const actualContent = await readFile(filePath, "utf-8");
 
-		expect(
-			actualContent,
-			`src/${filename} content does not match generated content. Run 'bun run regenerate-contracts' to update it.\n\nExpected:\n${expectedContent}\n\nActual:\n${actualContent}`,
-		).toEqual(expectedContent);
+		if (expectedContent !== actualContent) {
+			console.error(`💥 ${filename} content needs updating, run 'bun regenerate-contracts'`);
+		}
+		expect(actualContent).toEqual(expectedContent);
 	});
 });

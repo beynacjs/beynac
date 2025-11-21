@@ -98,16 +98,16 @@ export function getFileErrors(file: SourceFile): string[] {
 		}
 
 		// Check barrel file rename violations
-		if (file.isBarrel && exp.reexport && exp.reexport.originalName !== exp.name) {
+		if (exp.reexport && exp.reexport.originalName !== exp.name) {
 			errors.push(
-				`Barrel file ${file.path} renames export "${exp.name}". Use 'export { foo }' not 'export { foo as bar }'`,
+				`File ${file.path} renames export "${exp.name}". Use 'export { foo }' not 'export { foo as bar }'`,
 			);
 		}
 
 		// Check barrel file parent directory re-exports
-		if (file.isBarrel && exp.reexport && exp.reexport.originalFile.startsWith("..")) {
+		if (exp.reexport && exp.reexport.originalFile.startsWith("..")) {
 			errors.push(
-				`Barrel file ${file.path} re-exports from parent directory "${exp.reexport.originalFile}". Barrel files should only re-export from the current directory or subdirectories.`,
+				`File ${file.path} re-exports from parent directory "${exp.reexport.originalFile}". Files should only re-export from the current directory or subdirectories.`,
 			);
 		}
 

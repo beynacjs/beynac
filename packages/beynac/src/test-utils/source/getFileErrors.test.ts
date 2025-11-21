@@ -59,7 +59,7 @@ describe(getFileErrors, () => {
 		const errors = getFileErrors(file);
 
 		expect(errors).toEqual([
-			"Barrel file errors/bad-barrel-file-reexport/index.ts renames export \"RenamedThing\". Use 'export { foo }' not 'export { foo as bar }'",
+			"File errors/bad-barrel-file-reexport/index.ts renames export \"RenamedThing\". Use 'export { foo }' not 'export { foo as bar }'",
 		]);
 	});
 
@@ -68,7 +68,7 @@ describe(getFileErrors, () => {
 		const errors = getFileErrors(file);
 
 		expect(errors).toEqual([
-			'Barrel file errors/bad-barrel-file-import/index.ts re-exports from parent directory "../parent-export". Barrel files should only re-export from the current directory or subdirectories.',
+			'File errors/bad-barrel-file-import/index.ts re-exports from parent directory "../parent-export". Files should only re-export from the current directory or subdirectories.',
 		]);
 	});
 

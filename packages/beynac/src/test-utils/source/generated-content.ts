@@ -1,29 +1,34 @@
+import { mapObjectValues } from "../../utils";
 import type { SourceProject } from "./SourceProject";
 
-/**
- * Generate the content for generated files by analyzing the source project.
- * Returns an object mapping file names to their generated content.
- */
 export function getGeneratedFileContent(project: SourceProject): Record<string, string> {
-	return {
+	const rawFiles = {
 		"contracts.ts": generateContractsFileContent(project),
 		"errors.ts": generateErrorsFileContent(project),
 		"events.ts": generateEventsFileContent(project),
+		"facades.ts": generateFacadesFileContent(project),
 	};
+	return mapObjectValues(
+		rawFiles,
+		(content) =>
+			"// GENERATED CODE DO NOT EDIT!\n" +
+			"// Run `bun regenerate-contracts` to regenerate this file\n" +
+			content,
+	);
 }
 
-/**
- * Generate the content for src/contracts.ts by finding all contract files
- * and creating export statements for each one.
- */
-export function generateContractsFileContent(project: SourceProject): string {
-	const lines: string[] = [];
-
+function getContractFiles(project: SourceProject) {
 	// Find all contract files by filtering all files in the project
-	const contractFiles = project.root
+	return project.root
 		.allFiles()
 		.filter((file) => file.path.includes("/contracts/"))
 		.sort((a, b) => a.path.localeCompare(b.path));
+}
+
+function generateContractsFileContent(project: SourceProject): string {
+	const lines: string[] = [];
+
+	const contractFiles = getContractFiles(project);
 
 	for (const file of contractFiles) {
 		// Get the contract const export (matches the file basename without extension)
@@ -40,23 +45,14 @@ export function generateContractsFileContent(project: SourceProject): string {
 	return lines.join("\n") + "\n";
 }
 
-/**
- * Generate the content for src/errors.ts by finding all error files
- * and creating export statements for each one.
- */
-export function generateErrorsFileContent(project: SourceProject): string {
+function generateErrorsFileContent(project: SourceProject): string {
 	const lines: string[] = [];
 
-	// Find all error files
-	const errorFiles = project.root
-		.allFiles()
-		.filter((file) => file.path.endsWith("-errors.ts") && !file.path.includes("__fixtures__"))
-		.sort((a, b) => a.path.localeCompare(b.path));
+	const errorFiles = project.root.allFiles().filter((file) => file.path.endsWith("-errors.ts"));
 
 	for (const file of errorFiles) {
-		// Get all error class exports that are not re-exports
 		const errorExports = file.exports
-			.filter((exp) => exp.kind === "class" && !exp.reexport && exp.name.endsWith("Error"))
+			.filter((exp) => exp.kind === "class" && exp.name.endsWith("Error"))
 			.map((exp) => exp.name)
 			.sort();
 
@@ -68,23 +64,14 @@ export function generateErrorsFileContent(project: SourceProject): string {
 	return lines.join("\n") + "\n";
 }
 
-/**
- * Generate the content for src/events.ts by finding all event files
- * and creating export statements for each one.
- */
-export function generateEventsFileContent(project: SourceProject): string {
+function generateEventsFileContent(project: SourceProject): string {
 	const lines: string[] = [];
 
-	// Find all event files
-	const eventFiles = project.root
-		.allFiles()
-		.filter((file) => file.path.endsWith("-events.ts") && !file.path.includes("__fixtures__"))
-		.sort((a, b) => a.path.localeCompare(b.path));
+	const eventFiles = project.root.allFiles().filter((file) => file.path.endsWith("-events.ts"));
 
 	for (const file of eventFiles) {
-		// Get all event class exports that are not re-exports
 		const eventExports = file.exports
-			.filter((exp) => exp.kind === "class" && !exp.reexport && exp.name.endsWith("Event"))
+			.filter((exp) => exp.kind === "class" && exp.name.endsWith("Event"))
 			.map((exp) => exp.name)
 			.sort();
 
@@ -92,6 +79,42 @@ export function generateEventsFileContent(project: SourceProject): string {
 			lines.push(`export { ${eventExports.join(", ")} } from "./${file.importPath}";`);
 		}
 	}
+
+	return lines.join("\n") + "\n";
+}
+
+function generateFacadesFileContent(project: SourceProject): string {
+	const lines: string[] = ['import { createFacade } from "./core/facade";'];
+
+	const contractFiles = getContractFiles(project);
+
+	// Collect all contract imports and facade declarations
+	const imports: string[] = [];
+	const facades: string[] = [];
+
+	for (const file of contractFiles) {
+		// Get the contract const export (matches the file basename without extension)
+		const expectedContractName = file.basenameWithoutExt;
+		const contractExport = file.exports.find(
+			(exp) => exp.kind === "const" && exp.name === expectedContractName && !exp.reexport,
+		);
+
+		if (contractExport) {
+			const contractName = contractExport.name;
+			const contractAlias = `${contractName}Contract`;
+
+			imports.push(`import { ${contractName} as ${contractAlias} } from "./${file.importPath}";`);
+			facades.push(
+				"",
+				"/**",
+				` * Facade for ${contractName}. See TODO link to facades docs page.`,
+				" */",
+				`export const ${contractName}: ${contractAlias} = createFacade(${contractAlias});`,
+			);
+		}
+	}
+
+	lines.push(...imports, ...facades);
 
 	return lines.join("\n") + "\n";
 }

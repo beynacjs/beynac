@@ -1,5 +1,3 @@
-export { mockCurrentTime, resetMockTime } from "../testing/mock-time";
-
 /**
  * Parse a duration string into milliseconds
  *
