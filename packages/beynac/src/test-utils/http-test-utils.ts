@@ -4,10 +4,10 @@ import type { Container } from "../container/contracts/Container";
 import type { Application } from "../core/contracts/Application";
 import type { Configuration } from "../core/contracts/Configuration";
 import { createApplication } from "../core/createApplication";
-import { ResourceController } from "../http";
 import type { BaseController, ControllerContext, FunctionController } from "../http/Controller";
 import { type ControllerReturn } from "../http/Controller";
 import { type ClassMiddleware } from "../http/Middleware";
+import { ResourceController } from "../http/ResourceController";
 import { Router } from "../http/Router";
 import type { IntegrationContext } from "../integrations/IntegrationContext";
 

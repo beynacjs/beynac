@@ -1,5 +1,5 @@
 import { S3Client, S3Errors } from "@bradenmacdonald/s3-lite-client";
-import { md5 } from "../../../helpers/hash";
+import { md5 } from "../../../helpers/hash/digest";
 import { BaseClass, withoutUndefinedValues } from "../../../utils";
 import type {
 	StorageEndpoint,

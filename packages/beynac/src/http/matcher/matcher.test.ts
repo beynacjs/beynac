@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { createMatcher as _createMatcher, addRoute, findRoute } from ".";
+import { addRoute } from "./add-route";
+import { createMatcher as _createMatcher } from "./create-matcher";
+import { findRoute } from "./find-route";
 import type { MatcherContext, Node } from "./types";
 
 type TestRoute = {

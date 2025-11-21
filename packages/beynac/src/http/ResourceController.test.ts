@@ -2,11 +2,11 @@ import { beforeEach, describe, expect, expectTypeOf, test } from "bun:test";
 import { ContainerImpl } from "../container/ContainerImpl";
 import type { Container } from "../container/contracts/Container";
 import { Configuration } from "../core/contracts/Configuration";
-import { createTestApplication, mockMiddleware } from "../test-utils";
-import type { Routes } from ".";
-import { group } from ".";
+import { createTestApplication, mockMiddleware } from "../test-utils/http-test-utils";
 import type { ControllerContext } from "./Controller";
 import { apiResource, resource } from "./helpers";
+import type { Routes } from "./http-entry-point";
+import { group } from "./http-entry-point";
 import { ResourceController } from "./ResourceController";
 import { RouteUrlGenerator } from "./RouteUrlGenerator";
 

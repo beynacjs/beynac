@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { getGeneratedFileContent, SourceProject } from "../src/test-utils/source";
+import { getGeneratedFileContent } from "../src/test-utils/source/generated-content";
+import { SourceProject } from "../src/test-utils/source/SourceProject";
 
 async function main() {
 	const srcDir = join(import.meta.dir, "..", "src");

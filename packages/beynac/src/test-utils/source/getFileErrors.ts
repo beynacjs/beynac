@@ -35,7 +35,7 @@ export function getFileErrors(file: SourceFile): string[] {
 				}
 
 				const exportFiles = exp.getAliases().map((e) => e.file.path);
-				const expectedExportFiles = ["errors.ts", `${moduleName}/index.ts`];
+				const expectedExportFiles = ["errors.ts", `${moduleName}/${moduleName}-entry-point.ts`];
 				if (!setsEqual(exportFiles, expectedExportFiles)) {
 					errors.push(
 						`${exp.name} in ${file.path} should be exported twice in ${expectedExportFiles.join(" and ")}, but the files exporting it are: ${exportFiles.join(", ")}`,
@@ -65,7 +65,7 @@ export function getFileErrors(file: SourceFile): string[] {
 				}
 
 				const exportFiles = exp.getAliases().map((e) => e.file.path);
-				const expectedExportFiles = ["events.ts", `${moduleName}/index.ts`];
+				const expectedExportFiles = ["events.ts", `${moduleName}/${moduleName}-entry-point.ts`];
 				if (!setsEqual(exportFiles, expectedExportFiles)) {
 					errors.push(
 						`${exp.name} in ${file.path} should be exported twice in ${expectedExportFiles.join(" and ")}, but the files exporting it are: ${exportFiles.join(", ")}`,

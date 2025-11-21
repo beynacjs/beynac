@@ -7,10 +7,14 @@ import { BaseListener } from "../core/BaseListener";
 import { Configuration } from "../core/contracts/Configuration";
 import { Dispatcher } from "../core/contracts/Dispatcher";
 import { RequestHandledEvent } from "../events";
-import { createTestApplication, MockController, mockMiddleware } from "../test-utils";
-import { abort, any, get, group, post, redirect, StatusPagesMiddleware } from ".";
+import {
+	createTestApplication,
+	MockController,
+	mockMiddleware,
+} from "../test-utils/http-test-utils";
 import type { ClassController, Controller } from "./Controller";
 import { BaseController, type ControllerContext, type ControllerReturn } from "./Controller";
+import { abort, any, get, group, post, redirect, StatusPagesMiddleware } from "./http-entry-point";
 import type { FunctionMiddleware } from "./Middleware";
 import { BaseMiddleware } from "./Middleware";
 import { MiddlewareSet } from "./MiddlewareSet";

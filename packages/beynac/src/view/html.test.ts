@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { render } from "../test-utils";
+import { render } from "../test-utils/view-test-utils";
 import { html } from "./html";
 import { raw } from "./raw";
 

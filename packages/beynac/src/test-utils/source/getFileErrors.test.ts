@@ -18,8 +18,8 @@ describe(getFileErrors, () => {
 
 		expect(errors).toEqual([
 			'FooError in errors/errors-errors.ts ends with "Error" but does not extend BeynacError',
-			"NotInRootErrorsError in errors/errors-errors.ts should be exported twice in errors.ts and errors/index.ts, but the files exporting it are: errors/index.ts",
-			"NotInLocalErrorsError in errors/errors-errors.ts should be exported twice in errors.ts and errors/index.ts, but the files exporting it are: errors.ts",
+			"NotInRootErrorsError in errors/errors-errors.ts should be exported twice in errors.ts and errors/errors-entry-point.ts, but the files exporting it are: errors/errors-entry-point.ts",
+			"NotInLocalErrorsError in errors/errors-errors.ts should be exported twice in errors.ts and errors/errors-entry-point.ts, but the files exporting it are: errors.ts",
 			'BadErrorExtension in errors/errors-errors.ts extends BeynacError but does not end with "Error"',
 		]);
 	});
@@ -29,9 +29,9 @@ describe(getFileErrors, () => {
 		const errors = getFileErrors(file);
 
 		expect(errors).toEqual([
-			"GoodEvent in errors/errors-events.ts should be exported twice in events.ts and errors/index.ts, but the files exporting it are: errors/index.ts",
+			"GoodEvent in errors/errors-events.ts should be exported twice in events.ts and errors/errors-entry-point.ts, but the files exporting it are: errors/errors-entry-point.ts",
 			'FooEvent in errors/errors-events.ts ends with "Event" but does not extend BeynacEvent',
-			"FooEvent in errors/errors-events.ts should be exported twice in events.ts and errors/index.ts, but the files exporting it are: errors/index.ts",
+			"FooEvent in errors/errors-events.ts should be exported twice in events.ts and errors/errors-entry-point.ts, but the files exporting it are: errors/errors-entry-point.ts",
 			'BadEventExtension in errors/errors-events.ts extends BeynacEvent but does not end with "Event"',
 		]);
 	});
@@ -115,7 +115,7 @@ describe("public API doc comments", () => {
 	let project: SourceProject;
 
 	beforeAll(async () => {
-		project = await SourceProject.load(fixturesPath, ["public-api/index.ts"]);
+		project = await SourceProject.load(fixturesPath, ["public-api/public-api-entry-point.ts"]);
 	});
 
 	test("detects missing doc comments on public API exports", () => {
@@ -146,7 +146,7 @@ describe("public API doc comments", () => {
 	});
 
 	test("passes for entry point file with re-exports", () => {
-		const file = project.getFile("public-api/index.ts");
+		const file = project.getFile("public-api/public-api-entry-point.ts");
 		const errors = getFileErrors(file);
 
 		expect(errors).toEqual([]);

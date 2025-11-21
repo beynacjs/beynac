@@ -1,5 +1,5 @@
 import { sha256 } from "../helpers/hash/digest";
-import * as str from "../helpers/str";
+import { random } from "../helpers/str/random";
 import { regExpEscape } from "../utils";
 import { posix } from "./path-operations";
 
@@ -127,7 +127,7 @@ export function createFileName(
 	let name = posix.basename(suggestedName?.trim() ?? "");
 	if (!name) {
 		// Use all caps so that they're unique on case-insensitive filesystems
-		name = str.random(20, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+		name = random(20, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 		usedRandomId = true;
 	}
 

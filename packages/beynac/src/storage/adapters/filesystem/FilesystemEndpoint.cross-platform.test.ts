@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { mockDispatcher } from "../../../test-utils";
+import { mockDispatcher } from "../../../test-utils/internal-mocks";
 import { fsOps, mockFilesystemOperations } from "../../filesystem-operations";
 import { mockPlatformPaths } from "../../path-operations";
 import { StorageImpl } from "../../StorageImpl";

@@ -1,5 +1,4 @@
-import { basename } from "node:path";
-import { transliterate, withoutComplexChars } from "./str";
+import { transliterate, withoutComplexChars } from "./str/unicode";
 
 const NON_LATIN1_REGEXP = /[^\x20-\x7e\xa0-\xff]/g;
 
@@ -464,4 +463,8 @@ function ustring(val: string): string {
 	const encoded = encodeURIComponent(str).replace(ENCODE_URL_ATTR_CHAR_REGEXP, pencode);
 
 	return "UTF-8''" + encoded;
+}
+
+function basename(path: string): string {
+	return path.replace(/.*[\\/]/, "");
 }

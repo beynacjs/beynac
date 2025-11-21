@@ -1,9 +1,9 @@
 /** @jsxImportSource ./ */
 import { expect, test } from "bun:test";
-import { ContainerImpl } from "../container";
+import { ContainerImpl } from "../container/container-entry-point";
 import { createTypeToken } from "../container/container-key";
 import { createKey } from "../core/Key";
-import { render } from "../test-utils";
+import { render } from "../test-utils/view-test-utils";
 import type { Component } from "./Component";
 import { BaseComponent } from "./Component";
 import { ViewRendererImpl } from "./ViewRendererImpl";

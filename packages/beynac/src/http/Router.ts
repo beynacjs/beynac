@@ -4,7 +4,10 @@ import { BaseClass } from "../utils";
 import { DEFAULT_MIDDLEWARE_PRIORITY } from "./default-middleware-priority";
 import type { MiddlewareReference } from "./Middleware";
 import { MiddlewarePriorityBuilder } from "./MiddlewarePriorityBuilder";
-import { addRoute, createMatcher, findRoute, type MatcherContext } from "./matcher";
+import { addRoute } from "./matcher/add-route";
+import { createMatcher } from "./matcher/create-matcher";
+import { findRoute } from "./matcher/find-route";
+import type { MatcherContext } from "./matcher/types";
 import type {
 	BuiltInRouteConstraint,
 	ParamConstraint,

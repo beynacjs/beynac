@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, expectTypeOf, mock, spyOn, test } from "bun:test";
-import { asyncGate } from "../test-utils";
+import { asyncGate } from "../test-utils/async-gate";
 import { sleep } from "../utils";
 import { ContainerImpl } from "./ContainerImpl";
 import type { KeyOrClass } from "./container-key";

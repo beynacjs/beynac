@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { createTestDirectory } from "../../../testing";
+import { createTestDirectory } from "../../../testing/test-directories";
 import { sleep } from "../../../utils";
 import type { StorageEndpoint } from "../../contracts/Storage";
 import { mockPlatformPaths } from "../../path-operations";

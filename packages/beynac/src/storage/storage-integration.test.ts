@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { createTestApplication } from "../test-utils";
+import { createTestApplication } from "../test-utils/http-test-utils";
 import { memoryStorage } from "./adapters/memory/memoryStorage";
 import { Storage } from "./contracts/Storage";
 import { FileWrittenEvent } from "./storage-events";

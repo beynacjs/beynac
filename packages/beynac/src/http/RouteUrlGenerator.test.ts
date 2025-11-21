@@ -3,7 +3,7 @@ import { ContainerImpl } from "../container/ContainerImpl";
 import type { Container } from "../container/contracts/Container";
 import { Configuration } from "../core/contracts/Configuration";
 import { IntegrationContext } from "../integrations/IntegrationContext";
-import { integrationContext, MockController } from "../test-utils";
+import { integrationContext, MockController } from "../test-utils/http-test-utils";
 import { get, group, resource } from "./helpers";
 import { ResourceController } from "./ResourceController";
 import { RouteUrlGenerator } from "./RouteUrlGenerator";

@@ -16,15 +16,27 @@
       "patterns": [
         {
           "group": ["bun", "bun:*"],
-          "message": "Direct imports from 'bun' or 'bun:*' are only allowed in test files. Use 'node:' equivalents where possible."
+          "message": "Direct imports from 'bun' or 'bun:*' are only allowed in test files"
         },
         {
           "group": ["node:path"],
-          "message": "Direct imports from 'node:path' should use the abstraction from src/storage/path.ts instead."
+          "message": "Direct imports from 'node:path' should use the abstraction from src/storage/path.ts instead"
         },
         {
           "group": ["**/contracts"],
-          "message": "Do not import from the central contracts.ts file. Import from module-specific contract files instead (e.g., '../core/core-contracts', '../http/http-contracts', etc.)."
+          "message": "Do not import from the central contracts.ts file"
+        },
+        {
+          "group": ["**/events"],
+          "message": "Do not import from the central events.ts file"
+        },
+        {
+          "group": ["**/errors"],
+          "message": "Do not import from the central errors.ts file"
+        },
+        {
+          "group": ["**/*-entry-point"],
+          "message": "Do not import from entry point files. Import from the specific implementation files instead."
         }
       ]
     }]
@@ -38,20 +50,6 @@
         "no-restricted-imports": "off",
         "no-eval": "off",
         "no-console": "off"
-      }
-    },
-    {
-      "files": [
-        "src/storage/path.ts",
-        "src/helpers/headers.ts"
-      ],
-      "rules": {
-        "no-restricted-imports": ["error", {
-          "patterns": [{
-            "group": ["bun", "bun:*"],
-            "message": "Direct imports from 'bun' or 'bun:*' are only allowed in test files. Use 'node:' equivalents where possible."
-          }]
-        }]
       }
     }
   ]

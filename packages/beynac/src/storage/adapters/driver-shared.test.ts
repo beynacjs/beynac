@@ -1,5 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { expectError, mockDispatcher, shouldSkipDockerTests } from "../../test-utils";
+import { shouldSkipDockerTests } from "../../test-utils/docker";
+import { expectError } from "../../test-utils/error";
+import { mockDispatcher } from "../../test-utils/internal-mocks";
 import type { StorageDisk, StorageEndpoint } from "../contracts/Storage";
 import { StorageImpl } from "../StorageImpl";
 import { NotFoundError } from "../storage-errors";

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { createKey } from "../core/Key";
-import { render, renderResponse, renderStream } from "../test-utils";
 import { asyncGate } from "../test-utils/async-gate";
+import { render, renderResponse, renderStream } from "../test-utils/view-test-utils";
 import { MarkupStream } from "./markup-stream";
 import { RenderingError } from "./view-errors";
 import type { Context, JSXNode } from "./view-types";

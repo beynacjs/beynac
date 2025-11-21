@@ -1,5 +1,7 @@
 import type { TypeToken } from "../../container/container-key";
 import { createTypeToken } from "../../container/container-key";
+import type { MiddlewareReference } from "../../http/Middleware";
+import type { MiddlewarePriorityBuilder } from "../../http/MiddlewarePriorityBuilder";
 import type { ServiceProviderReference } from "./Application";
 
 /**
@@ -215,7 +217,5 @@ export function resolveEnvironmentChoice(
 }
 
 // Re-imported types to avoid circular dependencies
-import type { Routes } from "../../http";
-import type { MiddlewareReference } from "../../http/Middleware";
-import type { MiddlewarePriorityBuilder } from "../../http/MiddlewarePriorityBuilder";
+import type { Routes } from "../../http/router-types";
 import type { StorageAdapter, StorageEndpoint } from "../../storage/contracts/Storage";

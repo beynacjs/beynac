@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createTestApplication } from "../../../test-utils/http-test-utils";
-import { createTestDirectory } from "../../../testing";
+import { createTestDirectory } from "../../../testing/test-directories";
 import { mockPlatformPaths } from "../../path-operations";
 import { PermissionsError } from "../../storage-errors";
 import { mockEndpointBuilder } from "../../storage-test-utils";

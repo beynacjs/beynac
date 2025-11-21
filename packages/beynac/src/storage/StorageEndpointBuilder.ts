@@ -1,6 +1,6 @@
-import { inject } from "../container";
 import { createTypeToken, type TypeToken } from "../container/container-key";
 import { Container } from "../container/contracts/Container";
+import { inject } from "../container/inject";
 import { BaseClass } from "../utils";
 import type { StorageAdapter, StorageEndpoint } from "./contracts/Storage";
 import { isConfiguredStorageDriver } from "./storage-utils";

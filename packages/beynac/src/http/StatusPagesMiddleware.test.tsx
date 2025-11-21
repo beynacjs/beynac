@@ -1,9 +1,10 @@
 /** @jsxImportSource ../view */
 
 import { describe, expect, mock, test } from "bun:test";
-import { controllerContext, mockViewRenderer } from "../test-utils";
-import type { FunctionComponent } from "../view";
-import { BaseComponent } from "../view";
+import { controllerContext } from "../test-utils/http-test-utils";
+import { mockViewRenderer } from "../test-utils/view-test-utils";
+import type { FunctionComponent } from "../view/view-entry-point";
+import { BaseComponent } from "../view/view-entry-point";
 import type { Context } from "../view/view-types";
 import { AbortException } from "./abort";
 import { get } from "./helpers";

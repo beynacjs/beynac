@@ -1,8 +1,19 @@
 import { beforeEach, describe, expect, expectTypeOf, test } from "bun:test";
 import { ContainerImpl } from "../container/ContainerImpl";
 import { Configuration } from "../core/contracts/Configuration";
-import { MockController, mockController } from "../test-utils";
-import { delete_, get, group, isIn, match, options, patch, post, put, type Routes } from "./index";
+import { MockController, mockController } from "../test-utils/http-test-utils";
+import {
+	delete_,
+	get,
+	group,
+	isIn,
+	match,
+	options,
+	patch,
+	post,
+	put,
+	type Routes,
+} from "./http-entry-point";
 import { BaseMiddleware } from "./Middleware";
 import { MiddlewareSet } from "./MiddlewareSet";
 import { Router } from "./Router";

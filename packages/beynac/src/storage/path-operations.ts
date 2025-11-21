@@ -1,6 +1,6 @@
 // oxlint-disable-next-line eslint/no-restricted-imports -- This is the centralized path utility that wraps node:path
 import * as nodePath from "node:path";
-import { onResetAllMocks } from "../testing";
+import { onResetAllMocks } from "../testing/mocks";
 
 type PathOps = Pick<typeof nodePath, "normalize" | "join" | "dirname" | "basename" | "extname">;
 

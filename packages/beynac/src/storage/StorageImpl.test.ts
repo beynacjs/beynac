@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import type { Dispatcher } from "../core/contracts/Dispatcher";
-import { expectError, mockDispatcher, spyOnAll } from "../test-utils";
+import { expectError } from "../test-utils/error";
+import { mockDispatcher } from "../test-utils/internal-mocks";
+import { spyOnAll } from "../test-utils/spy-on-all";
 import { resetAllMocks } from "../testing/mocks";
 import { MemoryEndpoint } from "./adapters/memory/MemoryEndpoint";
 import { memoryStorage } from "./adapters/memory/memoryStorage";
