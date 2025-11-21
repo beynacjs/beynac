@@ -1,6 +1,9 @@
 import { BaseClass, type NoArgConstructor } from "../utils";
 import type { ControllerContext } from "./Controller";
 
+/**
+ * The type of the `next` function passed as the second argument to middleware handlers
+ */
 export type MiddlewareNext = (ctx: ControllerContext) => Response | Promise<Response>;
 
 export type FunctionMiddleware = (
@@ -33,6 +36,9 @@ export abstract class BaseMiddleware extends BaseClass implements IClassMiddlewa
 	abstract handle(ctx: ControllerContext, next: MiddlewareNext): Response | Promise<Response>;
 }
 
+/**
+ * A reference to a middleware class or function
+ */
 export type MiddlewareReference = FunctionMiddleware | ClassMiddleware;
 
 export function isClassMiddleware(value: unknown): value is ClassMiddleware {

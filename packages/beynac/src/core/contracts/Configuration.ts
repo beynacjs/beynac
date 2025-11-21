@@ -2,6 +2,9 @@ import type { TypeToken } from "../../container/container-key";
 import { createTypeToken } from "../../container/container-key";
 import type { ServiceProviderReference } from "./Application";
 
+/**
+ * The configuration supplied to createApplication().
+ */
 export interface Configuration<RouteParams extends Record<string, string> = {}> {
 	/**
 	 * Enable development mode.

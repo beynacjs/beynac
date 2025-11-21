@@ -36,9 +36,6 @@ import {
 } from "./storage-events";
 import { storageOperation } from "./storage-operation";
 
-/**
- * Implementation of the StorageFile interface
- */
 export class StorageFileImpl extends BaseClass implements StorageFile {
 	readonly type = "file" as const;
 	readonly path: string;

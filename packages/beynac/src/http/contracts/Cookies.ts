@@ -2,6 +2,7 @@ import type { TypeToken } from "../../container/container-key";
 import { createTypeToken } from "../../container/container-key";
 import type { CookieAttributes } from "../../integrations/IntegrationContext";
 
+/***/
 export interface Cookies {
 	/**
 	 * Get the number of cookies in the request
@@ -60,4 +61,5 @@ export interface Cookies {
 	set(name: string, value: string, options?: CookieAttributes): void;
 }
 
+/***/
 export const Cookies: TypeToken<Cookies> = createTypeToken("Cookies");

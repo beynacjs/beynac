@@ -1,9 +1,10 @@
 import { ContainerImpl } from "../container/ContainerImpl";
 import type { Container } from "../container/contracts/Container";
 import { DevelopmentServiceProvider } from "../development/DevelopmentServiceProvider";
-import { Router, RouteUrlGenerator } from "../http";
 import { HttpServiceProvider } from "../http/HttpServiceProvider";
 import { RequestHandler } from "../http/RequestHandler";
+import { Router } from "../http/Router";
+import { RouteUrlGenerator } from "../http/RouteUrlGenerator";
 import { IntegrationContext } from "../integrations/IntegrationContext";
 import { Storage } from "../storage/contracts/Storage";
 import { StorageServiceProvider } from "../storage/StorageServiceProvider";

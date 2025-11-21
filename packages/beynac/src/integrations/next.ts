@@ -50,6 +50,7 @@ export const makeRouteHandlers = (app: Application): Record<Verb, AppRouterHandl
 	};
 };
 
+/***/
 export const wrapRouteHandler = <A extends unknown[], R>(
 	handler: (...args: A) => R,
 ): ((...args: A) => R) => {

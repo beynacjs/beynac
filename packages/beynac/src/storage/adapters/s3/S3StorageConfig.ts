@@ -1,3 +1,4 @@
+/***/
 export interface S3StorageConfig {
 	/**
 	 * The base S3 endpoint URL.

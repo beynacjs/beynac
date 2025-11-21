@@ -1,8 +1,21 @@
-export { compileMultiReplace } from "./misc";
+export {
+	camelCase,
+	kebabCase,
+	lowercase,
+	lowercaseFirst,
+	pascalCase,
+	sentenceCase,
+	snakeCase,
+	splitWords,
+	studlyCase,
+	titleCase,
+	uppercase,
+	uppercaseFirst,
+} from "./case";
+export { compileMultiReplace, multiReplace } from "./misc";
 export {
 	isUlid,
 	isUuid,
-	type PasswordOptions,
 	password,
 	random,
 	randomHex,

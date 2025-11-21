@@ -1,3 +1,3 @@
 export { ContainerImpl } from "./ContainerImpl";
-
-export { inject, injectOptional } from "./inject";
+export { createTypeToken, type TypeToken } from "./container-key";
+export { inject, injectFactory, injectFactoryOptional, injectOptional } from "./inject";

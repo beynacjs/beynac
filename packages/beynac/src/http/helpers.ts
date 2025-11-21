@@ -2,6 +2,7 @@ import { arrayWrapOptional } from "../utils";
 import type { Controller, ControllerContext } from "./Controller";
 import { MiddlewareSet } from "./MiddlewareSet";
 import type { ApiResourceAction, ResourceAction } from "./ResourceController";
+import type { RedirectOptions } from "./redirect";
 import { redirectStatus } from "./redirect";
 import type {
 	ExtractDomainAndPathParams,
@@ -32,9 +33,6 @@ export function isIn(values: readonly string[]): ParamConstraint {
 	return new RegExp(`^(${values.map(escapeRegex).join("|")})$`);
 }
 
-/**
- * Validate and normalize statusPages option to a Record
- */
 function validateStatusPages(statusPages: StatusPages | undefined) {
 	if (!statusPages) return;
 
@@ -107,9 +105,6 @@ function createRoute<
 	return [route] as RouteMethodReturn<Path, Name, Domain>;
 }
 
-/**
- * Type for HTTP method route functions
- */
 type RouteMethodFunction = <
 	const Path extends string,
 	const Name extends string = never,
@@ -174,6 +169,7 @@ export const patch: RouteMethodFunction = (path, controller, options) =>
 export const delete_: RouteMethodFunction = (path, controller, options) =>
 	createRoute("DELETE", path, controller, options);
 
+/***/
 export { delete_ as delete };
 
 /**
@@ -251,7 +247,7 @@ export function any<
  */
 export function redirect(
 	to: string,
-	options?: { permanent?: boolean; preserveHttpMethod?: boolean },
+	options?: RedirectOptions,
 ): (ctx: ControllerContext) => Response {
 	const status = redirectStatus(options);
 
@@ -296,6 +292,7 @@ export function group<
 	children: Children,
 ): GroupedRoutes<Children, NamePrefix, PathPrefix>;
 
+/***/
 export function group<
 	const Children extends GroupChildren,
 	const NamePrefix extends string = "",
@@ -545,10 +542,6 @@ export function apiResource<
 	return result as unknown as Routes<FilteredApiResourceRouteMap<ResourceName, Only, Except>>;
 }
 
-/**
- * Filter resource actions based on only/except options.
- * If only is specified, subtract except from only.
- */
 function filterResourceActions<T extends { action: ResourceAction }>(
 	actions: readonly T[],
 	only?: readonly ResourceAction[],

@@ -11,6 +11,7 @@ import {
 } from "../utils";
 import { ContextualBindingBuilder } from "./ContextualBindingBuilder";
 import { getKeyName, type KeyOrClass, type TypeToken } from "./container-key";
+import type { Lifecycle } from "./contracts/Container";
 import { Container } from "./contracts/Container";
 import { _getInjectHandler, _setInjectHandler } from "./inject";
 import { NO_VALUE, type NoValue } from "./no-value";
@@ -20,16 +21,11 @@ type ScopeContext = {
 	instances: Map<KeyOrClass, unknown>;
 };
 
-/**
- * Track the current container and its scoped instances for each async context
- */
 const scopeContext = new AsyncLocalStorage<ScopeContext>();
 
 export type FactoryFunction<T> = (container: Container) => {
 	[K in keyof T]: T[K];
 };
-
-export type Lifecycle = "transient" | "singleton" | "scoped";
 
 type ContextualOverrides = Map<KeyOrClass, FactoryFunction<unknown>>;
 
@@ -89,9 +85,10 @@ export type InstanceCallback<T> = (instance: T, container: Container) => void;
 export type TypeCallback<T> = (type: KeyOrClass<T>, container: Container) => void;
 
 /**
- * Implementation of the Container interface.
- *
- * See {@link Container} for full documentation.
+ * The primary implementation of {@link Container}. Most applications use the
+ * application container instance at `app.container`, but if your application
+ * needs an isolated container instance for its own purposes it can use this
+ * implementation.
  */
 export class ContainerImpl extends BaseClass implements Container {
 	#bindings = new Map<KeyOrClass, Binding>();

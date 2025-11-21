@@ -120,9 +120,6 @@ const BUILT_IN_CONSTRAINTS: Record<BuiltInRouteConstraint, RegExp> = {
 	ulid: /^[0-9A-Z]{26}$/i,
 };
 
-/**
- * Check if a value matches a constraint
- */
 function matchConstraint(constraint: ParamConstraint, value: string): boolean {
 	let pattern: RegExp | ((value: string) => boolean);
 

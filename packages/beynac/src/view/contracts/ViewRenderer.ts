@@ -1,6 +1,6 @@
 import type { TypeToken } from "../../container/container-key";
 import { createTypeToken } from "../../container/container-key";
-import type { JSXNode, RenderOptions } from "../public-types";
+import type { JSXNode, RenderOptions } from "../view-types";
 
 export type RenderResponseOptions = {
 	readonly status?: number | undefined;
@@ -8,6 +8,9 @@ export type RenderResponseOptions = {
 	readonly streaming?: boolean | undefined;
 } & RenderOptions;
 
+/**
+ * Provides methods to render JSX and html`` template string content.
+ */
 export interface ViewRenderer {
 	/**
 	 * Renders content to a complete HTML/XML string.
@@ -56,4 +59,5 @@ export interface ViewRenderer {
 	renderStream(node: JSXNode, options?: RenderOptions): AsyncGenerator<string>;
 }
 
+/***/
 export const ViewRenderer: TypeToken<ViewRenderer> = createTypeToken("ViewRenderer");

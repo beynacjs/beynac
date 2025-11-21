@@ -3,6 +3,7 @@ import { transliterate, withoutComplexChars } from "./str";
 
 const NON_LATIN1_REGEXP = /[^\x20-\x7e\xa0-\xff]/g;
 
+/***/
 export interface HeaderValueWithAttributes {
 	/**
 	 * The header value (e.g., 'attachment', 'inline')
@@ -177,110 +178,82 @@ export function parseAttributeHeader(string: string): HeaderValueWithAttributes 
 // It has been modified from the original
 //
 
-/**
- * RegExp to match non attr-char, *after* encodeURIComponent (i.e. not including "%")
- * @private
- */
+// RegExp to match non attr-char, *after* encodeURIComponent (i.e. not including "%")
 const ENCODE_URL_ATTR_CHAR_REGEXP = /[\x00-\x20"'()*,/:;<=>?@[\\\]{}\x7f]/g;
 
-/**
- * RegExp to match percent encoding escape.
- * @private
- */
+// RegExp to match percent encoding escape.
 const HEX_ESCAPE_REGEXP = /%[0-9A-Fa-f]{2}/;
 const HEX_ESCAPE_REPLACE_REGEXP = /%([0-9A-Fa-f]{2})/g;
 
-/**
- * RegExp to match quoted-pair in RFC 2616
- *
- * quoted-pair = "\" CHAR
- * CHAR        = <any US-ASCII character (octets 0 - 127)>
- * @private
- */
+// RegExp to match quoted-pair in RFC 2616
+//
+// quoted-pair = "\" CHAR
+// CHAR        = <any US-ASCII character (octets 0 - 127)>
 const QESC_REGEXP = /\\([\u0000-\u007f])/g;
 
-/**
- * RegExp to match chars that must be quoted-pair in RFC 2616
- * @private
- */
+// RegExp to match chars that must be quoted-pair in RFC 2616
 const QUOTE_REGEXP = /([\\"])/g;
 
-/**
- * RegExp for various RFC 2616 grammar
- *
- * parameter     = token "=" ( token | quoted-string )
- * token         = 1*<any CHAR except CTLs or separators>
- * separators    = "(" | ")" | "<" | ">" | "@"
- *               | "," | ";" | ":" | "\" | <">
- *               | "/" | "[" | "]" | "?" | "="
- *               | "{" | "}" | SP | HT
- * quoted-string = ( <"> *(qdtext | quoted-pair ) <"> )
- * qdtext        = <any TEXT except <">>
- * quoted-pair   = "\" CHAR
- * CHAR          = <any US-ASCII character (octets 0 - 127)>
- * TEXT          = <any OCTET except CTLs, but including LWS>
- * LWS           = [CRLF] 1*( SP | HT )
- * CRLF          = CR LF
- * CR            = <US-ASCII CR, carriage return (13)>
- * LF            = <US-ASCII LF, linefeed (10)>
- * SP            = <US-ASCII SP, space (32)>
- * HT            = <US-ASCII HT, horizontal-tab (9)>
- * CTL           = <any US-ASCII control character (octets 0 - 31) and DEL (127)>
- * OCTET         = <any 8-bit sequence of data>
- * @private
- */
+// RegExp for various RFC 2616 grammar
+//
+// parameter     = token "=" ( token | quoted-string )
+// token         = 1*<any CHAR except CTLs or separators>
+// separators    = "(" | ")" | "<" | ">" | "@"
+//               | "," | ";" | ":" | "\" | <">
+//               | "/" | "[" | "]" | "?" | "="
+//               | "{" | "}" | SP | HT
+// quoted-string = ( <"> *(qdtext | quoted-pair ) <"> )
+// qdtext        = <any TEXT except <">>
+// quoted-pair   = "\" CHAR
+// CHAR          = <any US-ASCII character (octets 0 - 127)>
+// TEXT          = <any OCTET except CTLs, but including LWS>
+// LWS           = [CRLF] 1*( SP | HT )
+// CRLF          = CR LF
+// CR            = <US-ASCII CR, carriage return (13)>
+// LF            = <US-ASCII LF, linefeed (10)>
+// SP            = <US-ASCII SP, space (32)>
+// HT            = <US-ASCII HT, horizontal-tab (9)>
+// CTL           = <any US-ASCII control character (octets 0 - 31) and DEL (127)>
+// OCTET         = <any 8-bit sequence of data>
 const PARAM_REGEXP =
 	/;[\x09\x20]*([!#$%&'*+.0-9A-Z^_`a-z|~-]+)[\x09\x20]*=[\x09\x20]*("(?:[\x20!\x23-\x5b\x5d-\x7e\x80-\xff]|\\[\x20-\x7e])*"|[!#$%&'*+.0-9A-Z^_`a-z|~-]+)[\x09\x20]*/g;
 const TEXT_REGEXP = /^[\x20-\x7e\x80-\xff]+$/;
 const TOKEN_REGEXP = /^[!#$%&'*+.0-9A-Z^_`a-z|~-]+$/;
 
-/**
- * RegExp for various RFC 5987 grammar
- *
- * ext-value     = charset  "'" [ language ] "'" value-chars
- * charset       = "UTF-8" / "ISO-8859-1" / mime-charset
- * mime-charset  = 1*mime-charsetc
- * mime-charsetc = ALPHA / DIGIT
- *               / "!" / "#" / "$" / "%" / "&"
- *               / "+" / "-" / "^" / "_" / "`"
- *               / "{" / "}" / "~"
- * language      = ( 2*3ALPHA [ extlang ] )
- *               / 4ALPHA
- *               / 5*8ALPHA
- * extlang       = *3( "-" 3ALPHA )
- * value-chars   = *( pct-encoded / attr-char )
- * pct-encoded   = "%" HEXDIG HEXDIG
- * attr-char     = ALPHA / DIGIT
- *               / "!" / "#" / "$" / "&" / "+" / "-" / "."
- *               / "^" / "_" / "`" / "|" / "~"
- * @private
- */
+// RegExp for various RFC 5987 grammar
+//
+// ext-value     = charset  "'" [ language ] "'" value-chars
+// charset       = "UTF-8" / "ISO-8859-1" / mime-charset
+// mime-charset  = 1*mime-charsetc
+// mime-charsetc = ALPHA / DIGIT
+//               / "!" / "#" / "$" / "%" / "&"
+//               / "+" / "-" / "^" / "_" / "`"
+//               / "{" / "}" / "~"
+// language      = ( 2*3ALPHA [ extlang ] )
+//               / 4ALPHA
+//               / 5*8ALPHA
+// extlang       = *3( "-" 3ALPHA )
+// value-chars   = *( pct-encoded / attr-char )
+// pct-encoded   = "%" HEXDIG HEXDIG
+// attr-char     = ALPHA / DIGIT
+//               / "!" / "#" / "$" / "&" / "+" / "-" / "."
+//               / "^" / "_" / "`" / "|" / "~"
 const EXT_VALUE_REGEXP =
 	/^([A-Za-z0-9!#$%&+\-^_`{}~]+)'(?:[A-Za-z]{2,3}(?:-[A-Za-z]{3}){0,3}|[A-Za-z]{4,8}|)'((?:%[0-9A-Fa-f]{2}|[A-Za-z0-9!#$&+.^_`|~-])+)$/;
 
-/**
- * RegExp for various RFC 6266 grammar
- *
- * disposition-type = "inline" | "attachment" | disp-ext-type
- * disp-ext-type    = token
- * disposition-parm = filename-parm | disp-ext-parm
- * filename-parm    = "filename" "=" value
- *                  | "filename*" "=" ext-value
- * disp-ext-parm    = token "=" value
- *                  | ext-token "=" ext-value
- * ext-token        = <the characters in token, followed by "*">
- * @private
- */
+// RegExp for various RFC 6266 grammar
+//
+// disposition-type = "inline" | "attachment" | disp-ext-type
+// disp-ext-type    = token
+// disposition-parm = filename-parm | disp-ext-parm
+// filename-parm    = "filename" "=" value
+//                  | "filename*" "=" ext-value
+// disp-ext-parm    = token "=" value
+//                  | ext-token "=" ext-value
+// ext-token        = <the characters in token, followed by "*">
 const DISPOSITION_TYPE_REGEXP = /^([!#$%&'*+.0-9A-Z^_`a-z|~-]+)[\x09\x20]*(?:$|;)/;
 
-/**
- * Build attributes with fallbacks for multiple parameters.
- *
- * @param {Record<string, string | number>} attributes
- * @param {Record<string, string | boolean> | boolean} [fallbacks]
- * @return {Record<string, string>}
- * @private
- */
+// Build attributes with fallbacks for multiple parameters.
 function buildAttributesWithFallbacks(
 	attributes: Record<string, string | number>,
 	fallbacks: Record<string, string | boolean> | boolean = {},
@@ -334,14 +307,7 @@ function buildAttributesWithFallbacks(
 	return result;
 }
 
-/**
- * Create parameters object from filename and fallback.
- *
- * @param {string} filename
- * @param {string|boolean} fallback
- * @return {Record<string, string>}
- * @private
- */
+// Create parameters object from filename and fallback.
 function createFilenameParams(
 	filename: string,
 	fallback: string | boolean,
@@ -384,14 +350,7 @@ function createFilenameParams(
 	return params;
 }
 
-/**
- * Create parameters object from filename and fallback (legacy wrapper).
- *
- * @param {string} [filename]
- * @param {string|boolean} [fallback=true]
- * @return {Record<string, string>}
- * @private
- */
+// Create parameters object from filename and fallback (legacy wrapper).
 function createparams(
 	filename: string | undefined,
 	fallback: string | boolean | undefined,
@@ -408,13 +367,7 @@ function createparams(
 	return createFilenameParams(filename, fallback);
 }
 
-/**
- * Format object to header string.
- *
- * @param {HeaderValueWithAttributes} obj
- * @return {string}
- * @private
- */
+// Format object to header string.
 function format(obj: HeaderValueWithAttributes): string {
 	const attributes = obj.attributes;
 	const headerValue = obj.value;
@@ -443,13 +396,7 @@ function format(obj: HeaderValueWithAttributes): string {
 	return string;
 }
 
-/**
- * Decode a RFC 5987 field value (gracefully).
- *
- * @param {string} str
- * @return {string}
- * @private
- */
+// Decode a RFC 5987 field value (gracefully).
 function decodefield(str: string): string {
 	const match = EXT_VALUE_REGEXP.exec(str);
 
@@ -481,16 +428,10 @@ function decodefield(str: string): string {
 	return value;
 }
 
-/**
- * Get ISO-8859-1 version of string.
- *
- * Applies transliteration and mark removal for better fallbacks (café→café not caf?),
- * then replaces any remaining non-Latin1 characters with "?".
- *
- * @param {string} val
- * @return {string}
- * @private
- */
+// Get ISO-8859-1 version of string.
+//
+// Applies transliteration and mark removal for better fallbacks (café→café not caf?),
+// then replaces any remaining non-Latin1 characters with "?".
 function getlatin1(val: string): string {
 	// transliterate now includes withoutMarks with allowLatin1 option
 	let result = transliterate(val, { allowLatin1: true });
@@ -498,49 +439,24 @@ function getlatin1(val: string): string {
 	return result;
 }
 
-/**
- * Percent decode a single character.
- *
- * @param {string} _str
- * @param {string} hex
- * @return {string}
- * @private
- */
+// Percent decode a single character.
 function pdecode(_str: string, hex: string): string {
 	return String.fromCharCode(parseInt(hex, 16));
 }
 
-/**
- * Percent encode a single character.
- *
- * @param {string} char
- * @return {string}
- * @private
- */
+// Percent encode a single character.
 function pencode(char: string): string {
 	return "%" + String(char).charCodeAt(0).toString(16).toUpperCase();
 }
 
-/**
- * Quote a string for HTTP.
- *
- * @param {string} val
- * @return {string}
- * @private
- */
+// Quote a string for HTTP.
 function qstring(val: string): string {
 	const str = String(val);
 
 	return '"' + str.replace(QUOTE_REGEXP, "\\$1") + '"';
 }
 
-/**
- * Encode a Unicode string for HTTP (RFC 5987).
- *
- * @param {string} val
- * @return {string}
- * @private
- */
+// Encode a Unicode string for HTTP (RFC 5987).
 function ustring(val: string): string {
 	const str = String(val);
 

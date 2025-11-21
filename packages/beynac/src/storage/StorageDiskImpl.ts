@@ -3,9 +3,6 @@ import type { StorageDirectoryOperations, StorageDisk, StorageEndpoint } from ".
 import { DelegatesToDirectory } from "./DelegatesToDirectory";
 import { StorageDirectoryImpl } from "./StorageDirectoryImpl";
 
-/**
- * Implementation of the StorageDisk interface
- */
 export class StorageDiskImpl extends DelegatesToDirectory implements StorageDisk {
 	readonly name: string;
 	readonly endpoint: StorageEndpoint;

@@ -6,8 +6,8 @@ import { createKey } from "../core/Key";
 import { render } from "../test-utils";
 import type { Component } from "./Component";
 import { BaseComponent } from "./Component";
-import { type Context, isJsxElement, type JSX, type JSXNode, type Props } from "./public-types";
 import { ViewRendererImpl } from "./ViewRendererImpl";
+import { type Context, isJsxElement, type JSX, type JSXNode, type Props } from "./view-types";
 
 test("renders single element with attributes and text child", async () => {
 	expect(await render(<span id="foo">hello</span>)).toBe('<span id="foo">hello</span>');

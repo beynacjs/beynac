@@ -61,7 +61,7 @@ export const randomHex: (length: number) => string = mockable(function randomHex
 	return random(length, "0123456789abcdef");
 });
 
-export interface PasswordOptions {
+interface PasswordOptions {
 	length?: number;
 	letters?: boolean;
 	numbers?: boolean;

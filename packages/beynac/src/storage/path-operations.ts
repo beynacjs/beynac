@@ -48,12 +48,6 @@ const getPlatformOps = (): PathOps => {
 	return platformOps;
 };
 
-/**
- * Mock platform path operations for testing.
- * Use path.win32 or path.posix to test cross-platform behavior.
- *
- * @internal
- */
 export function mockPlatformPaths(ops: "posix" | "win32" | "require" | "native"): void {
 	switch (ops) {
 		case "posix":

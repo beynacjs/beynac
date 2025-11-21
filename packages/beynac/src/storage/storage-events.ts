@@ -75,14 +75,12 @@ export class StorageOperationFailedEvent extends StorageEvent {
 	}
 }
 
-// ============================================================================
-// File Read Operations
-// ============================================================================
-
+/** Dispatched when a file read operation starts. */
 export class FileReadingEvent extends StorageOperationStartingEvent {
 	public readonly type = "file:read" as const;
 }
 
+/** Dispatched when a file has been successfully read. */
 export class FileReadEvent extends StorageOperationCompletedEvent {
 	public readonly type = "file:read" as const;
 	readonly #response: Response;
@@ -112,10 +110,12 @@ export class FileReadEvent extends StorageOperationCompletedEvent {
 	}
 }
 
+/** Dispatched when checking if a file exists. */
 export class FileExistenceCheckingEvent extends StorageOperationStartingEvent {
 	public readonly type = "file:existence-check" as const;
 }
 
+/** Dispatched when file existence check completes. */
 export class FileExistenceCheckedEvent extends StorageOperationCompletedEvent {
 	public readonly type = "file:existence-check" as const;
 
@@ -127,10 +127,12 @@ export class FileExistenceCheckedEvent extends StorageOperationCompletedEvent {
 	}
 }
 
+/** Dispatched when retrieving file metadata. */
 export class FileInfoRetrievingEvent extends StorageOperationStartingEvent {
 	public readonly type = "file:info-retrieve" as const;
 }
 
+/** Dispatched when file metadata has been retrieved. */
 export class FileInfoRetrievedEvent extends StorageOperationCompletedEvent {
 	public readonly type = "file:info-retrieve" as const;
 
@@ -142,6 +144,7 @@ export class FileInfoRetrievedEvent extends StorageOperationCompletedEvent {
 	}
 }
 
+/** Dispatched when generating a URL for a file. */
 export class FileUrlGeneratingEvent extends StorageOperationStartingEvent {
 	public readonly type = "file:url-generate" as const;
 	constructor(
@@ -157,6 +160,7 @@ export class FileUrlGeneratingEvent extends StorageOperationStartingEvent {
 	}
 }
 
+/** Dispatched when a file URL has been generated. */
 export class FileUrlGeneratedEvent extends StorageOperationCompletedEvent {
 	public readonly type = "file:url-generate" as const;
 
@@ -184,10 +188,7 @@ export class FileUrlGeneratedEvent extends StorageOperationCompletedEvent {
 	}
 }
 
-// ============================================================================
-// File Write Operations
-// ============================================================================
-
+/** Dispatched when a file write operation starts. */
 export class FileWritingEvent extends StorageOperationStartingEvent {
 	public readonly type = "file:write" as const;
 	constructor(
@@ -200,6 +201,7 @@ export class FileWritingEvent extends StorageOperationStartingEvent {
 	}
 }
 
+/** Dispatched when a file has been successfully written. */
 export class FileWrittenEvent extends StorageOperationCompletedEvent {
 	public readonly type = "file:write" as const;
 
@@ -219,14 +221,17 @@ export class FileWrittenEvent extends StorageOperationCompletedEvent {
 	}
 }
 
+/** Dispatched when a file deletion starts. */
 export class FileDeletingEvent extends StorageOperationStartingEvent {
 	public readonly type = "file:delete" as const;
 }
 
+/** Dispatched when a file has been successfully deleted. */
 export class FileDeletedEvent extends StorageOperationCompletedEvent {
 	public readonly type = "file:delete" as const;
 }
 
+/** Dispatched when a file copy operation starts. */
 export class FileCopyingEvent extends StorageOperationStartingEvent {
 	public readonly type = "file:copy" as const;
 	constructor(
@@ -239,6 +244,7 @@ export class FileCopyingEvent extends StorageOperationStartingEvent {
 	}
 }
 
+/** Dispatched when a file has been successfully copied. */
 export class FileCopiedEvent extends StorageOperationCompletedEvent {
 	public readonly type = "file:copy" as const;
 
@@ -258,6 +264,7 @@ export class FileCopiedEvent extends StorageOperationCompletedEvent {
 	}
 }
 
+/** Dispatched when a file move operation starts. */
 export class FileMovingEvent extends StorageOperationStartingEvent {
 	public readonly type = "file:move" as const;
 	constructor(
@@ -270,6 +277,7 @@ export class FileMovingEvent extends StorageOperationStartingEvent {
 	}
 }
 
+/** Dispatched when a file has been successfully moved. */
 export class FileMovedEvent extends StorageOperationCompletedEvent {
 	public readonly type = "file:move" as const;
 
@@ -289,14 +297,12 @@ export class FileMovedEvent extends StorageOperationCompletedEvent {
 	}
 }
 
-// ============================================================================
-// Directory Read Operations
-// ============================================================================
-
+/** Dispatched when checking if a directory exists. */
 export class DirectoryExistenceCheckingEvent extends StorageOperationStartingEvent {
 	public readonly type = "directory:existence-check" as const;
 }
 
+/** Dispatched when directory existence check completes. */
 export class DirectoryExistenceCheckedEvent extends StorageOperationCompletedEvent {
 	public readonly type = "directory:existence-check" as const;
 
@@ -308,6 +314,7 @@ export class DirectoryExistenceCheckedEvent extends StorageOperationCompletedEve
 	}
 }
 
+/** Dispatched when a directory listing operation starts. */
 export class DirectoryListingEvent extends StorageOperationStartingEvent {
 	public readonly type = "directory:list" as const;
 	constructor(
@@ -320,6 +327,7 @@ export class DirectoryListingEvent extends StorageOperationStartingEvent {
 	}
 }
 
+/** Dispatched when a directory has been successfully listed. */
 export class DirectoryListedEvent extends StorageOperationCompletedEvent {
 	public readonly type = "directory:list" as const;
 	readonly #startEvent: DirectoryListingEvent;
@@ -341,14 +349,12 @@ export class DirectoryListedEvent extends StorageOperationCompletedEvent {
 	}
 }
 
-// ============================================================================
-// Directory Write Operations
-// ============================================================================
-
+/** Dispatched when a directory deletion starts. */
 export class DirectoryDeletingEvent extends StorageOperationStartingEvent {
 	public readonly type = "directory:delete" as const;
 }
 
+/** Dispatched when a directory has been successfully deleted. */
 export class DirectoryDeletedEvent extends StorageOperationCompletedEvent {
 	public readonly type = "directory:delete" as const;
 }

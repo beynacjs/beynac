@@ -3,7 +3,6 @@ import { pipeline, Readable } from "node:stream";
 import { promisify } from "node:util";
 import { BaseClass } from "../../../utils";
 import type {
-	StorageAdapter,
 	StorageEndpoint,
 	StorageEndpointFileInfoResult,
 	StorageEndpointFileReadResult,
@@ -17,9 +16,6 @@ import type { FilesystemStorageConfig } from "./FilesystemStorageConfig";
 
 const pipelineAsync = promisify(pipeline);
 
-/**
- * Filesystem storage adapter for local file storage
- */
 export class FilesystemEndpoint extends BaseClass implements StorageEndpoint {
 	readonly name = "filesystem" as const;
 	readonly invalidNameChars = '<>:"/\\|?*';
@@ -295,20 +291,6 @@ export class FilesystemEndpoint extends BaseClass implements StorageEndpoint {
 	}
 }
 
-/**
- * Create filesystem-backed storage
- */
-export function filesystemStorage(config: FilesystemStorageConfig): StorageAdapter {
-	return {
-		build(): StorageEndpoint {
-			return new FilesystemEndpoint(config);
-		},
-	};
-}
-
-/**
- * Convert Node.js filesystem errors to storage errors
- */
 const convertNodeError = (error: unknown, path: string): Error => {
 	if (typeof error === "object" && error !== null && "code" in error) {
 		const code = (error as { code: string }).code;
@@ -322,9 +304,6 @@ const convertNodeError = (error: unknown, path: string): Error => {
 	return new StorageUnknownError(`operate on ${path}`, error);
 };
 
-/**
- * Wraps a ReadableStream to intercept and convert errors using the provided converter function
- */
 function wrapStreamErrors(
 	stream: ReadableStream<Uint8Array>,
 	convertError: (error: unknown) => Error,

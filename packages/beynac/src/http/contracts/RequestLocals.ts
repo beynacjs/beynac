@@ -49,5 +49,6 @@ export interface RequestLocals {
 	delete(key: Key<unknown>): void;
 }
 
+/***/
 export const RequestLocals: TypeToken<RequestLocals> =
 	createTypeToken<RequestLocals>("RequestLocals");

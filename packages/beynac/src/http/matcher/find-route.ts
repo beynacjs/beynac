@@ -7,9 +7,6 @@ export type FindRouteResult<T> = {
 	static?: boolean | undefined;
 };
 
-/**
- * Find a route by path and optionally hostname.
- */
 export function findRoute<T = unknown>(
 	ctx: MatcherContext<T>,
 	method: string,

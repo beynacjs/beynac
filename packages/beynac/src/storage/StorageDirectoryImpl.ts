@@ -23,9 +23,6 @@ import {
 } from "./storage-events";
 import { storageOperation } from "./storage-operation";
 
-/**
- * Implementation of the StorageDirectory interface
- */
 export class StorageDirectoryImpl extends BaseClass implements StorageDirectory {
 	readonly type = "directory" as const;
 	readonly disk: StorageDisk;

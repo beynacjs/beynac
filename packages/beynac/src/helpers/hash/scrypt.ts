@@ -11,13 +11,24 @@ import { formatPhc, parsePhc } from "./phc";
  * Options for scrypt hashing
  */
 export interface ScryptOptions {
-	/** CPU/memory cost parameter (must be power of 2, default: 16384) */
+	/**
+	 * CPU/memory cost parameter (must be power of 2, default: 16384)
+	 */
 	N?: number | undefined;
-	/** Block size parameter (default: 8) */
+
+	/**
+	 * Block size parameter (default: 8)
+	 */
 	r?: number | undefined;
-	/** Parallelisation parameter (default: 1) */
+
+	/**
+	 * Parallelisation parameter (default: 1)
+	 */
 	p?: number | undefined;
-	/** Length of derived key in bytes (default: 32) */
+
+	/**
+	 * Length of derived key in bytes (default: 32)
+	 */
 	keyLen?: number | undefined;
 }
 

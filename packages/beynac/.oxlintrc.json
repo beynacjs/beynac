@@ -9,6 +9,7 @@
     "no-implied-eval": "off",
     "no-control-regex": "off",
     "prefer-node-protocol": "error",
+    "no-unused-private-class-members": "error",
     "no-restricted-imports": ["error", {
       "patterns": [
         {

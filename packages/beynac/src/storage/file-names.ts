@@ -3,9 +3,7 @@ import * as str from "../helpers/str";
 import { regExpEscape } from "../utils";
 import { posix } from "./path-operations";
 
-/**
- * MIME type and file name handling for storage operations. Based on Chrome's
- */
+// MIME type and file name handling for storage operations. Based on Chrome's
 const mappings: Array<[string, string[]]> = [
 	// Chrome secondary mime mappings
 	["video/webm", [".webm"]],
@@ -177,10 +175,6 @@ export function sanitiseName(name: string, invalidChars: string): string {
 	return sanitised + hashSuffix;
 }
 
-/**
- * Joins two path segments ensuring exactly one "/" between them.
- * Handles cases where either segment starts or ends with a slash.
- */
 export function joinSlashPaths(a: string, b: string): string {
 	if (!a) return b;
 	if (!b) return a;

@@ -7,11 +7,6 @@ import {
 	type StorageOperationType,
 } from "./storage-events";
 
-/**
- * Conditional type to extract the event value based on function return type:
- * - AsyncGenerator -> number (count of yielded items)
- * - Promise<T> -> T (the resolved value)
- */
 type EventValueForFn<TFn> = TFn extends () => AsyncGenerator<unknown, unknown, unknown>
 	? number
 	: TFn extends () => Promise<infer TResult>

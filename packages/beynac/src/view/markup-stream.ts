@@ -1,11 +1,7 @@
 import { arrayWrap, BaseClass } from "../utils";
-import type { JSXElement } from "./public-types";
-import { type JSXNode, tagAsJsxElement } from "./public-types";
+import type { JSXElement } from "./view-types";
+import { type JSXNode, tagAsJsxElement } from "./view-types";
 
-/**
- * A MarkupStream represents an HTML/XML element with optional tag, attributes, and children.
- * It serves as the primary building block for the virtual DOM representation.
- */
 export class MarkupStream extends BaseClass {
 	readonly tag: string | null;
 	readonly displayName: string | null;

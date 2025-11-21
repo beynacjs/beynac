@@ -1,5 +1,6 @@
 import type { StorageAdapter, StorageDisk, StorageEndpoint } from "../../contracts/Storage";
 
+/***/
 export interface ScopedStorageConfig {
 	/**
 	 * The backing disk to wrap, see

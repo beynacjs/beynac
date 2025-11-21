@@ -15,9 +15,6 @@ interface MemoryFile {
 	etag: string;
 }
 
-/**
- * In-memory storage adapter for testing and temporary storage
- */
 export class MemoryEndpoint extends BaseClass implements StorageEndpoint {
 	readonly name = "memory" as const;
 	readonly #files: Map<string, MemoryFile> = new Map();

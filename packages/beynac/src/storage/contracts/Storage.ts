@@ -51,8 +51,6 @@ export interface StorageDisk extends StorageDirectoryOperations {
 	readonly endpoint: StorageEndpoint;
 }
 
-export type StorageEntry = StorageFile | StorageDirectory;
-
 interface SignUrlOptions {
 	/**
 	 * Generate a signed URL with expiration on adapters that support it.
@@ -99,6 +97,7 @@ type StorageFileSizeAndMime = {
 	originalMimeType: string | null;
 };
 
+/***/
 export interface StorageFileInfo extends StorageFileSizeAndMime {
 	/**
 	 * The file etag if available. S3 provides an etag with get() responses,
@@ -108,6 +107,7 @@ export interface StorageFileInfo extends StorageFileSizeAndMime {
 	etag: string;
 }
 
+/***/
 export interface StorageFileFetchResult extends StorageFileSizeAndMime {
 	/**
 	 * The file etag if available. S3 provides an etag with get() responses,
@@ -125,10 +125,16 @@ export interface StorageFileFetchResult extends StorageFileSizeAndMime {
 	response: Response;
 }
 
+/***/
 export type StorageFileUrlOptions = DownloadUrlOptions;
+
+/***/
 export type StorageFileSignedUrlOptions = SignUrlOptions & DownloadUrlOptions;
+
+/***/
 export type StorageFileUploadUrlOptions = SignUrlOptions;
 
+/***/
 export interface StorageFile {
 	readonly type: "file";
 
@@ -267,6 +273,9 @@ export interface StorageFile {
 	moveTo(destination: StorageFile): Promise<void>;
 }
 
+/**
+ * A source of binary data for uploading to storage.
+ */
 export type StorageData =
 	| ReadableStream
 	| Blob
@@ -288,11 +297,13 @@ export type StorageData =
 	| BigUint64Array
 	| DataView;
 
+/***/
 export interface StorageFilePutPayload {
 	data: StorageData;
 	mimeType?: string | null | undefined;
 }
 
+/***/
 export interface StorageDirectory extends StorageDirectoryOperations {
 	readonly type: "directory";
 
@@ -311,6 +322,7 @@ type FileSanitiseOptions = {
 	onInvalid?: "convert" | "throw";
 };
 
+/***/
 export type StorageFileListOptions = {
 	/**
 	 * Whether to list files recursively. If false, only immediate children
@@ -319,6 +331,7 @@ export type StorageFileListOptions = {
 	recursive?: boolean;
 };
 
+/***/
 export interface StorageDirectoryOperations {
 	/**
 	 * Check if there are any files with this directory's prefix.
@@ -449,18 +462,21 @@ export interface StorageDirectoryOperations {
 	): Promise<StorageFile>;
 }
 
+/***/
 export interface StorageEndpointWriteOptions {
 	path: string;
 	data: StorageData;
 	mimeType: string | null;
 }
 
+/***/
 export interface StorageEndpointFileInfoResult {
 	contentLength: number;
 	mimeType: string | null;
 	etag: string;
 }
 
+/***/
 export interface StorageEndpointFileReadResult {
 	contentLength: number;
 	mimeType: string | null;
@@ -468,6 +484,7 @@ export interface StorageEndpointFileReadResult {
 	data: StorageData;
 }
 
+/***/
 export interface StorageAdapter {
 	build(container: Container): StorageEndpoint;
 }
@@ -598,4 +615,5 @@ export interface StorageEndpoint {
 	deleteAllUnderPrefix(prefix: string): Promise<void>;
 }
 
+/***/
 export const Storage: TypeToken<Storage> = createTypeToken("Storage");

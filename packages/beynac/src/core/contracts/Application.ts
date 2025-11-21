@@ -10,17 +10,11 @@ export type QueryParams =
 	| Record<string, string | number | undefined | null | Array<string | number | undefined | null>>
 	| URLSearchParams;
 
-/**
- * Options for routes with required parameters
- */
 export type UrlOptionsWithParams<T extends string> = {
 	params: Record<T, string | number>;
 	query?: QueryParams | undefined;
 };
 
-/**
- * Options for routes WITHOUT parameters (params can be {}, undefined, or omitted)
- */
 export type UrlOptionsNoParams = {
 	params?: Record<never, never> | undefined;
 	query?: QueryParams | undefined;

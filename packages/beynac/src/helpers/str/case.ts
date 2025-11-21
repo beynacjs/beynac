@@ -1,16 +1,8 @@
-/**
- * Case conversion utilities for strings
- * @module str/case
- */
-
 import { regExpEscape } from "../../utils";
 import { withoutComplexChars } from "./unicode";
 
-/**
- * Default minor words list from APA style guide
- * @see https://apastyle.apa.org/style-grammar-guidelines/capitalization/title-case
- */
-const DEFAULT_MINOR_WORDS = [
+// From https://apastyle.apa.org/style-grammar-guidelines/capitalization/title-case
+const APA_MINOR_WORDS = [
 	"a",
 	"an",
 	"and",
@@ -36,9 +28,6 @@ const DEFAULT_MINOR_WORDS = [
 	"yet",
 ];
 
-/**
- * Default regex for smart word splitting
- */
 const DEFAULT_SPLIT_REGEX = new RegExp(
 	[
 		"[\\s\\-_]+", // Runs of spaces, hyphens, underscores (consumed)
@@ -50,9 +39,6 @@ const DEFAULT_SPLIT_REGEX = new RegExp(
 	].join("|"),
 );
 
-/**
- * Options for splitWords function
- */
 export interface SplitWordsOptions {
 	splitOn?: RegExp | string | undefined;
 }
@@ -102,24 +88,17 @@ export function splitWords(str: string, options?: SplitWordsOptions): string[] {
 	return str.split(regex).filter(Boolean);
 }
 
-/**
- * Check if string has mixed case (both uppercase and lowercase letters)
- */
 function isMixedCase(str: string): boolean {
 	const hasUpper = /[A-Z]/.test(str);
 	const hasLower = /[a-z]/.test(str);
 	return hasUpper && hasLower;
 }
 
-/**
- * Check if word is all uppercase (letters and numbers only, all letters are uppercase)
- */
 function isAllUpperCase(word: string): boolean {
-	// Must have at least one letter, and all letters must be uppercase
 	return /[A-Z]/.test(word) && !/[a-z]/.test(word);
 }
 
-export interface TitleCaseOptions {
+interface TitleCaseOptions {
 	locale?: string | undefined;
 	minorWords?: string[] | boolean | undefined;
 	splitOn?: RegExp | string | undefined;
@@ -148,10 +127,7 @@ export function titleCase(str: string, options?: TitleCaseOptions): string {
 	return titleSentenceHelper(str, options, true);
 }
 
-/**
- * Options for sentenceCase
- */
-export interface SentenceCaseOptions {
+interface SentenceCaseOptions {
 	locale?: string | undefined;
 	sentenceEndChars?: string[] | undefined;
 	splitOn?: RegExp | string | undefined;
@@ -173,7 +149,7 @@ export function sentenceCase(str: string, options?: SentenceCaseOptions): string
 	return titleSentenceHelper(str, options, false);
 }
 
-export function titleSentenceHelper(
+function titleSentenceHelper(
 	str: string,
 	options: TitleCaseOptions | undefined,
 	isTitleCase: boolean,
@@ -183,7 +159,7 @@ export function titleSentenceHelper(
 		options?.minorWords === false || !isTitleCase
 			? []
 			: options?.minorWords === true || options?.minorWords === undefined
-				? DEFAULT_MINOR_WORDS
+				? APA_MINOR_WORDS
 				: options.minorWords,
 	);
 
@@ -220,10 +196,7 @@ export function titleSentenceHelper(
 		.join(" ");
 }
 
-/**
- * Options for snakeCase
- */
-export interface SnakeCaseOptions {
+interface SnakeCaseOptions {
 	locale?: string | undefined;
 	case?: "lower" | "upper" | "preserve" | undefined;
 	splitOn?: RegExp | string | undefined;
@@ -259,10 +232,7 @@ export function snakeCase(str: string, options?: SnakeCaseOptions): string {
 	}
 }
 
-/**
- * Options for case conversion functions
- */
-export interface CaseOptions {
+interface CaseOptions {
 	locale?: string | undefined;
 	splitOn?: RegExp | string | undefined;
 }

@@ -7,6 +7,7 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
+    "./container": "./dist/container/index.js",
     "./contracts": "./dist/contracts.js",
     "./facades": "./dist/facades.js",
     "./helpers/hash": "./dist/helpers/hash.js",
@@ -14,8 +15,10 @@
     "./helpers/str": "./dist/helpers/str.js",
     "./helpers/time": "./dist/helpers/time.js",
     "./http": "./dist/http/index.js",
+    "./integrations": "./dist/integrations/index.js",
     "./integrations/next": "./dist/integrations/next.js",
     "./storage": "./dist/storage.js",
+    "./testing": "./dist/testing/index.js",
     "./view": "./dist/view/index.js",
     "./view/jsx-dev-runtime": "./dist/view/jsx-dev-runtime.js",
     "./view/jsx-runtime": "./dist/view/jsx-runtime.js",
@@ -34,7 +37,7 @@
     "build": "tsdown",
     "build:watch": "tsdown --watch",
     "clean": "rm -rf dist",
-    "regenerate-contracts": "bun run scripts/regenerate-contracts.ts"
+    "regenerate-exports": "bun run scripts/regenerate-exports.ts"
   },
   "files": [
     "README.md",

@@ -8,8 +8,24 @@ export { type S3StorageConfig } from "./adapters/s3/S3StorageConfig";
 export { s3Storage } from "./adapters/s3/s3Storage";
 export { type ScopedStorageConfig } from "./adapters/scoped/ScopedStorageConfig";
 export { scopedStorage } from "./adapters/scoped/scopedStorage";
-export { StorageDirectoryImpl } from "./StorageDirectoryImpl";
-export { StorageDiskImpl } from "./StorageDiskImpl";
-export { StorageFileImpl } from "./StorageFileImpl";
-export { StorageImpl } from "./StorageImpl";
+export type {
+	StorageAdapter,
+	StorageData,
+	StorageDirectory,
+	StorageDirectoryOperations,
+	StorageDisk,
+	StorageEndpoint,
+	StorageEndpointFileInfoResult,
+	StorageEndpointFileReadResult,
+	StorageEndpointWriteOptions,
+	StorageFile,
+	StorageFileFetchResult,
+	StorageFileInfo,
+	StorageFileListOptions,
+	StorageFilePutPayload,
+	StorageFileSignedUrlOptions,
+	StorageFileUploadUrlOptions,
+	StorageFileUrlOptions,
+} from "./contracts/Storage";
+export * from "./storage-errors";
 export * from "./storage-events";

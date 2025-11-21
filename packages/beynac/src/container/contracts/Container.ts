@@ -3,9 +3,6 @@ import type { ContextualBindingBuilder } from "../ContextualBindingBuilder";
 import type { KeyOrClass, TypeToken } from "../container-key";
 import { createTypeToken } from "../container-key";
 
-/**
- * A function that produces an instance of T
- */
 export type FactoryFunction<T> = (container: Container) => {
 	[K in keyof T]: T[K];
 };
@@ -511,4 +508,5 @@ export interface Container {
 	when(consumer: KeyOrClass | KeyOrClass[]): ContextualBindingBuilder;
 }
 
+/***/
 export const Container: TypeToken<Container> = createTypeToken("Container");

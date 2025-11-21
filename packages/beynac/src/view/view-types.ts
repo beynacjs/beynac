@@ -7,6 +7,7 @@ export type RenderOptions = {
 	context?: Context | undefined;
 };
 
+/***/
 export interface Context {
 	get<T>(key: Key<T>): T | null;
 	set<T>(key: Key<T>, value: T): void;
@@ -39,9 +40,16 @@ export function isJsxElement(value: unknown): value is JSXElement {
 	return value != null && typeof value === "object" && JSXElementBrand in value;
 }
 
+/***/
 export namespace JSX {
+	/**
+	 * The type of a <jsx></jsx> expression.
+	 */
 	export type Element = JSXElement | Promise<JSXElement | null> | null;
 
+	/**
+	 * The type of content items accepted within JSX: <jsx>{content}</jsx>
+	 */
 	export type Children = JSXNode;
 
 	export interface ElementChildrenAttribute {
@@ -63,13 +71,33 @@ export namespace JSX {
 	}
 }
 
-// oxlint-disable-next-line no-explicit-any -- we follow react in using any here
-export type Props = Record<string, any>;
+/**
+ * A generic props type that accepts any props.
+ */
+export type Props = Record<
+	string,
+	// oxlint-disable-next-line no-explicit-any -- we follow react in using any here
+	any
+>;
 
+/**
+ * A props type for components that accept children
+ *
+ * @example
+ * type MyProps = PropsWithChildren<{ label: string }>;
+ * const MyComponent: Component<MyProps> = ({ label, children }) => <div>{label}: {children}</div>;
+ */
 export type PropsWithChildren<P = unknown> = P & {
 	children?: JSX.Children | undefined;
 };
 
+/**
+ * THe type of the `style` prop on elements
+ *
+ * @example
+ * const red: CSSProperties = { color: "red" };
+ * <div style={red} />
+ */
 export type CSSProperties = CSS.Properties<(string & {}) | number> & {
 	[key: `--${string}`]: string | number;
 };

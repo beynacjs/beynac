@@ -307,9 +307,6 @@ export class S3Endpoint extends BaseClass implements StorageEndpoint {
 	}
 }
 
-/**
- * Delete multiple objects from S3 in a single batch request (up to 1000 objects)
- */
 async function deleteBatch(client: S3Client, bucket: string, keys: string[]): Promise<void> {
 	const objects = keys.map((key) => `<Object><Key>${escapeXml(key)}</Key></Object>`).join("");
 	const payload = `<?xml version="1.0" encoding="UTF-8"?><Delete>${objects}</Delete>`;

@@ -3,8 +3,8 @@ import { createKey } from "../core/Key";
 import { render, renderResponse, renderStream } from "../test-utils";
 import { asyncGate } from "../test-utils/async-gate";
 import { MarkupStream } from "./markup-stream";
-import type { Context, JSXNode } from "./public-types";
 import { RenderingError } from "./ViewRendererImpl";
+import type { Context, JSXNode } from "./view-types";
 
 describe("basic functionality", () => {
 	test("renders empty content", async () => {

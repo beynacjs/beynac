@@ -4,7 +4,7 @@ import { Configuration, resolveEnvironmentChoice } from "../core/contracts/Confi
 import { Dispatcher } from "../core/contracts/Dispatcher";
 import { BaseClass } from "../utils";
 import { ViewRenderer } from "../view/contracts/ViewRenderer";
-import { isJsxElement, type JSX } from "../view/public-types";
+import { isJsxElement, type JSX } from "../view/view-types";
 import { AbortException, abortExceptionKey } from "./abort";
 import type { BaseController } from "./Controller";
 import {

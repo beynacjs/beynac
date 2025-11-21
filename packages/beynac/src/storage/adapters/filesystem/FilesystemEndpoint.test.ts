@@ -7,7 +7,8 @@ import type { StorageEndpoint } from "../../contracts/Storage";
 import { mockPlatformPaths } from "../../path-operations";
 import { StorageUnknownError } from "../../storage-errors";
 import type { SharedTestConfig } from "../../storage-test-utils";
-import { FilesystemEndpoint, filesystemStorage } from "./FilesystemEndpoint";
+import { FilesystemEndpoint } from "./FilesystemEndpoint";
+import { filesystemStorage } from "./filesystemStorage";
 
 beforeEach(() => {
 	mockPlatformPaths("posix");

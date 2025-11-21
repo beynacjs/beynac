@@ -6,9 +6,6 @@ import { onResetAllMocks } from "../testing";
 // Re-export types
 export type { Dir, ReadStream, Stats, WriteStream } from "node:fs";
 
-/**
- * Interface for filesystem operations used by storage adapters
- */
 export type FilesystemOps = {
 	stat(this: void, path: string): Promise<fs.Stats>;
 	mkdir(this: void, path: string, options?: fs.MakeDirectoryOptions): Promise<unknown>;
@@ -37,11 +34,6 @@ const realFs: FilesystemOps = {
 
 let currentFs: FilesystemOps = realFs;
 
-/**
- * Filesystem operations object that delegates to the current implementation.
- * By default uses real filesystem operations, but can be mocked for testing.
- * Uses getters so that fsOps.stat === currentFs.stat (important for testing with mocks)
- */
 export const fsOps: FilesystemOps = {
 	get stat() {
 		return currentFs.stat;
@@ -75,12 +67,6 @@ export const fsOps: FilesystemOps = {
 	},
 };
 
-/**
- * Mock filesystem operations for testing.
- * Pass a FilesystemOps implementation (typically with mock() functions from tests).
- *
- * @internal
- */
 export function mockFilesystemOperations(ops: FilesystemOps): void {
 	currentFs = ops;
 	onResetAllMocks(() => {

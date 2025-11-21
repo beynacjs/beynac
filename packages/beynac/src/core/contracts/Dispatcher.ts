@@ -1,45 +1,16 @@
 import type { TypeToken } from "../../container/container-key";
 import { createTypeToken } from "../../container/container-key";
 import type { AnyConstructor, NoArgConstructor } from "../../utils";
-import { BaseClass } from "../../utils";
 
 export type FunctionListener<T extends object> = (event: T) => void;
 
-interface IClassListenerInstance<T extends object> {
+export interface IClassListenerInstance<T extends object> {
 	handle(event: T): void;
 }
 
-/**
- * Class-based event listener
- */
 export type ClassListener<T extends object> = NoArgConstructor<IClassListenerInstance<T>> & {
 	isClassListener: true;
 };
-
-/**
- * Base class for event listeners.
- *
- * Class-based listeners are instantiated by the container when events are dispatched,
- * allowing them to receive dependencies via constructor injection.
- *
- * @example
- * class UserRegisteredListener extends BaseListener {
- *   constructor(private emailService = inject(EmailService)) {
- *     super();
- *   }
- *
- *   handle(event: UserRegistered): void {
- *     this.emailService.sendWelcome(event.user);
- *   }
- * }
- *
- * dispatcher.addListener(UserRegistered, UserRegisteredListener);
- */
-export abstract class BaseListener extends BaseClass implements IClassListenerInstance<object> {
-	static readonly isClassListener = true;
-
-	abstract handle(event: object): void;
-}
 
 export type EventListener<T extends object> = FunctionListener<T> | ClassListener<T>;
 

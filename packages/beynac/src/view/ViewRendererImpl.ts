@@ -8,13 +8,13 @@ import { ContextImpl } from "./context";
 import type { RenderResponseOptions, ViewRenderer } from "./contracts/ViewRenderer";
 import { MarkupStream } from "./markup-stream";
 import { isOnceNode, type OnceKey } from "./once";
-import type { Props } from "./public-types";
-import { type Context, type CSSProperties, type JSXNode, type RenderOptions } from "./public-types";
 import { RawContent } from "./raw";
 import { isSpecialNode } from "./special-node";
 import { isStackOutNode, isStackPushNode } from "./stack";
 import { StreamBuffer } from "./stream-buffer";
 import { styleObjectToString } from "./style-attribute";
+import type { Props } from "./view-types";
+import { type Context, type CSSProperties, type JSXNode, type RenderOptions } from "./view-types";
 
 type ComponentStack = {
 	name: string;

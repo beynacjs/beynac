@@ -1,8 +1,5 @@
 import type { AnyConstructor } from "../utils";
 
-/**
- * A key that can be bound to a value in the IoC container
- */
 export type KeyOrClass<T = unknown> = AnyConstructor<T> | TypeToken<T>;
 
 export const getKeyName = (key: KeyOrClass): string => {

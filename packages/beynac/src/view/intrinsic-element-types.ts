@@ -1,14 +1,12 @@
-/**
- * This types file is extracted from the Hono project, original here:
- * https://github.com/honojs/hono/blob/main/src/jsx/intrinsic-elements.ts
- * Copyright (c) 2021 - present, Yusuke Wada and Hono contributors
- *
- * That code was based on React. https://github.com/facebook/react MIT License
- * Copyright (c) Meta Platforms, Inc. and affiliates.
- */
+// This types file is extracted from the Hono project, original here:
+// https://github.com/honojs/hono/blob/main/src/jsx/intrinsic-elements.ts
+// Copyright (c) 2021 - present, Yusuke Wada and Hono contributors
+//
+// That code was based on React. https://github.com/facebook/react MIT License
+// Copyright (c) Meta Platforms, Inc. and affiliates.
 
 import type { ClassAttributeValue } from "./class-attribute";
-import type { CSSProperties } from "./public-types";
+import type { CSSProperties } from "./view-types";
 
 type BaseMime =
 	| "audio/aac"
@@ -108,6 +106,7 @@ export interface HTMLAttributes extends JSXAttributes, AnyAttributes {
 	lang?: string | undefined;
 	nonce?: string | undefined;
 	placeholder?: string | undefined;
+
 	/** @see https://developer.mozilla.org/en-US/docs/Web/API/Popover_API */
 	popover?: boolean | "auto" | "manual" | undefined;
 	slot?: string | undefined;
@@ -229,11 +228,13 @@ interface FieldsetHTMLAttributes extends HTMLAttributes {
 
 /** @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#method */
 type HTMLAttributeFormMethod = "get" | "post" | "dialog";
+
 /** @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#enctype */
 type HTMLAttributeFormEnctype =
 	| "application/x-www-form-urlencoded"
 	| "multipart/form-data"
 	| "text/plain";
+
 /** @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#autocomplete */
 type HTMLAttributeFormAutocomplete = "on" | "off";
 
@@ -474,6 +475,7 @@ type MetaHttpEquiv =
 	| "default-style"
 	| "x-ua-compatible"
 	| "refresh";
+
 /**
  * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/meta/name
  */
@@ -491,6 +493,7 @@ type MetaName =
 	| "googlebot"
 	| "publisher"
 	| "robots";
+
 /**
  * @see https://ogp.me/
  */
@@ -634,6 +637,7 @@ interface SourceHTMLAttributes extends HTMLAttributes {
 interface StyleHTMLAttributes extends HTMLAttributes {
 	media?: string | undefined;
 	scoped?: boolean | undefined;
+
 	/**
 	 * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/style#type
 	 */

@@ -34,9 +34,6 @@ export function createTestDirectory(
 	return testDir;
 }
 
-/**
- * Check if a process with the given PID is currently running
- */
 function isProcessAlive(pid: number): boolean {
 	if (!Number.isInteger(pid) || pid <= 0) {
 		return false;
@@ -61,9 +58,6 @@ function isProcessAlive(pid: number): boolean {
 	}
 }
 
-/**
- * Clean up test directories from processes that have exited
- */
 function cleanupOrphanedFolders(): void {
 	const entries = withDeleteErrors(BEYNAC_TEST_ROOT, () => {
 		return fs.readdirSync(BEYNAC_TEST_ROOT);

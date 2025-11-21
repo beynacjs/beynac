@@ -1,7 +1,7 @@
 import type { Key } from "../core/Key";
 import { createKey } from "../core/Key";
 import { BaseClass } from "../utils";
-import type { Context, JSX, Props } from "./public-types";
+import type { Context, JSX, Props } from "./view-types";
 
 /**
  * A Function Component
@@ -20,6 +20,7 @@ export type ClassComponent<P = Props> = (new (
 	isClassComponent: true;
 };
 
+/***/
 export type Component<P = Props> = FunctionComponent<P> | ClassComponent<P>;
 
 export type ComponentInstantiator = <P>(

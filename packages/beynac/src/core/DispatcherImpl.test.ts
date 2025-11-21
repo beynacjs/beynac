@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import { ContainerImpl } from "../container/ContainerImpl";
 import { inject } from "../container/inject";
-import { BaseListener } from "./contracts/Dispatcher";
+import { BaseListener } from "./BaseListener";
 import { DispatcherImpl } from "./DispatcherImpl";
 
 let container: ContainerImpl;

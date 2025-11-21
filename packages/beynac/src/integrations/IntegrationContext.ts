@@ -73,6 +73,7 @@ export interface IntegrationContext {
 	readonly addKeepAliveTask: ((task: Promise<void>) => void) | null;
 }
 
+/***/
 export const IntegrationContext: TypeToken<IntegrationContext> =
 	createTypeToken<IntegrationContext>("IntegrationContext");
 

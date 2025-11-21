@@ -1,7 +1,25 @@
 import { MarkupStream } from "./markup-stream";
-import type { JSXNode } from "./public-types";
 import { RawContent } from "./raw";
+import type { JSXNode } from "./view-types";
 
+/**
+ * Render static HTML with optional dynamic values. This can be used anywhere
+ * that JSX can be used, e.g. returned from controllers.
+ *
+ * Values inserted into the template string will be escaped. Use `raw(content)`
+ * to for dynamically generated HTML.
+ *
+ * @example
+ * const planetName = "<Earth>";
+ * return html`<div>Hello ${planetName}</div>`;
+ * // results in <div>Hello &lt;Earth&gt;</div>
+ *
+ * return html`<div>Hello ${raw(planetName)}</div>`;
+ * // results in <div>Hello <Earth></div>
+ *
+ * return html`<div>Hello ${<b>World</b>}</div>`;
+ * // Embedded JSX, results in <div>Hello <b>World</b></div>
+ */
 export function html(strings: TemplateStringsArray, ...values: JSXNode[]): MarkupStream {
 	const content: JSXNode[] = [];
 

@@ -6,9 +6,6 @@ import type {
 	StorageFilePutPayload,
 } from "./contracts/Storage";
 
-/**
- * Implementation of the StorageDisk interface
- */
 export abstract class DelegatesToDirectory extends BaseClass implements StorageDirectoryOperations {
 	protected abstract getDirectoryForDelegation(): StorageDirectoryOperations;
 
