@@ -1,5 +1,5 @@
 import { S3Client, S3Errors } from "@bradenmacdonald/s3-lite-client";
-import { randomId } from "../../../helpers/str/str-entry-point";
+import { randomId } from "../../../helpers/str/random";
 import {
 	ensureDockerServicesRunning,
 	MINIO_ENDPOINT,

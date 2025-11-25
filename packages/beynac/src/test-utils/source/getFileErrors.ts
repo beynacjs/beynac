@@ -35,7 +35,8 @@ export function getFileErrors(file: SourceFile): string[] {
 				}
 
 				const exportFiles = exp.getAliases().map((e) => e.file.path);
-				const expectedExportFiles = ["errors.ts", `${moduleName}/${moduleName}-entry-point.ts`];
+				const entryFileName = moduleNameToEntryFile(moduleName);
+				const expectedExportFiles = ["errors.ts", `entry/${entryFileName}.ts`];
 				if (!setsEqual(exportFiles, expectedExportFiles)) {
 					errors.push(
 						`${exp.name} in ${file.path} should be exported twice in ${expectedExportFiles.join(" and ")}, but the files exporting it are: ${exportFiles.join(", ")}`,
@@ -65,7 +66,8 @@ export function getFileErrors(file: SourceFile): string[] {
 				}
 
 				const exportFiles = exp.getAliases().map((e) => e.file.path);
-				const expectedExportFiles = ["events.ts", `${moduleName}/${moduleName}-entry-point.ts`];
+				const entryFileName = moduleNameToEntryFile(moduleName);
+				const expectedExportFiles = ["events.ts", `entry/${entryFileName}.ts`];
 				if (!setsEqual(exportFiles, expectedExportFiles)) {
 					errors.push(
 						`${exp.name} in ${file.path} should be exported twice in ${expectedExportFiles.join(" and ")}, but the files exporting it are: ${exportFiles.join(", ")}`,
@@ -101,13 +103,6 @@ export function getFileErrors(file: SourceFile): string[] {
 		if (exp.reexport && exp.reexport.originalName !== exp.name) {
 			errors.push(
 				`File ${file.path} renames export "${exp.name}". Use 'export { foo }' not 'export { foo as bar }'`,
-			);
-		}
-
-		// Check barrel file parent directory re-exports
-		if (exp.reexport && exp.reexport.originalFile.startsWith("..")) {
-			errors.push(
-				`File ${file.path} re-exports from parent directory "${exp.reexport.originalFile}". Files should only re-export from the current directory or subdirectories.`,
 			);
 		}
 
@@ -215,4 +210,10 @@ const setsEqual = <T>(a: T[], b: T[]): boolean => {
 	if (a.length !== b.length) return false;
 	const aSet = new Set(a);
 	return b.every((bItem) => aSet.has(bItem));
+};
+
+/** Maps module name to entry file name. "core" -> "index", others remain unchanged. */
+const moduleNameToEntryFile = (moduleName: string): string => {
+	if (moduleName === "core") return "index";
+	return moduleName;
 };

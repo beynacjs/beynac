@@ -1,5 +1,6 @@
 import { describe, expect, expectTypeOf, test } from "bun:test";
-import { get, group, type Routes } from "./http-entry-point";
+import { get, group } from "./helpers";
+import type { Routes } from "./router-types";
 
 test("type inference for named routes", () => {
 	// Type inference only works when name is set at creation time

@@ -3,8 +3,8 @@
 import { describe, expect, mock, test } from "bun:test";
 import { controllerContext } from "../test-utils/http-test-utils";
 import { mockViewRenderer } from "../test-utils/view-test-utils";
-import type { FunctionComponent } from "../view/view-entry-point";
-import { BaseComponent } from "../view/view-entry-point";
+import type { FunctionComponent } from "../view/Component";
+import { BaseComponent } from "../view/Component";
 import type { Context } from "../view/view-types";
 import { AbortException } from "./abort";
 import { get } from "./helpers";

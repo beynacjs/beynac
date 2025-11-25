@@ -12,13 +12,15 @@ import {
 	MockController,
 	mockMiddleware,
 } from "../test-utils/http-test-utils";
+import { abort } from "./abort";
 import type { ClassController, Controller } from "./Controller";
 import { BaseController, type ControllerContext, type ControllerReturn } from "./Controller";
-import { abort, any, get, group, post, redirect, StatusPagesMiddleware } from "./http-entry-point";
+import { any, get, group, post, redirect } from "./helpers";
 import type { FunctionMiddleware } from "./Middleware";
 import { BaseMiddleware } from "./Middleware";
 import { MiddlewareSet } from "./MiddlewareSet";
 import { Router } from "./Router";
+import { StatusPagesMiddleware } from "./StatusPagesMiddleware";
 
 let container: Container;
 let router: Router;

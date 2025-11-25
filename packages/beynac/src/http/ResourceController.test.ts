@@ -4,11 +4,10 @@ import type { Container } from "../container/contracts/Container";
 import { Configuration } from "../core/contracts/Configuration";
 import { createTestApplication, mockMiddleware } from "../test-utils/http-test-utils";
 import type { ControllerContext } from "./Controller";
-import { apiResource, resource } from "./helpers";
-import type { Routes } from "./http-entry-point";
-import { group } from "./http-entry-point";
+import { apiResource, group, resource } from "./helpers";
 import { ResourceController } from "./ResourceController";
 import { RouteUrlGenerator } from "./RouteUrlGenerator";
+import type { Routes } from "./router-types";
 
 beforeEach(() => {
 	mockMiddleware.reset();

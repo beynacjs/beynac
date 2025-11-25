@@ -1,7 +1,7 @@
 import { defineConfig } from "tsdown";
 import { ENTRY_POINTS } from "./src/test-utils/entryPoints.ts";
 
-const internalDeps = ["devalue"]
+const bundledDeps = ["devalue", "@bradenmacdonald/s3-lite-client"];
 
 export default defineConfig({
   entry: ENTRY_POINTS,
@@ -11,6 +11,9 @@ export default defineConfig({
     resolve: true,
   },
   clean: true,
-  exports: true,
-  external: (dep) => !internalDeps.includes(dep),
+  external: (dep) => {
+    // local source files are bundled
+    if (dep.startsWith(".") || dep.startsWith("/")) return false;
+    return !bundledDeps.includes(dep);
+  },
 });

@@ -35,7 +35,7 @@
           "message": "Do not import from the central errors.ts file"
         },
         {
-          "group": ["**/*-entry-point"],
+          "group": ["**/entry", "**/entry/**"],
           "message": "Do not import from entry point files. Import from the specific implementation files instead."
         }
       ]

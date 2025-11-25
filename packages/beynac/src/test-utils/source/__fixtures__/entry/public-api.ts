@@ -6,15 +6,15 @@ export {
 	type DocumentedInterface,
 	type DocumentedType,
 	documentedFunction,
-} from "./documented";
-export { overloadedFunction } from "./function-overloads";
-export { SharedName } from "./type-value-same-name";
+} from "../public-api/documented";
+export { overloadedFunction } from "../public-api/function-overloads";
+export { SharedName } from "../public-api/type-value-same-name";
 export {
 	UNDOCUMENTED_CONST,
 	UndocumentedClass,
 	type UndocumentedInterface,
 	type UndocumentedType,
 	undocumentedFunction,
-} from "./undocumented";
+} from "../public-api/undocumented";
 
 // Note: internal.ts exports are NOT re-exported here

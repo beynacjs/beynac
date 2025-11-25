@@ -1,4 +1,6 @@
+import { basename } from "node:path";
 import { mapObjectValues } from "../../utils";
+import { ENTRY_POINTS } from "../entryPoints";
 import type { SourceProject } from "./SourceProject";
 
 export function getGeneratedFileContent(project: SourceProject): Record<string, string> {
@@ -117,4 +119,40 @@ function generateFacadesFileContent(project: SourceProject): string {
 	lines.push(...imports, ...facades);
 
 	return lines.join("\n") + "\n";
+}
+
+export function getPackageExports(): Record<string, string | { types: string; default: string }> {
+	const exports: Record<string, string | { types: string; default: string }> = {};
+
+	for (const [entryKey, sourcePath] of Object.entries(ENTRY_POINTS)) {
+		const exportKey = entryKey === "index" ? "." : `./${entryKey}`;
+
+		const jsPath = `./dist/${entryKey}.mjs`;
+
+		const sourceBasename = basename(sourcePath, ".ts");
+		const dtsPath = `./dist/${sourceBasename}.d.mts`;
+
+		const jsPathWithoutExt = `./dist/${entryKey}`;
+		const dtsPathWithoutExt = `./dist/${sourceBasename}`;
+
+		// The issue we are fixing here, and the reason we generate our package
+		// exports rather than relying on tsdown to do this, is that for nested
+		// entry points, tsdown generates a dist/subfolder/foo.mjs file and a
+		// dist/foo.d.ts file - note the lack of a subfolder in the .d.ts. We
+		// therefore need a type mapping in the export entry to correctly locate
+		// the types. If a future version of tsdown correctly generates exports
+		// by setting the `exports: true` option, we can remove this code.
+		if (jsPathWithoutExt === dtsPathWithoutExt) {
+			exports[exportKey] = jsPath;
+		} else {
+			exports[exportKey] = {
+				types: dtsPath,
+				default: jsPath,
+			};
+		}
+	}
+
+	exports["./package.json"] = "./package.json";
+
+	return exports;
 }

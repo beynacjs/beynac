@@ -2,7 +2,7 @@ import { afterEach, describe, expect, expectTypeOf, test } from "bun:test";
 import { Cookies, Headers } from "../facades";
 import type { ControllerContext } from "../http/Controller";
 import { BaseController } from "../http/Controller";
-import { get, group } from "../http/http-entry-point";
+import { get, group } from "../http/helpers";
 import type { Routes } from "../http/router-types";
 import { integrationContext, MockController, mockMiddleware } from "../test-utils/http-test-utils";
 import { ApplicationImpl } from "./ApplicationImpl";

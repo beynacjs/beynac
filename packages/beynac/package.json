@@ -3,27 +3,47 @@
   "version": "0.0.1",
   "description": "A batteries-included full-stack framework for TypeScript",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/index.mjs",
   "exports": {
-    ".": "./dist/index.js",
-    "./container": "./dist/container/index.js",
-    "./contracts": "./dist/contracts.js",
-    "./errors": "./dist/errors.js",
-    "./events": "./dist/events.js",
-    "./facades": "./dist/facades.js",
-    "./helpers/hash": "./dist/helpers/hash.js",
-    "./helpers/headers": "./dist/helpers/headers.js",
-    "./helpers/str": "./dist/helpers/str.js",
-    "./helpers/time": "./dist/helpers/time.js",
-    "./http": "./dist/http/index.js",
-    "./integrations": "./dist/integrations.js",
-    "./integrations/next": "./dist/integrations/next.js",
-    "./storage": "./dist/storage.js",
-    "./testing": "./dist/testing/index.js",
-    "./view": "./dist/view/index.js",
-    "./view/jsx-dev-runtime": "./dist/view/jsx-dev-runtime.js",
-    "./view/jsx-runtime": "./dist/view/jsx-runtime.js",
+    "./container": "./dist/container.mjs",
+    "./contracts": "./dist/contracts.mjs",
+    "./errors": "./dist/errors.mjs",
+    "./events": "./dist/events.mjs",
+    "./facades": "./dist/facades.mjs",
+    "./helpers/hash": {
+      "types": "./dist/hash.d.mts",
+      "default": "./dist/helpers/hash.mjs"
+    },
+    "./helpers/headers": {
+      "types": "./dist/headers.d.mts",
+      "default": "./dist/helpers/headers.mjs"
+    },
+    "./helpers/str": {
+      "types": "./dist/str.d.mts",
+      "default": "./dist/helpers/str.mjs"
+    },
+    "./helpers/time": {
+      "types": "./dist/time.d.mts",
+      "default": "./dist/helpers/time.mjs"
+    },
+    "./http": "./dist/http.mjs",
+    ".": "./dist/index.mjs",
+    "./integrations": "./dist/integrations.mjs",
+    "./integrations/next": {
+      "types": "./dist/next.d.mts",
+      "default": "./dist/integrations/next.mjs"
+    },
+    "./storage": "./dist/storage.mjs",
+    "./testing": "./dist/testing.mjs",
+    "./view": "./dist/view.mjs",
+    "./view/jsx-dev-runtime": {
+      "types": "./dist/jsx-dev-runtime.d.mts",
+      "default": "./dist/view/jsx-dev-runtime.mjs"
+    },
+    "./view/jsx-runtime": {
+      "types": "./dist/jsx-runtime.d.mts",
+      "default": "./dist/view/jsx-runtime.mjs"
+    },
     "./package.json": "./package.json"
   },
   "sideEffects": false,
@@ -36,7 +56,7 @@
     "format": "biome check --write .",
     "lint": "oxlint --type-aware src/",
     "test:coverage": "bun test --coverage --coverage-reporter=lcov",
-    "build": "tsdown && bun check-dist",
+    "build": "tsdown && bun regenerate-exports && bun check-dist",
     "build:watch": "tsdown --watch",
     "clean": "rm -rf dist",
     "regenerate-exports": "bun run scripts/regenerate-exports.ts",
@@ -67,7 +87,7 @@
     "next": "^15.0.0",
     "oxlint": "^1.24.0",
     "oxlint-tsgolint": "^0.2.1",
-    "tsdown": "^0.15.9",
+    "tsdown": "0.16.7",
     "typescript": "^5.8.3"
   },
   "peerDependencies": {
@@ -78,5 +98,5 @@
       "optional": true
     }
   },
-  "module": "./dist/index.js"
+  "module": "./dist/index.mjs"
 }

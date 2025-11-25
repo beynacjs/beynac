@@ -1,7 +1,10 @@
 #!/usr/bin/env bun
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { getGeneratedFileContent } from "../src/test-utils/source/generated-content";
+import {
+	getGeneratedFileContent,
+	getPackageExports,
+} from "../src/test-utils/source/generated-content";
 import { SourceProject } from "../src/test-utils/source/SourceProject";
 
 async function main() {
@@ -13,13 +16,18 @@ async function main() {
 		const filePath = join(srcDir, filename);
 		await writeFile(filePath, content, "utf-8");
 
-		const lineCount = content.split("\n").filter((l) => l.trim()).length;
 		console.log(`✓ Generated ${filePath}`);
-		console.log(`  ${lineCount} lines`);
 	}
+
+	// Update package.json exports
+	const packageJsonPath = join(import.meta.dir, "..", "package.json");
+	const packageJson = JSON.parse(await readFile(packageJsonPath, "utf-8"));
+	packageJson.exports = getPackageExports();
+	await writeFile(packageJsonPath, JSON.stringify(packageJson, null, "  ") + "\n", "utf-8");
+	console.log(`✓ Generated package.json exports`);
 }
 
 main().catch((error) => {
-	console.error("Error generating contracts file:", error);
+	console.error("Error generating exports:", error);
 	process.exit(1);
 });

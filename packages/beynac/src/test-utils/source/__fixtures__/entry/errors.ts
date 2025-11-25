@@ -4,10 +4,10 @@ export {
 	GoodError,
 	NotInRootErrorsError,
 	RegularClass as RegularErrorClass,
-} from "./errors-errors";
+} from "../errors/errors-errors";
 export {
 	BadEventExtension,
 	FooEvent,
 	GoodEvent,
 	RegularClass as RegularEventClass,
-} from "./errors-events";
+} from "../errors/errors-events";

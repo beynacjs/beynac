@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ENTRY_POINTS } from "./test-utils/entryPoints";
-import { getGeneratedFileContent } from "./test-utils/source/generated-content";
+import { getGeneratedFileContent, getPackageExports } from "./test-utils/source/generated-content";
 import { getFileErrors } from "./test-utils/source/getFileErrors";
 import { SourceProject } from "./test-utils/source/SourceProject";
 
@@ -27,5 +27,11 @@ describe("codebase invariants", () => {
 			console.error(`💥 ${filename} content needs updating, run 'bun regenerate-contracts'`);
 		}
 		expect(actualContent).toEqual(expectedContent);
+	});
+
+	test("package.json exports match generated content", async () => {
+		const packageJsonPath = join(srcDir, "..", "package.json");
+		const packageJson = JSON.parse(await readFile(packageJsonPath, "utf-8"));
+		expect(packageJson.exports).toEqual(getPackageExports());
 	});
 });

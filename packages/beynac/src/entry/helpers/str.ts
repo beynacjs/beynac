@@ -11,8 +11,8 @@ export {
 	titleCase,
 	uppercase,
 	uppercaseFirst,
-} from "./case";
-export { compileMultiReplace, multiReplace } from "./misc";
+} from "../../helpers/str/case";
+export { compileMultiReplace, multiReplace } from "../../helpers/str/misc";
 export {
 	isUlid,
 	isUuid,
@@ -23,5 +23,5 @@ export {
 	ulid,
 	uuid,
 	uuidV4,
-} from "./random";
-export { slug, transliterate, withoutComplexChars, withoutMarks } from "./unicode";
+} from "../../helpers/str/random";
+export { slug, transliterate, withoutComplexChars, withoutMarks } from "../../helpers/str/unicode";
